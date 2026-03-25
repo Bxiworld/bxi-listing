@@ -208,7 +208,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 space-y-2">
           <a
-            href="http://localhost:3001/"
+            href="https://dashboard.bxiworld.in/"
             target="_blank"
             rel="noopener noreferrer"
             className="sidebar-nav-item text-gray-500 hover:text-[#C64091]"
