@@ -31,7 +31,7 @@ const getAdminToken = () => {
 
 // Create axios instance with base configuration (BXI mounts routes at root, no /api)
 const api = axios.create({
-  baseURL: 'http://localhost:7000',
+  baseURL: 'https://bxi-api-development.bxiworld.in',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
