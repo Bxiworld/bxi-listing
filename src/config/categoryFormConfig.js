@@ -424,7 +424,7 @@ export const PRODUCT_INFO_CONFIG = {
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
   },
   fmcg: {
-    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Custom Size'],
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'Volume', 'Calorie Count', 'Shelf Life', 'Nutritional Information', 'Temprature', 'Custom Size'],
     defaultSize: 'Length',
     hasFormSelection: true, // dry/wet form
     hasColorPicker: true,
@@ -454,7 +454,7 @@ export const PRODUCT_INFO_CONFIG = {
     commonFields: ['price', 'discountedPrice', 'minOrderQty', 'maxOrderQty', 'gst', 'hsn'],
   },
   others: {
-    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'GSM', 'Volume', 'CalorieCount', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes Size', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'Custom Size'],
+    sizeOptions: ['Length', 'Length x Height', 'Length x Height x Width', 'GSM', 'Volume', 'Calorie Count', 'ShelfLife', 'NutritionalInformation', 'Temprature', 'Shoes Size', 'BatteryCapacity', 'PowerConsumption', 'Resolution', 'Amplification', 'Frequency', 'Humidity', 'Pressure', 'Custom Size'],
     defaultSize: 'Length',
     hasColorPicker: true,
     hasProductId: true,
