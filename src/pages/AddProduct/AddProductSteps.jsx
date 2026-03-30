@@ -233,7 +233,14 @@ export const GeneralInformation = ({ category }) => {
     }
   });
 
-  const categoryLabel = category?.charAt(0).toUpperCase() + category?.slice(1).replace('voucher', '') || 'Product';
+  const normalizeCategoryLabel = (cat) => {
+    if (!cat) return 'Product';
+    const cleaned = cat.replace(/voucher$/i, '');
+    if (!cleaned) return 'Product';
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  };
+
+  const categoryLabel = normalizeCategoryLabel(category);
   const selectedSubcategory = watch('subcategory');
 
   useEffect(() => {
@@ -1569,7 +1576,7 @@ export const ProductInfo = ({ category }) => {
           <main className="stepper-content">
             <div className="form-section">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-lg font-semibold">{isVoucherCategory ? 'Voucher Information' : 'Product Information'} - {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+                <h2 className="text-lg font-semibold">{isVoucherCategory ? 'Voucher Information' : 'Product Information'} - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
@@ -1645,7 +1652,7 @@ export const ProductInfo = ({ category }) => {
 
             {/* Dimensions/Description – as clickable cards */}
             {hasSizeOptions && (
-              <div className="space-y-2">
+              <div className="space-y-2 mb-2">
                 <Label>Select what best suits your {isVoucherCategory ? 'voucher' : 'product'} Dimensions/Description?</Label>
                 <div className="flex flex-wrap gap-2">
                   {effectiveSizeOptions.map((opt) => (
@@ -1880,7 +1887,21 @@ export const ProductInfo = ({ category }) => {
               {/* HSN – when config has HSN */}
               {hasHsn && (
                 <div className="space-y-2">
-                  <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Harmonized System Nomenclature code for tax classification (4-8 digits)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input
                     id="hsn"
                     type="text"
@@ -1900,7 +1921,21 @@ export const ProductInfo = ({ category }) => {
 
               {/* GST */}
               <div className="space-y-2">
-                <Label>GST <span className="text-red-500">*</span></Label>
+                <div className="flex items-center gap-1">
+                  <Label>GST <span className="text-red-500">*</span></Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Collecting maximum GST of the entire product range is recommended</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Select
                   defaultValue="18"
                   onValueChange={(value) => setValue('gst', value)}
@@ -3096,7 +3131,7 @@ export const TechInfo = ({ category }) => {
           <main className="stepper-content">
             <div className="form-section">
               <h2 className="form-section-title">
-                Technical Information - {category.charAt(0).toUpperCase() + category.slice(1)}
+                Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
