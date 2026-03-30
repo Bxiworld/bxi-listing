@@ -3095,7 +3095,19 @@ export const TechInfo = ({ category }) => {
 
           <main className="stepper-content">
             <div className="form-section">
-              <h2 className="form-section-title">Technical Information - {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+              <h2 className="form-section-title">
+                Technical Information - {category.charAt(0).toUpperCase() + category.slice(1)}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <InfoIcon className="w-4 h-4 ml-2" />
+                    </TooltipTrigger>
+                    <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                      Technical Information refers to specific details and specifications about a product's technical aspects, packaging material, packaging size, Dimensions, logistics, go live information for your offered product, This is Crucial Information from Logistics and Buying Perspective for making Informed Decisions.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </h2>
               
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Warranty & Guarantee */}
@@ -3529,8 +3541,8 @@ export const GoLive = ({ category }) => {
                         <Info className="w-5 h-5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Go to preview makes your product available for purchase by other members.</p>
+                    <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                      <p>Go to preview at which something becomes available to use and purchased by other members on the platform.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -3538,8 +3550,20 @@ export const GoLive = ({ category }) => {
 
               <form onSubmit={handleSubmit(handleGoToPreview)} className="space-y-6">
                 <div>
-                  <Label className="text-base font-semibold">
+                  <Label className="text-base font-semibold flex items-center gap-1">
                     Product Images <span className="text-red-500">*</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                            <Info className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                          Mandatory Photos: Please upload 3 clear product photos with a white background, high resolution, including both close and distant views. If the product is on display or shown in use, kindly include those views as well.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </Label>
                   <div
                     onDragOver={(e) => e.preventDefault()}
@@ -3616,7 +3640,21 @@ export const GoLive = ({ category }) => {
                   {!isMediaCategory && (
                     <>
                       <div className="mt-8">
-                        <Label className="text-base font-semibold">Size Chart & Additional Documents</Label>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-base font-semibold">Size Chart & Additional Documents</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                                  <Info className="w-4 h-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                                Size Chart & Additional Documents: upload clear dimension/size chart files and any product packing or logistics documents. Include details on dimensions, material, and assembly instructions for accurate listing and buyer confidence.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={handleSizeChartDrop}
