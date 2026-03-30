@@ -23,6 +23,16 @@ export default function useListingEntryContext() {
     const companyType = normalizeParamValue(params.get('companyType'));
     const adminToken = normalizeParamValue(params.get('admintoken'));
 
+    if (source === 'dashboard') {
+      try {
+        sessionStorage.removeItem('admintoken');
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem('admintoken');
+      } catch (e) {
+        console.warn('Failed to clear admin listing session', e);
+      }
+    }
+
     if (source) {
       sessionStorage.setItem(SOURCE_KEY, source);
     }
@@ -32,9 +42,8 @@ export default function useListingEntryContext() {
     if (adminToken) {
       try {
         sessionStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
-        localStorage.setItem('admintoken', adminToken);
+        sessionStorage.setItem('admintoken', adminToken);
       } catch (e) {
-        // ignore storage failures (e.g., disabled storage)
         console.warn('Failed to persist admin token for listing entry context', e);
       }
     }

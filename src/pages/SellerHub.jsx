@@ -59,15 +59,13 @@ const normalizeCategory = (value = '') =>
 export default function SellerHub() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { source } = useListingEntryContext();
-  console.log("source", source);
+  useListingEntryContext();
   const {
     companyType: companyTypeName,
     isAdmin,
     loading: authLoading,
     isAuthenticated,
   } = useAuthUser();
-  console.log("isAdmin", isAdmin);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

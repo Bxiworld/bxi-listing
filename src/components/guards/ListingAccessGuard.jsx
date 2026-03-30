@@ -12,7 +12,7 @@ export default function ListingAccessGuard({ kind, category, children }) {
   if (typeof window !== 'undefined') {
     try {
       hasAdminToken = !!(
-        window.localStorage.getItem('admintoken') ||
+        window.sessionStorage.getItem('admintoken') ||
         window.sessionStorage.getItem('listing_entry_admintoken')
       );
     } catch {

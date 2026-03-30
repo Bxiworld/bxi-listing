@@ -2,27 +2,19 @@ import axios from 'axios';
 
 const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
 
-// Get admin token - checks URL first, then sessionStorage
-// Always checks URL to handle fresh navigations from BXI-admin
+// Admin token: URL first, then sessionStorage only (never localStorage).
+// localStorage on the listing origin persists across users/sessions and caused sellers to inherit admin context.
 const getAdminToken = () => {
   try {
-    // Always check URL first (in case of fresh navigation from admin)
     const urlParams = new URLSearchParams(window.location.search);
     const tokenFromUrl = urlParams.get('admintoken');
-    
+
     if (tokenFromUrl) {
-      // Store for subsequent requests
       sessionStorage.setItem('admintoken', tokenFromUrl);
-      console.log('[API] Admin token found in URL');
       return tokenFromUrl;
     }
-    
-    // Fall back to stored token
-    const storedToken = sessionStorage.getItem('admintoken');
-    if (storedToken) {
-      console.log('[API] Using stored admin token');
-      return storedToken;
-    }
+
+    return sessionStorage.getItem('admintoken');
   } catch (e) {
     console.error('[API] Error getting admin token:', e);
   }
@@ -45,9 +37,6 @@ api.interceptors.request.use(
     const token = getAdminToken();
     if (token) {
       config.headers['x-admin-token'] = token;
-      console.log('[API] Admin token attached to request:', config.url);
-    } else {
-      console.log('[API] No admin token, using cookie auth for:', config.url);
     }
     // When sending FormData, do not send Content-Type so the browser sets multipart/form-data with boundary.
     // Otherwise the default application/json causes the server to not parse files and req.files stays empty.
@@ -209,9 +198,7 @@ export const authApi = {
 export const fetchAdminData = async (tokenOverride) => {
   const token =
     tokenOverride ||
-    (typeof window !== 'undefined' &&
-      (localStorage.getItem('admintoken') ||
-        sessionStorage.getItem('admintoken')));
+    (typeof window !== 'undefined' ? getAdminToken() : null);
 
   if (!token) {
     return null;

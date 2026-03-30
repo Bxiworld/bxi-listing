@@ -6,7 +6,7 @@ import { authApi, companyApi, fetchAdminData, companyTypeApi } from '../utils/ap
  * - user: IamUser from auth/logged_user (companyId, superAdmin, roleName, etc.)
  * - companyType: CompanyTypeName string (e.g. 'Media', 'Others', 'Textile')
  * - companyTypeId: id used for get_companyType
- * - isAdmin: true if user.superAdmin or roleName === 'ADMIN'
+ * - isAdmin: true only after successful admin API path (isAdminContext), not raw isBrandWorld from seller API
  * - loading, error, refetch
  */
 export function useAuthUser() {
@@ -22,18 +22,29 @@ export function useAuthUser() {
     setLoading(true);
     setError(null);
     try {
-      // 1. First try admin auth (for BXI-admin -> Standalone flow)
+      if (typeof window !== 'undefined') {
+        const q = new URLSearchParams(window.location.search);
+        if (q.get('source') === 'dashboard') {
+          try {
+            sessionStorage.removeItem('admintoken');
+            sessionStorage.removeItem('listing_entry_admintoken');
+            localStorage.removeItem('admintoken');
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
+      // 1. Admin auth only when a token exists on URL or session (never localStorage); dashboard entry clears above.
       let adminUser = null;
       try {
         adminUser = await fetchAdminData();
-        console.log('[useAuthUser] Admin data:', adminUser ? 'found' : 'not found');
       } catch (adminError) {
         console.warn('[useAuthUser] Admin auth check failed:', adminError?.message);
       }
 
       // 2. If admin user found, use admin context
       if (adminUser && adminUser._id) {
-        console.log('[useAuthUser] Using admin context');
         // Set admin user with isAdminContext flag
         setUser({
           ...adminUser,
@@ -62,7 +73,6 @@ export function useAuthUser() {
       // 3. Fall back to seller/user auth (for bxi-dashboard -> Standalone flow)
       const userRes = await authApi.getLoggedInUser();
       const userData = userRes?.data;
-      console.log('[useAuthUser] Seller data:', userData ? 'found' : 'not found');
       
       if (!userData || userData === false) {
         setUser(null);
@@ -106,7 +116,7 @@ export function useAuthUser() {
   useEffect(() => {
     refetch();
   }, [refetch]);
-  const isAdmin = !!(user?.isBrandWorld === true);
+  const isAdmin = !!user?.isAdminContext;
 
   return {
     user,
