@@ -84,6 +84,10 @@
     "serve:prod": "serve -s build -l $PORT",
     "test": "craco test"
   },
+  "engines": {
+    "node": "16.x",
+    "npm": "8.x"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -96,6 +100,7 @@
       "last 1 safari version"
     ]
   },
+
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@craco/craco": "^7.1.0",
