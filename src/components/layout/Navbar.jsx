@@ -1,10 +1,10 @@
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
-import GoBackIcon from "../../assets/navbarBackIcon.svg";
 import Goback from "../../assets/Goback.svg";
-import { isAdmin } from "../../hooks/useAuthUser";
+
+const ADMIN_PANEL_URL =
+  "https://development-admin.bxiworld.in/admindashboard/userdashboard";
+const USER_MARKETPLACE_HOME_URL = "https://dashboard.bxiworld.in/home";
 
 export default function TopNavbar() {
   const { user, companyAvatar, isAdmin } = useAuthUser();
@@ -41,13 +41,20 @@ export default function TopNavbar() {
       )}
 
       <button
-        onClick={() => isAdmin ? (window.location.href = "https://development-admin.bxiworld.in/admindashboard/userdashboard") : (window.location.href = "https://development-admin.bxiworld.in/home")}
+        type="button"
+        onClick={() => {
+          window.location.href = isAdmin
+            ? ADMIN_PANEL_URL
+            : USER_MARKETPLACE_HOME_URL;
+        }}
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
       >
-        <img src={Goback}
-        className="transition group-hover:brightness-0 group-hover:invert"
+        <img
+          src={Goback}
+          className="transition group-hover:brightness-0 group-hover:invert"
+          alt=""
         />
-        Back to Marketplace
+        {isAdmin ? "Back to Admin Panel" : "Back to Marketplace"}
       </button>
     </div>
 
