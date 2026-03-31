@@ -78,10 +78,10 @@
   "scripts": {
     "start": "env-cmd -f .env.development craco start",
     "start:dev": "env-cmd -f .env.development craco start",
-    "start:prod": "env-cmd -f .env.production craco start",
-    "build": "env-cmd -f .env.development node --max_old_space_size=4096 ./node_modules/@craco/craco/dist/bin/craco.js build",
-    "build:prod": "env-cmd -f .env.production node --max_old_space_size=4096 ./node_modules/@craco/craco/dist/bin/craco.js build",
-    "serve:prod": "serve -s build -l 8080",
+    "start:prod": "serve -s build -l $PORT",
+    "build": "env-cmd -f .env.production node --max_old_space_size=768 ./node_modules/@craco/craco/dist/bin/craco.js build",
+    "build:prod": "env-cmd -f .env.production node --max_old_space_size=768 ./node_modules/@craco/craco/dist/bin/craco.js build",
+    "serve:prod": "serve -s build -l $PORT",
     "test": "craco test"
   },
   "browserslist": {
