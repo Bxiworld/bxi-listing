@@ -4,7 +4,7 @@ dist
 coverage
 .git
 .gitignore
-Dockerfile
+DockerFile
 docker-compose.yml
 README.md
 *.log
