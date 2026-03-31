@@ -1,6 +1,7 @@
 import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
 import Goback from "../../assets/Goback.svg";
+import GoBackWhite from "../../assets/GoBackWhite.svg";
 
 const ADMIN_BASE_URL = (
   process.env.REACT_APP_ADMIN_URL || "https://development-admin.bxiworld.in"
@@ -52,11 +53,17 @@ export default function TopNavbar() {
             ? ADMIN_PANEL_URL
             : USER_MARKETPLACE_HOME_URL;
         }}
-        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
+        className="group flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#C64091] border border-[#C64091] border-2 rounded-md hover:bg-[#C64091] hover:text-white transition"
       >
         <img
           src={Goback}
-          className="transition group-hover:brightness-0 group-hover:invert"
+          className="block w-4 h-4 object-contain group-hover:hidden"
+          alt=""
+        />
+
+        <img
+          src={GoBackWhite}
+          className="hidden w-4 h-4 object-contain group-hover:block"
           alt=""
         />
         {isAdmin ? "Back to Admin Panel" : "Back to Marketplace"}

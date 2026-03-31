@@ -236,10 +236,27 @@ export const GeneralInformation = ({ category }) => {
   const selectedSubcategory = watch('subcategory');
 
   useEffect(() => {
-    // Hotel voucher: subcategory from API when "Offer Specific", else default list (per bxi-dashboard HotelsGeneralInfo)
-    if (category === 'hotelsVoucher') {
-      const voucherJourneyType = getVoucherJourneyTypeFromStorage();
-      if (voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC) {
+    if (isVoucherCategory) {
+      const currentVoucherJourneyType = getVoucherJourneyTypeFromStorage();
+
+      if (currentVoucherJourneyType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
+        const defaultVoucherSubcategories = [
+          'Value Voucher',
+          'Gift Cards',
+          'Specific Voucher',
+        ];
+        const options = defaultVoucherSubcategories
+          .map((s) => ({ value: s, label: s }))
+          .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+        setSubcategoryOptions(options);
+        setGenderCategoryData([]);
+        setSelectedGenderId(null);
+        setSelectedGender('Unisex');
+        setValue('subcategory', '');
+        return;
+      }
+
+      if (category === 'hotelsVoucher') {
         setSubcategoriesLoading(true);
         setGenderCategoryData([]);
         setSelectedGenderId(null);
@@ -262,22 +279,8 @@ export const GeneralInformation = ({ category }) => {
             toast.error('Unable to load hotel subcategories.');
           })
           .finally(() => setSubcategoriesLoading(false));
-      } else {
-        const defaultHotelSubcategories = [
-          'Value Voucher',
-          'Gift Voucher',
-          'Specific Voucher',
-        ];
-        const options = defaultHotelSubcategories
-          .map((s) => ({ value: s, label: s }))
-          .sort((a, b) => String(a.label).localeCompare(String(b.label)));
-        setSubcategoryOptions(options);
-        setGenderCategoryData([]);
-        setSelectedGenderId(null);
-        setSelectedGender('Unisex');
-        setValue('subcategory', '');
+        return;
       }
-      return;
     }
 
     const endpoint = getSubcategoryEndpoint(category);
@@ -337,7 +340,7 @@ export const GeneralInformation = ({ category }) => {
     };
 
     fetchSubcategories();
-  }, [category, setValue]);
+  }, [category, isVoucherCategory, setValue]);
 
   const handleTextileGenderSelect = (genderGroup) => {
     setSelectedGenderId(genderGroup?._id || null);

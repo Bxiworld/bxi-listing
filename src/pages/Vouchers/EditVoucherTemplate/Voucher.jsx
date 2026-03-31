@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import api from '../../../utils/api';
 import ToolTip from '../../../components/ToolTip';
+import { Stepper } from '../../AddProduct/AddProductSteps';
 import Template from './Template';
 import { voucherStyle } from './EditVoucherStyle';
 import { styles } from './commonStyle';
@@ -517,64 +518,51 @@ const VoucherCard = () => {
   };
 
   return (
-    <>
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '100%',
-          height: '100%',
-          overflowY: 'hidden',
-          position: 'relative',
-        }}
-      >
-        <Box
-          sx={{
-            px: '30px',
-            height: 'auto',
-            maxHeight: 'auto',
-            background: '#EEF1F6',
-            overflowY: 'auto',
-          }}
-        >
-          <Box
-            sx={{
-              backgroundColor: '#EEF1F6',
-              width: '100%',
-              mx: 'auto',
-              display: 'flex',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              gap: '0',
-              py: '10px',
-            }}
-          >
-            <Typography
-              sx={{
-                fontFamily: 'Inter, sans-serif',
-                fontStyle: 'normal',
-                fontWeight: 600,
-                fontSize: '20px',
-                color: '#6B7A99',
-              }}
-            >
-              Go to Preview
-            </Typography>
-            <ToolTip
-              sx={{ ml: '10px' }}
-              info={
-                'Go to preview time at which something becomes available to use and purchased by other members on the platform.'
-              }
-            />
-          </Box>
-          <Box
-            sx={{
-              width: '100%',
-              height: '100%',
-              maxHeight: '100%',
-              overflowY: 'auto',
-              // bgcolor: "red",
-            }}
-          >
+    <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+          </aside>
+          <main className="stepper-content">
+            <div className="form-section">
+              <Box
+                sx={{
+                  width: '100%',
+                  mx: 'auto',
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  alignItems: 'center',
+                  gap: '0',
+                  mb: '12px',
+                }}
+              >
+                <Typography
+                  className="form-section-title"
+                  sx={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                  }}
+                >
+                  Voucher Design & Preview - {category || 'Voucher'}
+                </Typography>
+                <ToolTip
+                  sx={{ ml: '10px' }}
+                  info={
+                    'Go to preview time at which something becomes available to use and purchased by other members on the platform.'
+                  }
+                />
+              </Box>
+              <Box
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  maxHeight: '100%',
+                  overflowY: 'auto',
+                  // bgcolor: "red",
+                }}
+              >
             <Stack
               sx={{
                 overflow: 'auto',
@@ -783,24 +771,24 @@ const VoucherCard = () => {
             <Button onClick={null}>Save</Button>
           </DialogActions> */}
             </Dialog>
-          </Box>
-          <div className={cls.formNavigation}>
-            <div
-              className={cls.formNavigationBar}
-              style={{ padding: '0 30px' }}
-            >
-              <button className={cls.resetLabel} type="button">
-                &nbsp;
-              </button>
-              <Box
-                sx={{
-                  padding: '10px',
-                  display: 'flex',
-                  gap: '16px',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                }}
-              >
+              </Box>
+              <div className={cls.formNavigation}>
+                <div
+                  className={cls.formNavigationBar}
+                  style={{ padding: '0' }}
+                >
+                  <button className={cls.resetLabel} type="button">
+                    &nbsp;
+                  </button>
+                  <Box
+                    sx={{
+                      padding: '10px',
+                      display: 'flex',
+                      gap: '16px',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                    }}
+                  >
                 <Button
                   variant="outlined"
                   type="button"
@@ -833,8 +821,6 @@ const VoucherCard = () => {
                   Cancel
                 </Button>
                 <Button
-                  // variant="contained"
-                  // type="button"
                   disabled={
                     !value ||
                     !ListThisProductForAmount ||
@@ -852,27 +838,28 @@ const VoucherCard = () => {
                     fontWeight: 600,
                     fontSize: '14px',
                     textTransform: 'none',
-                    // boxShadow: '0px 2px 4px rgba(0,0,0,0.2)',
-
-                    // '&:hover': {
-                    //   backgroundColor: '#b5367d',
-                    //   color: '#fff',
-                    // },
-                    // '&.Mui-disabled': {
-                    //   backgroundColor: 'rgba(239, 239, 239, 0.8)',
-                    //   color: 'rgba(0, 0, 0, 0.26)',
-                    // },
+                    '&:hover': {
+                      backgroundColor: '#A03375',
+                      color: '#fff',
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: '#C64091',
+                      color: '#fff',
+                      opacity: 0.5,
+                      pointerEvents: 'none',
+                    },
                   }}
                 >
                   {showSpinner ? <CircularProgress size={20} color="inherit" /> : 'Next'}
                 </Button>
-              </Box>
+                  </Box>
+                </div>
+              </div>
             </div>
-          </div>
-         
-        </Box>
-      </Box>
-    </>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 };
 
