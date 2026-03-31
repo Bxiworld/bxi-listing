@@ -2,9 +2,14 @@ import { useAuthUser } from "../../hooks/useAuthUser";
 import BXI_logo from "../../assets/BXI Listing LOGO.svg";
 import Goback from "../../assets/Goback.svg";
 
-const ADMIN_PANEL_URL =
-  "https://development-admin.bxiworld.in/admindashboard/userdashboard";
-const USER_MARKETPLACE_HOME_URL = "https://dashboard.bxiworld.in/home";
+const ADMIN_BASE_URL = (
+  process.env.REACT_APP_ADMIN_URL || "https://development-admin.bxiworld.in"
+).replace(/\/+$/, "");
+const DASHBOARD_BASE_URL = (
+  process.env.REACT_APP_DASHBOARD_URL || "https://dashboard.bxiworld.in"
+).replace(/\/+$/, "");
+const ADMIN_PANEL_URL = `${ADMIN_BASE_URL}/admindashboard/userdashboard`;
+const USER_MARKETPLACE_HOME_URL = `${DASHBOARD_BASE_URL}/home`;
 
 export default function TopNavbar() {
   const { user, companyAvatar, isAdmin } = useAuthUser();

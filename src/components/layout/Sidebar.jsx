@@ -19,6 +19,10 @@ import { useAuthUser } from '../../hooks/useAuthUser';
 import useListingEntryContext from '../../hooks/useListingEntryContext';
 import { getAllowedCategories, getAllowedVouchers } from '../../config/categories';
 
+const DASHBOARD_BASE_URL = (
+  process.env.REACT_APP_DASHBOARD_URL || 'https://dashboard.bxiworld.in'
+).replace(/\/+$/, '');
+
 export const Sidebar = ({ isOpen, onClose }) => {
   const [addProductOpen, setAddProductOpen] = React.useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = React.useState(false);
@@ -208,7 +212,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="p-4 border-t border-gray-200 space-y-2">
           <a
-            href="https://dashboard.bxiworld.in/"
+            href={`${DASHBOARD_BASE_URL}/`}
             target="_blank"
             rel="noopener noreferrer"
             className="sidebar-nav-item text-gray-500 hover:text-[#C64091]"

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://bxi-api-development.bxiworld.in').replace(/\/+$/, '');
 
 // Admin token: URL first, then sessionStorage only (never localStorage).
 // localStorage on the listing origin persists across users/sessions and caused sellers to inherit admin context.
@@ -23,7 +24,7 @@ const getAdminToken = () => {
 
 // Create axios instance with base configuration (BXI mounts routes at root, no /api)
 const api = axios.create({
-  baseURL: 'https://bxi-api-development.bxiworld.in',
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
