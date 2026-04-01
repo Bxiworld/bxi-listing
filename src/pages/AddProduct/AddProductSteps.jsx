@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '../../components/ui/toggle-group';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { productApi } from '../../utils/api';
@@ -232,7 +233,14 @@ export const GeneralInformation = ({ category }) => {
     }
   });
 
-  const categoryLabel = category?.charAt(0).toUpperCase() + category?.slice(1).replace('voucher', '') || 'Product';
+  const normalizeCategoryLabel = (cat) => {
+    if (!cat) return 'Product';
+    const cleaned = cat.replace(/voucher$/i, '');
+    if (!cleaned) return 'Product';
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  };
+
+  const categoryLabel = normalizeCategoryLabel(category);
   const selectedSubcategory = watch('subcategory');
 
   useEffect(() => {
@@ -536,8 +544,8 @@ export const GeneralInformation = ({ category }) => {
                     <TooltipTrigger>
                       <InfoIcon className="w-4 h-4 ml-2" />
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>General Information refers to broad and fundamental knowledge or facts about a particular Product OR Vouchers. It includes basic details, features, or descriptions that provide overview.</p>
+                    <TooltipContent className="w-48 text-white rounded-md padding-1">
+                      <p >General Information refers to broad and fundamental knowledge or facts about a particular Product OR Vouchers.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -853,6 +861,38 @@ export const ProductInfo = ({ category }) => {
   console.log("effectiveSizeOptions", effectiveSizeOptions);
   console.log("hasSizeOptions", hasSizeOptions);
 
+  const getSizeUnitOptions = (sizeType) => {
+    if (!sizeType) return ['cm', 'mm', 'in', 'ft', 'm', 'units'];
+
+    const normalized = sizeType.toLowerCase();
+    if (normalized.includes('weight')) {
+      return ['kg', 'g', 'lb', 'oz'];
+    }
+    if (sizeType === 'GSM') {
+      return ['gsm'];
+    }
+    if (normalized.includes('battery') || normalized.includes('power')) {
+      return ['mAh', 'Wh', 'W'];
+    }
+    if (normalized.includes('volume') || normalized.includes('capacity')) {
+      return ['ml', 'L', 'cl', 'm³', 'ft³'];
+    }
+    if (normalized.includes('calorie')) {
+      return ['kcal', 'kJ', 'cal'];
+    }
+    if (normalized.includes('nutritional')) {
+      return ['g', 'mg', 'kcal'];
+    }
+    if (normalized.includes('shelf life') || normalized.includes('shelflife')) {
+      return ['Days', 'Months', 'Years'];
+    }
+    if (normalized.includes('temprature') || normalized.includes('temperature') || normalized.includes('temp')) {
+      return ['°C', '°F', 'K'];
+    }
+    // Default for length/style dimensions
+    return ['cm', 'mm', 'in', 'ft', 'm', 'units'];
+  };
+
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
   const showProductColor = !isVoucherCategory && piConfig.hasColorPicker && category !== 'restaurant';
   const hasSampleCheckbox = !isVoucherCategory;
@@ -935,23 +975,52 @@ export const ProductInfo = ({ category }) => {
         const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
 
         const apiStateName = po.State;
-        const apiDistrict = po.Block || po.District;
+        const apiDistrict =  po.District || po.Block;
         const apiLandmark = po.Name;
 
         const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
         if (matchedState) {
           const cities = matchedState.data || [];
-          const normalizedApiDistrict = normalize(apiDistrict);
-          const matchedCity =
-            cities.find((c) => normalize(c) === normalizedApiDistrict) ||
-            cities.find((c) => normalize(c).includes(normalizedApiDistrict) || normalizedApiDistrict.includes(normalize(c)));
 
-          const fallbackCity = apiDistrict || '';
-          const nextCity = matchedCity || cities?.[0] || fallbackCity;
+          const normalizedApiDistrict = normalize(apiDistrict);
+          const normalizedApiCityLabel = normalize(po.Name || apiDistrict || '');
+
+          const findMatchingCity = (candidate) =>
+            cities.find((c) => normalize(c) === normalize(candidate)) ||
+            cities.find((c) => normalize(c).includes(normalize(candidate)) || normalize(candidate).includes(normalize(c)));
+
+          const matchedCity =
+            findMatchingCity(po.Name) ||
+            findMatchingCity(apiDistrict) ||
+            findMatchingCity(apiStateName);
+
+          const fallbackCity = po.Name || apiDistrict || '';
+
+          // Prefer exact matched city, otherwise try fallback from API city/district,
+          // only then use state city list first item as last resort.
+          const nextCity =
+            matchedCity ||
+            (fallbackCity ? fallbackCity : '') ||
+            cities?.[0] ||
+            '';
+
+          const cityCandidates = [
+            matchedCity,
+            fallbackCity,
+            apiDistrict,
+            apiStateName,
+          ]
+            .filter(Boolean)
+            .map((c) => c.trim())
+            .filter((c, i, arr) => arr.findIndex((x) => normalize(x) === normalize(c)) === i);
+
           const nextCityArray = (() => {
-            if (!fallbackCity) return cities;
-            if (cities.some((c) => normalize(c) === normalize(fallbackCity))) return cities;
-            return [fallbackCity, ...cities];
+            if (!cities?.length) return cityCandidates;
+
+            const normalizedCities = cities.map((c) => normalize(c));
+            const extraCandidates = cityCandidates.filter((c) => !normalizedCities.includes(normalize(c)));
+
+            return [...extraCandidates, ...cities];
           })();
 
           setLocationDetails((prev) => ({
@@ -1056,6 +1125,14 @@ export const ProductInfo = ({ category }) => {
     const discountedPrice = shouldUseDiscountedPrice
       ? (parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || 0)
       : price;
+    if (hasSizeOptions && !d.selectedSize) {
+      setError('selectedSize', {
+        type: 'required',
+        message: 'Please select at least one dimension/description option.',
+      });
+      toast.error('Please select at least one dimension/description option.');
+      return;
+    }
     if (price <= 0) {
       toast.error('MRP is required and must be greater than 0');
       return;
@@ -1259,7 +1336,7 @@ export const ProductInfo = ({ category }) => {
   };
   const currentDateReqs = dateRequirements[category] || { manufacturing: 'optional', expiry: 'optional' };
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError } = useForm({
     defaultValues: {
       price: '',
       discountedPrice: '',
@@ -1382,11 +1459,15 @@ export const ProductInfo = ({ category }) => {
       setValue('sizeUnit', s === 'gsm' ? 'gsm' : 'kg');
     } else if (s.includes('battery') || s.includes('power')) {
       setValue('sizeUnit', s.includes('battery') ? 'mAh' : 'W');
-    } else if (s.includes('volume')) {
+    } else if (s.includes('volume') || s.includes('capacity')) {
       setValue('sizeUnit', 'ml');
-    } else if (s === 'shelflife') {
+    } else if (s.includes('calorie')) {
+      setValue('sizeUnit', 'kcal');
+    } else if (s.includes('nutritional')) {
+      setValue('sizeUnit', 'g');
+    } else if (s.includes('shelf life') || s.includes('shelflife')) {
       setValue('sizeUnit', 'Months');
-    } else if (s === 'temprature') {
+    } else if (s.includes('temprature') || s.includes('temperature') || s.includes('temp')) {
       setValue('sizeUnit', '°C');
     } else {
       setValue('sizeUnit', 'cm');
@@ -1408,6 +1489,12 @@ export const ProductInfo = ({ category }) => {
     }
     if (hasFeatures && featureList.length > PRODUCT_FEATURE_MAX) {
       toast.error(`Maximum ${PRODUCT_FEATURE_MAX} features allowed.`);
+      return;
+    }
+
+    if (hasSizeOptions && !watch('selectedSize')) {
+      setError('selectedSize', { type: 'required', message: 'Please select at least one dimension/description option.' });
+      toast.error('Please select at least one dimension/description option.');
       return;
     }
     
@@ -1489,7 +1576,7 @@ export const ProductInfo = ({ category }) => {
           <main className="stepper-content">
             <div className="form-section">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="form-section-title">{isVoucherCategory ? 'Voucher Information' : 'Product Information'} - {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+                <h2 className="text-lg font-semibold">{isVoucherCategory ? 'Voucher Information' : 'Product Information'} - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
@@ -1497,12 +1584,13 @@ export const ProductInfo = ({ category }) => {
                         <Info className="w-4 h-4" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Complete your product details to make it discoverable</p>
+                    <TooltipContent className="w-48 text-white rounded-md padding-1">
+                      <p>Product Information encompasses essential details and specifications about a specific product/vouchers, including its name, description, features, pricing, and other relevant data.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
+              <p className='text-xs mb-2 text-gray-500 font-medium'>Complete your product details to make it discoverable.</p>
           
           {/* Template Download for Bulk Upload Categories */}
           {supportsBulkUpload(category) && (
@@ -1564,7 +1652,7 @@ export const ProductInfo = ({ category }) => {
 
             {/* Dimensions/Description – as clickable cards */}
             {hasSizeOptions && (
-              <div className="space-y-2">
+              <div className="space-y-2 mb-2">
                 <Label>Select what best suits your {isVoucherCategory ? 'voucher' : 'product'} Dimensions/Description?</Label>
                 <div className="flex flex-wrap gap-2">
                   {effectiveSizeOptions.map((opt) => (
@@ -1580,12 +1668,18 @@ export const ProductInfo = ({ category }) => {
                       onClick={() => {
                         if (isDimensionSelectionLocked) return;
                         setValue('selectedSize', opt);
+                        if (errors.selectedSize) {
+                          setError('selectedSize', { type: 'manual', message: '' });
+                        }
                       }}
                     >
                       {opt === 'Length x Height' ? 'L x H' : opt === 'Length x Height x Width' ? 'L x H x W' : opt}
                     </Button>
                   ))}
                 </div>
+                {errors.selectedSize && (
+                  <p className="text-sm text-red-500">{errors.selectedSize.message}</p>
+                )}
               </div>
             )}
 
@@ -1635,61 +1729,29 @@ export const ProductInfo = ({ category }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{selectedSize} <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-end">
                     <Input
                       type="number"
                       placeholder="e.g. 10"
                       {...register('sizeValue')}
                       className="flex-1"
                     />
-                    <Select
-                      value={watch('sizeUnit')}
-                      onValueChange={(v) => setValue('sizeUnit', v)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* Dynamic units based on option name */}
-                        {(selectedSize.toLowerCase().includes('weight') || selectedSize === 'GSM') ? (
-                          <>
-                            <SelectItem value="kg">kg</SelectItem>
-                            <SelectItem value="g">g</SelectItem>
-                            <SelectItem value="gsm">gsm</SelectItem>
-                          </>
-                        ) : (selectedSize.toLowerCase().includes('battery') || selectedSize.toLowerCase().includes('power')) ? (
-                          <>
-                            <SelectItem value="mAh">mAh</SelectItem>
-                            <SelectItem value="Wh">Wh</SelectItem>
-                            <SelectItem value="W">W</SelectItem>
-                          </>
-                        ) : (selectedSize.toLowerCase().includes('volume') || selectedSize.toLowerCase().includes('capacity')) ? (
-                          <>
-                            <SelectItem value="ml">ml</SelectItem>
-                            <SelectItem value="L">L</SelectItem>
-                            <SelectItem value="cl">cl</SelectItem>
-                          </>
-                        ) : (selectedSize === 'ShelfLife') ? (
-                          <>
-                            <SelectItem value="Days">Days</SelectItem>
-                            <SelectItem value="Months">Months</SelectItem>
-                            <SelectItem value="Years">Years</SelectItem>
-                          </>
-                        ) : (selectedSize === 'Temprature') ? (
-                          <>
-                            <SelectItem value="°C">°C</SelectItem>
-                            <SelectItem value="°F">°F</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="cm">cm</SelectItem>
-                            <SelectItem value="in">in</SelectItem>
-                            <SelectItem value="m">m</SelectItem>
-                            <SelectItem value="units">units</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <div className="w-28">
+                      <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
+                      <Select
+                        value={watch('sizeUnit')}
+                        onValueChange={(v) => setValue('sizeUnit', v)}
+                      >
+                        <SelectTrigger className="w-full mt-1">
+                          <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getSizeUnitOptions(selectedSize).map((unit) => (
+                            <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1736,29 +1798,18 @@ export const ProductInfo = ({ category }) => {
                 )}
 
                 <div className="space-y-2">
-                  <Label>Unit</Label>
+                  <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
                   <Select
                     value={watch('sizeUnit')}
                     onValueChange={(v) => setValue('sizeUnit', v)}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {selectedSize === 'Weight' ? (
-                        <>
-                          <SelectItem value="kg">kg</SelectItem>
-                          <SelectItem value="g">g</SelectItem>
-                          <SelectItem value="lb">lb</SelectItem>
-                        </>
-                      ) : (
-                        <>
-                          <SelectItem value="cm">cm</SelectItem>
-                          <SelectItem value="mm">mm</SelectItem>
-                          <SelectItem value="in">in</SelectItem>
-                          <SelectItem value="m">m</SelectItem>
-                        </>
-                      )}
+                      {getSizeUnitOptions(selectedSize).map((unit) => (
+                        <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1770,7 +1821,7 @@ export const ProductInfo = ({ category }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Volume <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-end">
                     <Input
                       type="number"
                       step="0.01"
@@ -1778,19 +1829,22 @@ export const ProductInfo = ({ category }) => {
                       {...register('volume')}
                       className="flex-1"
                     />
-                    <Select
-                      value={watch('sizeUnit')}
-                      onValueChange={(v) => setValue('sizeUnit', v)}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ml">ml</SelectItem>
-                        <SelectItem value="L">L</SelectItem>
-                        <SelectItem value="cl">cl</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="w-24 space-y-1">
+                      <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
+                      <Select
+                        value={watch('sizeUnit')}
+                        onValueChange={(v) => setValue('sizeUnit', v)}
+                      >
+                        <SelectTrigger className="w-full mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getSizeUnitOptions(selectedSize).map((unit) => (
+                            <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1833,7 +1887,21 @@ export const ProductInfo = ({ category }) => {
               {/* HSN – when config has HSN */}
               {hasHsn && (
                 <div className="space-y-2">
-                  <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                            <Info className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Harmonized System Nomenclature code for tax classification (4-8 digits)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input
                     id="hsn"
                     type="text"
@@ -1853,7 +1921,21 @@ export const ProductInfo = ({ category }) => {
 
               {/* GST */}
               <div className="space-y-2">
-                <Label>GST <span className="text-red-500">*</span></Label>
+                <div className="flex items-center gap-1">
+                  <Label>GST <span className="text-red-500">*</span></Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Collecting maximum GST of the entire product range is recommended</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Select
                   defaultValue="18"
                   onValueChange={(value) => setValue('gst', value)}
@@ -1874,20 +1956,18 @@ export const ProductInfo = ({ category }) => {
 
             {/* FMCG: Dry/Wet form selection (not for vouchers) */}
             {piConfig.hasFormSelection && !isVoucherCategory && (
-              <div className="space-y-2">
+              <div className="space-y-1 pt-3">
                 <Label>Product Form</Label>
-                <Select
-                  defaultValue="Dry"
+                <ToggleGroup
+                  type="single"
+                  value={watch('productForm') || 'Dry'}
                   onValueChange={(value) => setValue('productForm', value)}
+                  className="w-max"
+                  aria-label="Product form"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dry">Dry</SelectItem>
-                    <SelectItem value="Wet">Wet</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <ToggleGroupItem value="Dry">Dry</ToggleGroupItem>
+                  <ToggleGroupItem value="Wet">Wet</ToggleGroupItem>
+                </ToggleGroup>
               </div>
             )}
 
@@ -3050,7 +3130,19 @@ export const TechInfo = ({ category }) => {
 
           <main className="stepper-content">
             <div className="form-section">
-              <h2 className="form-section-title">Technical Information - {category.charAt(0).toUpperCase() + category.slice(1)}</h2>
+              <h2 className="form-section-title">
+                Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <InfoIcon className="w-4 h-4 ml-2" />
+                    </TooltipTrigger>
+                    <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                      Technical Information refers to specific details and specifications about a product's technical aspects, packaging material, packaging size, Dimensions, logistics, go live information for your offered product, This is Crucial Information from Logistics and Buying Perspective for making Informed Decisions.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </h2>
               
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Warranty & Guarantee */}
@@ -3484,8 +3576,8 @@ export const GoLive = ({ category }) => {
                         <Info className="w-5 h-5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Go to preview makes your product available for purchase by other members.</p>
+                    <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                      <p>Go to preview at which something becomes available to use and purchased by other members on the platform.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -3493,8 +3585,20 @@ export const GoLive = ({ category }) => {
 
               <form onSubmit={handleSubmit(handleGoToPreview)} className="space-y-6">
                 <div>
-                  <Label className="text-base font-semibold">
+                  <Label className="text-base font-semibold flex items-center gap-1">
                     Product Images <span className="text-red-500">*</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                            <Info className="w-4 h-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                          Mandatory Photos: Please upload 3 clear product photos with a white background, high resolution, including both close and distant views. If the product is on display or shown in use, kindly include those views as well.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </Label>
                   <div
                     onDragOver={(e) => e.preventDefault()}
@@ -3571,7 +3675,21 @@ export const GoLive = ({ category }) => {
                   {!isMediaCategory && (
                     <>
                       <div className="mt-8">
-                        <Label className="text-base font-semibold">Size Chart & Additional Documents</Label>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-base font-semibold">Size Chart & Additional Documents</Label>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                                  <Info className="w-4 h-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                                Size Chart & Additional Documents: upload clear dimension/size chart files and any product packing or logistics documents. Include details on dimensions, material, and assembly instructions for accurate listing and buyer confidence.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={handleSizeChartDrop}
