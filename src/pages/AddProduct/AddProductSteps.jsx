@@ -2151,6 +2151,7 @@ export const ProductInfo = ({ category }) => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className='text-gray-600 text-xs'>Should start from the date buyer activate the voucher after purchase.</p>
                 </div>
               </div>
             )}
