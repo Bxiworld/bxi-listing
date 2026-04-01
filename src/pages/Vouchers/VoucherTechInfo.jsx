@@ -264,7 +264,7 @@ export default function VoucherTechInfo({ category }) {
           <main className="stepper-content">
         <div className="form-section">
           <div className="flex items-center gap-2">
-          <h2 className="form-section-title">Voucher Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
+          <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>

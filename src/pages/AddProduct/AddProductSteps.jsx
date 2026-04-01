@@ -1581,7 +1581,7 @@ export const ProductInfo = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={2} completedSteps={[1]} />
+            <Stepper currentStep={2} category={category} completedSteps={[1]} />
           </aside>
 
           <main className="stepper-content">
@@ -3136,7 +3136,7 @@ export const TechInfo = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={3} completedSteps={[1, 2]} />
+            <Stepper currentStep={3} category={category} completedSteps={[1, 2]} />
           </aside>
 
           <main className="stepper-content">
@@ -3568,7 +3568,7 @@ export const GoLive = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+            <Stepper currentStep={4} category={category} completedSteps={[1, 2, 3]} />
           </aside>
 
           <main className="stepper-content">
