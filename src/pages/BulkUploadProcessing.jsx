@@ -13,6 +13,14 @@ import {
   Circle,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { bulkUploadApi } from '../utils/api';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -102,7 +110,7 @@ function StepDetailCard({ stepNumber, title, description, status, children }) {
   return (
     <section
       className={cn(
-        'rounded-xl border bg-white p-4 sm:p-5 shadow-sm flex flex-col min-h-0 h-full',
+        'rounded-xl border bg-white p-4 sm:p-5 shadow-sm flex flex-col min-h-0 min-w-0 h-full',
         status === 'active' && 'border-[#C64091]/35 shadow-md ring-1 ring-[#C64091]/10',
         status === 'error' && 'border-amber-200/80',
         status === 'complete' && 'border-emerald-100',
@@ -147,7 +155,7 @@ function StepDetailCard({ stepNumber, title, description, status, children }) {
         )}
       </div>
       {children != null && children !== false && (
-        <div className="mt-3 text-sm flex-1 min-w-0">{children}</div>
+        <div className="mt-3 text-sm flex-1 min-w-0 w-full">{children}</div>
       )}
     </section>
   );
@@ -179,6 +187,7 @@ export default function BulkUploadProcessing() {
   const [correctedValidationErrors, setCorrectedValidationErrors] = useState([]);
   const [correctedUploadOk, setCorrectedUploadOk] = useState(false);
   const [validationMeta, setValidationMeta] = useState(null);
+  const [issuesModalOpen, setIssuesModalOpen] = useState(false);
   const correctedInputRef = useRef(null);
 
   const hasTracking = Boolean(webhookId || jobId);
@@ -296,6 +305,7 @@ export default function BulkUploadProcessing() {
     setCorrectedUploadOk(false);
     setCorrectedValidationErrors([]);
     setValidationMeta(null);
+    setIssuesModalOpen(false);
   };
 
   const submitCorrectedFile = async () => {
@@ -307,6 +317,7 @@ export default function BulkUploadProcessing() {
     setCorrectedValidationErrors([]);
     setCorrectedUploadOk(false);
     setValidationMeta(null);
+    setIssuesModalOpen(false);
     try {
       try {
         await bulkUploadApi.fetchCompanyUpload();
@@ -321,6 +332,7 @@ export default function BulkUploadProcessing() {
       if (data?.file_Uploaded) {
         setCorrectedUploadOk(true);
         setCorrectedValidationErrors([]);
+        setIssuesModalOpen(false);
         setValidationMeta({
           totalRows: data.totalRows,
           validatedRows: data.validatedRows,
@@ -332,6 +344,7 @@ export default function BulkUploadProcessing() {
       const errors = res?.errors;
       if (Array.isArray(errors) && errors.length > 0) {
         setCorrectedValidationErrors(errors);
+        setIssuesModalOpen(true);
         setValidationMeta({
           totalRows: res.totalRows,
           validatedRows: res.validatedRows,
@@ -449,6 +462,7 @@ export default function BulkUploadProcessing() {
         : 'Your file is being processed';
 
   return (
+    <>
     <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="bulk-upload-processing">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <Button
@@ -511,7 +525,7 @@ export default function BulkUploadProcessing() {
               <HorizontalStepTrack steps={railSteps} />
             </div>
 
-            <div className="flex flex-wrap gap-3 mt-6">
+            {/* <div className="flex flex-wrap gap-3 mt-6">
               <Button
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 onClick={() => navigate('/sellerhub')}
@@ -523,7 +537,7 @@ export default function BulkUploadProcessing() {
                   Continue listing
                 </Button>
               )}
-            </div>
+            </div> */}
           </div>
 
           <div className="p-6 sm:p-8 bg-[#FAFBFC]">
@@ -691,17 +705,21 @@ export default function BulkUploadProcessing() {
                     )}
 
                     {correctedValidationErrors.length > 0 && (
-                      <div className="rounded-lg border border-red-200 bg-red-50 overflow-hidden">
-                        <div className="px-3 py-1.5 border-b border-red-100 font-medium text-red-900 text-xs">
-                          Issues ({correctedValidationErrors.length})
-                        </div>
-                        <ul className="max-h-48 overflow-y-auto px-3 py-2 text-xs text-red-900 space-y-1.5">
-                          {correctedValidationErrors.map((item, idx) => (
-                            <li key={idx} className="list-disc list-inside leading-snug">
-                              {formatValidationError(item)}
-                            </li>
-                          ))}
-                        </ul>
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3 w-full min-w-0">
+                        <p className="text-xs text-red-900 font-medium leading-relaxed min-w-0">
+                          {correctedValidationErrors.length} validation issue
+                          {correctedValidationErrors.length === 1 ? '' : 's'} found. Open the full list
+                          to review row and field details.
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="bg-red-700 hover:bg-red-800 text-white w-full justify-center"
+                          onClick={() => setIssuesModalOpen(true)}
+                        >
+                          <AlertTriangle className="w-4 h-4 mr-2 shrink-0" />
+                          View all issues
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -712,5 +730,70 @@ export default function BulkUploadProcessing() {
         </div>
       </div>
     </div>
+
+    <Dialog open={issuesModalOpen} onOpenChange={setIssuesModalOpen}>
+      <DialogContent
+        className={cn(
+          'max-w-[min(96vw,56rem)] w-full gap-0 p-0 flex flex-col max-h-[min(90vh,900px)]',
+          'sm:rounded-xl border-red-100',
+        )}
+      >
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-red-100 shrink-0 text-left space-y-2 pr-12">
+          <DialogTitle
+            className="text-xl text-red-950 flex items-center gap-2 font-bold"
+            style={{ fontFamily: 'Manrope, sans-serif' }}
+          >
+            <AlertTriangle className="h-6 w-6 shrink-0 text-red-600" />
+            Validation issues ({correctedValidationErrors.length})
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-600 text-left">
+            Correct the highlighted problems in your Excel file, then save and use &quot;Validate upload&quot;
+            again. This list is scrollable if you have many rows to fix.
+          </DialogDescription>
+          {validationMeta &&
+            (validationMeta.totalRows != null || validationMeta.validatedRows != null) && (
+              <p className="text-xs text-gray-500 pt-1">
+                {validationMeta.validatedRows != null && (
+                  <>Rows checked: {validationMeta.validatedRows}</>
+                )}
+                {validationMeta.totalRows != null && (
+                  <>
+                    {validationMeta.validatedRows != null ? ' · ' : null}
+                    Total rows: {validationMeta.totalRows}
+                  </>
+                )}
+              </p>
+            )}
+        </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-red-50/30">
+          <ol className="space-y-3 list-none m-0 p-0">
+            {correctedValidationErrors.map((item, idx) => (
+              <li
+                key={idx}
+                className="rounded-lg border border-red-100 bg-white px-4 py-3 text-sm text-red-950 shadow-sm"
+              >
+                <span className="text-xs font-semibold text-red-600/80 tabular-nums mr-2">
+                  {idx + 1}.
+                </span>
+                <span className="leading-relaxed">{formatValidationError(item)}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <DialogFooter className="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50/90 sm:justify-between gap-2">
+          <p className="text-xs text-gray-500 text-left w-full sm:w-auto mr-auto">
+            Close this window to return to the upload step.
+          </p>
+          <Button
+            type="button"
+            className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
+            onClick={() => setIssuesModalOpen(false)}
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
