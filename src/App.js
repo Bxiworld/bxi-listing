@@ -10,6 +10,7 @@ const queryClient = new QueryClient();
 // Layout
 import { Layout } from './components/layout/Layout';
 import ScrollToTop from './components/ScrollToTop';
+import { ProductStepLayout } from './components/ProductStepLayout';
 
 // Pages
 import SellerHub from './pages/SellerHub';
@@ -156,7 +157,9 @@ function App() {
                     path={`/${category}/general-info`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <GeneralInformation category={category} />
+                        <ProductStepLayout category={category}>
+                          <GeneralInformation category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -164,7 +167,9 @@ function App() {
                     path={`/${category}/general-info/:id`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <GeneralInformation category={category} />
+                        <ProductStepLayout category={category}>
+                          <GeneralInformation category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -174,7 +179,9 @@ function App() {
                     path={`/${category}/product-info`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <ProductInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <ProductInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -182,7 +189,9 @@ function App() {
                     path={`/${category}/product-info/:id`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <ProductInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <ProductInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -192,7 +201,9 @@ function App() {
                     path={`/${category}/tech-info`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <TechInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <TechInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -200,7 +211,9 @@ function App() {
                     path={`/${category}/tech-info/:id`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <TechInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <TechInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -210,7 +223,9 @@ function App() {
                     path={`/${category}/go-live`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <GoLive category={category} />
+                        <ProductStepLayout category={category}>
+                          <GoLive category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -218,7 +233,9 @@ function App() {
                     path={`/${category}/go-live/:id`}
                     element={
                       <ListingAccessGuard kind="product" category={category}>
-                        <GoLive category={category} />
+                        <ProductStepLayout category={category}>
+                          <GoLive category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -230,7 +247,9 @@ function App() {
                 path="/mediaonline"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <MediaOnlineGeneralInfo />
+                    <ProductStepLayout category="mediaonline">
+                      <MediaOnlineGeneralInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -238,7 +257,9 @@ function App() {
                 path="/mediaonline/general-info"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <MediaOnlineGeneralInfo />
+                    <ProductStepLayout category="mediaonline">
+                      <MediaOnlineGeneralInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -246,7 +267,9 @@ function App() {
                 path="/mediaonline/general-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <MediaOnlineGeneralInfo />
+                    <ProductStepLayout category="mediaonline">
+                      <MediaOnlineGeneralInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -254,7 +277,9 @@ function App() {
                 path="/mediaonline/product-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <MediaOnlineProductInfo />
+                    <ProductStepLayout category="mediaonline">
+                      <MediaOnlineProductInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -262,7 +287,9 @@ function App() {
                 path="/mediaonline/tech-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <MediaOnlineTechInfo />
+                    <ProductStepLayout category="mediaonline">
+                      <MediaOnlineTechInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -270,7 +297,9 @@ function App() {
                 path="/mediaonline/go-live/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <GoLive category="mediaonline" />
+                    <ProductStepLayout category="mediaonline">
+                      <GoLive category="mediaonline" />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -280,7 +309,9 @@ function App() {
                 path="/mediaoffline"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <MediaOfflineGeneralInfo />
+                    <ProductStepLayout category="mediaoffline">
+                      <MediaOfflineGeneralInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -288,7 +319,9 @@ function App() {
                 path="/mediaoffline/general-info"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <MediaOfflineGeneralInfo />
+                    <ProductStepLayout category="mediaoffline">
+                      <MediaOfflineGeneralInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -296,7 +329,9 @@ function App() {
                 path="/mediaoffline/general-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <MediaOfflineGeneralInfo />
+                    <ProductStepLayout category="mediaoffline">
+                      <MediaOfflineGeneralInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -304,7 +339,9 @@ function App() {
                 path="/mediaoffline/product-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <MediaOfflineProductInfo />
+                    <ProductStepLayout category="mediaoffline">
+                      <MediaOfflineProductInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -312,7 +349,9 @@ function App() {
                 path="/mediaoffline/tech-info/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <MediaOfflineTechInfo />
+                    <ProductStepLayout category="mediaoffline">
+                      <MediaOfflineTechInfo />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -320,7 +359,9 @@ function App() {
                 path="/mediaoffline/go-live/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaoffline">
-                    <GoLive category="mediaoffline" />
+                    <ProductStepLayout category="mediaoffline">
+                      <GoLive category="mediaoffline" />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />
@@ -369,7 +410,9 @@ function App() {
                     path={`/${category}/generalinformation`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <GeneralInformation category={category} />
+                        <ProductStepLayout category={category}>
+                          <GeneralInformation category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -377,7 +420,9 @@ function App() {
                     path={`/${category}/generalinformation/:id`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <GeneralInformation category={category} />
+                        <ProductStepLayout category={category}>
+                          <GeneralInformation category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -386,7 +431,9 @@ function App() {
                     path={`/${category}/techinfo`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <ProductInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <ProductInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -394,7 +441,9 @@ function App() {
                     path={`/${category}/techinfo/:id`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <ProductInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <ProductInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -402,7 +451,9 @@ function App() {
                     path={`/${category}/vouchertechinfo`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <VoucherTechInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <VoucherTechInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -410,7 +461,9 @@ function App() {
                     path={`/${category}/vouchertechinfo/:id`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <VoucherTechInfo category={category} />
+                        <ProductStepLayout category={category}>
+                          <VoucherTechInfo category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -418,7 +471,9 @@ function App() {
                     path={`/${category}/voucherdesign`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <VoucherDesign category={category} />
+                        <ProductStepLayout category={category}>
+                          <VoucherDesign category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -426,7 +481,9 @@ function App() {
                     path={`/${category}/voucherdesign/:id`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <VoucherDesign category={category} />
+                        <ProductStepLayout category={category}>
+                          <VoucherDesign category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -434,7 +491,9 @@ function App() {
                     path={`/${category}/vouchergolive`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <VoucherGoLive category={category} />
+                        <ProductStepLayout category={category}>
+                          <VoucherGoLive category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -442,7 +501,9 @@ function App() {
                     path={`/${category}/vouchergolive/:id`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <VoucherGoLive category={category} />
+                        <ProductStepLayout category={category}>
+                          <VoucherGoLive category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -450,7 +511,9 @@ function App() {
                     path={`/${category}/golive`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <GoLive category={category} />
+                        <ProductStepLayout category={category}>
+                          <GoLive category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -458,7 +521,9 @@ function App() {
                     path={`/${category}/golive/:id`}
                     element={
                       <ListingAccessGuard kind="voucher" category={category}>
-                        <GoLive category={category} />
+                        <ProductStepLayout category={category}>
+                          <GoLive category={category} />
+                        </ProductStepLayout>
                       </ListingAccessGuard>
                     }
                   />
@@ -466,11 +531,11 @@ function App() {
               ))}
 
               {/* Hotel voucher specific routes - Using specialized HotelsProductInfo */}
-              <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><HotelsProductInfo category="hotelsVoucher" /></ListingAccessGuard>} />
-              <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherTechInfo category="hotelsVoucher" /></ListingAccessGuard>} />
-              <Route path="/hotelsVoucher/hotelsdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
-              <Route path="/hotelsVoucher/voucherdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ListingAccessGuard>} />
-              <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><VoucherGoLive category="hotelsVoucher" /></ListingAccessGuard>} />
+              <Route path="/hotelsVoucher/hotelsproductinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductStepLayout category="hotelsVoucher"><HotelsProductInfo category="hotelsVoucher" /></ProductStepLayout></ListingAccessGuard>} />
+              <Route path="/hotelsVoucher/hotelstechinfo/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductStepLayout category="hotelsVoucher"><VoucherTechInfo category="hotelsVoucher" /></ProductStepLayout></ListingAccessGuard>} />
+              <Route path="/hotelsVoucher/hotelsdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductStepLayout category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ProductStepLayout></ListingAccessGuard>} />
+              <Route path="/hotelsVoucher/voucherdesign/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductStepLayout category="hotelsVoucher"><VoucherDesign category="hotelsVoucher" /></ProductStepLayout></ListingAccessGuard>} />
+              <Route path="/hotelsVoucher/hotelsgolive/:id" element={<ListingAccessGuard kind="voucher" category="hotelsVoucher"><ProductStepLayout category="hotelsVoucher"><VoucherGoLive category="hotelsVoucher" /></ProductStepLayout></ListingAccessGuard>} />
 
               {/* Bulk Upload Routes */}
               <Route
