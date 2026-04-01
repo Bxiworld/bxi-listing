@@ -7,7 +7,17 @@ export const VoucherCardFront = React.forwardRef(
   ({ cardBgColor, cardImage, productData, textInverted, gradientColors }, ref) => {
     const textColor = textInverted ? '#fff' : '#1a1a2e';
     const textMuted = textInverted ? 'rgba(255,255,255,0.75)' : 'rgba(0,0,0,0.65)';
+    const gradientPrimaryText = textInverted ? '#ffffff' : '#111827';
+    const gradientSecondaryText = textInverted
+      ? 'rgba(255,255,255,0.85)'
+      : 'rgba(17,24,39,0.85)';
+    const gradientDivider = textInverted
+      ? 'rgba(255,255,255,0.18)'
+      : 'rgba(17,24,39,0.18)';
     const bg = (cardBgColor != null && String(cardBgColor).trim() !== '') ? cardBgColor : defaultCardBg;
+    const gradientStart = gradientColors?.start || '#7c3aed';
+    const gradientEnd = gradientColors?.end || '#3b82f6';
+    const valueBoxGradient = `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`;
     return (
       <div
         ref={ref}
@@ -43,28 +53,34 @@ export const VoucherCardFront = React.forwardRef(
               </p>
               <div
                 className="p-3 rounded-xl text-center"
-                style={{ background: '#2d2345', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{
+                  background: valueBoxGradient,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                }}
               >
-                <p className="text-[10px] uppercase tracking-wider font-medium mb-1" style={{ color: 'rgba(255,255,255,0.9)' }}>VALUE</p>
-                <p className="text-[28px] font-semibold leading-none" style={{ color: '#a5a8d4' }}>
+                <p className="text-[10px] uppercase tracking-wider font-medium mb-1" style={{ color: gradientSecondaryText }}>VALUE</p>
+                <p className="text-[28px] font-semibold leading-none" style={{ color: gradientPrimaryText }}>
                   {productData?.pricePerUnit ?? '1000'}
                 </p>
               </div>
             </div>
             <div
               className="flex flex-col rounded-xl p-3 mt-2"
-              style={{ background: '#2d2345', border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{
+                background: valueBoxGradient,
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}
             >
               <div className="flex justify-between items-center">
-                <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.75)' }}>Valid for</span>
-                <span className="text-xs font-medium" style={{ color: '#e2e8f0' }}>
+                <span className="text-[11px] font-medium" style={{ color: gradientSecondaryText }}>Valid for</span>
+                <span className="text-xs font-medium" style={{ color: gradientPrimaryText }}>
                   {productData?.validityOfVoucherValue} {productData?.validityOfVoucherUnit || 'Days'}
                 </span>
               </div>
-              <div className="w-full h-px my-1.5" style={{ background: 'rgba(255,255,255,0.12)' }} />
+              <div className="w-full h-px my-1.5" style={{ background: gradientDivider }} />
               <div className="flex justify-between items-center">
-                <span className="text-[11px] font-medium" style={{ color: 'rgba(255,255,255,0.75)' }}>Redemption</span>
-                <span className="text-xs font-medium capitalize" style={{ color: '#e2e8f0' }}>
+                <span className="text-[11px] font-medium" style={{ color: gradientSecondaryText }}>Redemption</span>
+                <span className="text-xs font-medium capitalize" style={{ color: gradientPrimaryText }}>
                   {productData?.redemptionType || 'Online'}
                 </span>
               </div>
