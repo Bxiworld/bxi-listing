@@ -161,13 +161,21 @@ const STEPS = [
   { id: 4, name: 'Go Live', path: 'go-live' },
 ];
 
+// Helper to get step name based on category type
+const getStepName = (stepId, category) => {
+  if (stepId !== 2) return STEPS[stepId - 1].name;
+  const isVoucherCategory = category?.endsWith?.('Voucher');
+  return isVoucherCategory ? 'Voucher Information' : 'Product Information';
+};
+
 // Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
-export const Stepper = ({ currentStep, completedSteps = [] }) => {
+export const Stepper = ({ currentStep, completedSteps = [], category = '' }) => {
   return (
     <div className="stepper vertical" data-testid="add-product-stepper">
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.id;
         const isCompleted = completedSteps.includes(step.id) || currentStep > step.id;
+        const stepName = getStepName(step.id, category);
         
         return (
           <div key={step.id} className="stepper-step">
@@ -188,7 +196,7 @@ export const Stepper = ({ currentStep, completedSteps = [] }) => {
                   isCompleted && 'completed'
                 )}
               >
-                {step.name}
+                {stepName}
               </span>
             </div>
             {index < STEPS.length - 1 && (
@@ -535,7 +543,7 @@ export const GeneralInformation = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={1} />
+            <Stepper currentStep={1} category={category} />
           </aside>
 
           <main className="stepper-content">
