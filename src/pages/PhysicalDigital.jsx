@@ -53,6 +53,18 @@ const COMPANY_TYPE_TO_PRODUCT_PATH = {
   Hotel: "/hotelsVoucher/generalinformation",
 };
 
+/** Slug passed to /productbulkupload for template + header (matches BulkUpload category prop). */
+const COMPANY_TYPE_TO_BULK_CATEGORY = {
+  Textile: "textile",
+  Electronics: "electronics",
+  FMCG: "fmcg",
+  "Office Supply": "officesupply",
+  Lifestyle: "lifestyle",
+  Mobility: "mobility",
+  QSR: "restaurant",
+  Others: "others",
+};
+
 const COMPANY_TYPE_TO_VOUCHER_PATH = {
   Textile: "/textileVoucher/generalinformation",
   Electronics: "/electronicsVoucher/generalinformation",
@@ -145,7 +157,11 @@ export default function PhysicalDigital() {
         return;
       }
       if (selectedBulkUpload) {
-        navigate("/productbulkupload");
+        const bulkUploadCategory =
+          COMPANY_TYPE_TO_BULK_CATEGORY[effectiveCompanyType] ?? "textile";
+        navigate("/productbulkupload", {
+          state: { bulkUploadCategory },
+        });
       } else {
         const path = COMPANY_TYPE_TO_PRODUCT_PATH[effectiveCompanyType];
         if (path && path.includes("general")) {

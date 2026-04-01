@@ -28,8 +28,8 @@ import { Info, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import OthercostPortion from '../MediaOffline/OthercostPortion.jsx';
 import { toast } from 'sonner';
-import bxitoken from '../../assets/Images/CommonImages/BXIToken.svg';
-import Bxitoken from '../../assets/Images/CommonImages/BXIToken.svg';
+import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
+import Bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import api from '../../utils/api';
 import {
   Tooltip,

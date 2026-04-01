@@ -15,7 +15,7 @@ import { styled } from '@mui/material/styles';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import ToolTip from '../../components/ToolTip';
-import bxitoken from '../../assets/Images/CommonImages/BXIToken.svg';
+import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import InfoIcon from '../../assets/Images/CommonImages/InfoIcon.svg';
 import { useLocation } from 'react-router-dom';
 import api from '../../utils/api';

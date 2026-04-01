@@ -28,7 +28,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import OthercostPortion from './OthercostPortion.jsx';
 import ToolTip from '../../components/ToolTip';
-import bxitoken from '../../assets/Images/CommonImages/BXIToken.svg';
+import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 
 
 // Constants

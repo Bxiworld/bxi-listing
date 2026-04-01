@@ -234,12 +234,26 @@ export const uploadApi = {
     }),
 };
 
-// Bulk upload (BXI: publiq_bulk_upload/bulk_upload, single file field 'file')
+// Bulk upload (BXI: publiq_bulk_upload/*)
 export const bulkUploadApi = {
   uploadBulkFile: (formData) =>
     api.post('publiq_bulk_upload/bulk_upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  createCompanyUpload: (storeFile) =>
+    api.post('publiq_bulk_upload/create_company_upload', { storeFile }),
+  /** Links latest bulk_upload_files entry to bulk_upload_webhook (sets webhook_response_id). Required before corrected-file validation. */
+  fetchCompanyUpload: () =>
+    api.post('publiq_bulk_upload/fetch_company_upload', {}),
+  checkProcessingStatus: (body) =>
+    api.post('publiq_bulk_upload/check_processing_status', body),
+  /** Corrected Excel after AI output — validated on BXI only (multipart: file, webhook_id, category). */
+  uploadCorrectedBulkFile: (formData) =>
+    api.post('publiq_bulk_upload/bulk_error_file_upload_User', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  getBulkValidationErrors: (webhook_id) =>
+    api.post('publiq_bulk_upload/get_validation_errors', { webhook_id }),
 };
 
 export default api;
