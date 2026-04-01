@@ -1352,8 +1352,6 @@ export const ProductInfo = ({ category }) => {
       price: '',
       discountedPrice: '',
       minOrderQty: '1',
-      maxOrderQty: '100',
-      totalAvailableQty: '1',
       gst: '18',
       hsn: '',
       selectedSize: '',
@@ -2134,7 +2132,7 @@ export const ProductInfo = ({ category }) => {
                   <Input
                     id="totalAvailableQty"
                     type="number"
-                    placeholder="1"
+                    placeholder="100"
                     {...register('totalAvailableQty', { min: 1 })}
                   />
                 </div>
