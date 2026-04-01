@@ -60,13 +60,11 @@ const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
     productname: z
       .string()
       .nonempty('This field is required')
-      .min(5, 'Product name should be at least 5 characters long')
-      .max(25, 'Product name should be at most 25 characters long'),
+      .min(5, 'Product name should be at least 5 characters long'),
     productsubtitle: z
       .string()
       .nonempty('This field is required')
-      .min(10, 'Product subtitle should be at least 10 characters long')
-      .max(50, 'Product subtitle should be at most 50 characters long'),
+      .min(10, 'Product subtitle should be at least 10 characters long'),
     validityOfVoucherValue: z.string().min(1),
     Exclusions: z.string().min(1),
     Inclusions: z.string().min(1),
@@ -280,6 +278,9 @@ const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
                   </MenuItem>
                   <MenuItem sx={MenuItems} value="Value Voucher">
                     Value Voucher
+                  </MenuItem>
+                  <MenuItem sx={MenuItems} value="Specific Voucher">
+                    Specific Voucher
                   </MenuItem>
                 </Select>
               </Box>

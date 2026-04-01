@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Pencil, Trash2, RotateCcw, Package } from 'lucide-react';
+import { Eye, Pencil, Trash2, RotateCcw, Package, Archive } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
@@ -26,6 +26,7 @@ export const ProductCard = ({
   companyType = 'Others',
   onDelete,
   onRelist,
+  onDelist,
   showActions = true,
   tabType = 'Live'
 }) => {
@@ -88,6 +89,13 @@ export const ProductCard = ({
     }
   };
 
+  // Handle Delist
+  const handleDelist = () => {
+    if (onDelist) {
+      onDelist(product);
+    }
+  };
+
   return (
     <div className="product-card fade-in" data-testid={`product-card-${_id}`}>
       {/* Image */}
@@ -143,6 +151,19 @@ export const ProductCard = ({
               <Eye className="w-3 h-3 mr-1" />
               View
             </Button>
+            
+            {tabType === 'Live' && onDelist && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDelist}
+                className="flex-1 text-xs text-orange-600 border-orange-200 hover:bg-orange-50"
+                data-testid={`delist-btn-${_id}`}
+              >
+                <Archive className="w-3 h-3 mr-1" />
+                Delist
+              </Button>
+            )}
             
             {tabType !== 'Delist' && tabType !== 'Live' && (
               <Button

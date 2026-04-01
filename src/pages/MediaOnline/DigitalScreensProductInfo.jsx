@@ -360,12 +360,31 @@ export default function DigitalScreensProductInfo() {
 
             <div className="space-y-2">
               <Label>Tags *</Label>
-              <Input
-                placeholder="Type and press Enter"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleAddTag}
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type tag and press Enter or click Add"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleAddTag}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (tagInput.trim()) {
+                      if (!tags.includes(tagInput.trim())) {
+                        setTags([...tags, tagInput.trim()]);
+                      }
+                      setTagInput('');
+                    }
+                  }}
+                  disabled={!tagInput.trim()}
+                >
+                  Add Tag
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => handleRemoveTag(tag)}>

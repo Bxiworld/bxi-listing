@@ -220,6 +220,18 @@ export const relistProduct = createAsyncThunk(
   }
 );
 
+export const delistProduct = createAsyncThunk(
+  'products/delist',
+  async (payload, { rejectWithValue }) => {
+    try {
+      await productApi.relistProduct(payload); // Using the same API endpoint
+      return payload;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delist');
+    }
+  }
+);
+
 // Slice
 const productSlice = createSlice({
   name: 'products',
@@ -365,6 +377,11 @@ const productSlice = createSlice({
         const id = action.payload;
         state.draftProducts.data = state.draftProducts.data.filter(p => p._id !== id);
         state.allProducts.data = state.allProducts.data.filter(p => p._id !== id);
+      })
+      .addCase(delistProduct.fulfilled, (state, action) => {
+        const { productId } = action.payload;
+        state.liveProducts.data = state.liveProducts.data.filter(p => p._id !== productId);
+        state.allProducts.data = state.allProducts.data.filter(p => p._id !== productId);
       });
   },
 });

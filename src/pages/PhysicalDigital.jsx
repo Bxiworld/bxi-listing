@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
+import BreadCrumbHeader from "../components/layout/BreadCrumbHeader";
 import { Button } from "../components/ui/button";
 import { ArrowLeft, Package, Gift } from "lucide-react";
 import { toast } from "sonner";
@@ -79,6 +80,49 @@ const COMPANY_TYPE_TO_VOUCHER_PATH = {
   "Airline Tickets": "/airlineVoucher/generalinformation",
   "Airlines Tickets": "/airlineVoucher/generalinformation",
 };
+
+const DeliveryCompanyType = [
+  {
+    CompanyType: 'Textile',
+    text: 'Discover the perfect blend of comfort and style in our textile products, showcasing your favorite brands.',
+  },
+  {
+    CompanyType: 'Hotel',
+    text: 'Let buyer Experience luxury and comfort of your premium hotel',
+  },
+  {
+    CompanyType: 'Lifestyle',
+    text: 'Style Your Buyers and Make Them FAMOUS.',
+  },
+  {
+    CompanyType: 'Mobility',
+    text: 'Let Them Discover the Freedom to Go Where Ever They Want with Your Mobility Products, Make Your Listing Count !',
+  },
+  {
+    CompanyType: 'Electronics',
+    text: 'Let the Buyer Experience, The Latest in Technology with Your Cutting Edge Electronic Offerings !',
+  },
+  {
+    CompanyType: 'Office Supply',
+    text: 'Office Essentials Redefined: Help Elevate the Workspace with Your Quality Selection!',
+  },
+  {
+    CompanyType: 'FMCG',
+    text: 'Revolutionizing the way your brand’s everyday essentials are made available to buyers. Lets begin to list.',
+  },
+  {
+    CompanyType: 'QSR',
+    text: 'The future of dining out: ordering in. Start to List!',
+  },
+  {
+    CompanyType: 'Entertainment & Events',
+    text: 'Let Your Offering of Entertainment and Recreation, Keep the Buyers Engaged, Active & Entertained !',
+  },
+  {
+    CompanyType: 'Others',
+    text: 'Transforming the way Buyers shop. Let\'s start listing!',
+  },
+];
 
 export default function PhysicalDigital() {
   const navigate = useNavigate();
@@ -185,172 +229,198 @@ export default function PhysicalDigital() {
       className="min-h-screen bg-[#f5f5f7] py-12 px-4"
       data-testid="physical-digital-page"
     >
-      <div className="max-w-5xl mx-auto text-center">
-        {/* Back Button */}
-        <div className="text-left mb-6">
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2 text-gray-600"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back
-          </Button>
-        </div>
+      <div className="max-w-5xl mx-auto">
+        <BreadCrumbHeader MainText="Add Product" showbreadcrumb={true} />
 
-        <h1 className="text-xl font-semibold text-[#374151] mb-3">
-          Add Product
-        </h1>
-
-        <p className="text-[#6b7280] max-w-2xl mx-auto mb-12 text-sm sm:text-base leading-relaxed">
-          Let Them Discover the Freedom to Go Where Ever They Want with Your
-          Mobility Products, Make Your Listing Count !
-        </p>
-
-        <div className="flex flex-wrap justify-center gap-8 mb-16">
-          {!isVoucherOnly && hasProductAccess && (
-            <button
-              type="button"
-              onClick={() => {
-                setOpenView(0);
-                setSelectedProduct(true);
-                setSelectedVoucher(false);
-                setPhysicalData(null);
-              }}
-              className={cn(
-                "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center shadow-sm",
-                selectedProduct
-                  ? "border-[#C64091]"
-                  : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-              )}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
+          {/* Back Button */}
+          <div className="text-left mb-6">
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 text-gray-600"
+              onClick={() => navigate(-1)}
             >
-              <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-4">
-                <Package className="w-7 h-7 text-[#C64091]" />
+              <ArrowLeft className="w-5 h-5" />
+              Back
+            </Button>
+          </div>
+
+          {/* Title and Subtitle */}
+          <div className="text-center mb-10">
+            <h1 className="text-xl font-bold text-[#374151] mb-3">
+              {openView === 0 && selectedProduct
+                ? 'How would you deliver this to buyer?'
+                : 'How are you offering this Product?'
+              }
+            </h1>
+            <p className="text-[#6b7280] max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+              {openView === 0 && selectedProduct
+                ? DeliveryCompanyType.find(item => item.CompanyType === effectiveCompanyType)?.text
+                  || 'Select the best option that describes your product delivery.'
+                : 'Select the best voucher type that describes your voucher offering.'
+              }
+            </p>
+          </div>
+
+          {/* Product/Voucher Selection Cards */}
+          <div className="flex flex-wrap justify-center gap-8 mb-12">
+            {!isVoucherOnly && hasProductAccess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenView(0);
+                  setSelectedProduct(true);
+                  setSelectedVoucher(false);
+                  setPhysicalData(null);
+                }}
+                className={cn(
+                  "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center",
+                  selectedProduct
+                    ? "border-[#C64091] shadow-md"
+                    : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
+                )}>
+                <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-4">
+                  <Package className="w-7 h-7 text-[#C64091]" />
+                </div>
+
+                <h3 className="font-semibold text-lg text-[#374151] mb-2">
+                  Product
+                </h3>
+
+                <p className="text-sm text-[#6b7280] leading-relaxed">
+                  If your product is tangible and needs to be physically shipped
+                  or delivered, please click here to upload.
+                </p>
+              </button>
+            )}
+
+            {hasVoucherAccess && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (effectiveCompanyType === "Entertainment & Events") {
+                    navigate("/eephysical");
+                    return;
+                  }
+                  setOpenView(1);
+                  setSelectedVoucher(true);
+                  setSelectedProduct(false);
+                  setDigitalData(null);
+                }}
+                className={cn(
+                  "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center",
+                  selectedVoucher
+                    ? "border-[#C64091] shadow-md"
+                    : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
+                )}>
+                <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-4">
+                  <Gift className="w-7 h-7 text-[#C64091]" />
+                </div>
+
+                <h3 className="font-semibold text-lg text-[#374151] mb-2">
+                  Voucher
+                </h3>
+
+                <p className="text-sm text-[#6b7280] leading-relaxed">
+                  If your products can be redeemed through voucher / codes / gift
+                  cards, please click here to upload.
+                </p>
+              </button>
+            )}
+          </div>
+
+          {/* Physical Product Options */}
+          {openView === 0 && selectedProduct && hasProductAccess && (
+            <div className="mb-12">
+              <div className="relative mb-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-4 text-sm font-medium text-[#374151]">
+                    Availability of Product SKU / TYPE
+                  </span>
+                </div>
               </div>
 
-              <h3 className="font-semibold text-lg text-[#374151] mb-2">
-                Product
-              </h3>
-
-              <p className="text-sm text-[#6b7280] leading-relaxed">
-                If your product is tangible and needs to be physically shipped
-                or delivered, please click here to upload.
-              </p>
-            </button>
+              <div className="flex flex-wrap justify-center gap-8">
+                {PHYSICAL_OPTIONS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setPhysicalData(item);
+                      setSelectedBulkUpload(item.bulkupload);
+                    }}
+                    className={cn(
+                      "w-[320px] h-[160px] bg-white rounded-2xl border-2 transition-all flex flex-col justify-center px-6 text-center",
+                      physicalData?.id === item.id
+                        ? "border-[#C64091] shadow-md"
+                        : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
+                    )}>
+                    <h3 className="font-semibold text-[#374151] mb-2">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm text-[#6b7280]">{item.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
-          {hasVoucherAccess && (
-            <button
-              type="button"
-              onClick={() => {
-                if (effectiveCompanyType === "Entertainment & Events") {
-                  navigate("/eephysical");
-                  return;
-                }
-                setOpenView(1);
-                setSelectedVoucher(true);
-                setSelectedProduct(false);
-                setDigitalData(null);
-              }}
-              className={cn(
-                "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center shadow-sm",
-                selectedVoucher
-                  ? "border-[#C64091]"
-                  : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-              )}
-            >
-              <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-4">
-                <Gift className="w-7 h-7 text-[#C64091]" />
+          {/* Voucher Type Options */}
+          {openView === 1 && selectedVoucher && hasVoucherAccess && (
+            <div className="mb-12">
+              <div className="relative mb-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-4 text-sm font-medium text-[#374151]">
+                    Please Select the Type of Voucher You are Offering
+                  </span>
+                </div>
               </div>
 
-              <h3 className="font-semibold text-lg text-[#374151] mb-2">
-                Voucher
-              </h3>
-
-              <p className="text-sm text-[#6b7280] leading-relaxed">
-                If your products can be redeemed through voucher / codes / gift
-                cards, please click here to upload.
-              </p>
-            </button>
+              <div className="flex flex-wrap justify-center gap-8">
+                {DIGITAL_OPTIONS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setDigitalData(item)}
+                    className={cn(
+                      "w-[320px] h-[160px] bg-white rounded-2xl border-2 transition-all flex flex-col justify-center px-6 text-center",
+                      digitalData?.id === item.id
+                        ? "border-[#C64091] shadow-md"
+                        : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
+                    )}>
+                    <h3 className="font-semibold text-[#374151] mb-2">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm text-[#6b7280]">{item.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
-        </div>
 
-        {openView === 0 && selectedProduct && hasProductAccess && (
-          <div className="mb-16">
-            <h2 className="text-lg font-medium text-[#374151] mb-10">
-              Availability of Product SKU / TYPE
-            </h2>
+          {/* Action Buttons */}
+          <div className="flex flex-col items-center gap-5 mt-12 pt-8 border-t border-gray-200">
+            <Button
+              className="bg-[#C64091] hover:bg-[#a53575] text-white font-semibold px-12 py-6 rounded-xl text-base shadow-md"
+              onClick={handleList}
+            >
+              List {selectedProduct ? "Product" : "Voucher"}
+            </Button>
 
-            <div className="flex flex-wrap justify-center gap-8">
-              {PHYSICAL_OPTIONS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setPhysicalData(item);
-                    setSelectedBulkUpload(item.bulkupload);
-                  }}
-                  className={cn(
-                    "w-[320px] h-[160px] bg-white rounded-2xl border-2 transition-all flex flex-col justify-center px-6 text-center shadow-sm",
-                    physicalData?.id === item.id
-                      ? "border-[#C64091]"
-                      : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-                  )}
-                >
-                  <h3 className="font-semibold text-[#374151] mb-2">
-                    {item.name}
-                  </h3>
-                  <p className="text-sm text-[#6b7280]">{item.desc}</p>
-                </button>
-              ))}
-            </div>
+            <Button
+              variant="ghost"
+              className="text-[#C64091] font-medium"
+              onClick={() => navigate("/sellerhub")}
+            >
+              Back to Seller Hub
+            </Button>
           </div>
-        )}
-
-        {openView === 1 && selectedVoucher && hasVoucherAccess && (
-          <div className="mb-16">
-            <h2 className="text-lg font-medium text-[#374151] mb-10">
-              Please Select the Type of Voucher You are Offering
-            </h2>
-
-            <div className="flex flex-wrap justify-center gap-8">
-              {DIGITAL_OPTIONS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setDigitalData(item)}
-                  className={cn(
-                    "w-[320px] h-[160px] bg-white rounded-2xl border-2 transition-all flex flex-col justify-center px-6 text-center shadow-sm",
-                    digitalData?.id === item.id
-                      ? "border-[#C64091]"
-                      : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-                  )}
-                >
-                  <h3 className="font-semibold text-[#374151] mb-2">
-                    {item.name}
-                  </h3>
-                  <p className="text-sm text-[#6b7280]">{item.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col items-center gap-5 mt-12">
-          <Button
-            className="bg-[#C64091] hover:bg-[#a53575] text-white font-semibold px-12 py-6 rounded-xl text-base shadow-md"
-            onClick={handleList}
-          >
-            List {selectedProduct ? "Product" : "Voucher"}
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="text-[#C64091] font-medium"
-            onClick={() => navigate("/sellerhub")}
-          >
-            Back to Seller Hub
-          </Button>
         </div>
       </div>
     </div>
