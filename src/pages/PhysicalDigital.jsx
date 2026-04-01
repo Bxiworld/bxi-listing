@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
+import BreadCrumbHeader from "../components/layout/BreadCrumbHeader";
 import { Button } from "../components/ui/button";
 import { ArrowLeft, Package, Gift } from "lucide-react";
 import { toast } from "sonner";
@@ -169,7 +170,8 @@ export default function PhysicalDigital() {
       className="min-h-screen bg-[#f5f5f7] py-12 px-4"
       data-testid="physical-digital-page"
     >
-      <div className="max-w-5xl mx-auto text-center">
+          <BreadCrumbHeader MainText="Add Product" showbreadcrumb={true} />
+      <div   className="max-w-5xl mx-auto text-center">
         {/* Back Button */}
         <div className="text-left mb-6">
           <Button
@@ -181,7 +183,6 @@ export default function PhysicalDigital() {
             Back
           </Button>
         </div>
-
         <h1 className="text-xl font-semibold text-[#374151] mb-3">
           Add Product
         </h1>
