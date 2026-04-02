@@ -42,7 +42,7 @@ import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import addItemCartIcon from '../../assets/CartPage/addItemIcon.svg';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import defaultIcon from '../../assets/CartPage/defaultCheckBoxIcon.svg';
-import bxitoken from '../../assets/Images/CommonImages/BXIToken.svg';
+import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import OthercostPortion from '../MediaOffline/OthercostPortion.jsx';
 
 // import { useEffectOnce } from "react-use";

@@ -17,6 +17,7 @@ import SellerHub from './pages/SellerHub';
 import { GeneralInformation, ProductInfo, TechInfo, GoLive } from './pages/AddProduct/AddProductSteps';
 import ProductPreview from './pages/ProductPreview';
 import BulkUpload from './pages/BulkUpload';
+import BulkUploadProcessing from './pages/BulkUploadProcessing';
 import VoucherForm from './pages/VoucherForm';
 import AddProductCategorySelect from './pages/AddProductCategorySelect';
 import MediaOnlinePhysical from './pages/MediaOnlinePhysical';
@@ -551,6 +552,14 @@ function App() {
                 element={
                   <ListingAccessGuard kind="product">
                     <BulkUpload />
+                  </ListingAccessGuard>
+                }
+              />
+              <Route
+                path="/bulkupload/status"
+                element={
+                  <ListingAccessGuard kind="product">
+                    <BulkUploadProcessing />
                   </ListingAccessGuard>
                 }
               />

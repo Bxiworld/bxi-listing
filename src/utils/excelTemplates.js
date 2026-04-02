@@ -1,6 +1,40 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
+/** Hosted bulk-upload templates (CDN). Keys match category slugs (lowercase). */
+export const REMOTE_BULK_TEMPLATE_URLS = {
+  electronics:
+    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/electronics.xlsx',
+  fmcg: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/FMCG.xlsx',
+  officesupply:
+    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/office-supply.xlsx',
+  lifestyle: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/Lifestyle.xlsx',
+  mobility: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/mobility.xlsx',
+  restaurant:
+    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/qsr.xlsx',
+  textile: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/textile.xlsx',
+};
+
+/**
+ * Download a hosted .xlsx template when no local generator exists.
+ * @returns {Promise<'saved'|'opened'|false>}
+ */
+export async function downloadRemoteBulkTemplate(category) {
+  const url = REMOTE_BULK_TEMPLATE_URLS[category?.toLowerCase()];
+  if (!url) return false;
+  const filename = url.split('/').pop() || 'template.xlsx';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('fetch failed');
+    const blob = await res.blob();
+    saveAs(blob, filename);
+    return 'saved';
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return 'opened';
+  }
+}
+
 // Template definitions for each category
 const TEMPLATES = {
   electronics: {

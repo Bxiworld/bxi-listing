@@ -161,13 +161,21 @@ const STEPS = [
   { id: 4, name: 'Go Live', path: 'go-live' },
 ];
 
+// Helper to get step name based on category type
+const getStepName = (stepId, category) => {
+  if (stepId !== 2) return STEPS[stepId - 1].name;
+  const isVoucherCategory = category?.endsWith?.('Voucher');
+  return isVoucherCategory ? 'Voucher Information' : 'Product Information';
+};
+
 // Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
-export const Stepper = ({ currentStep, completedSteps = [] }) => {
+export const Stepper = ({ currentStep, completedSteps = [], category = '' }) => {
   return (
     <div className="stepper vertical" data-testid="add-product-stepper">
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.id;
         const isCompleted = completedSteps.includes(step.id) || currentStep > step.id;
+        const stepName = getStepName(step.id, category);
         
         return (
           <div key={step.id} className="stepper-step">
@@ -188,7 +196,7 @@ export const Stepper = ({ currentStep, completedSteps = [] }) => {
                   isCompleted && 'completed'
                 )}
               >
-                {step.name}
+                {stepName}
               </span>
             </div>
             {index < STEPS.length - 1 && (
@@ -558,7 +566,7 @@ export const GeneralInformation = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={1} />
+            <Stepper currentStep={1} category={category} />
           </aside>
 
           <main className="stepper-content">
@@ -1426,8 +1434,6 @@ export const ProductInfo = ({ category }) => {
       price: '',
       discountedPrice: '',
       minOrderQty: '1',
-      maxOrderQty: '100',
-      totalAvailableQty: '1',
       gst: '18',
       hsn: '',
       selectedSize: '',
@@ -1655,7 +1661,7 @@ export const ProductInfo = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={2} completedSteps={[1]} />
+            <Stepper currentStep={2} category={category} completedSteps={[1]} />
           </aside>
 
           <main className="stepper-content">
@@ -2236,7 +2242,7 @@ export const ProductInfo = ({ category }) => {
                   <Input
                     id="totalAvailableQty"
                     type="number"
-                    placeholder="1"
+                    placeholder="100"
                     {...register('totalAvailableQty', { min: 1 })}
                   />
                 </div>
@@ -2253,6 +2259,7 @@ export const ProductInfo = ({ category }) => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className='text-gray-600 text-xs'>Should start from the date buyer activate the voucher after purchase.</p>
                 </div>
               </div>
             )}
@@ -3238,7 +3245,7 @@ export const TechInfo = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={3} completedSteps={[1, 2]} />
+            <Stepper currentStep={3} category={category} completedSteps={[1, 2]} />
           </aside>
 
           <main className="stepper-content">
@@ -3681,7 +3688,7 @@ export const GoLive = ({ category }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+            <Stepper currentStep={4} category={category} completedSteps={[1, 2, 3]} />
           </aside>
 
           <main className="stepper-content">

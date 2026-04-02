@@ -32,6 +32,7 @@ import {
   deleteProduct,
   deleteDraftProduct,
   relistProduct,
+  delistProduct,
   setActiveTab,
   triggerRefresh,
 } from '../redux/slices/productSlice';
@@ -293,6 +294,21 @@ export default function SellerHub() {
     }
   };
 
+  const handleDelist = async (product) => {
+    if (!product?._id) return;
+    try {
+      await dispatch(delistProduct({
+        productId: product._id,
+        ProductUploadStatus: 'delist',
+      })).unwrap();
+      toast.success('Product delisted successfully');
+      dispatch(triggerRefresh());
+      fetchCurrentTabData(currentPage, selectedType);
+    } catch (error) {
+      toast.error(error || 'Failed to delist product');
+    }
+  };
+
   // Get section title
   const getSectionTitle = () => {
     if (isMedia) {
@@ -448,6 +464,7 @@ export default function SellerHub() {
                 tabType={activeTab}
                 onDelete={handleDeleteClick}
                 onRelist={handleRelist}
+                onDelist={handleDelist}
               />
             ))}
           </div>
