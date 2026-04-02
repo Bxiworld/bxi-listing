@@ -24,6 +24,7 @@ import {
   Select,
   MenuItem,
   Popover,
+  Divider,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
@@ -495,7 +496,8 @@ export default function ProductPreview() {
                 percentage={selectedVariantData?.GST}
               />
 
-              {product?.ProductCategoryName !== 'QSR' &&
+              {!isVoucherListing &&
+                product?.ProductCategoryName !== 'QSR' &&
                 product?.ProductCategoryName !== 'FMCG' &&
                 selectedVariantData?.ProductColor && (
                   <Box>
@@ -528,7 +530,9 @@ export default function ProductPreview() {
 
               {/* Variant table */}
               {selectedVariantData && (
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
+                <>
+                  <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
+                  <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ bgcolor: 'grey.100' }}>
@@ -543,9 +547,9 @@ export default function ProductPreview() {
                       <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
                         <TableCell align="center" sx={{ py: 2 }}>
                           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                            <Box component="span" sx={{ color: 'success.main', display: 'flex' }}>
+                            {/* <Box component="span" sx={{ color: 'success.main', display: 'flex' }}>
                               <Check size={20} />
-                            </Box>
+                            </Box> */}
                             <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
                             <Typography variant="body2" fontWeight="600">
                               {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
@@ -587,6 +591,7 @@ export default function ProductPreview() {
                     </TableBody>
                   </Table>
                 </TableContainer>
+                </>
               )}
 
               {/* Size chart */}

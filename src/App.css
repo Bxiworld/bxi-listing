@@ -195,7 +195,7 @@
   border-radius: 17px;
   box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.08);
   padding: 40px;
-  margin: -60px 32px 32px;
+  margin: -60px 32px 20px;
   position: relative;
   z-index: 10;
 }
@@ -217,7 +217,7 @@
 @media (max-width: 768px) {
   .tab-cards-container {
     padding: 24px 16px;
-    margin: -40px 16px 24px;
+    margin: -40px 16px 16px;
   }
 }
 
@@ -437,13 +437,13 @@
   border-top: 1px solid #E5E7EB;
 }
 
-/* Section Title */
+/* Section Title (Seller Hub) */
 .section-title {
   text-align: center;
   font-size: 24px;
   font-weight: 700;
   color: #C64091;
-  margin: 48px 0 32px;
+  margin: 28px 0 32px;
   font-family: 'Manrope', sans-serif;
 }
 
