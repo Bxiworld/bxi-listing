@@ -833,7 +833,7 @@ const UK_SHOE_SIZES = [2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9
 const EU_SHOE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
 const inferSelectedSizeFromVariation = (row, options = []) => {
   if (!row) return '';
-  if (row.ShoeSize) return 'Shoes';
+  if (row.ShoeSize) return 'Shoes Size';
   if (row.Length && row.Height && row.Width) return 'Length x Height x Width';
   if (row.Length && row.Height) return 'Length x Height';
   if (row.Length) return 'Length';
@@ -851,7 +851,10 @@ const inferSelectedSizeFromVariation = (row, options = []) => {
 
 const formatVariationSize = (row) => {
   if (!row) return '—';
-  const unit = String(row.MeasurementUnit || 'cm').trim();
+  // `MeasurementUnit` is shared across size types. For shoe sizes, default to US.
+  // For length-based sizes, default to cm.
+  const defaultUnit = row.ShoeSize ? 'US' : 'cm';
+  const unit = String(row.MeasurementUnit || defaultUnit).trim();
   if (row.ShoeSize) return `${row.ShoeSize} (${unit || 'US'})`;
   if (row.Length && row.Height && row.Width) return `${row.Length} x ${row.Height} x ${row.Width} ${unit}`.trim();
   if (row.Length && row.Height) return `${row.Length} x ${row.Height} ${unit}`.trim();
@@ -914,8 +917,6 @@ export const ProductInfo = ({ category }) => {
     ? (activeVoucherConfig?.sizeOptions || [])
     : (piConfig.sizeOptions || []);
   const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
-  console.log("effectiveSizeOptions", effectiveSizeOptions);
-  console.log("hasSizeOptions", hasSizeOptions);
 
   const getSizeUnitOptions = (sizeType) => {
     if (!sizeType) return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
@@ -1005,7 +1006,7 @@ export const ProductInfo = ({ category }) => {
           .filter(Boolean);
         if (category === 'qsrVoucher') {
           const hardcoded = QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f }));
-          const existing = new Set(opts.map((o) => o.value));
+          const existing = new Set(opts.map((o) => o.value)); 
           opts = [...opts, ...hardcoded.filter((h) => !existing.has(h.value))];
         }
         opts.sort((a, b) => a.label.localeCompare(b.label));
@@ -1051,56 +1052,77 @@ export const ProductInfo = ({ category }) => {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const data = await res.json();
       if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
-        const po = data[0].PostOffice[0];
+        const postOffices = data?.[0]?.PostOffice || [];
+        const firstPo = postOffices?.[0];
         const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
 
-        const apiStateName = po.State;
-        const apiDistrict =  po.District || po.Block;
-        const apiLandmark = po.Name;
+        const apiStateName = firstPo?.State;
+        const apiDistrict = firstPo?.District || firstPo?.Block;
+        const apiLandmark = firstPo?.Name;
 
         const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
         if (matchedState) {
           const cities = matchedState.data || [];
 
-          const normalizedApiDistrict = normalize(apiDistrict);
-          const normalizedApiCityLabel = normalize(po.Name || apiDistrict || '');
+          const findMatchingCity = (candidate) => {
+            const candNorm = normalize(candidate);
+            if (!candNorm) return null;
 
-          const findMatchingCity = (candidate) =>
-            cities.find((c) => normalize(c) === normalize(candidate)) ||
-            cities.find((c) => normalize(c).includes(normalize(candidate)) || normalize(candidate).includes(normalize(c)));
+            const exact = cities.find((c) => normalize(c) === candNorm);
+            if (exact) return exact;
+
+            const partial = cities.find(
+              (c) =>
+                normalize(c).includes(candNorm) ||
+                candNorm.includes(normalize(c))
+            );
+            return partial || null;
+          };
+
+          // Use all PostOffice entries for city selection because the API can return
+          // multiple records for the same pincode.
+          const candidateStrings = Array.from(
+            new Set(
+              postOffices
+                .flatMap((po) => [po?.District, po?.Block, po?.Region])
+                .filter(Boolean)
+            )
+          );
 
           const matchedCity =
-            findMatchingCity(po.Name) ||
-            findMatchingCity(apiDistrict) ||
-            findMatchingCity(apiStateName);
+            candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
 
-          const fallbackCity = po.Name || apiDistrict || '';
+          const fallbackCity =
+            apiDistrict || apiStateName || candidateStrings[0] || '';
 
-          // Prefer exact matched city, otherwise try fallback from API city/district,
-          // only then use state city list first item as last resort.
-          const nextCity =
-            matchedCity ||
-            (fallbackCity ? fallbackCity : '') ||
-            cities?.[0] ||
-            '';
+          // Prefer exact/partial matched city, otherwise use fallback, then first city in state.
+          const nextCity = matchedCity || fallbackCity || cities?.[0] || '';
+          const nextCityStr = String(nextCity || '').trim();
 
-          const cityCandidates = [
+          // Debug: Helps validate city auto-fill when API returns multiple PostOffice records.
+          // (Keep this lightweight; remove after validation if desired.)
+          console.log('[pincodeLookup]', {
+            pincode,
+            apiStateName,
+            apiDistrict,
+            apiLandmark,
+            candidateStrings,
             matchedCity,
             fallbackCity,
-            apiDistrict,
-            apiStateName,
-          ]
-            .filter(Boolean)
-            .map((c) => c.trim())
-            .filter((c, i, arr) => arr.findIndex((x) => normalize(x) === normalize(c)) === i);
+            nextCity: nextCityStr,
+            citiesFirst: Array.isArray(cities) ? cities.slice(0, 5) : cities,
+          });
 
+          // Ensure the selected `nextCity` is present in the dropdown options.
           const nextCityArray = (() => {
-            if (!cities?.length) return cityCandidates;
-
-            const normalizedCities = cities.map((c) => normalize(c));
-            const extraCandidates = cityCandidates.filter((c) => !normalizedCities.includes(normalize(c)));
-
-            return [...extraCandidates, ...cities];
+            const arr = [nextCityStr, ...(Array.isArray(cities) ? cities : [])].filter(Boolean);
+            const seen = new Set();
+            return arr.filter((c) => {
+              const key = normalize(c);
+              if (!key || seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
           })();
 
           setLocationDetails((prev) => ({
@@ -1108,7 +1130,7 @@ export const ProductInfo = ({ category }) => {
             pincode: String(pincode),
             region: STATE_REGION_MAP[matchedState.name] || 'North',
             state: matchedState.name,
-            city: nextCity,
+            city: nextCityStr,
             landmark: apiLandmark || prev.landmark,
           }));
           setCityArray(nextCityArray);
@@ -1237,7 +1259,7 @@ export const ProductInfo = ({ category }) => {
       toast.error('HSN cannot be all zeros');
       return;
     }
-    if (d.selectedSize === 'Shoes' && !d.shoeSize) {
+    if (d.selectedSize === 'Shoes Size' && !d.shoeSize) {
       toast.error('Please select a shoe size');
       return;
     }
@@ -1248,7 +1270,7 @@ export const ProductInfo = ({ category }) => {
     let productSize = d.selectedSize || '';
     let measurementUnit = d.sizeUnit || 'cm';
     let shoeSize = '';
-    if (d.selectedSize === 'Shoes' && d.shoeSize) {
+    if (d.selectedSize === 'Shoes Size' && d.shoeSize) {
       shoeSize = String(d.shoeSize);
       measurementUnit = d.shoeMeasurementUnit || 'US';
       productSize = shoeSize;
@@ -1774,7 +1796,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Shoes size – ShoeSize dropdown + MeasurementUnit (US/UK/EU) */}
-            {hasSizeOptions && selectedSize === 'Shoes' && (
+            {hasSizeOptions && selectedSize === 'Shoes Size' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Shoe Size <span className="text-red-500">*</span></Label>
@@ -1814,7 +1836,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Generic size value + unit – For any size option not caught by specialized blocks */}
-            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes' && 
+            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes Size' && 
              !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size', 'Volume'].includes(selectedSize) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -2595,17 +2617,31 @@ export const ProductInfo = ({ category }) => {
                       value={locationDetails.city}
                       onValueChange={(v) => setLocationDetails((prev) => ({ ...prev, city: v }))}
                     >
-                      <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+                      <SelectTrigger>
+                        {locationDetails.city ? (
+                          <span className="text-sm text-foreground">{String(locationDetails.city)}</span>
+                        ) : (
+                          <SelectValue placeholder="Select city" />
+                        )}
+                      </SelectTrigger>
                       <SelectContent>
                         {(() => {
                           const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '');
-                          const current = String(locationDetails.city || '');
                           const base = Array.isArray(cityArray) ? cityArray : [];
-                          const merged =
-                            current && !base.some((c) => normalize(c) === normalize(current))
-                              ? [current, ...base]
-                              : base;
-                          return merged.map((c, i) => (
+                          // Always include the currently selected city string first.
+                          // This guarantees the Select can match `value={locationDetails.city}`
+                          // to an existing `SelectItem` even if the cityArray contains a
+                          // slightly differently-formatted duplicate.
+                          const merged = [locationDetails.city, ...base].filter((c) => String(c || '').trim() !== '');
+                          const seen = new Set();
+                          const unique = [];
+                          for (const c of merged) {
+                            const key = normalize(c);
+                            if (!key || seen.has(key)) continue;
+                            seen.add(key);
+                            unique.push(c);
+                          }
+                          return unique.map((c, i) => (
                             <SelectItem key={`${String(c)}-${i}`} value={String(c)}>
                               {String(c)}
                             </SelectItem>
