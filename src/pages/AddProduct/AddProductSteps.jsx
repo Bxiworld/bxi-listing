@@ -250,17 +250,40 @@ export const GeneralInformation = ({ category }) => {
 
   const categoryLabel = normalizeCategoryLabel(category);
   const selectedSubcategory = watch('subcategory');
+  const textileGenderDisplayOrder = ['kids', 'female', 'male', 'unisex', 'others'];
+  const orderedGenderCategoryData =
+    giConfig.hasGenderSelection && Array.isArray(genderCategoryData)
+      ? [...genderCategoryData].sort((a, b) => {
+          const aLabel = String(a?.SubcategoryName || '').toLowerCase();
+          const bLabel = String(b?.SubcategoryName || '').toLowerCase();
+          const aIdx = textileGenderDisplayOrder.indexOf(aLabel);
+          const bIdx = textileGenderDisplayOrder.indexOf(bLabel);
+          const safeA = aIdx === -1 ? textileGenderDisplayOrder.length : aIdx;
+          const safeB = bIdx === -1 ? textileGenderDisplayOrder.length : bIdx;
+          if (safeA !== safeB) return safeA - safeB;
+          return aLabel.localeCompare(bLabel);
+        })
+      : genderCategoryData;
 
   useEffect(() => {
     if (isVoucherCategory) {
       const currentVoucherJourneyType = getVoucherJourneyTypeFromStorage();
 
       if (currentVoucherJourneyType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
-        const defaultVoucherSubcategories = [
-          'Value Voucher',
-          'Gift Cards',
-          'Specific Voucher',
-        ];
+        const defaultVoucherSubcategories =
+          category === 'hotelsVoucher'
+            ? [
+                'Value Voucher',
+                'Gift Cards',
+                'Valid on All',
+                'Valid on Limited',
+                'Others',
+              ]
+            : [
+                'Value Voucher',
+                'Gift Cards',
+                'Specific Voucher',
+              ];
         const options = defaultVoucherSubcategories
           .map((s) => ({ value: s, label: s }))
           .sort((a, b) => String(a.label).localeCompare(String(b.label)));
@@ -567,12 +590,23 @@ export const GeneralInformation = ({ category }) => {
             {/* Subcategory */}
             <div className="space-y-2">
               {giConfig.hasGenderSelection && genderCategoryData.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Label>Gender (Textile) <span className="text-red-500">*</span></Label>
                   <input type="hidden" {...register('gender', { required: valSchema?.gender?.required ? 'Please select gender' : false })} />
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {genderCategoryData.map((item) => {
-                      const label = item?.SubcategoryName || 'Unisex';
+                  <div className="grid grid-cols-5 gap-3 mb-6">
+                    {orderedGenderCategoryData.map((item) => {
+                      const rawLabel = item?.SubcategoryName || 'Unisex';
+                      const normalizedLabelMap = {
+                        kids: 'Kids',
+                        female: 'Female',
+                        male: 'Male',
+                        unisex: 'Unisex',
+                        others: 'Others',
+                      };
+                      const label =
+                        normalizedLabelMap[String(rawLabel).toLowerCase()] ||
+                        String(rawLabel).charAt(0).toUpperCase() +
+                          String(rawLabel).slice(1).toLowerCase();
                       const isActive = selectedGenderId === item?._id;
                       return (
                         <Button
@@ -815,6 +849,17 @@ const inferSelectedSizeFromVariation = (row, options = []) => {
   return '';
 };
 
+const formatVariationSize = (row) => {
+  if (!row) return '—';
+  const unit = String(row.MeasurementUnit || 'cm').trim();
+  if (row.ShoeSize) return `${row.ShoeSize} (${unit || 'US'})`;
+  if (row.Length && row.Height && row.Width) return `${row.Length} x ${row.Height} x ${row.Width} ${unit}`.trim();
+  if (row.Length && row.Height) return `${row.Length} x ${row.Height} ${unit}`.trim();
+  if (row.Length) return `${row.Length} ${unit}`.trim();
+  if (row.Weight) return `${row.Weight} ${unit || 'kg'}`.trim();
+  return row.ProductSize || '—';
+};
+
 export const ProductInfo = ({ category }) => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -873,20 +918,23 @@ export const ProductInfo = ({ category }) => {
   console.log("hasSizeOptions", hasSizeOptions);
 
   const getSizeUnitOptions = (sizeType) => {
-    if (!sizeType) return ['cm', 'mm', 'in', 'ft', 'm', 'units'];
+    if (!sizeType) return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
 
     const normalized = sizeType.toLowerCase();
     if (normalized.includes('weight')) {
-      return ['kg', 'g', 'lb', 'oz'];
+      return ['oz', 'g', 'kg', 'lb', 'l', 'ml', 'cu ft'];
     }
     if (sizeType === 'GSM') {
       return ['gsm'];
     }
-    if (normalized.includes('battery') || normalized.includes('power')) {
-      return ['mAh', 'Wh', 'W'];
+    if (normalized.includes('battery')) {
+      return ['mAh', 'Ah', 'Kwh'];
+    }
+    if (normalized.includes('power')) {
+      return ['W', 'KW', 'HP', 'V', 'A'];
     }
     if (normalized.includes('volume') || normalized.includes('capacity')) {
-      return ['ml', 'L', 'cl', 'm³', 'ft³'];
+      return ['in', 'cm', 'oz', 'g', 'gb', 'tb', 'lb', 'kg', 'mah', 'w', 'pixels', 'hz', 'db'];
     }
     if (normalized.includes('calorie')) {
       return ['kcal', 'kJ', 'cal'];
@@ -901,7 +949,28 @@ export const ProductInfo = ({ category }) => {
       return ['°C', '°F', 'K'];
     }
     // Default for length/style dimensions
-    return ['cm', 'mm', 'in', 'ft', 'm', 'units'];
+    return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
+  };
+  const formatIndianCurrencyInput = (rawValue) => {
+    const cleaned = String(rawValue || '')
+      .replace(/,/g, '')
+      .replace(/[^\d.]/g, '');
+    const [integerPartRaw, ...rest] = cleaned.split('.');
+    const decimalPart = rest.join('').slice(0, 2);
+    const normalizedInt = integerPartRaw
+      ? integerPartRaw.replace(/^0+(?=\d)/, '')
+      : '';
+    const formattedInt = normalizedInt
+      ? new Intl.NumberFormat('en-IN').format(Number(normalizedInt))
+      : '';
+    if (decimalPart.length > 0) return `${formattedInt || '0'}.${decimalPart}`;
+    return formattedInt;
+  };
+  const handleIndianCurrencyChange = (field, value) => {
+    setValue(field, formatIndianCurrencyInput(value), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
   };
 
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
@@ -1199,6 +1268,9 @@ export const ProductInfo = ({ category }) => {
     }
     const minQty = parseInt(d.minOrderQty, 10);
     const maxQty = parseInt(d.maxOrderQty, 10);
+    const totalAvailableQty = isVoucherCategory
+      ? parseInt(d.totalAvailableQty, 10)
+      : null;
     if (!Number.isFinite(minQty) || minQty < 1) {
       toast.error('Minimum Order Quantity must be greater than 0');
       return;
@@ -1209,6 +1281,16 @@ export const ProductInfo = ({ category }) => {
     }
     if (minQty > maxQty) {
       toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
+      return;
+    }
+    if (
+      isVoucherCategory &&
+      Number.isFinite(totalAvailableQty) &&
+      maxQty > totalAvailableQty
+    ) {
+      toast.error(
+        'Maximum Order Quantity cannot be greater than Total Available Quantity'
+      );
       return;
     }
     const wantsSample = !!d.isSample;
@@ -1599,7 +1681,6 @@ export const ProductInfo = ({ category }) => {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <p className='text-xs mb-2 text-gray-500 font-medium'>Complete your product details to make it discoverable.</p>
           
           {/* Template Download for Bulk Upload Categories */}
           {supportsBulkUpload(category) && (
@@ -1801,7 +1882,7 @@ export const ProductInfo = ({ category }) => {
 
                 {selectedSize === 'Weight' && (
                   <div className="space-y-2">
-                    <Label>Weight ({watch('sizeUnit') || 'kg'})</Label>
+                    <Label>Weight </Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('weight')} />
                   </div>
                 )}
@@ -1865,7 +1946,7 @@ export const ProductInfo = ({ category }) => {
                 {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
                 {piConfig.hasProductId && !isVoucherCategory && (
                   <div className="space-y-2">
-                    <Label htmlFor="productIdType">Product Id Type <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
                     <Input
                       id="productIdType"
                       placeholder="e.g. 1910WH23"
@@ -2004,9 +2085,12 @@ export const ProductInfo = ({ category }) => {
                 </div>
                 <Input
                   id="price"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="1000"
                   {...register('price', { min: 0 })}
+                  value={watch('price') || ''}
+                  onChange={(e) => handleIndianCurrencyChange('price', e.target.value)}
                   className={errors.price ? 'border-red-500' : ''}
                   data-testid="input-price"
                 />
@@ -2031,9 +2115,14 @@ export const ProductInfo = ({ category }) => {
                 </div>
                 <Input
                   id="discountedPrice"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="900"
                   {...register('discountedPrice', { min: 0 })}
+                  value={watch('discountedPrice') || ''}
+                  onChange={(e) =>
+                    handleIndianCurrencyChange('discountedPrice', e.target.value)
+                  }
                   data-testid="input-discounted-price"
                 />
               </div>
@@ -2061,9 +2150,25 @@ export const ProductInfo = ({ category }) => {
                   type="number"
                   placeholder="100"
                   min={1}
-                  {...register('maxOrderQty', { min: 1 })}
+                  {...register('maxOrderQty', {
+                    min: 1,
+                    validate: (value) => {
+                      if (!isVoucherCategory) return true;
+                      const maxQty = parseInt(value, 10);
+                      const totalQty = parseInt(getValues('totalAvailableQty'), 10);
+                      if (!Number.isFinite(maxQty) || !Number.isFinite(totalQty)) {
+                        return true;
+                      }
+                      return maxQty <= totalQty
+                        ? true
+                        : 'Maximum Order Quantity cannot be greater than Total Available Quantity';
+                    },
+                  })}
                   data-testid="input-max-qty"
                 />
+                {errors.maxOrderQty && (
+                  <p className="text-sm text-red-500">{errors.maxOrderQty.message}</p>
+                )}
               </div>
             </div>
 
@@ -2105,7 +2210,8 @@ export const ProductInfo = ({ category }) => {
                       <Label htmlFor="priceOfSample" className="flex items-center ">Price of Sample (<img src={bxitoken} alt="BXI Token" className="w-4 h-4" />)</Label>
                       <Input
                         id="priceOfSample"
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="e.g. 100"
                         min={0.01}
                         step="0.01"
@@ -2118,6 +2224,10 @@ export const ProductInfo = ({ category }) => {
                               : 'Sample price must be greater than 0';
                           },
                         })}
+                        value={watch('priceOfSample') || ''}
+                        onChange={(e) =>
+                          handleIndianCurrencyChange('priceOfSample', e.target.value)
+                        }
                       />
                     </div>
                   </div>
@@ -2271,7 +2381,7 @@ export const ProductInfo = ({ category }) => {
                         >
                           {(!isVoucherCategory || hasSizeOptions) && (
                             <td className="px-3 py-2">
-                              {v.ShoeSize ? `${v.ShoeSize} (${v.MeasurementUnit || ''})` : v.ProductSize || '—'}
+                              {formatVariationSize(v)}
                             </td>
                           )}
                           {activeVoucherConfig?.extraVariantColumn === 'color' && (
@@ -2305,15 +2415,15 @@ export const ProductInfo = ({ category }) => {
                           )}
                           <td className="px-3 py-2">{v.HSN || '—'}</td>
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
-                          <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString()}` : '—'}</td>
-                          {shouldUseDiscountedPrice && <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString()}` : '—'}</td>}
+                          <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString('en-IN')}` : '—'}</td>
+                          {shouldUseDiscountedPrice && <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString('en-IN')}` : '—'}</td>}
                           {isVoucherCategory && <td className="px-3 py-2">{v.TotalAvailableQty ?? '—'}</td>}
                           <td className="px-3 py-2">{v.MinOrderQuantity ?? '—'}</td>
                           <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
-                          {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Mo` : '—'}</td>}
+                          {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Month${v.validityOfVoucherValue > 1 ? 's' : ''}` : '—'}</td>}
                           {!isVoucherCategory && <td className="px-3 py-2">{v.ProductIdType || '—'}</td>}
-                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SamplePrice ? `${Number(v.SamplePrice).toLocaleString()}` : '—'}</td>}
-                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SampleQty ? `${Number(v.SampleQty).toLocaleString()}` : '—'}</td>}
+                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SamplePrice ? `${Number(v.SamplePrice).toLocaleString('en-IN')}` : '—'}</td>}
+                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SampleQty ? `${Number(v.SampleQty).toLocaleString('en-IN')}` : '—'}</td>}
                           <td className="px-3 py-2 text-center">
                             <div className="inline-flex items-center gap-2">
                               <button
@@ -2595,13 +2705,13 @@ export const ProductInfo = ({ category }) => {
                       </>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2">
+                        <div className="h-6 flex items-center gap-2">
                           <Checkbox
                             id="has-expiry"
                             checked={hasExpiryDate}
                             onCheckedChange={setHasExpiryDate}
                           />
-                          <Label htmlFor="has-expiry" className="cursor-pointer">
+                          <Label htmlFor="has-expiry" className="cursor-pointer leading-none">
                             This product has an expiry date
                           </Label>
                         </div>
@@ -2612,7 +2722,7 @@ export const ProductInfo = ({ category }) => {
                                 type="button"
                                 variant="outline"
                                 className={cn(
-                                  'w-full justify-start text-left font-normal',
+                                  'w-full justify-start text-left font-normal mt-2',
                                   !expiryDate && 'text-muted-foreground'
                                 )}
                               >
@@ -3370,6 +3480,7 @@ export const GoLive = ({ category }) => {
   const [sizeChartPreview, setSizeChartPreview] = useState(null);
   const [productData, setProductData] = useState(null);
   const [selectedPreviewImage, setSelectedPreviewImage] = useState(null);
+  const [failedPreviewSources, setFailedPreviewSources] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -3400,6 +3511,10 @@ export const GoLive = ({ category }) => {
         setProductData(data);
         if (data?.listperiod) setValue('listPeriod', String(data.listperiod));
         if (data?.ProductImages?.[0]?.url && !selectedPreviewImage) setSelectedPreviewImage(data.ProductImages[0].url);
+        const existingSizeChartUrl = data?.SizeChart?.[0]?.url;
+        if (existingSizeChartUrl) {
+          setSizeChartPreview(existingSizeChartUrl);
+        }
       })
       .catch(() => setProductData(null));
   }, [id]);
@@ -3478,6 +3593,12 @@ export const GoLive = ({ category }) => {
     ...imagePreviews.map((p) => p.preview),
     ...(productData?.ProductImages || []).map((img) => img.url).filter(Boolean),
   ].filter((v, i, a) => a.indexOf(v) === i);
+  const marketplacePreviewImage = [
+    selectedPreviewImage,
+    productData?.ProductImages?.[0]?.url,
+  ]
+    .filter(Boolean)
+    .find((src) => !failedPreviewSources.includes(src));
   const previewPrice = productData?.ProductsVariantions?.[0]?.DiscountedPrice ?? productData?.ProductsVariantions?.[0]?.PricePerUnit ?? 0;
 
   const handleGoToPreview = async (data) => {
@@ -3797,12 +3918,24 @@ export const GoLive = ({ category }) => {
               <h3 className="font-semibold text-[#111827] mb-4">Marketplace Preview</h3>
               <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
                 <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  <img
-                    src={selectedPreviewImage || productData?.ProductImages?.[0]?.url || 'https://via.placeholder.com/300'}
-                    alt="Preview"
-                    className="w-full h-full object-contain"
-                    onError={(e) => { e.target.src = 'https://via.placeholder.com/300'; }}
-                  />
+                  {marketplacePreviewImage ? (
+                    <img
+                      src={marketplacePreviewImage}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                      onError={() => {
+                        setFailedPreviewSources((prev) =>
+                          prev.includes(marketplacePreviewImage)
+                            ? prev
+                            : [...prev, marketplacePreviewImage]
+                        );
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-sm text-[#6B7A99]">
+                      No preview image
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <p className="font-semibold text-[#111827] truncate">{productData?.ProductName || 'Product Name'}</p>

@@ -42,6 +42,49 @@ const DIGITAL_OPTIONS = [
   },
 ];
 
+const DELIVERY_COMPANY_TYPE_TEXT = [
+  {
+    companyType: "Textile",
+    text: "Discover the perfect blend of comfort and style in our textile products, showcasing your favorite brands.",
+  },
+  {
+    companyType: "Hotel",
+    text: "Let buyer Experience luxury and comfort of your premium hotel",
+  },
+  {
+    companyType: "Lifestyle",
+    text: "Style Your Buyers and Make Them FAMOUS.",
+  },
+  {
+    companyType: "Mobility",
+    text: "Let Them Discover the Freedom to Go Where Ever They Want with Your Mobility Products, Make Your Listing Count !",
+  },
+  {
+    companyType: "Electronics",
+    text: "Let the Buyer Experience, The Latest in Technology with Your Cutting Edge Electronic Offerings !",
+  },
+  {
+    companyType: "Office Supply",
+    text: "Office Essentials Redefined: Help Elevate the Workspace with Your Quality Selection!",
+  },
+  {
+    companyType: "FMCG",
+    text: "Revolutionizing the way your brand’s everyday essentials are made available to buyers. Lets begin to list.",
+  },
+  {
+    companyType: "QSR",
+    text: "The future of dining out: ordering in. Start to List!",
+  },
+  {
+    companyType: "Entertainment & Events",
+    text: "Let Your Offering of Entertainment and Recreation, Keep the Buyers Engaged, Active & Entertained !",
+  },
+  {
+    companyType: "Others",
+    text: "Transforming the way Buyers shop. Let's start listing!",
+  },
+];
+
 const COMPANY_TYPE_TO_PRODUCT_PATH = {
   Textile: "/textile/general-info",
   Electronics: "/electronics/general-info",
@@ -151,6 +194,13 @@ export default function PhysicalDigital() {
   );
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
+  const productSubtitle =
+    DELIVERY_COMPANY_TYPE_TEXT.find(
+      (item) => item.companyType === effectiveCompanyType
+    )?.text ||
+    "Let Them Discover the Freedom to Go Where Ever They Want with Your Mobility Products, Make Your Listing Count !";
+  const voucherSubtitle =
+    "Select the Best Voucher Type that describes your voucher offering";
 
   const isVoucherOnly = [
     "Hotel",

@@ -217,6 +217,7 @@ export default function ProductPreview() {
   const handleUpload = () => {
     if (!id || uploading) return;
     setUploading(true);
+    const isVoucherListing = product?.ListingType === 'Voucher';
     productApi
       .productMutation({ id, ProductUploadStatus: 'pendingapproval' })
       .then(() => {
@@ -224,7 +225,9 @@ export default function ProductPreview() {
         setTimeout(() => navigate('/sellerhub'), 2000);
       })
       .catch(() => {
-        toast.error('Failed to upload product');
+        toast.error(
+          isVoucherListing ? 'Failed to upload voucher' : 'Failed to upload products'
+        );
       })
       .finally(() => setUploading(false));
   };
@@ -234,12 +237,15 @@ export default function ProductPreview() {
     (v) => (v._id ?? v.id) === selectedVariant
   );
 
+  const isVoucherListing = product?.ListingType === 'Voucher';
   const images = product?.ListingType === 'Product' ? product?.ProductImages  : product?.ListingType === "Media" ?  product?.ProductImages : product?.VoucherImages || [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
     images?.length > 0;
+  const uploadCtaLabel =
+    isVoucherListing ? 'Upload Voucher' : 'Upload Products';
 
   const primaryColor = '#C64091';
   const primaryDark = '#A03375';
@@ -359,7 +365,7 @@ export default function ProductPreview() {
           }}
         >
           <IconButton
-            onClick={product?.ProductUploadStatus === 'Approved' ? () => navigate('/sellerhub') : handleBack}
+            onClick={() => navigate(-1)}
             sx={{
               position: 'absolute',
               left: 0,
@@ -584,7 +590,8 @@ export default function ProductPreview() {
               )}
 
               {/* Size chart */}
-              {(isTextileStyle || product?.ProductCategoryName === 'Textile') && (
+              {!isVoucherListing &&
+                (isTextileStyle || product?.ProductCategoryName === 'Textile') && (
                 <Box>
                   <Typography
                     component="button"
@@ -800,7 +807,120 @@ export default function ProductPreview() {
 
             <TabPanel value={tabValue} index={1}>
               {(() => {
+                if (isVoucherListing) {
+                  const inclusions = product?.Inclusions || product?.inclusions;
+                  const exclusions = product?.Exclusions || product?.exclusions;
+                  const termsAndConditions =
+                    product?.TermConditions || product?.termsAndConditions;
+                  const redemptionSteps =
+                    product?.RedemptionSteps || product?.redemptionSteps;
+                  const redemptionType = product?.redemptionType;
+                  const redemptionUrl = product?.Link || product?.redemptionURL;
+                  const tags = product?.ProductTags?.map((tag, index) => (
+                    <span key={index}>{tag}</span>
+                  ));
+
+                  const hasVoucherTechInfo =
+                    inclusions ||
+                    exclusions ||
+                    termsAndConditions ||
+                    redemptionSteps ||
+                    redemptionType ||
+                    redemptionUrl ||
+                    tags;
+
+                  if (!hasVoucherTechInfo) {
+                    return (
+                      <Typography color="text.secondary">
+                        No technical information available.
+                      </Typography>
+                    );
+                  }
+
+                  return (
+                    <Stack spacing={3}>
+                      {inclusions && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Inclusions
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {inclusions}
+                          </Typography>
+                        </Box>
+                      )}
+                      {exclusions && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Exclusions
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {exclusions}
+                          </Typography>
+                        </Box>
+                      )}
+                      {termsAndConditions && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Terms and Conditions
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {termsAndConditions}
+                          </Typography>
+                        </Box>
+                      )}
+                      {redemptionSteps && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Redemption Steps
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {redemptionSteps}
+                          </Typography>
+                        </Box>
+                      )}
+                      {redemptionType && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Redemption Type
+                          </Typography>
+                          <Typography fontWeight="500">{redemptionType}</Typography>
+                        </Box>
+                      )}
+                      {redemptionUrl && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Redemption URL
+                          </Typography>
+                          <Typography
+                            component="a"
+                            href={redemptionUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                          >
+                            {redemptionUrl}
+                          </Typography>
+                        </Box>
+                      )}
+                      {tags.length > 0 && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Tags
+                          </Typography>
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                            {tags.map((tag, index) => (
+                              <Chip key={index} label={tag} size="small" />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Stack>
+                  );
+                }
+
                 const ti = product?.ProductTechInfo;
+                const t2 = product;
                 const hasAny =
                   ti?.WeightBeforePackingPerUnit ||
                   ti?.WeightAfterPackingPerUnit ||
@@ -835,6 +955,12 @@ export default function ProductPreview() {
                         </Grid>
                       )}
                     </Grid>
+                    {product?.redemptionType && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Redemption Type</Typography>
+                        <Typography fontWeight="500">{product?.redemptionType}</Typography>
+                      </Box>
+                    ) }
                     {(ti?.Height || ti?.Width || ti?.Length) && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Dimensions</Typography>
@@ -967,7 +1093,7 @@ export default function ProductPreview() {
                 '&:hover': { bgcolor: primaryDark },
               }}
             >
-              {uploading ? 'Uploading...' : 'Upload Product'}
+              {uploading ? 'Uploading...' : uploadCtaLabel}
             </Button>
           </Box>
         )}
