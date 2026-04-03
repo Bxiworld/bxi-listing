@@ -6,7 +6,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import BreadCrumbHeader from "../components/layout/BreadCrumbHeader";
 import { Button } from "../components/ui/button";
-import { ArrowLeft, Package, Gift } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../components/ui/tooltip";
+import { ArrowLeft, Package, Gift, Info } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { useAuthUser } from "../hooks/useAuthUser";
@@ -124,6 +130,9 @@ const DeliveryCompanyType = [
   },
 ];
 
+const GENERIC_LISTING_INFO_TOOLTIP =
+  "Choose Product if you're listing a physical item that gets shipped or delivered.\nChoose Voucher if buyers redeem it using a code, gift card, or similar.\nPick the option that best matches your listing.";
+
 export default function PhysicalDigital() {
   const navigate = useNavigate();
   const { companyType, isAdmin } = useAuthUser();
@@ -151,6 +160,20 @@ export default function PhysicalDigital() {
   );
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
+  const voucherSubtitle =
+    "Select the Best Voucher Type that describes your voucher offering";
+  const genericOneLineTitle =
+    hasProductAccess && hasVoucherAccess
+      ? 'Choose how your offering will be delivered'
+      : hasProductAccess
+        ? "Select Product to continue."
+        : "Select Voucher to continue.";
+  const genericInfoTooltipText =
+    hasProductAccess && hasVoucherAccess
+      ? GENERIC_LISTING_INFO_TOOLTIP
+      : hasProductAccess
+        ? "Select Product below. You will then choose how your item is delivered or fulfilled."
+        : "Select Voucher below. You will then choose the type of voucher you are offering.";
 
   const isVoucherOnly = [
     "Hotel",
@@ -224,6 +247,9 @@ export default function PhysicalDigital() {
     toast.error("Please select Product or Voucher.");
   };
 
+  const showProductStepCopy = selectedProduct && openView === 0;
+  const showVoucherStepCopy = selectedVoucher && openView === 1;
+
   return (
     <div
       className="min-h-screen bg-[#f5f5f7] py-12 px-4"
@@ -247,19 +273,48 @@ export default function PhysicalDigital() {
 
           {/* Title and Subtitle */}
           <div className="text-center mb-10">
-            <h1 className="text-xl font-bold text-[#374151] mb-3">
-              {openView === 0 && selectedProduct
-                ? 'How would you deliver this to buyer?'
-                : 'How are you offering this Product?'
-              }
-            </h1>
-            <p className="text-[#6b7280] max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-              {openView === 0 && selectedProduct
-                ? DeliveryCompanyType.find(item => item.CompanyType === effectiveCompanyType)?.text
-                  || 'Select the best option that describes your product delivery.'
-                : 'Select the best voucher type that describes your voucher offering.'
-              }
-            </p>
+            {showProductStepCopy || showVoucherStepCopy ? (
+              <>
+                <h1 className="text-xl font-bold text-[#374151] mb-3">
+                  {showProductStepCopy
+                    ? "How would you deliver this to buyer?"
+                    : "How are you offering this Voucher?"}
+                </h1>
+                <p className="text-[#6b7280] max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
+                  {showProductStepCopy
+                    ? DeliveryCompanyType.find(
+                        (item) => item.CompanyType === effectiveCompanyType,
+                      )?.text ||
+                      "Select the best option that describes your product delivery."
+                    : voucherSubtitle}
+                </p>
+              </>
+            ) : (
+              <TooltipProvider delayDuration={200}>
+                <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+                  <h1 className="text-xl font-bold text-[#374151]">
+                    {genericOneLineTitle}
+                  </h1>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex shrink-0 rounded-full text-[#6b7280] outline-none transition-colors hover:text-[#C64091] focus-visible:ring-2 focus-visible:ring-[#C64091]/40 focus-visible:ring-offset-2"
+                        aria-label="More about Product vs Voucher"
+                      >
+                        <Info className="h-5 w-5" strokeWidth={2} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      className="max-w-[min(20rem,calc(100vw-2rem))] whitespace-pre-line bg-[#1f2937] px-3 py-2.5 text-left text-xs leading-relaxed text-white border-0 shadow-lg"
+                    >
+                      {genericInfoTooltipText}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            )}
           </div>
 
           {/* Product/Voucher Selection Cards */}
@@ -410,7 +465,11 @@ export default function PhysicalDigital() {
               className="bg-[#C64091] hover:bg-[#a53575] text-white font-semibold px-12 py-6 rounded-xl text-base shadow-md"
               onClick={handleList}
             >
-              List {selectedProduct ? "Product" : "Voucher"}
+              {selectedProduct
+                ? "List Product"
+                : selectedVoucher
+                  ? "List Voucher"
+                  : "Continue"}
             </Button>
 
             <Button

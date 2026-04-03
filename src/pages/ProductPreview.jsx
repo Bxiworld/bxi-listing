@@ -24,6 +24,7 @@ import {
   Select,
   MenuItem,
   Popover,
+  Divider,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
@@ -157,6 +158,121 @@ function TabPanel({ children, value, index, ...rest }) {
   );
 }
 
+function getVariantSizesDisplay(v) {
+  if (!v) return '';
+  if (v.ShoeSize != null && v.ShoeSize !== '') {
+    return `${v.ShoeSize} ${v.MeasurementUnit || ''}`.trim();
+  }
+  if (v.ProductSize != null && v.ProductSize !== '') return String(v.ProductSize);
+  if (v.NutritionInfo != null && v.NutritionInfo !== '') return String(v.NutritionInfo);
+  if (v?.length != null && v?.length !== '' && v?.MeasurementUnit) {
+    return `${v.length} ${v.MeasurementUnit}`;
+  }
+  return '';
+}
+
+function variantQtyHasValue(q) {
+  return q != null && q !== '' && !Number.isNaN(Number(q));
+}
+
+/** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
+function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
+  if (!selectedVariantData) return [];
+  const v = selectedVariantData;
+  const cols = [];
+
+  const discRaw = v.DiscountedPrice;
+  const hasDisc =
+    discRaw != null &&
+    discRaw !== '' &&
+    !(typeof discRaw === 'number' && Number.isNaN(discRaw));
+  if (hasDisc) {
+    cols.push({
+      id: 'discountedMrp',
+      heading: 'Disc. MRP',
+      minWidth: 128,
+      cell: (
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+          <img src={BXIIconSrc} alt="BXI" style={{ height: 16, width: 16 }} />
+          <Typography variant="body2" fontWeight="600">
+            {formatPrice(v.DiscountedPrice) || 'N/A'}
+          </Typography>
+        </Stack>
+      ),
+    });
+  }
+
+  const sizesText = getVariantSizesDisplay(v);
+  if (sizesText) {
+    cols.push({
+      id: 'sizes',
+      heading: 'Sizes',
+      minWidth: 112,
+      cell: <Typography variant="body2">{sizesText}</Typography>,
+    });
+  }
+
+  if (variantQtyHasValue(v.MinOrderQuantity)) {
+    cols.push({
+      id: 'minQty',
+      heading: 'Min QTY',
+      minWidth: 96,
+      cell: (
+        <Chip label={v.MinOrderQuantity} size="small" color="primary" variant="outlined" />
+      ),
+    });
+  }
+
+  if (variantQtyHasValue(v.MaxOrderQuantity)) {
+    cols.push({
+      id: 'maxQty',
+      heading: 'Max QTY',
+      minWidth: 96,
+      cell: (
+        <Chip label={v.MaxOrderQuantity} size="small" color="primary" variant="outlined" />
+      ),
+    });
+  }
+
+  if (v.GST != null && v.GST !== '' && !(typeof v.GST === 'number' && Number.isNaN(v.GST))) {
+    cols.push({
+      id: 'gst',
+      heading: 'GST',
+      minWidth: 72,
+      cell: <Typography variant="body2">{`${v.GST}%`}</Typography>,
+    });
+  }
+
+  if (v.HSN != null && v.HSN !== '') {
+    cols.push({
+      id: 'hsn',
+      heading: 'HSN',
+      minWidth: 88,
+      cell: <Typography variant="body2">{v.HSN}</Typography>,
+    });
+  }
+
+  if (v.ProductSize != null && v.ProductSize !== '') {
+    cols.push({
+      id: 'productSize',
+      heading: 'Product Size',
+      minWidth: 112,
+      cell: <Typography variant="body2">{v.ProductSize}</Typography>,
+    });
+  }
+
+  if (v.ProductIdType != null && v.ProductIdType !== '') {
+    cols.push({
+      id: 'productId',
+      heading: 'Product ID',
+      minWidth: 120,
+      cell: <Typography variant="body2">{v.ProductIdType}</Typography>,
+    });
+  }
+
+  return cols;
+}
+
 export default function ProductPreview() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -217,6 +333,7 @@ export default function ProductPreview() {
   const handleUpload = () => {
     if (!id || uploading) return;
     setUploading(true);
+    const isVoucherListing = product?.ListingType === 'Voucher';
     productApi
       .productMutation({ id, ProductUploadStatus: 'pendingapproval' })
       .then(() => {
@@ -224,7 +341,9 @@ export default function ProductPreview() {
         setTimeout(() => navigate('/sellerhub'), 2000);
       })
       .catch(() => {
-        toast.error('Failed to upload product');
+        toast.error(
+          isVoucherListing ? 'Failed to upload voucher' : 'Failed to upload products'
+        );
       })
       .finally(() => setUploading(false));
   };
@@ -234,12 +353,15 @@ export default function ProductPreview() {
     (v) => (v._id ?? v.id) === selectedVariant
   );
 
+  const isVoucherListing = product?.ListingType === 'Voucher';
   const images = product?.ListingType === 'Product' ? product?.ProductImages  : product?.ListingType === "Media" ?  product?.ProductImages : product?.VoucherImages || [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
     images?.length > 0;
+  const uploadCtaLabel =
+    isVoucherListing ? 'Upload Voucher' : 'Upload Products';
 
   const primaryColor = '#C64091';
   const primaryDark = '#A03375';
@@ -323,16 +445,8 @@ export default function ProductPreview() {
       product?.ProductCategoryName
     ) || !product?.ProductCategoryName;
 
-  const tableHeadings = [
-    'Disc. MRP',
-    'Sizes',
-    'Min QTY',
-    'Max QTY',
-    'GST',
-    'HSN',
-    'Product Size',
-    'Product ID',
-  ];
+  const variantPreviewColumns = getVariantPreviewTableColumns(selectedVariantData, BXIIcon);
+  const variantTableMinTotal = variantPreviewColumns.reduce((sum, c) => sum + c.minWidth, 0);
 
   return (
     <Box
@@ -359,7 +473,7 @@ export default function ProductPreview() {
           }}
         >
           <IconButton
-            onClick={product?.ProductUploadStatus === 'Approved' ? () => navigate('/sellerhub') : handleBack}
+            onClick={() => navigate(-1)}
             sx={{
               position: 'absolute',
               left: 0,
@@ -489,7 +603,8 @@ export default function ProductPreview() {
                 percentage={selectedVariantData?.GST}
               />
 
-              {product?.ProductCategoryName !== 'QSR' &&
+              {!isVoucherListing &&
+                product?.ProductCategoryName !== 'QSR' &&
                 product?.ProductCategoryName !== 'FMCG' &&
                 selectedVariantData?.ProductColor && (
                   <Box>
@@ -520,71 +635,85 @@ export default function ProductPreview() {
                 </Box>
               )}
 
-              {/* Variant table */}
-              {selectedVariantData && (
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'grey.100' }}>
-                        {tableHeadings.map((heading) => (
-                          <TableCell key={heading} align="center" sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>
-                            {heading}
-                          </TableCell>
+              {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
+              {selectedVariantData && variantPreviewColumns.length > 0 && (
+                <>
+                  <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
+                  <TableContainer
+                    component={Paper}
+                    elevation={0}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                      borderRadius: 2,
+                      overflowX: 'auto',
+                    }}
+                  >
+                    <Table
+                      size="small"
+                      sx={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: Math.max(variantTableMinTotal, 320),
+                      }}
+                    >
+                      <colgroup>
+                        {variantPreviewColumns.map((col) => (
+                          <col
+                            key={col.id}
+                            style={{
+                              width: `${(col.minWidth / variantTableMinTotal) * 100}%`,
+                            }}
+                          />
                         ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                            <Box component="span" sx={{ color: 'success.main', display: 'flex' }}>
-                              <Check size={20} />
-                            </Box>
-                            <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
-                            <Typography variant="body2" fontWeight="600">
-                              {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">
-                            {selectedVariantData.ShoeSize != null
-                              ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ''}`
-                              : selectedVariantData.ProductSize ||
-                                selectedVariantData.NutritionInfo ||
-                                (selectedVariantData?.length && selectedVariantData?.MeasurementUnit
-                                  ? `${selectedVariantData?.length} ${selectedVariantData?.MeasurementUnit}`
-                                  : 'N/A')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Chip label={selectedVariantData.MinOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Chip label={selectedVariantData.MaxOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">
-                            {selectedVariantData.GST ? `${selectedVariantData.GST}%` : 'N/A'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.HSN ?? 'N/A'}</Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.ProductSize ?? 'N/A'}</Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.ProductIdType ?? 'N/A'}</Typography>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </colgroup>
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: 'grey.100' }}>
+                          {variantPreviewColumns.map((col) => (
+                            <TableCell
+                              key={col.id}
+                              align="center"
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                color: 'text.secondary',
+                                minWidth: col.minWidth,
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              {col.heading}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                          {variantPreviewColumns.map((col) => (
+                            <TableCell
+                              key={col.id}
+                              align="center"
+                              sx={{
+                                py: 2,
+                                minWidth: col.minWidth,
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              {col.cell}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
               )}
 
               {/* Size chart */}
-              {(isTextileStyle || product?.ProductCategoryName === 'Textile') && (
+              {!isVoucherListing &&
+                (isTextileStyle || product?.ProductCategoryName === 'Textile') && (
                 <Box>
                   <Typography
                     component="button"
@@ -800,7 +929,120 @@ export default function ProductPreview() {
 
             <TabPanel value={tabValue} index={1}>
               {(() => {
+                if (isVoucherListing) {
+                  const inclusions = product?.Inclusions || product?.inclusions;
+                  const exclusions = product?.Exclusions || product?.exclusions;
+                  const termsAndConditions =
+                    product?.TermConditions || product?.termsAndConditions;
+                  const redemptionSteps =
+                    product?.RedemptionSteps || product?.redemptionSteps;
+                  const redemptionType = product?.redemptionType;
+                  const redemptionUrl = product?.Link || product?.redemptionURL;
+                  const tags = product?.ProductTags?.map((tag, index) => (
+                    <span key={index}>{tag}</span>
+                  ));
+
+                  const hasVoucherTechInfo =
+                    inclusions ||
+                    exclusions ||
+                    termsAndConditions ||
+                    redemptionSteps ||
+                    redemptionType ||
+                    redemptionUrl ||
+                    tags;
+
+                  if (!hasVoucherTechInfo) {
+                    return (
+                      <Typography color="text.secondary">
+                        No technical information available.
+                      </Typography>
+                    );
+                  }
+
+                  return (
+                    <Stack spacing={3}>
+                      {inclusions && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Inclusions
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {inclusions}
+                          </Typography>
+                        </Box>
+                      )}
+                      {exclusions && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Exclusions
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {exclusions}
+                          </Typography>
+                        </Box>
+                      )}
+                      {termsAndConditions && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Terms and Conditions
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {termsAndConditions}
+                          </Typography>
+                        </Box>
+                      )}
+                      {redemptionSteps && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Redemption Steps
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {redemptionSteps}
+                          </Typography>
+                        </Box>
+                      )}
+                      {redemptionType && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Redemption Type
+                          </Typography>
+                          <Typography fontWeight="500">{redemptionType}</Typography>
+                        </Box>
+                      )}
+                      {redemptionUrl && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Redemption URL
+                          </Typography>
+                          <Typography
+                            component="a"
+                            href={redemptionUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                          >
+                            {redemptionUrl}
+                          </Typography>
+                        </Box>
+                      )}
+                      {tags.length > 0 && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Tags
+                          </Typography>
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                            {tags.map((tag, index) => (
+                              <Chip key={index} label={tag} size="small" />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Stack>
+                  );
+                }
+
                 const ti = product?.ProductTechInfo;
+                const t2 = product;
                 const hasAny =
                   ti?.WeightBeforePackingPerUnit ||
                   ti?.WeightAfterPackingPerUnit ||
@@ -835,6 +1077,12 @@ export default function ProductPreview() {
                         </Grid>
                       )}
                     </Grid>
+                    {product?.redemptionType && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Redemption Type</Typography>
+                        <Typography fontWeight="500">{product?.redemptionType}</Typography>
+                      </Box>
+                    ) }
                     {(ti?.Height || ti?.Width || ti?.Length) && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Dimensions</Typography>
@@ -967,7 +1215,7 @@ export default function ProductPreview() {
                 '&:hover': { bgcolor: primaryDark },
               }}
             >
-              {uploading ? 'Uploading...' : 'Upload Product'}
+              {uploading ? 'Uploading...' : uploadCtaLabel}
             </Button>
           </Box>
         )}
