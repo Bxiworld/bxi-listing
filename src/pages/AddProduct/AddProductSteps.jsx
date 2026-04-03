@@ -373,7 +373,6 @@ export const GeneralInformation = ({ category }) => {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    console.log("data", data);
     try {
       let productId = id;
       const normalizedSubcategory = data.subcategory || '';
@@ -869,8 +868,6 @@ export const ProductInfo = ({ category }) => {
     ? (activeVoucherConfig?.sizeOptions || [])
     : (piConfig.sizeOptions || []);
   const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
-  console.log("effectiveSizeOptions", effectiveSizeOptions);
-  console.log("hasSizeOptions", hasSizeOptions);
 
   const getSizeUnitOptions = (sizeType) => {
     if (!sizeType) return ['cm', 'mm', 'in', 'ft', 'm', 'units'];
@@ -927,7 +924,6 @@ export const ProductInfo = ({ category }) => {
         const res = await api.get(featureEndpoint);
         const root = res?.data?.data ?? res?.data?.body ?? res?.data ;
         const list = Array.isArray(root) ? root : root?.data ? root.data : [];
-        console.log("list", list);
         let opts = list
           .map((item) => {
             const label = item?.[featureNameField] || item?.name || item?.value || item?.FmcgproductinfoType || item?.OtherFeature || item?.OfficesupplyFeature  || item?.TextileFeature;
@@ -1445,7 +1441,7 @@ export const ProductInfo = ({ category }) => {
         }
         
       } catch (error) {
-        console.error('Error fetching product in ProductInfo:', error);
+        GlobalToast('Error fetching product in ProductInfo:', error);
       }
     };
     fetchProduct();
@@ -3084,7 +3080,7 @@ export const TechInfo = ({ category }) => {
           if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0) setTags(techInfo.Tags);
         }
       } catch (error) {
-        console.error('Error fetching product:', error);
+        GlobalToast('Error fetching product:', error);
       }
     };
     fetchProduct();
@@ -3528,25 +3524,12 @@ export const GoLive = ({ category }) => {
     formData.append('productDescription', productData?.ProductDescription || '');
     files.forEach((f) => formData.append('files', f));
     if (sizechart) formData.append('sizechart', sizechart);
-
-    console.log("formData",formData);
-    console.log("files",files);
-    console.log("sizechart",sizechart);
-    console.log("data.listPeriod",data.listPeriod);
-    console.log("productData?.listperiod",productData?.listperiod);
-    console.log("productData?.ListingType",productData?.ListingType);
-    console.log("productData?.ProductName",productData?.ProductName);
-    console.log("productData?.ProductSubCategory",productData?.ProductSubCategory);
-    console.log("productData?.ProductDescription",productData?.ProductDescription);
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      console.log("formData in try block before api call",formData); 
       const response = await productApi.productMutationFormData(formData, (ev) => {
-        console.log("ev",ev);
         if (ev.total) setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
       });
-      console.log("response in try block after api call",response);
       toast.success('Images uploaded! Redirecting to preview.');
       if (isMediaCategory) {
         navigate(`/mediaonlineproductpreview/${id}`);
