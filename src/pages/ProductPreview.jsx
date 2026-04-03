@@ -1045,22 +1045,38 @@ export default function ProductPreview() {
                         </Grid>
                       </Box>
                     )}
-                    {ti?.WeightBeforePackingPerUnit && (
-                      <Stack direction="row" spacing={2} alignItems="flex-start">
-                        <Scale style={{ width: 40, height: 40, color: 'grey.500', flexShrink: 0 }} />
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">Product Weight Before Packaging</Typography>
-                          <Typography fontWeight="500">
-                            {ti.WeightBeforePackingPerUnit} {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ ml: 2 }}>
-                          <Typography variant="body2" color="text.secondary">Product Weight After Packaging</Typography>
-                          <Typography fontWeight="500">
-                            {ti.WeightAfterPackingPerUnit} {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
-                          </Typography>
-                        </Box>
-                      </Stack>
+                    {(ti?.WeightBeforePackingPerUnit || ti?.WeightAfterPackingPerUnit) && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                          Product weight
+                        </Typography>
+                        <Stack direction="row" spacing={2} alignItems="flex-start">
+                          <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+                            {ti?.WeightBeforePackingPerUnit && (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  Before packaging
+                                </Typography>
+                                <Typography fontWeight="500">
+                                  {ti.WeightBeforePackingPerUnit}{' '}
+                                  {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                                </Typography>
+                              </Box>
+                            )}
+                            {ti?.WeightAfterPackingPerUnit &&  (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  After packaging
+                                </Typography>
+                                <Typography fontWeight="500">
+                                  {ti.WeightAfterPackingPerUnit}{' '}
+                                  {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Stack>
+                      </Box>
                     )}
                     {ti?.InstructionsToUseProduct && (
                       <Box>
