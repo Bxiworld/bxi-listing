@@ -393,7 +393,6 @@ const VoucherCard = () => {
       .get(`product/get_product_byId/${id}`)
       .then(res => {
         if (res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue) {
-          console.log('res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue',res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue)
           setShowSpinner(false);
         }
         if (res?.data) {
