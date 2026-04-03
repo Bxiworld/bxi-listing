@@ -165,6 +165,9 @@ const VoucherCard = () => {
     const inputValue = event.target.value;
     setListThisProductForAmount(inputValue);
     setHasStartedTyping(true);
+    setProductData(prev =>
+      prev ? { ...prev, validityOfVoucherValue: inputValue } : prev
+    );
   };
 
   const validateInput = value => {
@@ -390,6 +393,7 @@ const VoucherCard = () => {
       .get(`product/get_product_byId/${id}`)
       .then(res => {
         if (res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue) {
+          console.log('res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue',res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue)
           setShowSpinner(false);
         }
         if (res?.data) {
@@ -418,10 +422,14 @@ const VoucherCard = () => {
             let variations = response.ProductsVariantions[0];
             productDetails.pricePerUnit = variations.PricePerUnit;
             productDetails.validityOfVoucherUnit =
-              variations?.validityOfVoucherUnit;
+              variations?.validityOfVoucherUnit || 'Days';
             productDetails.validityOfVoucherValue =
               variations?.validityOfVoucherValue;
+          } else {
+            productDetails.validityOfVoucherUnit =
+              productDetails.validityOfVoucherUnit || 'Days';
           }
+          setListThisProductForUnitOfTime(productDetails.validityOfVoucherUnit);
           setProductData(productDetails);
         }
       });
@@ -725,7 +733,13 @@ const VoucherCard = () => {
                   className={cls.goLiveSelectBox}
                   value={ListThisProductForUnitOfTime || 'Days'}
                   name='ListThisProductForUnitOfTime'
-                  onChange={e => setListThisProductForUnitOfTime(e.target.value)}
+                  onChange={e => {
+                    const unit = e.target.value;
+                    setListThisProductForUnitOfTime(unit);
+                    setProductData(prev =>
+                      prev ? { ...prev, validityOfVoucherUnit: unit } : prev
+                    );
+                  }}
                   sx={{
                     minWidth: '90px',
                     fontFamily: 'Poppins',
@@ -740,6 +754,9 @@ const VoucherCard = () => {
                 >
                   <MenuItem className={cls.goLiveMenuItems} value='Days'>
                     Days
+                  </MenuItem>
+                  <MenuItem className={cls.goLiveMenuItems} value='Months'>
+                    Months
                   </MenuItem>
                 </Select>
               </Box>
