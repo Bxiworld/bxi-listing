@@ -802,37 +802,70 @@ export default function ProductPreview() {
                       </Box>
                     )}
                     <Box>
-                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
                         Additional Cost
                       </Typography>
                       {product?.OtherCost?.length > 0 ? (
-                        <Stack spacing={1.5}>
+                        <Stack spacing={3}>
                           {product.OtherCost.map((cost, i) => (
-                            <Stack key={i} direction="row" flexWrap="wrap" spacing={2} useFlexGap>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">Applicable on:</Typography> {cost.AdCostApplicableOn}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">Reason:</Typography> {cost.ReasonOfCost}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">HSN:</Typography> {cost.AdCostHSN}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">GST:</Typography> {cost.AdCostGST}%
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">Cost:</Typography>{' '}
-                                <Typography component="span" className="inline-flex items-center gap-1" fontWeight="medium">
-                                  {formatPrice(cost.CostPrice)}
-                                  {cost.currencyType === 'BXITokens' ? (
-                                    <img src={BXITokenIcon} alt="BXI Token" className="w-4 h-4" />
-                                  ) : (
-                                    ' ₹'
-                                  )}
-                                </Typography>
-                              </Typography>
-                            </Stack>
+                            <Grid container spacing={2} key={i}>
+                              {cost.AdCostApplicableOn != null && String(cost.AdCostApplicableOn).trim() !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">Applicable on:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.AdCostApplicableOn}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.ReasonOfCost != null && String(cost.ReasonOfCost).trim() !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">Reason:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.ReasonOfCost}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.AdCostHSN != null && String(cost.AdCostHSN).trim() !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">HSN:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.AdCostHSN}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.AdCostGST != null && cost.AdCostGST !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">GST:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.AdCostGST}%
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.CostPrice != null && cost.CostPrice !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">Cost:</Typography>
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 0.5,
+                                      mt: 0.25,
+                                    }}
+                                  >
+                                    <Typography variant="body2" component="span" fontWeight="medium">
+                                      {formatPrice(cost.CostPrice)}
+                                    </Typography>
+                                    {cost.currencyType === 'BXITokens' ? (
+                                      <Box component="img" src={BXITokenIcon} alt="BXI Token" sx={{ width: 16, height: 16 }} />
+                                    ) : (
+                                      <Typography variant="body2" component="span">
+                                        ₹
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Grid>
+                              )}
+                            </Grid>
                           ))}
                         </Stack>
                       ) : (
