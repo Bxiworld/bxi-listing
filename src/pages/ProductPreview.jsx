@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Scale, Package, ArrowLeft, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
   Button,
@@ -23,7 +24,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Popover,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
@@ -158,6 +163,8 @@ function TabPanel({ children, value, index, ...rest }) {
 }
 
 export default function ProductPreview() {
+  const theme = useTheme();
+  const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const { id } = useParams();
   const [product, setProduct] = useState(null);
@@ -166,7 +173,7 @@ export default function ProductPreview() {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [sizeChartAnchor, setSizeChartAnchor] = useState(null);
+  const [sizeChartDialogOpen, setSizeChartDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -543,9 +550,6 @@ export default function ProductPreview() {
                       <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
                         <TableCell align="center" sx={{ py: 2 }}>
                           <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                            <Box component="span" sx={{ color: 'success.main', display: 'flex' }}>
-                              <Check size={20} />
-                            </Box>
                             <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
                             <Typography variant="body2" fontWeight="600">
                               {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
@@ -595,6 +599,7 @@ export default function ProductPreview() {
                 <Box>
                   <Typography
                     component="button"
+                    type="button"
                     variant="body2"
                     fontWeight="600"
                     sx={{
@@ -604,33 +609,87 @@ export default function ProductPreview() {
                       background: 'none',
                       '&:hover': { textDecoration: 'underline' },
                     }}
-                    onMouseEnter={(e) => setSizeChartAnchor(e.currentTarget)}
-                    onMouseLeave={() => setSizeChartAnchor(null)}
+                    onClick={() => setSizeChartDialogOpen(true)}
                   >
                     Size Chart
                   </Typography>
-                  <Popover
-                    open={Boolean(sizeChartAnchor)}
-                    anchorEl={sizeChartAnchor}
-                    onClose={() => setSizeChartAnchor(null)}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    onMouseEnter={() => setSizeChartAnchor(sizeChartAnchor)}
-                    onMouseLeave={() => setSizeChartAnchor(null)}
-                    slotProps={{ paper: { sx: { mt: 1.5, p: 1 } } }}
+                  <Dialog
+                    open={sizeChartDialogOpen}
+                    onClose={() => setSizeChartDialogOpen(false)}
+                    fullScreen={sizeChartFullScreen}
+                    maxWidth="md"
+                    fullWidth
+                    aria-labelledby="size-chart-dialog-title"
+                    slotProps={{
+                      paper: {
+                        sx: sizeChartFullScreen
+                          ? {
+                              m: 0,
+                              maxHeight: '100%',
+                              height: '100%',
+                              borderRadius: 0,
+                              pt: 'env(safe-area-inset-top)',
+                              pb: 'env(safe-area-inset-bottom)',
+                            }
+                          : undefined,
+                      },
+                    }}
                   >
-                    {sizeChartUrl ? (
-                      <img
-                        src={sizeChartUrl}
-                        alt="Size chart"
-                        style={{ maxHeight: 300, width: 'auto', maxWidth: 400, objectFit: 'contain' }}
-                      />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
-                        Size Chart Unavailable
-                      </Typography>
-                    )}
-                  </Popover>
+                    <DialogTitle
+                      id="size-chart-dialog-title"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                        pr: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      Size chart
+                      <IconButton
+                        type="button"
+                        onClick={() => setSizeChartDialogOpen(false)}
+                        aria-label="Close size chart"
+                        size="large"
+                        edge="end"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </DialogTitle>
+                    <DialogContent
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-start',
+                        overflow: 'auto',
+                        pt: 1,
+                        pb: 2,
+                        minHeight: 0,
+                      }}
+                    >
+                      {sizeChartUrl ? (
+                        <Box
+                          component="img"
+                          src={sizeChartUrl}
+                          alt="Size chart"
+                          sx={{
+                            maxWidth: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            maxHeight: sizeChartFullScreen
+                              ? 'calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
+                              : 'min(70vh, 520px)',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                          Size Chart Unavailable
+                        </Typography>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </Box>
               )}
             </Stack>
