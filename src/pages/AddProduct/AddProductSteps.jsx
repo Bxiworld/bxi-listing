@@ -2633,13 +2633,16 @@ export const ProductInfo = ({ category }) => {
               <div className="space-y-4 pt-4">
                 <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Manufacturing Date */}
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                  {/* Row 1 / mobile: manufacturing label */}
+                  <div className="md:col-start-1 md:row-start-1">
                     <Label>
-                      Manufacturing Date{' '} <span className="text-red-500">*</span>
+                      Manufacturing Date{' '}
                       {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
                     </Label>
+                  </div>
+                  {/* Row 2 / mobile: manufacturing picker */}
+                  <div className="md:col-start-1 md:row-start-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -2666,86 +2669,56 @@ export const ProductInfo = ({ category }) => {
                     </Popover>
                   </div>
 
-                  {/* Expiry Date */}
-                  <div className="space-y-2">
-                    {/* For FMCG, expiry is mandatory (no checkbox) */}
+                  {/* Row 1 col 2 / mobile: expiry label or checkbox */}
+                  <div className="md:col-start-2 md:row-start-1">
                     {category === 'fmcg' ? (
-                      <>
-                        <Label>
-                          Expiry Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className={cn(
-                                'w-full justify-start text-left font-normal',
-                                !expiryDate && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={expiryDate}
-                              onSelect={setExpiryDate}
-                              disabled={(date) => {
-                                if (date < new Date()) return true;
-                                if (manufacturingDate && date <= manufacturingDate) return true;
-                                return false;
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </>
+                      <Label>
+                        Expiry Date <span className="text-red-500">*</span>
+                      </Label>
                     ) : (
-                      <>
-                        <div className="h-6 flex items-center gap-2">
-                          <Checkbox
-                            id="has-expiry"
-                            checked={hasExpiryDate}
-                            onCheckedChange={setHasExpiryDate}
+                      <div className="h-6 flex items-center gap-2">
+                        <Checkbox
+                          id="has-expiry"
+                          checked={hasExpiryDate}
+                          onCheckedChange={setHasExpiryDate}
+                        />
+                        <Label htmlFor="has-expiry" className="cursor-pointer leading-none">
+                          This product has an expiry date
+                        </Label>
+                      </div>
+                    )}
+                  </div>
+                  {/* Row 2 col 2 / mobile: expiry picker */}
+                  <div className="md:col-start-2 md:row-start-2">
+                    {(category === 'fmcg' || hasExpiryDate) && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !expiryDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={expiryDate}
+                            onSelect={setExpiryDate}
+                            disabled={(date) => {
+                              if (date < new Date()) return true;
+                              if (manufacturingDate && date <= manufacturingDate) return true;
+                              return false;
+                            }}
+                            initialFocus
                           />
-                          <Label htmlFor="has-expiry" className="cursor-pointer leading-none">
-                            This product has an expiry date
-                          </Label>
-                        </div>
-                        {hasExpiryDate && (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className={cn(
-                                  'w-full justify-start text-left font-normal mt-2',
-                                  !expiryDate && 'text-muted-foreground'
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={expiryDate}
-                                onSelect={setExpiryDate}
-                                disabled={(date) => {
-                                  if (date < new Date()) return true;
-                                  if (manufacturingDate && date <= manufacturingDate) return true;
-                                  return false;
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                      </>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                 </div>
