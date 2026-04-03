@@ -24,6 +24,7 @@ import {
   Select,
   MenuItem,
   Popover,
+  Divider,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
@@ -155,6 +156,121 @@ function TabPanel({ children, value, index, ...rest }) {
       {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
     </div>
   );
+}
+
+function getVariantSizesDisplay(v) {
+  if (!v) return '';
+  if (v.ShoeSize != null && v.ShoeSize !== '') {
+    return `${v.ShoeSize} ${v.MeasurementUnit || ''}`.trim();
+  }
+  if (v.ProductSize != null && v.ProductSize !== '') return String(v.ProductSize);
+  if (v.NutritionInfo != null && v.NutritionInfo !== '') return String(v.NutritionInfo);
+  if (v?.length != null && v?.length !== '' && v?.MeasurementUnit) {
+    return `${v.length} ${v.MeasurementUnit}`;
+  }
+  return '';
+}
+
+function variantQtyHasValue(q) {
+  return q != null && q !== '' && !Number.isNaN(Number(q));
+}
+
+/** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
+function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
+  if (!selectedVariantData) return [];
+  const v = selectedVariantData;
+  const cols = [];
+
+  const discRaw = v.DiscountedPrice;
+  const hasDisc =
+    discRaw != null &&
+    discRaw !== '' &&
+    !(typeof discRaw === 'number' && Number.isNaN(discRaw));
+  if (hasDisc) {
+    cols.push({
+      id: 'discountedMrp',
+      heading: 'Disc. MRP',
+      minWidth: 128,
+      cell: (
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+          <img src={BXIIconSrc} alt="BXI" style={{ height: 16, width: 16 }} />
+          <Typography variant="body2" fontWeight="600">
+            {formatPrice(v.DiscountedPrice) || 'N/A'}
+          </Typography>
+        </Stack>
+      ),
+    });
+  }
+
+  const sizesText = getVariantSizesDisplay(v);
+  if (sizesText) {
+    cols.push({
+      id: 'sizes',
+      heading: 'Sizes',
+      minWidth: 112,
+      cell: <Typography variant="body2">{sizesText}</Typography>,
+    });
+  }
+
+  if (variantQtyHasValue(v.MinOrderQuantity)) {
+    cols.push({
+      id: 'minQty',
+      heading: 'Min QTY',
+      minWidth: 96,
+      cell: (
+        <Chip label={v.MinOrderQuantity} size="small" color="primary" variant="outlined" />
+      ),
+    });
+  }
+
+  if (variantQtyHasValue(v.MaxOrderQuantity)) {
+    cols.push({
+      id: 'maxQty',
+      heading: 'Max QTY',
+      minWidth: 96,
+      cell: (
+        <Chip label={v.MaxOrderQuantity} size="small" color="primary" variant="outlined" />
+      ),
+    });
+  }
+
+  if (v.GST != null && v.GST !== '' && !(typeof v.GST === 'number' && Number.isNaN(v.GST))) {
+    cols.push({
+      id: 'gst',
+      heading: 'GST',
+      minWidth: 72,
+      cell: <Typography variant="body2">{`${v.GST}%`}</Typography>,
+    });
+  }
+
+  if (v.HSN != null && v.HSN !== '') {
+    cols.push({
+      id: 'hsn',
+      heading: 'HSN',
+      minWidth: 88,
+      cell: <Typography variant="body2">{v.HSN}</Typography>,
+    });
+  }
+
+  if (v.ProductSize != null && v.ProductSize !== '') {
+    cols.push({
+      id: 'productSize',
+      heading: 'Product Size',
+      minWidth: 112,
+      cell: <Typography variant="body2">{v.ProductSize}</Typography>,
+    });
+  }
+
+  if (v.ProductIdType != null && v.ProductIdType !== '') {
+    cols.push({
+      id: 'productId',
+      heading: 'Product ID',
+      minWidth: 120,
+      cell: <Typography variant="body2">{v.ProductIdType}</Typography>,
+    });
+  }
+
+  return cols;
 }
 
 export default function ProductPreview() {
@@ -329,16 +445,8 @@ export default function ProductPreview() {
       product?.ProductCategoryName
     ) || !product?.ProductCategoryName;
 
-  const tableHeadings = [
-    'Disc. MRP',
-    'Sizes',
-    'Min QTY',
-    'Max QTY',
-    'GST',
-    'HSN',
-    'Product Size',
-    'Product ID',
-  ];
+  const variantPreviewColumns = getVariantPreviewTableColumns(selectedVariantData, BXIIcon);
+  const variantTableMinTotal = variantPreviewColumns.reduce((sum, c) => sum + c.minWidth, 0);
 
   return (
     <Box
@@ -495,7 +603,8 @@ export default function ProductPreview() {
                 percentage={selectedVariantData?.GST}
               />
 
-              {product?.ProductCategoryName !== 'QSR' &&
+              {!isVoucherListing &&
+                product?.ProductCategoryName !== 'QSR' &&
                 product?.ProductCategoryName !== 'FMCG' &&
                 selectedVariantData?.ProductColor && (
                   <Box>
@@ -526,67 +635,80 @@ export default function ProductPreview() {
                 </Box>
               )}
 
-              {/* Variant table */}
-              {selectedVariantData && (
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'grey.100' }}>
-                        {tableHeadings.map((heading) => (
-                          <TableCell key={heading} align="center" sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>
-                            {heading}
-                          </TableCell>
+              {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
+              {selectedVariantData && variantPreviewColumns.length > 0 && (
+                <>
+                  <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
+                  <TableContainer
+                    component={Paper}
+                    elevation={0}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                      borderRadius: 2,
+                      overflowX: 'auto',
+                    }}
+                  >
+                    <Table
+                      size="small"
+                      sx={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: Math.max(variantTableMinTotal, 320),
+                      }}
+                    >
+                      <colgroup>
+                        {variantPreviewColumns.map((col) => (
+                          <col
+                            key={col.id}
+                            style={{
+                              width: `${(col.minWidth / variantTableMinTotal) * 100}%`,
+                            }}
+                          />
                         ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                            <Box component="span" sx={{ color: 'success.main', display: 'flex' }}>
-                              <Check size={20} />
-                            </Box>
-                            <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
-                            <Typography variant="body2" fontWeight="600">
-                              {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">
-                            {selectedVariantData.ShoeSize != null
-                              ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ''}`
-                              : selectedVariantData.ProductSize ||
-                                selectedVariantData.NutritionInfo ||
-                                (selectedVariantData?.length && selectedVariantData?.MeasurementUnit
-                                  ? `${selectedVariantData?.length} ${selectedVariantData?.MeasurementUnit}`
-                                  : 'N/A')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Chip label={selectedVariantData.MinOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Chip label={selectedVariantData.MaxOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">
-                            {selectedVariantData.GST ? `${selectedVariantData.GST}%` : 'N/A'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.HSN ?? 'N/A'}</Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.ProductSize ?? 'N/A'}</Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.ProductIdType ?? 'N/A'}</Typography>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </colgroup>
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: 'grey.100' }}>
+                          {variantPreviewColumns.map((col) => (
+                            <TableCell
+                              key={col.id}
+                              align="center"
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                color: 'text.secondary',
+                                minWidth: col.minWidth,
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              {col.heading}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                          {variantPreviewColumns.map((col) => (
+                            <TableCell
+                              key={col.id}
+                              align="center"
+                              sx={{
+                                py: 2,
+                                minWidth: col.minWidth,
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              {col.cell}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
               )}
 
               {/* Size chart */}
