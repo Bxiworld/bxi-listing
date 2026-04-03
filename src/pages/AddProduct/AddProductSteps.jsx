@@ -3475,6 +3475,8 @@ export const GoLive = ({ category }) => {
   const isMediaCategory = MEDIA_CATEGORIES.includes(category);
   const requiresListingPeriod = !isMediaCategory;
   const hasRestrictedAspect = RESTRICTED_ASPECT_CATEGORIES.includes(category);
+  const totalGoLiveImageCount = files.length + (productData?.ProductImages?.length || 0);
+  const goLiveImagesStillNeeded = Math.max(0, 3 - totalGoLiveImageCount);
 
   const isVoucherDesignStep = location.pathname.includes('voucherdesign');
   const stepKey = isVoucherDesignStep ? 'voucherDesign' : 'goLive';
@@ -3676,7 +3678,7 @@ export const GoLive = ({ category }) => {
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <h2 className="form-section-title text-[#C64091]">Go Live - Product Images</h2>
-                  <p className="text-sm text-[#6B7A99] mt-1">Upload high-quality product images to showcase your product (Mandatory 3 images)</p>
+                  <p className="text-sm text-[#6B7A99] mt-1">Upload high-quality product images to showcase your product</p>
                 </div>
                 <TooltipProvider>
                   <Tooltip>
@@ -3723,6 +3725,7 @@ export const GoLive = ({ category }) => {
                     <p className="font-semibold text-[#C64091]">Drag & Drop images here</p>
                     <p className="text-sm text-[#6B7A99] mt-1">or <span className="text-[#C64091] font-semibold underline">browse files</span> (Select multiple)</p>
                     <div className="flex flex-wrap justify-center gap-2 mt-3">
+                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs font-semibold">Min. 3 images</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">JPEG, PNG, GIF</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">Max 10MB</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
@@ -3747,7 +3750,14 @@ export const GoLive = ({ category }) => {
 
                   {(files.length > 0 || imagePreviews.length > 0) && (
                     <div className="mt-6">
-                      <Label className="text-base font-semibold">Uploaded Images ({imagePreviews.length})</Label>
+                      <Label className="text-base font-semibold flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span>Uploaded Images ({totalGoLiveImageCount})</span>
+                        {goLiveImagesStillNeeded > 0 && (
+                          <span className="text-sm font-normal text-amber-800">
+                            — {goLiveImagesStillNeeded} more required
+                          </span>
+                        )}
+                      </Label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
                         {imagePreviews.map((item, idx) => (
                           <div
