@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import api, { productApi } from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 import { getVoucherJourneyTypeFromStorage, VOUCHER_JOURNEY_TYPE } from '../../utils/voucherType';
 
 const VALIDITY_OPTIONS = Array.from({ length: 18 }, (_, i) => {
@@ -89,6 +90,7 @@ const validateOtherCost = (o) => {
 };
 
 export default function HotelsProductInfo({ category }) {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);

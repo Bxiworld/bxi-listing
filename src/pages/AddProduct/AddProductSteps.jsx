@@ -55,6 +55,7 @@ import {
   getVoucherJourneyLabel,
   VOUCHER_JOURNEY_TYPE,
 } from '../../utils/voucherType';
+import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
@@ -211,6 +212,7 @@ export const Stepper = ({ currentStep, completedSteps = [], category = '' }) => 
 
 // General Information Step
 export const GeneralInformation = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -861,6 +863,7 @@ const formatVariationSize = (row) => {
 };
 
 export const ProductInfo = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -3120,6 +3123,7 @@ export const ProductInfo = ({ category }) => {
 
 // Technical Information Step – weight, dimensions, warranty, additional info
 export const TechInfo = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -3444,6 +3448,7 @@ const MEDIA_CATEGORIES = ['mediaonline', 'mediaoffline'];
 const RESTRICTED_ASPECT_CATEGORIES = ['textile', 'officesupply', 'lifestyle', 'others'];
 
 export const GoLive = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -3671,7 +3676,7 @@ export const GoLive = ({ category }) => {
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <h2 className="form-section-title text-[#C64091]">Go Live - Product Images</h2>
-                  <p className="text-sm text-[#6B7A99] mt-1">Upload high-quality product images to showcase your product</p>
+                  <p className="text-sm text-[#6B7A99] mt-1">Upload high-quality product images to showcase your product (Mandatory 3 images)</p>
                 </div>
                 <TooltipProvider>
                   <Tooltip>

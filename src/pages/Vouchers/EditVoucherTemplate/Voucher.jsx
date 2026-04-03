@@ -22,6 +22,7 @@ import React, {
   useRef,
 } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useScrollToTopOnPathname } from '../../../hooks/useScrollToTopOnStepEnter';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import api from '../../../utils/api';
@@ -94,6 +95,7 @@ async function uploadVoucherImages(frontData, backData) {
 }
 
 const VoucherCard = () => {
+  useScrollToTopOnPathname();
   let id;
   id = useParams().id;
   const navigate = useNavigate();
