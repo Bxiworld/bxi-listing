@@ -173,7 +173,11 @@ const STEPS = [
 const getStepName = (stepId, category) => {
   if (stepId !== 2) return STEPS[stepId - 1].name;
   const isVoucherCategory = category?.endsWith?.('Voucher');
-  return isVoucherCategory ? 'Voucher Information' : 'Product Information';
+  if (isVoucherCategory) return 'Voucher Information';
+  const isMediaCategory =
+    category === 'mediaonline' || category === 'mediaoffline' || category === 'media';
+  if (isMediaCategory) return 'Media Information';
+  return 'Product Information';
 };
 
 // Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
