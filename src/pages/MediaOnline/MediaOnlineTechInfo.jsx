@@ -32,6 +32,7 @@ import defaultIcon from '../../assets/CartPage/defaultCheckBoxIcon.svg';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import { Stepper } from '../AddProduct/AddProductSteps';
 const options = { day: '2-digit', month: 'short', year: 'numeric' };
 
 export default function TechInfo() {
@@ -231,6 +232,11 @@ export default function TechInfo() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={3} category="mediaonline" completedSteps={[1, 2]} />
+          </aside>
+          <main className="stepper-content">
         <div className="form-section">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="form-section-title">
@@ -707,6 +713,8 @@ export default function TechInfo() {
               </Button>
             </div>
           </form>
+        </div>
+          </main>
         </div>
       </div>
     </div>

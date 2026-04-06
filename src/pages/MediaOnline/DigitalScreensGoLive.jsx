@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 export default function DigitalScreensGoLive() {
   const { id } = useParams();
@@ -46,6 +47,12 @@ export default function DigitalScreensGoLive() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={4} category="mediaonline" completedSteps={[1, 2, 3]} />
+          </aside>
+          <main className="stepper-content">
       <div className="max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-semibold text-[#111827] mb-2">Review & Go Live – Digital Screens</h2>
@@ -69,6 +76,9 @@ export default function DigitalScreensGoLive() {
           <Button onClick={handleGoLive} disabled={isSubmitting} className="bg-[#C64091] hover:bg-[#A03375]">
             {isSubmitting ? 'Submitting...' : 'Go Live'}
           </Button>
+        </div>
+      </div>
+          </main>
         </div>
       </div>
     </div>

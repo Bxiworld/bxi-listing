@@ -12,6 +12,7 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 export default function DigitalScreensTechInfo() {
   const { id } = useParams();
@@ -72,7 +73,13 @@ export default function DigitalScreensTechInfo() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
-      <div className="form-container max-w-2xl mx-auto px-4">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={3} category="mediaonline" completedSteps={[1, 2]} />
+          </aside>
+          <main className="stepper-content">
+      <div className="max-w-2xl mx-auto px-4">
         <div className="form-section bg-white rounded-lg shadow-sm p-6">
           <h2 className="form-section-title mb-6">Digital Screens – Technical Information</h2>
 
@@ -107,6 +114,9 @@ export default function DigitalScreensTechInfo() {
           <Button variant="ghost" className="mt-4 text-[#6B7A99]" onClick={() => window.confirm('Cancel product?') && navigate('/sellerhub')}>
             Cancel
           </Button>
+        </div>
+      </div>
+          </main>
         </div>
       </div>
     </div>

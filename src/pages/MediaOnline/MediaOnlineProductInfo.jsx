@@ -38,6 +38,7 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 import StateData from '../../utils/StateCityArray.json';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 const LocationArr = [
   'Specific',
@@ -708,6 +709,11 @@ const MediaProductInfo = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} category="mediaonline" completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
         <div className="form-section">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="form-section-title">Media Information</h2>
@@ -3857,6 +3863,8 @@ const MediaProductInfo = () => {
               </Button>
             </div>
           </form>
+        </div>
+          </main>
         </div>
       </div>
     </div>
