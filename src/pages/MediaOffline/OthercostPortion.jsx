@@ -106,18 +106,18 @@ export default function TextileProductInform(props) {
     >
       <Typography
         sx={{
-          fontWeight: 500,
-          fontFamily: 'Poppins',
-          color: '#6B7A99',
-          fontSize: '20px',
+          fontWeight: 600,
+          fontFamily: 'Inter, sans-serif',
+          color: '#5c6b8a',
+          fontSize: { xs: '16px', sm: '18px' },
           marginBottom: '10px',
+          width: '100%',
         }}
       >
         Additional Cost
-        <span style={{ fontSize: '12px' }}>
-          {' '}
+        <Box component="span" sx={{ fontSize: '12px', fontWeight: 500, ml: 0.5 }}>
           ( Additional cost is not mandatory )
-        </span>
+        </Box>
       </Typography>
       <Box
         sx={{
@@ -146,29 +146,8 @@ export default function TextileProductInform(props) {
               height: '48px',
               background: '#FFFFFF',
               borderRadius: '10px',
-              fontFamily: 'Poppins',
-              fontStyle: 'normal',
-              fontSize: '12px',
-              fontWeight: 400,
-              color: '#C64091',
               px: 1,
-              border: errors?.AdCostApplicableOn
-                ? '1px solid red'
-                : '1px solid #C4C4C4',
-              '& .MuiSelect-select': {
-                fontFamily: 'Poppins',
-                color: '#C64091',
-                fontSize: '12px',
-              },
-              '.MuiOutlinedInput-notchedOutline': { border: 'none' },
-              '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                {
-                  border: 'none',
-                },
-              '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                {
-                  border: 'none',
-                },
+              ...ocOutlinedSelectSx(!!errors?.AdCostApplicableOn),
             }}
           >
             <MenuItem value='All'>One Time Cost</MenuItem>
@@ -215,79 +194,32 @@ export default function TextileProductInform(props) {
             </Box>
           </div>
 
-          <Box
-            sx={{
-              display: 'flex',
-              background: '#FFFFFF',
-              borderRadius: '10px',
-              width: '100%',
-              alignItems: 'center',
-              border: errors['CostPrice'] ? '1px solid red' : null,
-            }}
-          >
-            <Box sx={{ width: '100%' }}>
-              <Input
-                disableUnderline
-                placeholder='Eg. 1000'
-                {...register('CostPrice', {
-                  onChange: event => {
-                    event.target.value = parseInt(
-                      event.target.value.replace(/[^\d]+/gi, '') || 0
-                    ).toLocaleString('en-US');
-                  },
-                })}
-                sx={{
-                  width: '100%',
-                  height: '48px',
-                  background: '#FFFFFF',
-                  borderRadius: '10px',
-                  px: 1,
-                  fontSize: '12px',
-                  color: '#C64091',
-                  border: errors?.CostPrice
-                    ? '1px solid red'
-                    : '1px solid #C4C4C4',
-                  '&:focus': {
-                    outline: 'none',
-                    border: errors?.CostPrice
-                      ? '1px solid red'
-                      : '1px solid #C64091',
-                  },
-                }}
-                inputProps={{
-                  style: {
-                    fontFamily: 'Poppins',
-                    fontSize: '13px',
-                    color: '#C64091',
-                  },
-                  maxLength: 15,
-                }}
-              />
-            </Box>
+          <Box sx={{ ...ocBorderedRowSx(!!errors['CostPrice']) }}>
+            <Input
+              disableUnderline
+              placeholder='Eg. 1000'
+              {...register('CostPrice', {
+                onChange: event => {
+                  event.target.value = parseInt(
+                    event.target.value.replace(/[^\d]+/gi, '') || 0
+                  ).toLocaleString('en-US');
+                },
+              })}
+              inputProps={{ maxLength: 15 }}
+              sx={{
+                ...ocInputInRowSx,
+                flex: 1,
+                minWidth: 0,
+              }}
+            />
 
             <Select
               defaultValue={'₹'}
               {...register('currencyType')}
               sx={{
+                ...ocCurrencySelectSx,
                 height: '48px',
-                width: 'auto',
-                '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                  {
-                    border: 0,
-                  },
-                '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                  {
-                    border: 0,
-                  },
-                background: '#FFFFFF',
-
-                color: '#6B7A99',
-                fontSize: '12px',
-                fontFamily: 'Poppins',
-                fontStyle: 'normal',
-                fontWeight: 400,
-                borderRadius: '0px 10px 10px 0px',
+                minWidth: 56,
               }}
             >
               <MenuItem value='BXITokens'>
@@ -304,7 +236,7 @@ export default function TextileProductInform(props) {
               <MenuItem value='₹'>₹</MenuItem>
             </Select>
           </Box>
-          <Typography sx={{ color: 'red', fontFamily: 'Poppins' }}>
+          <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
             {errors['CostPrice']?.message}
           </Typography>
         </Box>
@@ -345,23 +277,17 @@ export default function TextileProductInform(props) {
                 borderRadius: '10px',
                 px: 1,
                 fontSize: '12px',
-                color: '#C64091',
-                border: errors?.AdCostHSN
-                  ? '1px solid red'
-                  : '1px solid #C4C4C4',
-                '&:focus': {
-                  outline: 'none',
-                  border: errors?.AdCostHSN
-                    ? '1px solid red'
-                    : '1px solid #C64091',
-                },
+                fontFamily: 'Inter, sans-serif',
+                color: ocColors.text,
+                ...ocBorderedControlSx(!!errors?.AdCostHSN),
+                ...ocPlaceholderSx,
               }}
             />
           </Box>
 
           {errors?.AdCostHSN && (
             <Typography
-              sx={{ color: 'red', fontFamily: 'Poppins', fontSize: '12px' }}
+              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
             >
               {errors?.AdCostHSN?.message}
             </Typography>
@@ -383,28 +309,35 @@ export default function TextileProductInform(props) {
           <Box sx={{ position: 'relative' }}>
             <Select
               defaultValue=''
+              displayEmpty
+              renderValue={(selected) => {
+                if (
+                  selected === undefined ||
+                  selected === null ||
+                  selected === ''
+                ) {
+                  return (
+                    <Box
+                      component='span'
+                      sx={{
+                        color: ocColors.label,
+                        opacity: 0.55,
+                        fontSize: '12px',
+                      }}
+                    >
+                      GST %
+                    </Box>
+                  );
+                }
+                return selected;
+              }}
               {...register('AdCostGST')}
               sx={{
                 width: '100px',
                 height: '48px',
                 background: '#FFFFFF',
                 borderRadius: '10px',
-                fontSize: '12px',
-                color: '#C64091',
-                border: errors?.AdCostGST
-                  ? '1px solid red'
-                  : '1px solid #C4C4C4',
-                '&:focus': {
-                  outline: 'none',
-                  border: errors?.AdCostGST
-                    ? '1px solid red'
-                    : '1px solid #C64091',
-                },
-                '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                  { border: 0 },
-                '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                  { border: 0 },
+                ...ocOutlinedSelectSx(!!errors?.AdCostGST),
               }}
             >
               {GSTData?.map((gst, idx) => (
@@ -429,7 +362,7 @@ export default function TextileProductInform(props) {
 
           {errors?.AdCostGST && (
             <Typography
-              sx={{ color: 'red', fontFamily: 'Poppins', fontSize: '12px' }}
+              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
             >
               {errors?.AdCostGST?.message}
             </Typography>
@@ -465,11 +398,19 @@ export default function TextileProductInform(props) {
             variant='standard'
             InputProps={{
               disableUnderline: true,
-              style: {
+              sx: {
                 fontSize: '14px',
-                padding: '10px',
-                height: '48px',
-                color: '#C64091',
+                px: 1.25,
+                py: 1,
+                minHeight: '48px',
+                fontFamily: 'Inter, sans-serif',
+                color: ocColors.text,
+                boxSizing: 'border-box',
+                '& .MuiInputBase-input::placeholder': {
+                  color: ocColors.label,
+                  opacity: 0.55,
+                  WebkitTextFillColor: ocColors.label,
+                },
               },
             }}
             sx={{
@@ -477,20 +418,37 @@ export default function TextileProductInform(props) {
               background: '#FFFFFF',
               borderRadius: '10px',
               marginBottom: '20px',
-              border: errors['ReasonOfCost']
-                ? '1px solid red'
-                : '1px solid #C4C4C4',
+              outline: 'none',
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: errors['ReasonOfCost']
+                ? ocColors.borderError
+                : ocColors.border,
+              transition: 'border-color 0.15s ease',
+              '&:hover': {
+                borderColor: errors['ReasonOfCost']
+                  ? ocColors.borderError
+                  : ocColors.borderHover,
+              },
+              '&.Mui-focused': {
+                borderColor: errors['ReasonOfCost']
+                  ? ocColors.borderError
+                  : ocColors.borderFocus,
+                boxShadow: 'none',
+              },
               '&:focus-within': {
-                border: errors['ReasonOfCost']
-                  ? '1px solid red'
-                  : '1px solid #C64091',
+                borderColor: errors['ReasonOfCost']
+                  ? ocColors.borderError
+                  : ocColors.borderFocus,
+                outline: 'none',
+                boxShadow: 'none',
               },
             }}
           />
 
           {errors['ReasonOfCost'] && (
             <Typography
-              sx={{ color: 'red', fontFamily: 'Poppins', fontSize: '12px' }}
+              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
             >
               {errors['ReasonOfCost']?.message}
             </Typography>
@@ -515,9 +473,9 @@ export default function TextileProductInform(props) {
             height: '41px',
             width: '100%',
             borderRadius: '10px',
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter, sans-serif',
             fontStyle: 'normal',
-            fontWeight: 400,
+            fontWeight: 500,
             boxShadow: 'none',
             '&:hover': {
               boxShadow: 'none',
@@ -544,25 +502,137 @@ export default function TextileProductInform(props) {
   );
 }
 
+const ocColors = {
+  border: '#E2E8F0',
+  borderHover: '#CBD5E1',
+  borderFocus: '#C64091',
+  borderError: '#d32f2f',
+  text: '#334155',
+  label: '#6B7A99',
+};
+
+const ocPlaceholderSx = {
+  '& .MuiInputBase-input::placeholder': {
+    color: ocColors.label,
+    opacity: 0.55,
+    WebkitTextFillColor: ocColors.label,
+  },
+  '& input::placeholder': {
+    color: ocColors.label,
+    opacity: 0.55,
+  },
+};
+
+const ocBorderedControlSx = (hasError) => ({
+  border: '1px solid',
+  borderColor: hasError ? ocColors.borderError : ocColors.border,
+  transition: 'border-color 0.15s ease',
+  boxSizing: 'border-box',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:focus': { outline: 'none' },
+  '&:focus-visible': { outline: 'none' },
+  '& .MuiInputBase-input:focus': { outline: 'none' },
+  '&:hover': {
+    borderColor: hasError ? ocColors.borderError : ocColors.borderHover,
+  },
+  '&.Mui-focused': {
+    borderColor: hasError ? ocColors.borderError : ocColors.borderFocus,
+    boxShadow: 'none',
+  },
+});
+
+const ocBorderedRowSx = (hasError) => ({
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+  background: '#FFFFFF',
+  borderRadius: '10px',
+  overflow: 'hidden',
+  border: '1px solid',
+  borderColor: hasError ? ocColors.borderError : ocColors.border,
+  transition: 'border-color 0.15s ease',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:hover': {
+    borderColor: hasError ? ocColors.borderError : ocColors.borderHover,
+  },
+  '&:focus-within': {
+    borderColor: hasError ? ocColors.borderError : ocColors.borderFocus,
+    outline: 'none',
+    boxShadow: 'none',
+  },
+});
+
+const ocInputInRowSx = {
+  height: '48px',
+  background: 'transparent',
+  border: 'none',
+  borderRadius: 0,
+  px: 1,
+  fontSize: '12px',
+  fontFamily: 'Inter, sans-serif',
+  color: ocColors.text,
+  outline: 'none',
+  boxShadow: 'none',
+  '&:hover': { border: 'none' },
+  '&.Mui-focused': { border: 'none', boxShadow: 'none' },
+  '& .MuiInputBase-input:focus': { outline: 'none' },
+  ...ocPlaceholderSx,
+};
+
+const ocCurrencySelectSx = {
+  background: 'transparent',
+  borderRadius: 0,
+  borderLeft: `1px solid ${ocColors.border}`,
+  fontFamily: 'Inter, sans-serif',
+  fontSize: '12px',
+  color: ocColors.text,
+  outline: 'none',
+  boxShadow: 'none',
+  '& .MuiSelect-select': { color: ocColors.text },
+  '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+  '&:hover .MuiOutlinedInput-notchedOutline': { border: 'none' },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: 'none' },
+};
+
+const ocOutlinedSelectSx = (hasError) => ({
+  outline: 'none',
+  boxShadow: 'none',
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderWidth: '1px',
+    borderColor: hasError ? ocColors.borderError : ocColors.border,
+    transition: 'border-color 0.15s ease',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: hasError ? ocColors.borderError : ocColors.borderHover,
+  },
+  '&.Mui-focused': { boxShadow: 'none' },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderWidth: '1px',
+    borderColor: `${hasError ? ocColors.borderError : ocColors.borderFocus} !important`,
+  },
+});
+
 const CommonTextStyle = {
-  fontFamily: 'Poppins',
+  fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
-  fontWeight: 400,
+  fontWeight: 500,
   fontSize: '14px',
   lineHeight: '21px',
-  color: '#6B7A99',
+  color: '#5c6b8a',
 };
 
 const MenuItems = {
   fontSize: '12px',
-  color: '#c64091',
-  fontFamily: 'Poppins',
+  color: ocColors.text,
+  fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
 };
 
 const ToolTextStyle = {
-  fontFamily: 'Poppins',
+  fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
   fontSize: '10px',
