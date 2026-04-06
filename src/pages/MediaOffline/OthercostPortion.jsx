@@ -4,34 +4,19 @@ import {
   Button,
   Input,
   MenuItem,
-  Tooltip,
   Select,
   TextField,
   Typography,
-  Fade,
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
-import { styled } from '@mui/material/styles';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import ToolTip from '../../components/ToolTip';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
-import InfoIcon from '../../assets/Images/CommonImages/InfoIcon.svg';
 import { useLocation } from 'react-router-dom';
 import api from '../../utils/api';
 
 export default function TextileProductInform(props) {
-  const GSTOptions = [0, 5, 12, 18, 28];
-  const CustomTooltip = styled(({ className, ...props }) => (
-    <Tooltip
-      {...props}
-      componentsProps={{ tooltip: { className: className } }}
-    />
-  ))(`
-          background: #C64091;
-          width:200px;
-      `);
-
   const location = useLocation();
 
   const {
@@ -109,7 +94,7 @@ export default function TextileProductInform(props) {
           fontWeight: 600,
           fontFamily: 'Inter, sans-serif',
           color: '#5c6b8a',
-          fontSize: { xs: '16px', sm: '18px' },
+          fontSize: '15px',
           marginBottom: '10px',
           width: '100%',
         }}
@@ -153,7 +138,9 @@ export default function TextileProductInform(props) {
             <MenuItem value='All'>One Time Cost</MenuItem>
             <MenuItem value='PerUnit'>Per Unit</MenuItem>
           </Select>
-          <Typography sx={{ color: 'red', height: 'auto', width: '103%' }}>
+          <Typography
+            sx={{ ...FieldErrorTextStyle, height: 'auto', width: '103%' }}
+          >
             {errors['AdCostApplicableOn']?.message}
           </Typography>
         </Box>
@@ -165,34 +152,17 @@ export default function TextileProductInform(props) {
             gap: '10px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Typography
               sx={{
                 ...CommonTextStyle,
-                fontSize: '13.5px',
                 position: 'relative',
               }}
             >
               Cost(Exc of GST)
             </Typography>
-            <Box sx={{ width: '15px', height: '15px' }}>
-              <CustomTooltip
-                title={
-                  <Typography sx={ToolTextStyle}>
-                    Do you wish to collect this as Trade Credits OR INR?
-                  </Typography>
-                }
-                TransitionComponent={Fade}
-                TransitionProps={{ timeout: 400 }}
-              >
-                <Box
-                  component='img'
-                  src={InfoIcon}
-                  sx={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-              </CustomTooltip>
-            </Box>
-          </div>
+            <ToolTip info="Do you wish to collect this as Trade Credits OR INR?" />
+          </Box>
 
           <Box sx={{ ...ocBorderedRowSx(!!errors['CostPrice']) }}>
             <Input
@@ -236,7 +206,7 @@ export default function TextileProductInform(props) {
               <MenuItem value='₹'>₹</MenuItem>
             </Select>
           </Box>
-          <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+          <Typography sx={FieldErrorTextStyle}>
             {errors['CostPrice']?.message}
           </Typography>
         </Box>
@@ -286,9 +256,7 @@ export default function TextileProductInform(props) {
           </Box>
 
           {errors?.AdCostHSN && (
-            <Typography
-              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
-            >
+            <Typography sx={FieldErrorTextStyle}>
               {errors?.AdCostHSN?.message}
             </Typography>
           )}
@@ -353,7 +321,7 @@ export default function TextileProductInform(props) {
                 right: '32%',
                 bottom: '25%',
                 color: '#979797',
-                fontSize: '15px',
+                fontSize: '12px',
               }}
             >
               %
@@ -361,9 +329,7 @@ export default function TextileProductInform(props) {
           </Box>
 
           {errors?.AdCostGST && (
-            <Typography
-              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
-            >
+            <Typography sx={FieldErrorTextStyle}>
               {errors?.AdCostGST?.message}
             </Typography>
           )}
@@ -447,9 +413,7 @@ export default function TextileProductInform(props) {
           />
 
           {errors['ReasonOfCost'] && (
-            <Typography
-              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
-            >
+            <Typography sx={FieldErrorTextStyle}>
               {errors['ReasonOfCost']?.message}
             </Typography>
           )}
@@ -479,7 +443,10 @@ export default function TextileProductInform(props) {
             boxShadow: 'none',
             '&:hover': {
               boxShadow: 'none',
-              backgroundColor: '#C64091',
+              backgroundColor: '#b0387d',
+            },
+            '&:active': {
+              backgroundColor: '#9c316f',
             },
           }}
           onClick={async () => {
@@ -623,6 +590,13 @@ const CommonTextStyle = {
   color: '#5c6b8a',
 };
 
+const FieldErrorTextStyle = {
+  fontFamily: 'Inter, sans-serif',
+  fontSize: '12px',
+  lineHeight: '18px',
+  color: 'red',
+};
+
 const MenuItems = {
   fontSize: '12px',
   color: ocColors.text,
@@ -630,15 +604,4 @@ const MenuItems = {
   fontStyle: 'normal',
   fontWeight: 400,
 };
-
-const ToolTextStyle = {
-  fontFamily: 'Inter, sans-serif',
-  fontStyle: 'normal',
-  fontWeight: 400,
-  fontSize: '10px',
-  color: '#fff',
-  textAlign: 'center',
-  cursor: 'pointer',
-};
-
 

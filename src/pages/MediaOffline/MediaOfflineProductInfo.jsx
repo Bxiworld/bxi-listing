@@ -8,6 +8,7 @@ import {
   TextField,
   Chip,
   BottomNavigation,
+  Divider,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
@@ -758,7 +759,7 @@ const MediaProductInfo = () => {
                         disableUnderline: true,
                       }}
                     />
-                    <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                    <Typography sx={FieldErrorTextStyle}>
                       {errors?.medianame?.message}
                     </Typography>
                   </Box>
@@ -792,7 +793,7 @@ const MediaProductInfo = () => {
                             disableUnderline: true,
                           }}
                         />
-                        <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                        <Typography sx={FieldErrorTextStyle}>
                           {errors?.adPosition?.message}
                         </Typography>
                       </Box>
@@ -831,7 +832,7 @@ const MediaProductInfo = () => {
                             }}
                           />
                           <Typography
-                            sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                            sx={FieldErrorTextStyle}
                           >
                             {errors?.offerningbrandat?.message}
                           </Typography>
@@ -874,7 +875,7 @@ const MediaProductInfo = () => {
                               sx={inputStyles}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.edition?.message}
                             </Typography>
@@ -934,7 +935,7 @@ const MediaProductInfo = () => {
                               <MenuItem value="Custom Size">Custom Size</MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.Type?.message}
                             </Typography>
@@ -989,7 +990,7 @@ const MediaProductInfo = () => {
                               </MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.releasedetails?.message}
                             </Typography>
@@ -1028,7 +1029,7 @@ const MediaProductInfo = () => {
                               sx={inputStyles}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {
                                 errors?.mediaVariation?.availableInsertions
@@ -1123,7 +1124,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.PricePerUnit?.message}
                             </Typography>
@@ -1182,7 +1183,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.DiscountedPrice?.message}
                             </Typography>
@@ -1219,7 +1220,7 @@ const MediaProductInfo = () => {
                               </MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.adType?.message}
                             </Typography>
@@ -1284,7 +1285,7 @@ const MediaProductInfo = () => {
                               />
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.HSN?.message}
                             </Typography>
@@ -1343,7 +1344,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.GST?.message}
                             </Typography>
@@ -1470,7 +1471,7 @@ const MediaProductInfo = () => {
                             </Select>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.location?.message}
                             </Typography>
@@ -1564,7 +1565,7 @@ const MediaProductInfo = () => {
                                     )}
                                 </Select>
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  sx={FieldErrorTextStyle}
                                 >
                                   {errors?.mediaVariation?.unit?.message}
                                 </Typography>
@@ -1640,7 +1641,7 @@ const MediaProductInfo = () => {
                               <MenuItem value="Year"> Per Year </MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.Timeline?.message}
                             </Typography>
@@ -1680,7 +1681,7 @@ const MediaProductInfo = () => {
                               }}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.repetition?.message}
                             </Typography>
@@ -1733,7 +1734,7 @@ const MediaProductInfo = () => {
                               }}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.dimensionSize?.message}
                             </Typography>
@@ -1824,7 +1825,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.PricePerUnit?.message}
                             </Typography>
@@ -1896,7 +1897,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.DiscountedPrice?.message}
                             </Typography>
@@ -1960,7 +1961,7 @@ const MediaProductInfo = () => {
                               />
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.HSN?.message}
                             </Typography>
@@ -2019,7 +2020,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.GST?.message}
                             </Typography>
@@ -2114,7 +2115,7 @@ const MediaProductInfo = () => {
                                       />
                                     </Box>
                                     <Typography
-                                      sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                      sx={FieldErrorTextStyle}
                                     >
                                       {
                                         errors?.mediaVariation
@@ -2200,7 +2201,7 @@ const MediaProductInfo = () => {
                                       />
                                     </Box>
                                     <Typography
-                                      sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                      sx={FieldErrorTextStyle}
                                     >
                                       {
                                         errors?.mediaVariation
@@ -2287,7 +2288,7 @@ const MediaProductInfo = () => {
                                   />
                                 </Box>
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  sx={FieldErrorTextStyle}
                                 >
                                   {
                                     errors?.mediaVariation
@@ -2372,7 +2373,7 @@ const MediaProductInfo = () => {
                                   />
                                 </Box>
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  sx={FieldErrorTextStyle}
                                 >
                                   {
                                     errors?.mediaVariation
@@ -2525,18 +2526,36 @@ const MediaProductInfo = () => {
                                     }}
                                   >
                                     <Button
+                                      type="button"
+                                      variant="text"
+                                      aria-label="Edit additional cost"
                                       onClick={() => {
                                         SetOthercostEditId(idx);
                                       }}
+                                      sx={tableIconButtonSx}
                                     >
-                                      <Box component="img" src={EditIcon} />
+                                      <Box
+                                        component="img"
+                                        src={EditIcon}
+                                        alt=""
+                                        sx={{ width: 18, height: 18 }}
+                                      />
                                     </Button>
                                     <Button
+                                      type="button"
+                                      variant="text"
+                                      aria-label="Remove additional cost"
                                       onClick={() => {
                                         OthercostRemove(idx);
                                       }}
+                                      sx={tableIconButtonSx}
                                     >
-                                      <Box component="img" src={RemoveIcon} />
+                                      <Box
+                                        component="img"
+                                        src={RemoveIcon}
+                                        alt=""
+                                        sx={{ width: 18, height: 18 }}
+                                      />
                                     </Button>
                                   </Box>
                                 </TableRow>
@@ -2548,19 +2567,40 @@ const MediaProductInfo = () => {
                     </TableContainer>
                   </Box>
 
+                  <Divider sx={{ my: 3, borderColor: '#E2E8F0' }} />
+
                   <Box
                     sx={{
-                      mt: 4,
+                      mt: 2,
                       height: 'auto',
                       minHeight: '100px',
                       position: 'relative',
                       display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'space-between',
-                      flexDirection: 'row',
-                      gap: '10px',
+                      flexDirection: 'column',
+                      width: '100%',
                     }}
                   >
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontFamily: 'Inter, sans-serif',
+                        color: '#5c6b8a',
+                        fontSize: '15px',
+                        mb: 1.5,
+                        width: '100%',
+                      }}
+                    >
+                      Media Location
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        flexDirection: 'row',
+                        gap: '10px',
+                      }}
+                    >
                     <Box
                       sx={{
                         display: 'flex',
@@ -2639,7 +2679,7 @@ const MediaProductInfo = () => {
                           : {FetchedproductData?.GeographicalData?.region}
                         </Typography>
                       )}{' '}
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.region?.message}
                       </Typography>
                     </Box>
@@ -2716,7 +2756,7 @@ const MediaProductInfo = () => {
                           : {FetchedproductData?.GeographicalData?.state}
                         </Typography>
                       ) : null}{' '}
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.state?.message}
                       </Typography>
                     </Box>
@@ -2786,7 +2826,7 @@ const MediaProductInfo = () => {
                           : {FetchedproductData?.GeographicalData?.city}
                         </Typography>
                       ) : null}{' '}
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.city?.message}
                       </Typography>
                     </Box>
@@ -2827,11 +2867,14 @@ const MediaProductInfo = () => {
                           ...inputPlaceholderSx,
                         }}
                       />
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.landmark?.message}
                       </Typography>
                     </Box>
+                    </Box>
                   </Box>
+
+                  <Divider sx={{ my: 3, borderColor: '#E2E8F0' }} />
 
                   <Box
                     sx={{
@@ -2841,16 +2884,23 @@ const MediaProductInfo = () => {
                     <Box
                       sx={{
                         fontFamily: 'Inter, sans-serif',
-                        color: '#6B7A99',
+                        color: '#5c6b8a',
                       }}
                     >
-                      <Typography sx={{ fontSize: '16px', fontWeight: '500' }}>
+                      <Typography
+                        sx={{
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          color: '#5c6b8a',
+                        }}
+                      >
                         Select the best features that describe your brand/media
                       </Typography>
-                      <Typography sx={{ fontSize: '12px' }}>
-                        {' '}
+                      <Typography
+                        sx={{ fontSize: '12px', color: '#5c6b8a', mt: 0.5 }}
+                      >
                         (The more features you write the more you are
-                        discovered){' '}
+                        discovered)
                       </Typography>
                     </Box>
 
@@ -2897,7 +2947,7 @@ const MediaProductInfo = () => {
                         </Select>
                         {items?.length > 0 && items.length < 5 && (
                           <Typography
-                            sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                            sx={FieldErrorTextStyle}
                           >
                             Select{' '}
                             {5 - items?.length} more feature
@@ -2944,15 +2994,16 @@ const MediaProductInfo = () => {
                         />
                         {items?.length > 0 && items.length < 5 && (
                           <Typography
-                            sx={{ color: 'red', fontFamily: 'Inter, sans-serif', mt: 1 }}
+                            sx={{ ...FieldErrorTextStyle, mt: 1 }}
                           >
                             Enter{' '}
-                            {5 - items?.length}more feature description
+                            {5 - items?.length} more feature description
                           </Typography>
                         )}
                       </Box>
 
                       <Button
+                        type="button"
                         variant="contained"
                         onClick={handleItemAdd}
                         sx={{
@@ -2967,8 +3018,13 @@ const MediaProductInfo = () => {
                           lineHeight: '21px',
                           color: '#FFFFFF',
                           textTransform: 'none',
+                          boxShadow: 'none',
                           '&:hover': {
-                            background: '#C64091',
+                            background: '#b0387d',
+                            boxShadow: 'none',
+                          },
+                          '&:active': {
+                            background: '#9c316f',
                           },
                           my: 3,
                         }}
@@ -2978,11 +3034,11 @@ const MediaProductInfo = () => {
 
                       <Typography
                         sx={{
-                          color: '#6B7A99',
                           fontFamily: 'Inter, sans-serif',
-                          fontSize: '20px',
-                          marginRight: '75%',
-                          marginTop: '1rem',
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          color: '#5c6b8a',
+                          mt: 2,
                         }}
                       >
                         Key Features({items.length})
@@ -2997,7 +3053,7 @@ const MediaProductInfo = () => {
                               mx: 'auto',
                               height: 'auto',
                               width: '99%',
-                              display: ' flex',
+                              display: 'flex',
                               flexDirection: 'column',
                               placeItems: 'center',
                               borderRadius: '10px',
@@ -3031,10 +3087,13 @@ const MediaProductInfo = () => {
                               </Typography>
 
                               <Button
+                                type="button"
+                                variant="text"
                                 onClick={() => handleDelete(index)}
-                                sx={{ textTransform: 'none', fontSize: '15px' }}
+                                aria-label="Remove feature"
+                                sx={featureRemoveButtonSx}
                               >
-                                X
+                                ×
                               </Button>
                             </Box>
                           </Box>
@@ -3104,17 +3163,14 @@ const MediaProductInfo = () => {
                           onKeyDown={otherenter}
                         />
                         <Button
+                          type="button"
                           variant="outlined"
-                          sx={{
-                            borderColor: '#c64091',
-                            color: '#6B7A99',
-                            right: 1,
-                            textTransform: 'none',
-                            fontSize: '12px',
-                            alignSelf: 'center',
-
-                          }}
                           onClick={OtherInformationSubmit}
+                          sx={{
+                            ...formInlineOutlineButtonSx,
+                            right: 1,
+                            alignSelf: 'center',
+                          }}
                         >
                           Add
                         </Button>
@@ -3226,16 +3282,14 @@ const MediaProductInfo = () => {
                         onKeyDown={handleAddTag}
                       />
                       <Button
+                        type="button"
                         variant="outlined"
+                        onClick={handleAddButtonClick}
                         sx={{
-                          borderColor: '#c64091',
-                          color: '#6B7A99',
+                          ...formInlineOutlineButtonSx,
                           right: 1,
-                          textTransform: 'none',
-                          fontSize: '12px',
                           alignSelf: 'center',
                         }}
-                        onClick={handleAddButtonClick}
                       >
                         Add
                       </Button>
@@ -3309,38 +3363,17 @@ const MediaProductInfo = () => {
             >
               <Box sx={{ display: 'flex', gap: '10px', p: 1, width: '50%' }}>
                 <Button
-                  sx={{
-                    width: '100%',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: '#fff',
-                    color: '#636161',
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    '&:hover': {
-                      background: '#EEF1F6',
-                      color: '#000',
-                    },
-                  }}
-                  variant="contained"
+                  type="button"
+                  variant="outlined"
                   onClick={() => CancelJourney()}
+                  sx={formFooterCancelButtonSx}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  sx={{
-                    width: '100%',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: '#C64091',
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    '&:hover': {
-                      background: '#C64091',
-                    },
-                  }}
                   variant="contained"
+                  sx={formFooterPrimaryButtonSx}
                 >
                   Next
                 </Button>
@@ -3469,6 +3502,96 @@ const CommonTextStyle = {
   fontSize: '14px',
   lineHeight: '21px',
   color: '#5c6b8a',
+};
+
+const FieldErrorTextStyle = {
+  fontFamily: 'Inter, sans-serif',
+  fontSize: '12px',
+  lineHeight: '18px',
+  color: 'red',
+};
+
+const tableIconButtonSx = {
+  minWidth: 40,
+  width: 40,
+  height: 40,
+  p: 0,
+  borderRadius: '8px',
+  color: '#64748b',
+  '&:hover': {
+    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+    color: '#C64091',
+  },
+};
+
+const formInlineOutlineButtonSx = {
+  borderColor: '#C64091',
+  color: '#5c6b8a',
+  textTransform: 'none',
+  fontSize: '13px',
+  fontWeight: 500,
+  fontFamily: 'Inter, sans-serif',
+  borderRadius: '10px',
+  px: 2,
+  minHeight: 36,
+  flexShrink: 0,
+  boxShadow: 'none',
+  '&:hover': {
+    borderColor: '#b0387d',
+    backgroundColor: 'rgba(198, 64, 145, 0.06)',
+    color: '#334155',
+  },
+};
+
+const featureRemoveButtonSx = {
+  minWidth: 36,
+  px: 1,
+  fontSize: '18px',
+  lineHeight: 1,
+  fontWeight: 500,
+  color: '#94a3b8',
+  textTransform: 'none',
+  borderRadius: '8px',
+  '&:hover': {
+    color: '#d32f2f',
+    backgroundColor: 'rgba(211, 47, 47, 0.06)',
+  },
+};
+
+const formFooterCancelButtonSx = {
+  width: '100%',
+  height: '40px',
+  borderRadius: '10px',
+  textTransform: 'none',
+  fontSize: '14px',
+  fontFamily: 'Inter, sans-serif',
+  fontWeight: 500,
+  borderColor: '#E2E8F0',
+  color: '#475569',
+  backgroundColor: '#fff',
+  boxShadow: 'none',
+  '&:hover': {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
+    boxShadow: 'none',
+  },
+};
+
+const formFooterPrimaryButtonSx = {
+  width: '100%',
+  height: '40px',
+  borderRadius: '10px',
+  textTransform: 'none',
+  fontSize: '14px',
+  fontFamily: 'Inter, sans-serif',
+  fontWeight: 500,
+  background: '#C64091',
+  color: '#fff',
+  boxShadow: 'none',
+  '&:hover': {
+    background: '#b0387d',
+    boxShadow: 'none',
+  },
 };
 
 const InputsInsideText = {
