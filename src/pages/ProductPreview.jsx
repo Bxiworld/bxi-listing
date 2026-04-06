@@ -165,8 +165,9 @@ function getVariantSizesDisplay(v) {
   }
   if (v.ProductSize != null && v.ProductSize !== '') return String(v.ProductSize);
   if (v.NutritionInfo != null && v.NutritionInfo !== '') return String(v.NutritionInfo);
-  if (v?.length != null && v?.length !== '' && v?.MeasurementUnit) {
-    return `${v.length} ${v.MeasurementUnit}`;
+  const lenDim = v?.Length ?? v?.length;
+  if (lenDim != null && lenDim !== '' && v?.MeasurementUnit) {
+    return `${lenDim} ${v.MeasurementUnit}`;
   }
   return '';
 }
@@ -301,8 +302,9 @@ export default function ProductPreview() {
         const data = raw?.body ?? raw?.data ?? raw;
         if (cancelled) return;
         setProduct(data);
-        const variants = data?.ProductsVariantions ?? [];
-        if (variants?.length > 0) {
+        const rawVariants = data?.ProductsVariantions;
+        const variants = Array.isArray(rawVariants) ? rawVariants : [];
+        if (variants.length > 0) {
           setSelectedVariant(variants[0]?._id ?? variants[0]?.id);
         }
       })
@@ -348,13 +350,18 @@ export default function ProductPreview() {
       .finally(() => setUploading(false));
   };
 
-  const variants = product?.ProductsVariantions ?? [];
+  const rawVariantsList = product?.ProductsVariantions;
+  const variants = Array.isArray(rawVariantsList) ? rawVariantsList : [];
   const selectedVariantData = variants.find(
     (v) => (v._id ?? v.id) === selectedVariant
   );
 
   const isVoucherListing = product?.ListingType === 'Voucher';
-  const images = product?.ListingType === 'Product' ? product?.ProductImages  : product?.ListingType === "Media" ?  product?.ProductImages : product?.VoucherImages || [];
+  const rawImages =
+    product?.ListingType === 'Product' || product?.ListingType === 'Media'
+      ? product?.ProductImages
+      : product?.VoucherImages;
+  const images = Array.isArray(rawImages) ? rawImages : [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
     product?.ProductUploadStatus !== 'Approved' &&
@@ -868,7 +875,7 @@ export default function ProductPreview() {
                       <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                         Additional Cost
                       </Typography>
-                      {product?.OtherCost?.length > 0 ? (
+                      {Array.isArray(product?.OtherCost) && product.OtherCost.length > 0 ? (
                         <Stack spacing={1.5}>
                           {product.OtherCost.map((cost, i) => (
                             <Stack key={i} direction="row" flexWrap="wrap" spacing={2} useFlexGap>
@@ -938,9 +945,12 @@ export default function ProductPreview() {
                     product?.RedemptionSteps || product?.redemptionSteps;
                   const redemptionType = product?.redemptionType;
                   const redemptionUrl = product?.Link || product?.redemptionURL;
-                  const tags = product?.ProductTags?.map((tag, index) => (
-                    <span key={index}>{tag}</span>
-                  ));
+                  const voucherTagsRaw = product?.ProductTags ?? product?.Tags;
+                  const voucherTags = Array.isArray(voucherTagsRaw)
+                    ? voucherTagsRaw
+                    : voucherTagsRaw != null && String(voucherTagsRaw).trim()
+                      ? [String(voucherTagsRaw).trim()]
+                      : [];
 
                   const hasVoucherTechInfo =
                     inclusions ||
@@ -949,7 +959,7 @@ export default function ProductPreview() {
                     redemptionSteps ||
                     redemptionType ||
                     redemptionUrl ||
-                    tags;
+                    voucherTags.length > 0;
 
                   if (!hasVoucherTechInfo) {
                     return (
@@ -1025,14 +1035,14 @@ export default function ProductPreview() {
                           </Typography>
                         </Box>
                       )}
-                      {tags.length > 0 && (
+                      {voucherTags.length > 0 && (
                         <Box>
                           <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                             Tags
                           </Typography>
                           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                            {tags.map((tag, index) => (
-                              <Chip key={index} label={tag} size="small" />
+                            {voucherTags.map((tag, index) => (
+                              <Chip key={index} label={String(tag)} size="small" />
                             ))}
                           </Box>
                         </Box>
@@ -1141,7 +1151,7 @@ export default function ProductPreview() {
                         </Typography>
                       </Box>
                     )}
-                    {ti.Tags && (
+                    {Array.isArray(ti?.Tags) && ti.Tags.length > 0 && (
                       <Box>
                         <Typography
                           variant="body2"
@@ -1182,7 +1192,7 @@ export default function ProductPreview() {
                 <Typography variant="body2" fontWeight="600" color="#156DB6" sx={{ mb: 2 }}>
                   Key Features
                 </Typography>
-                {product?.ProductFeatures?.length > 0 ? (
+                {Array.isArray(product?.ProductFeatures) && product.ProductFeatures.length > 0 ? (
                   <Grid container spacing={3}>
                     {product.ProductFeatures.map((f, i) => (
                       <Grid item xs={12} sm={6} lg={4} key={i}>

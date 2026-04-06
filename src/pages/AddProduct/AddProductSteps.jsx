@@ -56,6 +56,13 @@ import {
   VOUCHER_JOURNEY_TYPE,
 } from '../../utils/voucherType';
 
+/** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
+function formatSizeOptionButtonLabel(opt) {
+  if (typeof opt !== 'string') return opt;
+  if (opt.includes(' ')) return opt;
+  return opt.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
   'Rajasthan': 'North', 'Himachal Pradesh': 'North', 'Uttarakhand': 'North',
@@ -843,6 +850,13 @@ const inferSelectedSizeFromVariation = (row, options = []) => {
   const normalized = rawSize.toLowerCase();
   const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
   if (directMatch) return directMatch;
+  if (options.includes('Custom Size') && !row.ShoeSize && !(row.Length || row.Height || row.Width || row.Weight)) {
+    const mu = String(row.MeasurementUnit || '').trim();
+    const parts = rawSize.split(/\s+/).filter(Boolean);
+    if (mu && parts.length >= 2 && parts[parts.length - 1] === mu) {
+      return 'Custom Size';
+    }
+  }
   if (normalized.includes('ml') || normalized.includes('cl') || normalized.endsWith('l')) return 'Volume';
   if (normalized.includes('kg') || normalized.includes(' g') || normalized.includes('lb')) return 'Weight';
   return '';
@@ -1265,6 +1279,10 @@ export const ProductInfo = ({ category }) => {
       toast.error('Please enter volume');
       return;
     }
+    if (d.selectedSize === 'Custom Size' && !String(d.sizeValue || '').trim()) {
+      toast.error('Please enter a custom size or description');
+      return;
+    }
     let productSize = d.selectedSize || '';
     let measurementUnit = d.sizeUnit || 'cm';
     let shoeSize = '';
@@ -1276,6 +1294,11 @@ export const ProductInfo = ({ category }) => {
       productSize = d.selectedSize;
     } else if (d.selectedSize === 'Volume' && d.volume) {
       productSize = `${d.volume}${d.sizeUnit || 'L'}`;
+    } else if (d.selectedSize === 'Custom Size') {
+      const v = String(d.sizeValue || '').trim();
+      const u = String(d.sizeUnit || '').trim();
+      productSize = u ? `${v} ${u}` : v;
+      measurementUnit = u || 'cm';
     } else if (d.selectedSize && d.sizeValue) {
       productSize = `${d.sizeValue}${d.sizeUnit || 'cm'}`;
     } else if (d.selectedSize) {
@@ -1339,10 +1362,10 @@ export const ProductInfo = ({ category }) => {
       ProductSize: productSize,
       ProductColor: extraCol === 'color' ? (d.productColor || '#ffffff') : (d.productColor || '#ffffff'),
       ProductIdType: d.productIdType || `SKU-${Date.now()}`,
-      Length: d.length || '',
-      Width: d.width || '',
-      Height: d.height || '',
-      Weight: d.weight || '',
+      Length: d.selectedSize === 'Custom Size' ? '' : (d.length || ''),
+      Width: d.selectedSize === 'Custom Size' ? '' : (d.width || ''),
+      Height: d.selectedSize === 'Custom Size' ? '' : (d.height || ''),
+      Weight: d.selectedSize === 'Custom Size' ? '' : (d.weight || ''),
       MeasurementUnit: measurementUnit,
       TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
       ...(wantsSample && {
@@ -1419,6 +1442,18 @@ export const ProductInfo = ({ category }) => {
     setValue('weight', row.Weight ?? '');
     const derivedSelectedSize = inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '';
     setValue('selectedSize', derivedSelectedSize);
+    if (derivedSelectedSize === 'Custom Size') {
+      const rawPs = String(row.ProductSize || '').trim();
+      const mu = String(row.MeasurementUnit || '').trim();
+      const parts = rawPs.split(/\s+/).filter(Boolean);
+      if (mu && parts.length >= 2 && parts[parts.length - 1] === mu) {
+        setValue('sizeValue', parts.slice(0, -1).join(' '));
+        setValue('sizeUnit', mu);
+      } else {
+        setValue('sizeValue', rawPs);
+        setValue('sizeUnit', mu || 'cm');
+      }
+    }
     if (row.ShoeSize) {
       setValue('shoeSize', String(row.ShoeSize));
       setValue('shoeMeasurementUnit', row.MeasurementUnit || 'US');
@@ -1783,7 +1818,11 @@ export const ProductInfo = ({ category }) => {
                         }
                       }}
                     >
-                      {opt === 'Length x Height' ? 'L x H' : opt === 'Length x Height x Width' ? 'L x H x W' : opt}
+                      {opt === 'Length x Height'
+                        ? 'L x H'
+                        : opt === 'Length x Height x Width'
+                          ? 'L x H x W'
+                          : formatSizeOptionButtonLabel(opt)}
                     </Button>
                   ))}
                 </div>
@@ -1833,34 +1872,47 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Generic size value + unit – For any size option not caught by specialized blocks */}
+            {/* Generic size value + unit – For any size option not caught by specialized blocks (incl. Custom Size: free-text value + unit) */}
             {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes Size' && 
-             !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size', 'Volume'].includes(selectedSize) && (
+             !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume'].includes(selectedSize) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{selectedSize} <span className="text-red-500">*</span></Label>
+                  <Label>
+                    {selectedSize === 'Custom Size' ? 'Custom size / description' : selectedSize}{' '}
+                    <span className="text-red-500">*</span>
+                  </Label>
                   <div className="flex gap-2 items-end">
                     <Input
-                      type="number"
-                      placeholder="e.g. 10"
+                      type={selectedSize === 'Custom Size' ? 'text' : 'number'}
+                      placeholder={selectedSize === 'Custom Size' ? 'e.g. 10 x 12, Large, As per spec' : 'e.g. 10'}
                       {...register('sizeValue')}
                       className="flex-1"
                     />
-                    <div className="w-28">
+                    <div className={selectedSize === 'Custom Size' ? 'w-40' : 'w-28'}>
                       <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
-                      <Select
-                        value={watch('sizeUnit')}
-                        onValueChange={(v) => setValue('sizeUnit', v)}
-                      >
-                        <SelectTrigger className="w-full mt-1">
-                          <SelectValue placeholder="Unit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getSizeUnitOptions(selectedSize).map((unit) => (
-                            <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {selectedSize === 'Custom Size' ? (
+                        <Input
+                          id="sizeUnit"
+                          type="text"
+                          placeholder="e.g. cm, pcs"
+                          className="mt-1"
+                          {...register('sizeUnit')}
+                        />
+                      ) : (
+                        <Select
+                          value={watch('sizeUnit')}
+                          onValueChange={(v) => setValue('sizeUnit', v)}
+                        >
+                          <SelectTrigger className="w-full mt-1">
+                            <SelectValue placeholder="Unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getSizeUnitOptions(selectedSize).map((unit) => (
+                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1875,10 +1927,10 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Dimension fields – shown for Length-based sizes */}
-            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(selectedSize) && (
+            {/* Dimension fields – Length / L×H / L×H×W / Weight (Custom Size uses free-text value + unit above) */}
+            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight'].includes(selectedSize) && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width') && (
                   <div className="space-y-2">
                     <Label>Length ({watch('sizeUnit') || 'cm'})</Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('length')} />
@@ -1886,14 +1938,14 @@ export const ProductInfo = ({ category }) => {
                 )}
 
                 {/* Height should appear for both LxH and LxHxW */}
-                {(selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                {(selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width') && (
                   <div className="space-y-2">
                     <Label>Height ({watch('sizeUnit') || 'cm'})</Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('height')} />
                   </div>
                 )}
 
-                {(selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                {selectedSize === 'Length x Height x Width' && (
                   <div className="space-y-2">
                     <Label>Width ({watch('sizeUnit') || 'cm'})</Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('width')} />
@@ -2357,9 +2409,8 @@ export const ProductInfo = ({ category }) => {
             <div className="space-y-4 pt-4">
               <Button
                 type="button"
-                variant="secondary"
                 onClick={handleAddVariation}
-                className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                className="w-full"
                 data-testid="btn-add-variation"
               >
                 {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
@@ -2863,9 +2914,8 @@ export const ProductInfo = ({ category }) => {
                   <div className="flex items-end">
                     <Button
                       type="button"
-                      variant="secondary"
                       onClick={handleAddOtherCost}
-                      className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                      className="w-full"
                     >
                       Add Additional Cost
                     </Button>
