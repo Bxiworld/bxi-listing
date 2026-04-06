@@ -1,63 +1,46 @@
-import {
-  Box,
-  Grid,
-  Typography,
-  TextField,
-  Button as MuiButton,
-  Checkbox,
-  Dialog,
-} from '@mui/material';
+import { Box, Typography, TextField } from '@mui/material';
 import { Stack } from '@mui/system';
 import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import api from '../../utils/api';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { DateRangePicker } from 'mui-daterange-picker';
 import { ArrowLeft, ArrowRight, Info } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { Label } from '../../components/ui/label';
+import { Checkbox } from '../../components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '../../components/ui/tooltip';
-import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
-import addItemCartIcon from '../../assets/CartPage/addItemIcon.svg';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import defaultIcon from '../../assets/CartPage/defaultCheckBoxIcon.svg';
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-const options = { day: '2-digit', month: 'short', year: 'numeric' };
+
+const SUPPORTING_DOC_OPTIONS = [
+  { key: 'inspectionPass', label: 'Inspection pass' },
+  { key: 'LogReport', label: 'Log Report' },
+  { key: 'Videos', label: 'Videos' },
+  { key: 'Pictures', label: 'Pictures' },
+  { key: 'ExhibitionCertificate', label: 'Exhibition Certificate' },
+  { key: 'Other', label: 'Other' },
+];
+
+const toSupportBool = (v) => v === true || v === 'on';
+
+const brandControlClass =
+  'border-[#C64091] text-[#C64091] data-[state=checked]:bg-[#C64091] data-[state=checked]:text-white';
 
 export default function TechInfo() {
   const ProductId = useParams().id;
   const navigate = useNavigate();
-  const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = useState(true);
   const [dateArr, setDateArr] = useState([]);
-  const [fetchproductData, setfetchProductData] = useState();
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(null);
   const [BXISpace, setBXISpace] = useState(false);
   const [content, setContent] = useState('checkbox');
-  const onChange = (dates) => {
-    const [start, end] = dates;
-    setStartDate(start);
-    setEndDate(end);
-  };
-  const [taxbtn, setTaxbtn] = React.useState('');
-
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
   const [checkBoxes, setCheckBoxes] = useState({
     inspectionPass: false,
     LogReport: false,
@@ -67,153 +50,129 @@ export default function TechInfo() {
     Other: false,
   });
 
-  const toggle = () => setOpen(!open);
-  const countDaysfromTimeline = (value, timeline) => {
-    if (timeline === 'Week') {
-      return value * 7;
-    } else if (timeline === 'Month') {
-      return value * 30;
-    } else if (timeline === 'Year') {
-      return value * 365;
-    } else if (timeline === 'Day') {
-      return value;
-    } else if (fetchproductData?.mediaVariation?.unit === 'Spot') {
-      return fetchproductData?.mediaVariation?.maxOrderQuantityunit;
-    } else if (timeline === 'One Time') {
-      return value;
-    }
-  };
-  const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
+  const contentRef = useRef(content);
+  const BXISpaceRef = useRef(BXISpace);
+  contentRef.current = content;
+  BXISpaceRef.current = BXISpace;
+
+  const validationSchema = useMemo(
+    () =>
+      z
+        .object({
+          Dimensions: z.string().min(1).max(500),
+          UploadLink: z.string().optional().default(''),
+        })
+        .superRefine((data, ctx) => {
+          if (contentRef.current === 'uploadLinkSet') {
+            const link = (data.UploadLink ?? '').trim();
+            if (link.length < 1) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Required',
+                path: ['UploadLink'],
+              });
+            }
+          }
+          if (contentRef.current === 'checkbox' && !BXISpaceRef.current) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Please confirm use of BXI Space',
+              path: ['UploadLink'],
+            });
+          }
+        }),
+    [],
+  );
+
+  const resolver = useMemo(
+    () => zodResolver(validationSchema),
+    [validationSchema],
+  );
+
   const {
     register,
     handleSubmit,
     setValue,
-    getValues,
-    control,
-    reset,
-    setError,
-
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm({
-    Values: {
-      Dimensions: fetchproductData?.dimensions,
-      UploadLink: fetchproductData?.uploadLink,
-      WhatSupportingYouWouldGiveToBuyer:
-        fetchproductData?.whatSupportingYouWouldGiveToBuyer,
-    },
-    resolver: zodResolver(
-      z.object({
-        Dimensions: z.string().min(1).max(500),
-        UploadLink: BXISpace === true ? z.any() : z.string().min(1),
-        BXISpace: z.boolean(),
-      }),
-    ),
+    resolver,
   });
 
-  const ContentChange = (event) => {
-    if (event.target.value === 'uploadLinkSet') {
-      setContent('uploadLinkSet');
-      setBXISpace('');
-    } else {
-      setContent(event.target.value);
-    }
-    reset({
-      UploadLink: '',
-      BXISpace: false,
-    });
-  };
+  const handleContentModeChange = useCallback(
+    (value) => {
+      if (value === 'uploadLinkSet') {
+        setContent('uploadLinkSet');
+        setBXISpace(false);
+        setValue('UploadLink', '');
+      } else {
+        setContent('checkbox');
+        setBXISpace(true);
+        setValue('UploadLink', '');
+      }
+    },
+    [setValue],
+  );
 
-  const FetchProduct = async () => {
-    await api
-      .get(`product/get_product_byId/${ProductId}`)
-      .then((res) => {
-        const data = res?.data ?? res;
-        setfetchProductData(data);
-        setValue('Dimensions', data?.Dimensions);
-        setValue('UploadLink', data?.UploadLink);
-        setCheckBoxes({
-          inspectionPass:
-            data?.WhatSupportingYouWouldGiveToBuyer?.inspectionPass,
-          LogReport: data?.WhatSupportingYouWouldGiveToBuyer?.LogReport,
-          Videos: data?.WhatSupportingYouWouldGiveToBuyer?.Videos,
-          Pictures: data?.WhatSupportingYouWouldGiveToBuyer?.Pictures,
-          ExhibitionCertificate:
-            data?.WhatSupportingYouWouldGiveToBuyer?.ExhibitionCertificate,
-          Other: data?.WhatSupportingYouWouldGiveToBuyer?.Other,
-        });
-        setDateArr(data?.calender ?? []);
-        setValue('BXISpace', data?.BXISpace);
-        setBXISpace(data?.BXISpace);
-      })
-      .catch(() => { });
-  };
+  const FetchProduct = useCallback(async () => {
+    if (!ProductId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.get(`product/get_product_byId/${ProductId}`);
+      const data = res?.data ?? res;
+      setValue('Dimensions', data?.Dimensions);
+      setValue('UploadLink', data?.UploadLink);
+      const w = data?.WhatSupportingYouWouldGiveToBuyer;
+      setCheckBoxes({
+        inspectionPass: toSupportBool(w?.inspectionPass),
+        LogReport: toSupportBool(w?.LogReport),
+        Videos: toSupportBool(w?.Videos),
+        Pictures: toSupportBool(w?.Pictures),
+        ExhibitionCertificate: toSupportBool(w?.ExhibitionCertificate),
+        Other: toSupportBool(w?.Other),
+      });
+      setDateArr(data?.calender ?? []);
+      setBXISpace(Boolean(data?.BXISpace));
+    } catch {
+      // keep defaults
+    } finally {
+      setLoading(false);
+    }
+  }, [ProductId, setValue]);
 
   useEffect(() => {
     FetchProduct();
-  }, []);
+  }, [FetchProduct]);
 
-  function getDaysBetweenDates(startDate, endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const timeDiff = end?.getTime() - start?.getTime();
-    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24)) + 1;
+  const { mutate: updateProduct, isLoading } = useUpdateProductQuery();
 
-    return days;
-  }
-  const {
-    mutate: updateProduct,
-    isLoading,
-    isError,
-    data: productData,
-    variables,
-
-    error: RegisterError,
-  } = useUpdateProductQuery();
-  useEffect(() => {
-    dateArr.map((item) => {
-      return getDaysBetweenDates(item.startDate, item.endDate);
-    });
-  }, []);
   const updateProductTechinfostatus = handleSubmit((data) => {
     try {
-      const MaxDaysTobeadded = countDaysfromTimeline(
-        fetchproductData?.mediaVariation?.maxOrderQuantitytimeline,
-        fetchproductData?.mediaVariation?.Timeline,
-      );
-      let Totaldays = 0;
-      dateArr.map((item) => {
-        return (Totaldays += getDaysBetweenDates(item.startDate, item.endDate));
-      });
-
       const datatobesent = {
         ...data,
         id: ProductId,
         WhatSupportingYouWouldGiveToBuyer: checkBoxes,
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
-        BXISpace: BXISpace,
+        BXISpace,
       };
-      if (
-        (checkBoxes.ExhibitionCertificate === false &&
-          checkBoxes.LogReport === false &&
-          checkBoxes.Other === false &&
-          checkBoxes.Pictures === false &&
-          checkBoxes.Videos === false &&
-          checkBoxes.inspectionPass === false)
-      ) {
+      const noneSelected = SUPPORTING_DOC_OPTIONS.every(
+        (opt) => !checkBoxes[opt.key],
+      );
+      if (noneSelected) {
         toast.error('Please Select add all mandatory field');
         return;
-      } else {
-        updateProduct(datatobesent, {
-          onSuccess: (response) => {
-            if (response.status === 200) {
-              // Use new dynamic route
-              navigate(`/mediaoffline/go-live/${ProductId}`);
-            }
-          },
-          onError: (error) => { },
-        });
       }
+      updateProduct(datatobesent, {
+        onSuccess: (response) => {
+          if (response.status === 200) {
+            navigate(`/mediaoffline/go-live/${ProductId}`);
+          }
+        },
+        onError: () => {},
+      });
     } catch (error) {
       return error;
     }
@@ -228,484 +187,250 @@ export default function TechInfo() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] py-8 flex items-center justify-center">
+        <div className="text-center text-[#6B7A99]">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
-      <div className="form-container">
-        <div className="form-section">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="form-section-title">
-              Technical Information
-            </h2>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                    <Info className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Technical Information refers to specific details and specifications about a product&apos;s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product. This is Critical Information from Logistic &amp; Buying Perspective for Making Informed Decisions.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-
-          <form onSubmit={updateProductTechinfostatus} className="space-y-6 mt-6">
-            <Box sx={{ width: '100%', overflow: 'auto' }}>
-              <Stack>
-                <Box
-                  onChange={(e) => {
-                    setCheckBoxes(e?.target?.checked);
+      <div className="listing-journey">
+        <div className="listing-journey-container px-4">
+          <form
+            onSubmit={updateProductTechinfostatus}
+            className="listing-journey-form"
+          >
+            <Box
+              sx={{
+                width: '100%',
+                height: 'auto',
+                maxHeight: '100%',
+                overflowY: 'hidden',
+                boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+                mx: 'auto',
+                maxWidth: '980px',
+                bgcolor: '#fff',
+                overflowX: 'hidden',
+                px: { xs: 2, sm: 4 },
+                py: 3,
+                border: '1px solid #E2E8F0',
+                borderRadius: '16px',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  borderBottom: '1px solid #E2E8F0',
+                  pb: 2,
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                    fontSize: { xs: '18px', sm: '20px', md: '24px' },
+                    color: '#5c6b8a',
+                    letterSpacing: '0.01em',
                   }}
-                  sx={{ display: 'grid', gap: '5px', py: '5px' }}
                 >
-                  <Typography sx={{ ...CommonTextStyle }}>
-                    What supporting document would you like to give to the
-                    Buyer? <span style={{ color: 'red' }}> *</span>
-                  </Typography>
-                  <Grid container>
-                    <Grid
-                      xl={6}
-                      lg={6}
-                      md={6}
-                      sm={12}
-                      xs={12}
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '20px',
-                      }}
-                    >
-                      {checkBoxes.inspectionPass === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                inspectionPass: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Inspection pass
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                inspectionPass: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Inspection pass
-                          </Typography>
-                        </Box>
-                      )}
-
-                      {checkBoxes.LogReport === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                LogReport: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Log Report
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                LogReport: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Log Report
-                          </Typography>
-                        </Box>
-                      )}
-                      {checkBoxes.Videos === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Videos: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Videos
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Videos: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Videos
-                          </Typography>
-                        </Box>
-                      )}
-                    </Grid>
-                    <Grid
-                      xl={6}
-                      lg={6}
-                      md={6}
-                      sm={12}
-                      xs={12}
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '20px',
-                      }}
-                    >
-                      {checkBoxes.Pictures === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Pictures: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Pictures
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Pictures: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Pictures
-                          </Typography>
-                        </Box>
-                      )}
-                      {checkBoxes.ExhibitionCertificate === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                ExhibitionCertificate: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Exhibition Certificate
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                ExhibitionCertificate: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Exhibition Certificate
-                          </Typography>
-                        </Box>
-                      )}
-                      {checkBoxes.Other === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Other: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Other
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Other: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Other
-                          </Typography>
-                        </Box>
-                      )}
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                <Box sx={{ display: 'grid', gap: '5px', py: '5px' }}>
-                  <Typography sx={{ ...CommonTextStyle }}>
-                    Dimensions of Ad / Content Needed{' '}
-                    <span style={{ color: 'red' }}> *</span>
-                  </Typography>
-
-                  <TextField
-                    focused
-                    multiline
-                    variant="standard"
-                    placeholder="Eg. 30 Sec"
-                    {...register('Dimensions')}
-                    sx={{
-                      ...lablechange,
-                      background: '#fff',
-                      borderRadius: '10px',
-                      height: '47px',
-                      border: errors['Dimensions']?.message
-                        ? '1px solid red'
-                        : null,
-                    }}
-                    InputProps={{
-                      disableUnderline: true,
-                      endAdornment: (
-                        <Typography
-                          variant="body1"
-                          style={{
-                            fontFamily: 'Inter, sans-serif',
-                            color: '#C64091',
-                          }}
-                        ></Typography>
-                      ),
-                      style: {
-                        fontFamily: 'Inter, sans-serif',
-                        color: ' #6B7A99',
-                        fontSize: '12px',
-                        color: '#C64091',
-                      },
-                    }}
-                  />
-                </Box>
-                <Typography sx={ErrorStyle}>
-                  {errors['Dimensions']?.message}
+                  Technical Information
                 </Typography>
-                <RadioGroup
-                  row
-                  aria-labelledby="demo-row-radio-buttons-group-label"
-                  name="row-radio-buttons-group"
-                  value={content}
-                  onChange={ContentChange}
-                >
-                  <Box sx={{ display: 'flex' }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        alignContent: 'center',
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-[#6B7A99] hover:text-[#C64091]"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Technical Information refers to specific details and
+                        specifications about a product&apos;s technical aspects,
+                        packaging Material, packing size, Dimensions, logistic or
+                        go live information for your offered product. This is
+                        Critical Information from Logistic &amp; Buying
+                        Perspective for Making Informed Decisions.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Box>
 
-                        gap: '5px',
-                        color: '#6B7A99',
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '12px' }}>
-                        Upload Link
-                      </Typography>
-                      <FormControlLabel
-                        value="uploadLinkSet"
-                        control={<Radio />}
-                      />
-                    </Box>
+              <Box sx={{ width: '100%', overflow: 'auto' }}>
+                <Stack spacing={2}>
+                  <div className="space-y-3 py-1">
+                    <Label className="text-[#5c6b8a] font-medium">
+                      What supporting document would you like to give to the
+                      Buyer? <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {SUPPORTING_DOC_OPTIONS.map(({ key, label }) => (
+                        <div
+                          key={key}
+                          className="flex items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] px-3 py-2.5 transition-colors hover:border-[#CBD5E1]"
+                        >
+                          <Checkbox
+                            id={`support-${key}`}
+                            checked={checkBoxes[key]}
+                            onCheckedChange={(c) =>
+                              setCheckBoxes((prev) => ({
+                                ...prev,
+                                [key]: c === true,
+                              }))
+                            }
+                            className={brandControlClass}
+                          />
+                          <Label
+                            htmlFor={`support-${key}`}
+                            className="text-sm font-normal text-[#5c6b8a] cursor-pointer leading-snug"
+                          >
+                            {label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        alignContent: 'center',
-                        fontSize: '15px',
-                        gap: '5px',
-                        color: '#6B7A99',
+                  <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
+                    <Typography sx={CommonTextStyle}>
+                      Dimensions of Ad / Content Needed{' '}
+                      <span style={{ color: 'red' }}>*</span>
+                    </Typography>
+                    <TextField
+                      multiline
+                      variant="standard"
+                      placeholder="Eg. 30 Sec"
+                      {...register('Dimensions')}
+                      sx={standardMultilineFieldSx(!!errors.Dimensions?.message)}
+                      InputProps={{
+                        disableUnderline: true,
                       }}
-                    >
-                      <Typography sx={{ fontSize: '12px' }}>
-                        Click here to use BXI Space
+                    />
+                    {errors.Dimensions?.message && (
+                      <Typography sx={FieldErrorTextStyle}>
+                        {errors.Dimensions.message}
                       </Typography>
-                      <FormControlLabel
-                        value="checkbox"
-                        control={<Radio />}
-                      />
-                    </Box>
+                    )}
                   </Box>
-                </RadioGroup>
-                {content !== 'checkbox' ? (
-                  <>
-                    <Box sx={{ display: 'grid', gap: '5px', py: '5px' }}>
-                      <Typography sx={{ ...CommonTextStyle }}>
-                        Content Upload Link ( Share a link where buyer can
-                        drop a content ){' '}
-                        <span style={{ color: 'red' }}> *</span>
-                      </Typography>
 
+                  <div className="space-y-3 pt-1">
+                    <Label className="text-[#5c6b8a] font-medium text-sm">
+                      Content delivery
+                    </Label>
+                    <RadioGroup
+                      value={content}
+                      onValueChange={handleContentModeChange}
+                      className="flex flex-row flex-wrap gap-6"
+                    >
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem
+                          value="uploadLinkSet"
+                          id="content-upload-link"
+                          className={brandControlClass}
+                        />
+                        <Label
+                          htmlFor="content-upload-link"
+                          className="text-sm font-normal text-[#5c6b8a] cursor-pointer"
+                        >
+                          Upload Link
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem
+                          value="checkbox"
+                          id="content-bxi-space"
+                          className={brandControlClass}
+                        />
+                        <Label
+                          htmlFor="content-bxi-space"
+                          className="text-sm font-normal text-[#5c6b8a] cursor-pointer"
+                        >
+                          Click here to use BXI Space
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {content !== 'checkbox' ? (
+                    <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
+                      <Typography sx={CommonTextStyle}>
+                        Content Upload Link ( Share a link where buyer can drop a
+                        content ) <span style={{ color: 'red' }}>*</span>
+                      </Typography>
                       <TextField
-                        focused
                         multiline
                         variant="standard"
                         placeholder="Uploaded content has to go to seller with PO & Confirmation"
                         {...register('UploadLink')}
-                        sx={{
-                          ...lablechange,
-                          background: '#fff',
-                          borderRadius: '10px',
-                          height: '47px',
-                          border: errors['UploadLink']?.message
-                            ? '1px solid red'
-                            : null,
-                        }}
+                        sx={standardMultilineFieldSx(
+                          !!errors.UploadLink?.message,
+                        )}
                         InputProps={{
                           disableUnderline: true,
-                          endAdornment: (
-                            <Typography
-                              variant="body1"
-                              style={{
-                                fontFamily: 'Inter, sans-serif',
-                                color: '#C64091',
-                              }}
-                            ></Typography>
-                          ),
-                          style: {
-                            fontFamily: 'Inter, sans-serif',
-                            color: ' #6B7A99',
-                            fontSize: '12px',
-                            color: '#C64091',
-                          },
                         }}
                       />
+                      {errors.UploadLink?.message && (
+                        <Typography sx={FieldErrorTextStyle}>
+                          {errors.UploadLink.message}
+                        </Typography>
+                      )}
                     </Box>
-                    <Typography sx={ErrorStyle}>
-                      {errors['UploadLink']?.message}
-                    </Typography>
-                  </>
-                ) : (
-                  <>
-                    <Box sx={{ display: 'flex', gap: '10px', mt: 2 }}>
+                  ) : (
+                    <div className="flex gap-3 items-start mt-2 rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] p-3">
                       <Checkbox
-                        {...label}
-                        {...register('BXISpace')}
-                        checked={BXISpace === true ? true : false}
-                        onChange={(e) => setBXISpace(e.target.checked)}
+                        id="bxi-space"
+                        checked={BXISpace === true}
+                        onCheckedChange={(c) => {
+                          setBXISpace(c === true);
+                        }}
+                        className={brandControlClass}
                       />
-                      <Typography sx={CommonTextStyle}>
+                      <Label
+                        htmlFor="bxi-space"
+                        className="text-sm font-normal text-[#5c6b8a] cursor-pointer leading-relaxed"
+                      >
                         Click here to use BXI Space from you can download ,
-                        though BXI does not take responsibility for the
-                        content{' '}
-                      </Typography>
-                    </Box>
-                    <Typography sx={ErrorStyle}>
-                      {errors['UploadLink']?.message}
+                        though BXI does not take responsibility for the content
+                      </Label>
+                    </div>
+                  )}
+                  {content === 'checkbox' && errors.UploadLink?.message && (
+                    <Typography sx={FieldErrorTextStyle}>
+                      {errors.UploadLink.message}
                     </Typography>
-                  </>
-                )}
+                  )}
+                </Stack>
+              </Box>
 
-              </Stack>
+              <div className="flex justify-between pt-8 mt-2 border-t border-[#E2E8F0]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={CancelJourney}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="bg-[#C64091] hover:bg-[#A03375]"
+                >
+                  {isLoading ? 'Saving...' : 'Next'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
             </Box>
-
-            {/* Actions - same as General Information page */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={CancelJourney}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="bg-[#C64091] hover:bg-[#A03375]"
-              >
-                {isLoading ? 'Saving...' : 'Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
           </form>
         </div>
       </div>
@@ -713,30 +438,69 @@ export default function TechInfo() {
   );
 }
 
+const formColors = {
+  border: '#E2E8F0',
+  borderHover: '#CBD5E1',
+  borderFocus: '#C64091',
+  borderError: '#d32f2f',
+  text: '#334155',
+  label: '#6B7A99',
+  brand: '#C64091',
+};
+
+const borderedControlSx = (hasError) => ({
+  border: '1px solid',
+  borderColor: hasError ? formColors.borderError : formColors.border,
+  transition: 'border-color 0.15s ease',
+  boxSizing: 'border-box',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:focus': { outline: 'none' },
+  '&:focus-visible': { outline: 'none' },
+  '& .MuiInputBase-input:focus': { outline: 'none' },
+  '&:hover': {
+    borderColor: hasError ? formColors.borderError : formColors.borderHover,
+  },
+  '&.Mui-focused': {
+    borderColor: hasError ? formColors.borderError : formColors.borderFocus,
+    boxShadow: 'none',
+  },
+});
+
+const standardMultilineFieldSx = (hasError) => ({
+  fontFamily: 'Inter, sans-serif',
+  background: '#fff',
+  borderRadius: '10px',
+  padding: '0px 10px',
+  minHeight: '47px',
+  height: 'auto',
+  fontSize: '12px',
+  ...borderedControlSx(hasError),
+  '& .MuiInputBase-input': {
+    color: formColors.text,
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '12px',
+    lineHeight: '20px',
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: formColors.label,
+    opacity: 0.55,
+    WebkitTextFillColor: formColors.label,
+  },
+});
+
 const CommonTextStyle = {
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
-  fontWeight: 400,
+  fontWeight: 500,
   fontSize: '14px',
   lineHeight: '21px',
-  color: '#6B7A99',
+  color: '#5c6b8a',
 };
 
-const lablechange = {
+const FieldErrorTextStyle = {
   fontFamily: 'Inter, sans-serif',
-  color: '#6B7A99',
-  fontSize: '16px',
-  display: 'grid',
-  textAlign: 'left',
-  fontWeight: 'bold',
-  paddingLeft: '10px',
-  '&:focus': {
-    border: '1px solid #E8E8E8',
-  },
-};
-
-const ErrorStyle = {
+  fontSize: '12px',
+  lineHeight: '18px',
   color: 'red',
 };
-
-
