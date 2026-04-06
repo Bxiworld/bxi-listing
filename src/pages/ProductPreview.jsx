@@ -52,6 +52,20 @@ const CATEGORY_TO_SLUG = {
   Media: 'mediaonline',
 };
 
+/** True for online/offline media listings. API uses ListingType "Media" and ProductType MediaOnline/MediaOffline; ProductCategoryName is usually MediaOnline, Multiplex ADs, or MediaOffline—not the literal "Media". */
+function isMediaListing(p) {
+  if (!p) return false;
+  const lt = String(p.ListingType ?? '').trim();
+  if (lt.toLowerCase() === 'media') return true;
+  const pt = String(p.ProductType ?? '').trim().toLowerCase();
+  if (pt === 'mediaonline' || pt === 'mediaoffline') return true;
+  const cat = String(p.ProductCategoryName ?? '').trim();
+  if (cat === 'MediaOnline' || cat === 'MediaOffline' || cat === 'Multiplex ADs' || cat === 'Media') {
+    return true;
+  }
+  return false;
+}
+
 function formatPrice(value) {
   if (value == null || value === '') return 'N/A';
   const num = typeof value === 'number' ? value : parseFloat(value);
@@ -365,8 +379,9 @@ export default function ProductPreview() {
   );
 
   const isVoucherListing = product?.ListingType === 'Voucher';
+  const isMediaProduct = isMediaListing(product);
   const rawImages =
-    product?.ListingType === 'Product' || product?.ListingType === 'Media'
+    product?.ListingType === 'Product' || isMediaProduct
       ? product?.ProductImages
       : product?.VoucherImages;
   const images = Array.isArray(rawImages) ? rawImages : [];
@@ -860,14 +875,16 @@ export default function ProductPreview() {
                         </Typography>
                       </Box>
                     )}
-                    <Box>
-                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                        Sample Details
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        Sample Available : <Typography component="span" fontWeight="medium">{variants.some((v) => v.SampleAvailability) ? 'Yes' : 'No'}</Typography>
-                      </Typography>
-                    </Box>
+                    {!isMediaProduct && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                          Sample Details
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          Sample Available : <Typography component="span" fontWeight="medium">{variants.some((v) => v.SampleAvailability) ? 'Yes' : 'No'}</Typography>
+                        </Typography>
+                      </Box>
+                    )}
                     {hasLoc && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
