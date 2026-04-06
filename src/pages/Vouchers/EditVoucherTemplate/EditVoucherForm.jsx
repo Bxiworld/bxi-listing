@@ -14,27 +14,6 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
-const validityVoucherOptions = [
-  '1 Month',
-  '2 Months',
-  '3 Months',
-  '4 Months',
-  '5 Months',
-  '6 Months',
-  '7 Months',
-  '8 Months',
-  '9 Months',
-  '10 Months',
-  '11 Months',
-  '12 Months',
-  '13 Months',
-  '14 Months',
-  '15 Months',
-  '16 Months',
-  '17 Months',
-  '18 Months',
-];
-
 const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
   const inputRef = useRef();
   const [files, setFiles] = useState(null);
@@ -43,9 +22,6 @@ const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
   const [productName, setProductName] = useState(cardData?.productName);
   const [productSubtitle, setproductSubtitle] = useState(
     cardData?.productSubtitle,
-  );
-  const [validityOfVoucherValue, setValidityOfVoucherValue] = useState(
-    cardData?.validityOfVoucherValue,
   );
   const [pricePerUnit, setPricePerUnit] = useState(cardData?.pricePerUnit);
   const [redemptionType, setRedemptionType] = useState(
@@ -65,7 +41,6 @@ const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
       .string()
       .nonempty('This field is required')
       .min(10, 'Product subtitle should be at least 10 characters long'),
-    validityOfVoucherValue: z.string().min(1),
     Exclusions: z.string().min(1),
     Inclusions: z.string().min(1),
   });
@@ -82,7 +57,8 @@ const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
     const productDetails = {
       productName: data.productname,
       productSubtitle: data.productsubtitle,
-      validityOfVoucherValue: data.validityOfVoucherValue,
+      validityOfVoucherValue: cardData?.validityOfVoucherValue,
+      validityOfVoucherUnit: cardData?.validityOfVoucherUnit,
       inclusions: data.Inclusions,
       exclusions: data.Exclusions,
       termsAndConditions: cardData?.termsAndConditions, // Add this line to preserve terms and conditions
@@ -160,43 +136,6 @@ const EditVoucherForm = ({ cardData, closePopup, updateFormData }) => {
             />
             <Typography sx={ErrorStyle}>
               {errors['Inclusions']?.message}
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              mt: 1,
-              maxWidth: '140px',
-            }}
-          >
-            <Typography sx={CommonTextStyle}>Validity of Voucher</Typography>
-
-            <Box
-              sx={{
-                width: '100%',
-                height: '42px',
-                mt: '1%',
-                borderRadius: '10px',
-              }}
-            >
-              <Select
-                sx={{ ...GW, width: '98%' }}
-                defaultValue={validityOfVoucherValue}
-                {...register('validityOfVoucherValue')}
-              >
-                {validityVoucherOptions.map((x, ind) => {
-                  return (
-                    <MenuItem sx={MenuItems} value={x}>
-                      {x}
-                    </MenuItem>
-                  );
-                })}
-              </Select>
-            </Box>
-            <Typography sx={ErrorStyle}>
-              {errors['validityOfVoucherUnit']?.message}
             </Typography>
           </Box>
         </Box>

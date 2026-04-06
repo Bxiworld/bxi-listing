@@ -1407,8 +1407,15 @@ export const ProductInfo = ({ category }) => {
     setValue('volume', '');
     setValue('shoeSize', '');
     setValue('minOrderQty', '1');
-    setValue('maxOrderQty', '100');
-    setValue('totalAvailableQty', '1');
+    // Voucher: max must not exceed total (form still validates on Save & Next); keep defaults consistent.
+    if (isVoucherCategory) {
+      setValue('maxOrderQty', '1');
+      setValue('totalAvailableQty', '1');
+      clearErrors(['maxOrderQty', 'totalAvailableQty']);
+    } else {
+      setValue('maxOrderQty', '100');
+      setValue('totalAvailableQty', '1');
+    }
     setValue('gst', '');
     setValue('hsn', '');
     setValue('productSize', '');
@@ -1491,7 +1498,7 @@ export const ProductInfo = ({ category }) => {
   };
   const currentDateReqs = dateRequirements[category] || { manufacturing: 'optional', expiry: 'optional' };
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError, clearErrors } = useForm({
     defaultValues: {
       price: '',
       discountedPrice: '',
