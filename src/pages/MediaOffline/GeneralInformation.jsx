@@ -312,7 +312,7 @@ export default function MediaOfflineGeneralInfo() {
             {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="productname">
-                Product Name <span className="text-red-500">*</span>
+                Media Name <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="productname"

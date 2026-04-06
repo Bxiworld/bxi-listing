@@ -55,6 +55,7 @@ import {
   getVoucherJourneyLabel,
   VOUCHER_JOURNEY_TYPE,
 } from '../../utils/voucherType';
+import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 
 /** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
 function formatSizeOptionButtonLabel(opt) {
@@ -218,6 +219,7 @@ export const Stepper = ({ currentStep, completedSteps = [], category = '' }) => 
 
 // General Information Step
 export const GeneralInformation = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -877,6 +879,7 @@ const formatVariationSize = (row) => {
 };
 
 export const ProductInfo = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -2718,13 +2721,16 @@ export const ProductInfo = ({ category }) => {
               <div className="space-y-4 pt-4">
                 <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Manufacturing Date */}
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                  {/* Row 1 / mobile: manufacturing label */}
+                  <div className="md:col-start-1 md:row-start-1">
                     <Label>
-                      Manufacturing Date{' '} <span className="text-red-500">*</span>
+                      Manufacturing Date{' '}
                       {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
                     </Label>
+                  </div>
+                  {/* Row 2 / mobile: manufacturing picker */}
+                  <div className="md:col-start-1 md:row-start-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -2751,86 +2757,56 @@ export const ProductInfo = ({ category }) => {
                     </Popover>
                   </div>
 
-                  {/* Expiry Date */}
-                  <div className="space-y-2">
-                    {/* For FMCG, expiry is mandatory (no checkbox) */}
+                  {/* Row 1 col 2 / mobile: expiry label or checkbox */}
+                  <div className="md:col-start-2 md:row-start-1">
                     {category === 'fmcg' ? (
-                      <>
-                        <Label>
-                          Expiry Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className={cn(
-                                'w-full justify-start text-left font-normal',
-                                !expiryDate && 'text-muted-foreground'
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={expiryDate}
-                              onSelect={setExpiryDate}
-                              disabled={(date) => {
-                                if (date < new Date()) return true;
-                                if (manufacturingDate && date <= manufacturingDate) return true;
-                                return false;
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </>
+                      <Label>
+                        Expiry Date <span className="text-red-500">*</span>
+                      </Label>
                     ) : (
-                      <>
-                        <div className="h-6 flex items-center gap-2">
-                          <Checkbox
-                            id="has-expiry"
-                            checked={hasExpiryDate}
-                            onCheckedChange={setHasExpiryDate}
+                      <div className="h-6 flex items-center gap-2">
+                        <Checkbox
+                          id="has-expiry"
+                          checked={hasExpiryDate}
+                          onCheckedChange={setHasExpiryDate}
+                        />
+                        <Label htmlFor="has-expiry" className="cursor-pointer leading-none">
+                          This product has an expiry date
+                        </Label>
+                      </div>
+                    )}
+                  </div>
+                  {/* Row 2 col 2 / mobile: expiry picker */}
+                  <div className="md:col-start-2 md:row-start-2">
+                    {(category === 'fmcg' || hasExpiryDate) && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !expiryDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={expiryDate}
+                            onSelect={setExpiryDate}
+                            disabled={(date) => {
+                              if (date < new Date()) return true;
+                              if (manufacturingDate && date <= manufacturingDate) return true;
+                              return false;
+                            }}
+                            initialFocus
                           />
-                          <Label htmlFor="has-expiry" className="cursor-pointer leading-none">
-                            This product has an expiry date
-                          </Label>
-                        </div>
-                        {hasExpiryDate && (
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className={cn(
-                                  'w-full justify-start text-left font-normal mt-2',
-                                  !expiryDate && 'text-muted-foreground'
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={expiryDate}
-                                onSelect={setExpiryDate}
-                                disabled={(date) => {
-                                  if (date < new Date()) return true;
-                                  if (manufacturingDate && date <= manufacturingDate) return true;
-                                  return false;
-                                }}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                      </>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                 </div>
@@ -3231,6 +3207,7 @@ export const ProductInfo = ({ category }) => {
 
 // Technical Information Step – weight, dimensions, warranty, additional info
 export const TechInfo = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -3555,6 +3532,7 @@ const MEDIA_CATEGORIES = ['mediaonline', 'mediaoffline'];
 const RESTRICTED_ASPECT_CATEGORIES = ['textile', 'officesupply', 'lifestyle', 'others'];
 
 export const GoLive = ({ category }) => {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -3581,6 +3559,8 @@ export const GoLive = ({ category }) => {
   const isMediaCategory = MEDIA_CATEGORIES.includes(category);
   const requiresListingPeriod = !isMediaCategory;
   const hasRestrictedAspect = RESTRICTED_ASPECT_CATEGORIES.includes(category);
+  const totalGoLiveImageCount = files.length + (productData?.ProductImages?.length || 0);
+  const goLiveImagesStillNeeded = Math.max(0, 3 - totalGoLiveImageCount);
 
   const isVoucherDesignStep = location.pathname.includes('voucherdesign');
   const stepKey = isVoucherDesignStep ? 'voucherDesign' : 'goLive';
@@ -3816,6 +3796,7 @@ export const GoLive = ({ category }) => {
                     <p className="font-semibold text-[#C64091]">Drag & Drop images here</p>
                     <p className="text-sm text-[#6B7A99] mt-1">or <span className="text-[#C64091] font-semibold underline">browse files</span> (Select multiple)</p>
                     <div className="flex flex-wrap justify-center gap-2 mt-3">
+                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs font-semibold">Min. 3 images</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">JPEG, PNG, GIF</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">Max 10MB</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
@@ -3840,7 +3821,14 @@ export const GoLive = ({ category }) => {
 
                   {(files.length > 0 || imagePreviews.length > 0) && (
                     <div className="mt-6">
-                      <Label className="text-base font-semibold">Uploaded Images ({imagePreviews.length})</Label>
+                      <Label className="text-base font-semibold flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span>Uploaded Images ({totalGoLiveImageCount})</span>
+                        {goLiveImagesStillNeeded > 0 && (
+                          <span className="text-sm font-normal text-amber-800">
+                            — {goLiveImagesStillNeeded} more required
+                          </span>
+                        )}
+                      </Label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
                         {imagePreviews.map((item, idx) => (
                           <div

@@ -23,6 +23,7 @@ import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '../../components/ui/tooltip';
 import { Info } from 'lucide-react';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 
 // Validation aligned with bxi-dashboard TechInfoTemplate: all text fields max 500 characters
 const schema = z.object({
@@ -36,6 +37,7 @@ const schema = z.object({
 });
 
 export default function VoucherTechInfo({ category }) {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);

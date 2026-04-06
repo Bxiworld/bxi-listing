@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import bxitoken from '../../assets/bxi-token.svg';
 import api, { productApi } from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 import { getVoucherJourneyTypeFromStorage, VOUCHER_JOURNEY_TYPE } from '../../utils/voucherType';
 import {
   Tooltip,
@@ -99,6 +100,7 @@ const validateOtherCost = (o) => {
 };
 
 export default function HotelsProductInfo({ category }) {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);

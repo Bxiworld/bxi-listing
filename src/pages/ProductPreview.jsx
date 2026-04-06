@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Scale, Package, ArrowLeft, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import CloseIcon from '@mui/icons-material/Close';
 import {
   Box,
   Button,
@@ -23,6 +24,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  useMediaQuery,
+  useTheme,
   Popover,
   Divider,
 } from '@mui/material';
@@ -275,6 +281,8 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
 }
 
 export default function ProductPreview() {
+  const theme = useTheme();
+  const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const { id } = useParams();
   const [product, setProduct] = useState(null);
@@ -283,7 +291,7 @@ export default function ProductPreview() {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [sizeChartAnchor, setSizeChartAnchor] = useState(null);
+  const [sizeChartDialogOpen, setSizeChartDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -673,49 +681,53 @@ export default function ProductPreview() {
                             }}
                           />
                         ))}
-                      </colgroup>
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: 'grey.100' }}>
-                          {variantPreviewColumns.map((col) => (
-                            <TableCell
-                              key={col.id}
-                              align="center"
-                              sx={{
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                                textTransform: 'uppercase',
-                                color: 'text.secondary',
-                                minWidth: col.minWidth,
-                                whiteSpace: 'normal',
-                                wordBreak: 'break-word',
-                                verticalAlign: 'middle',
-                              }}
-                            >
-                              {col.heading}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
-                          {variantPreviewColumns.map((col) => (
-                            <TableCell
-                              key={col.id}
-                              align="center"
-                              sx={{
-                                py: 2,
-                                minWidth: col.minWidth,
-                                verticalAlign: 'middle',
-                              }}
-                            >
-                              {col.cell}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+                            <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
+                            <Typography variant="body2" fontWeight="600">
+                              {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">
+                            {selectedVariantData.ShoeSize != null
+                              ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ''}`
+                              : selectedVariantData.ProductSize ||
+                                selectedVariantData.NutritionInfo ||
+                                (selectedVariantData?.length && selectedVariantData?.MeasurementUnit
+                                  ? `${selectedVariantData?.length} ${selectedVariantData?.MeasurementUnit}`
+                                  : 'N/A')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Chip label={selectedVariantData.MinOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Chip label={selectedVariantData.MaxOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">
+                            {selectedVariantData.GST ? `${selectedVariantData.GST}%` : 'N/A'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">{selectedVariantData.HSN ?? 'N/A'}</Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">{selectedVariantData.ProductSize ?? 'N/A'}</Typography>
+                        </TableCell>
+                        <TableCell align="center" sx={{ py: 2 }}>
+                          <Typography variant="body2">{selectedVariantData.ProductIdType ?? 'N/A'}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
               )}
 
               {/* Size chart */}
@@ -724,6 +736,7 @@ export default function ProductPreview() {
                 <Box>
                   <Typography
                     component="button"
+                    type="button"
                     variant="body2"
                     fontWeight="600"
                     sx={{
@@ -733,33 +746,87 @@ export default function ProductPreview() {
                       background: 'none',
                       '&:hover': { textDecoration: 'underline' },
                     }}
-                    onMouseEnter={(e) => setSizeChartAnchor(e.currentTarget)}
-                    onMouseLeave={() => setSizeChartAnchor(null)}
+                    onClick={() => setSizeChartDialogOpen(true)}
                   >
                     Size Chart
                   </Typography>
-                  <Popover
-                    open={Boolean(sizeChartAnchor)}
-                    anchorEl={sizeChartAnchor}
-                    onClose={() => setSizeChartAnchor(null)}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                    onMouseEnter={() => setSizeChartAnchor(sizeChartAnchor)}
-                    onMouseLeave={() => setSizeChartAnchor(null)}
-                    slotProps={{ paper: { sx: { mt: 1.5, p: 1 } } }}
+                  <Dialog
+                    open={sizeChartDialogOpen}
+                    onClose={() => setSizeChartDialogOpen(false)}
+                    fullScreen={sizeChartFullScreen}
+                    maxWidth="md"
+                    fullWidth
+                    aria-labelledby="size-chart-dialog-title"
+                    slotProps={{
+                      paper: {
+                        sx: sizeChartFullScreen
+                          ? {
+                              m: 0,
+                              maxHeight: '100%',
+                              height: '100%',
+                              borderRadius: 0,
+                              pt: 'env(safe-area-inset-top)',
+                              pb: 'env(safe-area-inset-bottom)',
+                            }
+                          : undefined,
+                      },
+                    }}
                   >
-                    {sizeChartUrl ? (
-                      <img
-                        src={sizeChartUrl}
-                        alt="Size chart"
-                        style={{ maxHeight: 300, width: 'auto', maxWidth: 400, objectFit: 'contain' }}
-                      />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
-                        Size Chart Unavailable
-                      </Typography>
-                    )}
-                  </Popover>
+                    <DialogTitle
+                      id="size-chart-dialog-title"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 1,
+                        pr: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      Size chart
+                      <IconButton
+                        type="button"
+                        onClick={() => setSizeChartDialogOpen(false)}
+                        aria-label="Close size chart"
+                        size="large"
+                        edge="end"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </DialogTitle>
+                    <DialogContent
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'flex-start',
+                        overflow: 'auto',
+                        pt: 1,
+                        pb: 2,
+                        minHeight: 0,
+                      }}
+                    >
+                      {sizeChartUrl ? (
+                        <Box
+                          component="img"
+                          src={sizeChartUrl}
+                          alt="Size chart"
+                          sx={{
+                            maxWidth: '100%',
+                            width: 'auto',
+                            height: 'auto',
+                            maxHeight: sizeChartFullScreen
+                              ? 'calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
+                              : 'min(70vh, 520px)',
+                            objectFit: 'contain',
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                          Size Chart Unavailable
+                        </Typography>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </Box>
               )}
             </Stack>
@@ -872,37 +939,70 @@ export default function ProductPreview() {
                       </Box>
                     )}
                     <Box>
-                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
                         Additional Cost
                       </Typography>
-                      {Array.isArray(product?.OtherCost) && product.OtherCost.length > 0 ? (
-                        <Stack spacing={1.5}>
+                      {product?.OtherCost?.length > 0 ? (
+                        <Stack spacing={3}>
                           {product.OtherCost.map((cost, i) => (
-                            <Stack key={i} direction="row" flexWrap="wrap" spacing={2} useFlexGap>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">Applicable on:</Typography> {cost.AdCostApplicableOn}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">Reason:</Typography> {cost.ReasonOfCost}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">HSN:</Typography> {cost.AdCostHSN}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">GST:</Typography> {cost.AdCostGST}%
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                <Typography component="span" color="text.disabled">Cost:</Typography>{' '}
-                                <Typography component="span" className="inline-flex items-center gap-1" fontWeight="medium">
-                                  {formatPrice(cost.CostPrice)}
-                                  {cost.currencyType === 'BXITokens' ? (
-                                    <img src={BXITokenIcon} alt="BXI Token" className="w-4 h-4" />
-                                  ) : (
-                                    ' ₹'
-                                  )}
-                                </Typography>
-                              </Typography>
-                            </Stack>
+                            <Grid container spacing={2} key={i}>
+                              {cost.AdCostApplicableOn != null && String(cost.AdCostApplicableOn).trim() !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">Applicable on:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.AdCostApplicableOn}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.ReasonOfCost != null && String(cost.ReasonOfCost).trim() !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">Reason:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.ReasonOfCost}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.AdCostHSN != null && String(cost.AdCostHSN).trim() !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">HSN:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.AdCostHSN}
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.AdCostGST != null && cost.AdCostGST !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">GST:</Typography>
+                                  <Typography variant="body2" display="block">
+                                    {cost.AdCostGST}%
+                                  </Typography>
+                                </Grid>
+                              )}
+                              {cost.CostPrice != null && cost.CostPrice !== '' && (
+                                <Grid item xs={6} md={4}>
+                                  <Typography variant="caption" color="text.secondary">Cost:</Typography>
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 0.5,
+                                      mt: 0.25,
+                                    }}
+                                  >
+                                    <Typography variant="body2" component="span" fontWeight="medium">
+                                      {formatPrice(cost.CostPrice)}
+                                    </Typography>
+                                    {cost.currencyType === 'BXITokens' ? (
+                                      <Box component="img" src={BXITokenIcon} alt="BXI Token" sx={{ width: 16, height: 16 }} />
+                                    ) : (
+                                      <Typography variant="body2" component="span">
+                                        ₹
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                </Grid>
+                              )}
+                            </Grid>
                           ))}
                         </Stack>
                       ) : (
@@ -1118,22 +1218,38 @@ export default function ProductPreview() {
                         </Grid>
                       </Box>
                     )}
-                    {ti?.WeightBeforePackingPerUnit && (
-                      <Stack direction="row" spacing={2} alignItems="flex-start">
-                        <Scale style={{ width: 40, height: 40, color: 'grey.500', flexShrink: 0 }} />
-                        <Box>
-                          <Typography variant="body2" color="text.secondary">Product Weight Before Packaging</Typography>
-                          <Typography fontWeight="500">
-                            {ti.WeightBeforePackingPerUnit} {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ ml: 2 }}>
-                          <Typography variant="body2" color="text.secondary">Product Weight After Packaging</Typography>
-                          <Typography fontWeight="500">
-                            {ti.WeightAfterPackingPerUnit} {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
-                          </Typography>
-                        </Box>
-                      </Stack>
+                    {(ti?.WeightBeforePackingPerUnit || ti?.WeightAfterPackingPerUnit) && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                          Product weight
+                        </Typography>
+                        <Stack direction="row" spacing={2} alignItems="flex-start">
+                          <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+                            {ti?.WeightBeforePackingPerUnit && (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  Before packaging
+                                </Typography>
+                                <Typography fontWeight="500">
+                                  {ti.WeightBeforePackingPerUnit}{' '}
+                                  {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                                </Typography>
+                              </Box>
+                            )}
+                            {ti?.WeightAfterPackingPerUnit &&  (
+                              <Box>
+                                <Typography variant="body2" color="text.secondary">
+                                  After packaging
+                                </Typography>
+                                <Typography fontWeight="500">
+                                  {ti.WeightAfterPackingPerUnit}{' '}
+                                  {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Stack>
+                      </Box>
                     )}
                     {ti?.InstructionsToUseProduct && (
                       <Box>
