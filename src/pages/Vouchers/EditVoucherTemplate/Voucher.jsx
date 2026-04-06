@@ -22,6 +22,7 @@ import React, {
   useRef,
 } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useScrollToTopOnPathname } from '../../../hooks/useScrollToTopOnStepEnter';
 import { toast } from 'sonner';
 import Swal from 'sweetalert2';
 import api from '../../../utils/api';
@@ -94,6 +95,7 @@ async function uploadVoucherImages(frontData, backData) {
 }
 
 const VoucherCard = () => {
+  useScrollToTopOnPathname();
   let id;
   id = useParams().id;
   const navigate = useNavigate();
@@ -163,6 +165,9 @@ const VoucherCard = () => {
     const inputValue = event.target.value;
     setListThisProductForAmount(inputValue);
     setHasStartedTyping(true);
+    setProductData(prev =>
+      prev ? { ...prev, validityOfVoucherValue: inputValue } : prev
+    );
   };
 
   const validateInput = value => {
@@ -416,10 +421,14 @@ const VoucherCard = () => {
             let variations = response.ProductsVariantions[0];
             productDetails.pricePerUnit = variations.PricePerUnit;
             productDetails.validityOfVoucherUnit =
-              variations?.validityOfVoucherUnit;
+              variations?.validityOfVoucherUnit || 'Days';
             productDetails.validityOfVoucherValue =
               variations?.validityOfVoucherValue;
+          } else {
+            productDetails.validityOfVoucherUnit =
+              productDetails.validityOfVoucherUnit || 'Days';
           }
+          setListThisProductForUnitOfTime(productDetails.validityOfVoucherUnit);
           setProductData(productDetails);
         }
       });
@@ -723,7 +732,13 @@ const VoucherCard = () => {
                   className={cls.goLiveSelectBox}
                   value={ListThisProductForUnitOfTime || 'Days'}
                   name='ListThisProductForUnitOfTime'
-                  onChange={e => setListThisProductForUnitOfTime(e.target.value)}
+                  onChange={e => {
+                    const unit = e.target.value;
+                    setListThisProductForUnitOfTime(unit);
+                    setProductData(prev =>
+                      prev ? { ...prev, validityOfVoucherUnit: unit } : prev
+                    );
+                  }}
                   sx={{
                     minWidth: '90px',
                     fontFamily: 'Poppins',
@@ -738,6 +753,9 @@ const VoucherCard = () => {
                 >
                   <MenuItem className={cls.goLiveMenuItems} value='Days'>
                     Days
+                  </MenuItem>
+                  <MenuItem className={cls.goLiveMenuItems} value='Months'>
+                    Months
                   </MenuItem>
                 </Select>
               </Box>

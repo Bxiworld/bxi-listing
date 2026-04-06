@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Tag, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Info, Tag, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -13,9 +13,17 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 import { toast } from 'sonner';
+import bxitoken from '../../assets/bxi-token.svg';
 import api, { productApi } from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 import { getVoucherJourneyTypeFromStorage, VOUCHER_JOURNEY_TYPE } from '../../utils/voucherType';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip';
 
 const VALIDITY_OPTIONS = Array.from({ length: 18 }, (_, i) => {
   const n = i + 1;
@@ -23,6 +31,9 @@ const VALIDITY_OPTIONS = Array.from({ length: 18 }, (_, i) => {
 });
 
 const GST_OPTIONS = [3, 5, 12, 18, 28];
+
+const FEATURE_MIN = 5;
+const FEATURE_MAX = 20;
 
 const OTHER_COST_APPLICABLE = [
   { value: 'All', label: 'One Time Cost' },
@@ -89,6 +100,7 @@ const validateOtherCost = (o) => {
 };
 
 export default function HotelsProductInfo({ category }) {
+  useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -153,7 +165,7 @@ export default function HotelsProductInfo({ category }) {
   const [editOtherCostIndex, setEditOtherCostIndex] = useState(null);
 
   const isGSTZeroSelected = variantFields.some((row) => String(row?.GST) === '0');
-  const canProceed = variantFields.length > 0 && featureItems.length >= 5 && tags.length > 0;
+  const canProceed = variantFields.length > 0 && featureItems.length >= FEATURE_MIN && tags.length > 0;
 
   // Fetch product, HSN, hotel features
   useEffect(() => {
@@ -335,8 +347,8 @@ export default function HotelsProductInfo({ category }) {
       toast.error('Feature description must be at most 75 characters');
       return;
     }
-    if (featureItems.length >= 20) {
-      toast.error('Features cannot be more than 20');
+    if (featureItems.length >= FEATURE_MAX) {
+      toast.error(`Features cannot be more than ${FEATURE_MAX}`);
       return;
     }
     const nameLower = name.toLowerCase();
@@ -381,14 +393,14 @@ export default function HotelsProductInfo({ category }) {
       toast.error('Add at least one variant.');
       return;
     }
-    if (featureItems.length < 5) {
-      setSubmitSectionErrors('Add at least 5 product features.');
-      toast.error('Add at least 5 product features.');
+    if (featureItems.length < FEATURE_MIN) {
+      setSubmitSectionErrors(`Add at least ${FEATURE_MIN} product features.`);
+      toast.error(`Add at least ${FEATURE_MIN} product features.`);
       return;
     }
-    if (featureItems.length > 20) {
-      setSubmitSectionErrors('Product features cannot exceed 20.');
-      toast.error('Product features cannot exceed 20.');
+    if (featureItems.length > FEATURE_MAX) {
+      setSubmitSectionErrors(`Product features cannot exceed ${FEATURE_MAX}.`);
+      toast.error(`Product features cannot exceed ${FEATURE_MAX}.`);
       return;
     }
     if (tags.length === 0) {
@@ -475,15 +487,22 @@ export default function HotelsProductInfo({ category }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Price/Voucher <span className="text-red-500">*</span></Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step="any"
-                  value={newVariant.PricePerUnit}
-                  onChange={(e) => { setNewVariant((p) => ({ ...p, PricePerUnit: e.target.value })); setVariantErrors((prev) => ({ ...prev, PricePerUnit: undefined })); }}
-                  placeholder="e.g. 1000"
-                  className={variantErrors.PricePerUnit ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={newVariant.PricePerUnit}
+                    onChange={(e) => { setNewVariant((p) => ({ ...p, PricePerUnit: e.target.value })); setVariantErrors((prev) => ({ ...prev, PricePerUnit: undefined })); }}
+                    placeholder="e.g. 1000"
+                    className={`pr-10 ${variantErrors.PricePerUnit ? 'border-red-500' : ''}`}
+                  />
+                  <img
+                    src={bxitoken}
+                    alt="Barter coin"
+                    className="pointer-events-none absolute right-3 top-1/2 h-6 w-6 -translate-y-1/2"
+                  />
+                </div>
                 {variantErrors.PricePerUnit && <p className="text-xs text-red-500 mt-0.5">{variantErrors.PricePerUnit}</p>}
               </div>
               <div className="space-y-2">
@@ -513,7 +532,21 @@ export default function HotelsProductInfo({ category }) {
                 {variantErrors.HSN && <p className="text-xs text-red-500 mt-0.5">{variantErrors.HSN}</p>}
               </div>
               <div className="space-y-2">
-                <Label>GST <span className="text-red-500">*</span></Label>
+                <div className="flex items-center gap-1">
+                  <Label>GST <span className="text-red-500">*</span></Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Collecting maximum GST of the entire product range is recommended.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Select
                   value={String(newVariant.GST)}
                   onValueChange={(val) => { setNewVariant((p) => ({ ...p, GST: val })); setVariantErrors((prev) => ({ ...prev, GST: undefined })); }}
@@ -557,6 +590,7 @@ export default function HotelsProductInfo({ category }) {
                 <Input
                   type="number"
                   value={
+                    
                     (Number(newVariant.PricePerUnit || 0) *
                       Number(newVariant.TotalAvailableQty || 0)).toFixed(2)
                   }
@@ -593,72 +627,102 @@ export default function HotelsProductInfo({ category }) {
                 </div>
               )}
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAddVariant}
-              className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] hover:text-[#C64091]"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {editVariantIndex !== null ? 'Update variation' : 'Proceed to Add'}
-            </Button>
 
-            {variantFields.length > 0 && (
-              <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-[#F8F9FA]">
-                    <tr>
-                      {tableColumnDefs.map((col) => (
-                        <th key={col.key} className="text-left p-2 font-medium text-[#6B7A99]">{col.label}</th>
-                      ))}
-                      <th className="p-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {variantFields.map((row, idx) => (
-                      <tr key={row.id} className="border-t">
+            <div className="space-y-4 pt-4">
+              <Button
+                type="button"
+                onClick={handleAddVariant}
+                className="w-full"
+                data-testid="btn-add-variation"
+              >
+                {editVariantIndex !== null ? 'Update variation' : 'Proceed to Add'}
+              </Button>
+              {variantFields.length === 0 && (
+                <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
+              )}
+              {variantFields.length > 0 && (
+                <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                  <table className="w-full border-collapse bg-white text-sm">
+                    <thead className="bg-[#F9FAFB] text-[#374151]">
+                      <tr>
                         {tableColumnDefs.map((col) => (
-                          <td key={col.key} className="p-2 text-[#111827]">
-                            {col.key === 'validityOfVoucherValue'
-                              ? `${row.validityOfVoucherValue || ''} ${row.validityOfVoucherUnit || 'Months'}`
-                              : (row[col.key] ?? '-')}
-                          </td>
+                          <th key={col.key} className="px-3 py-2 text-center font-medium">
+                            {col.label}
+                          </th>
                         ))}
-                        <td className="p-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditVariant(idx)}
-                            className="text-[#6B7A99] hover:text-[#C64091]"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeVariant(idx)}
-                            className="text-[#6B7A99] hover:text-[#C64091]"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </td>
+                        <th className="px-3 py-2 text-center font-medium">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody className="text-center">
+                      {variantFields.map((row, idx) => (
+                        <tr
+                          key={row.id}
+                          className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                        >
+                          {tableColumnDefs.map((col) => {
+                            let cell = row[col.key];
+                            if (col.key === 'validityOfVoucherValue') {
+                              cell = row.validityOfVoucherValue
+                                ? `${row.validityOfVoucherValue} ${row.validityOfVoucherUnit || 'Months'}`.trim()
+                                : '—';
+                            } else if (col.key === 'PricePerUnit') {
+                              cell = row.PricePerUnit
+                                ? `${Number(row.PricePerUnit).toLocaleString('en-IN')}`
+                                : '—';
+                            } else if (col.key === 'TotalValueUploaded') {
+                              const totalN = Number(row.TotalValueUploaded);
+                              cell =
+                                row.TotalValueUploaded !== '' &&
+                                row.TotalValueUploaded != null &&
+                                Number.isFinite(totalN)
+                                  ? totalN.toLocaleString('en-IN')
+                                  : '—';
+                            } else if (col.key === 'GST') {
+                              cell = row.GST !== '' && row.GST != null ? `${row.GST}%` : '—';
+                            } else if (cell === '' || cell == null) {
+                              cell = '—';
+                            }
+                            return (
+                              <td key={col.key} className="px-3 py-2 text-[#111827]">
+                                {cell}
+                              </td>
+                            );
+                          })}
+                          <td className="px-3 py-2 text-center">
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditVariant(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeVariant(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                                aria-label="Remove variation"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Other costs (only when no variant has GST 0) */}
           {!isGSTZeroSelected && (
-            <div className="space-y-4 pt-6 border-t border-[#E5E8EB]">
+            <div className="space-y-4 pt-4">
               <h3 className="text-base font-semibold text-[#111827]">
                 Additional Cost <span className="text-sm font-normal text-[#6B7A99]">(Additional cost is not mandatory)</span>
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Applicable On</Label>
                   <Select
@@ -674,14 +738,14 @@ export default function HotelsProductInfo({ category }) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Cost (Inc of GST) *</Label>
+                  <Label>Cost Price</Label>
                   <Input
                     type="number"
                     min={0}
                     step="any"
+                    placeholder="0"
                     value={newOtherCost.CostPrice}
                     onChange={(e) => { setNewOtherCost((p) => ({ ...p, CostPrice: e.target.value })); setOtherCostErrors((prev) => ({ ...prev, CostPrice: undefined })); }}
-                    placeholder="Amount"
                     className={otherCostErrors.CostPrice ? 'border-red-500' : ''}
                   />
                   {otherCostErrors.CostPrice && <p className="text-xs text-red-500 mt-0.5">{otherCostErrors.CostPrice}</p>}
@@ -694,26 +758,29 @@ export default function HotelsProductInfo({ category }) {
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="INR">INR</SelectItem>
-                      <SelectItem value="BXITokens">BXI Tokens</SelectItem>
+                      <SelectItem value="INR">INR (₹)</SelectItem>
+                      <SelectItem value="BXITokens">
+                        BXI Tokens{' '}
+                        <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1 align-middle" />
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>HSN * (4/6/8 digits)</Label>
+                  <Label>HSN (4/6/8 digits)</Label>
                   <Input
                     type="text"
                     inputMode="numeric"
                     maxLength={8}
+                    placeholder="e.g. 9983"
                     value={newOtherCost.AdCostHSN}
                     onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setNewOtherCost((p) => ({ ...p, AdCostHSN: v })); setOtherCostErrors((prev) => ({ ...prev, AdCostHSN: undefined })); }}
-                    placeholder="e.g. 9983"
                     className={otherCostErrors.AdCostHSN ? 'border-red-500' : ''}
                   />
                   {otherCostErrors.AdCostHSN && <p className="text-xs text-red-500 mt-0.5">{otherCostErrors.AdCostHSN}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>GST *</Label>
+                  <Label>GST %</Label>
                   <Select
                     value={String(newOtherCost.AdCostGST)}
                     onValueChange={(val) => { setNewOtherCost((p) => ({ ...p, AdCostGST: Number(val) })); setOtherCostErrors((prev) => ({ ...prev, AdCostGST: undefined })); }}
@@ -728,66 +795,81 @@ export default function HotelsProductInfo({ category }) {
                   {otherCostErrors.AdCostGST && <p className="text-xs text-red-500 mt-0.5">{otherCostErrors.AdCostGST}</p>}
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>Reason of Cost * (max 75)</Label>
+                  <Label>Reason of Cost</Label>
                   <Input
+                    placeholder="Describe the cost"
                     value={newOtherCost.ReasonOfCost}
                     onChange={(e) => { setNewOtherCost((p) => ({ ...p, ReasonOfCost: e.target.value.slice(0, 75) })); setOtherCostErrors((prev) => ({ ...prev, ReasonOfCost: undefined })); }}
-                    placeholder="Reason"
                     maxLength={75}
                     className={otherCostErrors.ReasonOfCost ? 'border-red-500' : ''}
                   />
                   {otherCostErrors.ReasonOfCost && <p className="text-xs text-red-500 mt-0.5">{otherCostErrors.ReasonOfCost}</p>}
                 </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    onClick={handleAddOtherCost}
+                    className="w-full"
+                  >
+                    {editOtherCostIndex !== null ? 'Update Additional Cost' : 'Add Additional Cost'}
+                  </Button>
+                </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddOtherCost}
-                className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] hover:text-[#C64091]"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                {editOtherCostIndex !== null ? 'Update Additional Cost' : 'Add Additional Cost'}
-              </Button>
+              {otherCostFields.length === 0 && (
+                <p className="text-sm text-gray-500 mt-3">No additional costs added yet.</p>
+              )}
               {otherCostFields.length > 0 && (
-                <div className="overflow-x-auto border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead className="bg-[#F8F9FA]">
+                <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                  <table className="w-full border-collapse bg-white text-sm">
+                    <thead className="bg-[#F9FAFB] text-[#374151]">
                       <tr>
-                        <th className="text-left p-2">Applicable On</th>
-                        <th className="text-left p-2">Cost</th>
-                        <th className="text-left p-2">HSN</th>
-                        <th className="text-left p-2">GST</th>
-                        <th className="text-left p-2">Reason</th>
-                        <th className="p-2">Actions</th>
+                        <th className="px-3 py-2 text-center font-medium">Applicable On</th>
+                        <th className="px-3 py-2 text-center font-medium">Cost Price</th>
+                        <th className="px-3 py-2 text-center font-medium">Currency</th>
+                        <th className="px-3 py-2 text-center font-medium">HSN</th>
+                        <th className="px-3 py-2 text-center font-medium">GST</th>
+                        <th className="px-3 py-2 text-center font-medium">Reason</th>
+                        <th className="px-3 py-2 text-center font-medium">Action</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="text-center">
                       {otherCostFields.map((row, idx) => (
-                        <tr key={row.id} className="border-t">
-                          <td className="p-2">{row.AdCostApplicableOn}</td>
-                          <td className="p-2">{row.CostPrice} {row.currencyType === 'BXITokens' ? 'BXI' : '₹'}</td>
-                          <td className="p-2">{row.AdCostHSN}</td>
-                          <td className="p-2">{row.AdCostGST}%</td>
-                          <td className="p-2">{row.ReasonOfCost}</td>
-                          <td className="p-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditOtherCost(idx)}
-                              className="text-[#6B7A99] hover:text-[#C64091]"
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeOtherCost(idx)}
-                              className="text-[#6B7A99] hover:text-[#C64091]"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
+                        <tr
+                          key={row.id}
+                          className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                        >
+                          <td className="px-3 py-2">
+                            {row.AdCostApplicableOn === 'All' ? 'One Time' : 'Per Unit'}
+                          </td>
+                          <td className="px-3 py-2 font-medium">{row.CostPrice}</td>
+                          <td className="px-3 py-2">
+                            {row.currencyType === 'BXITokens' ? (
+                              <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block mx-auto" />
+                            ) : (
+                              '₹'
+                            )}
+                          </td>
+                          <td className="px-3 py-2">{row.AdCostHSN}</td>
+                          <td className="px-3 py-2">{row.AdCostGST}%</td>
+                          <td className="px-3 py-2 max-w-[250px] truncate">{row.ReasonOfCost}</td>
+                          <td className="px-3 py-2 text-center">
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditOtherCost(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeOtherCost(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                                aria-label="Remove additional cost"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -798,21 +880,25 @@ export default function HotelsProductInfo({ category }) {
             </div>
           )}
 
-          {/* Product features (min 5, max 20) */}
-          <div className="space-y-4 pt-6 border-t border-[#E5E8EB]">
-          <h3 className="text-base font-semibold text-[#111827]">
-            Voucher Features
-          </h3>
-          <p className="text-sm font-normal text-[#6B7A99]">
-            Select the best features that describe your brand/product.
-            <span className="block">
-              (The more features you write, the more you are discovered)
-            </span>
-          </p>
+          {/* Product features (aligned with AddProductSteps ProductInfo) */}
+          <div className="space-y-4 pt-4">
+          <div>
+            <h3 className="text-base font-semibold text-[#111827]">
+              Voucher Features
+            </h3>
+            <p className="text-sm font-normal text-[#6B7A99]">
+              Select the best features that describe your brand/product.
+              <span className="block">
+                (The more features you write, the more you are discovered)
+              </span>
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Select Best Features</Label>
+              <Label className="text-sm font-medium">
+                Select Best Features <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={featureName}
                 onValueChange={(val) => {
@@ -821,7 +907,7 @@ export default function HotelsProductInfo({ category }) {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select feature" />
+                  <SelectValue placeholder="Select a feature" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableFeatures.map((f) => {
@@ -837,19 +923,27 @@ export default function HotelsProductInfo({ category }) {
             </div>
 
             <div className="space-y-2">
-              <Label>Feature Description *</Label>
+              <Label className="text-sm font-medium">
+                Feature Description <span className="text-red-500">*</span>
+              </Label>
               <Input
+                placeholder="Eg. Smart watch (max 75 characters)"
+                maxLength={75}
                 value={featureDescription}
                 onChange={(e) =>
                   setFeatureDescription(e.target.value.slice(0, 75))
                 }
-                placeholder="Eg. Smart watch (max 75 characters)"
               />
             </div>
             <div className="flex items-end">
               <Button
                 type="button"
                 onClick={handleAddFeature}
+                disabled={
+                  featureItems.length >= FEATURE_MAX ||
+                  !featureName?.trim() ||
+                  !featureDescription?.trim()
+                }
                 className="w-full"
               >
                 Add Feature
@@ -857,9 +951,9 @@ export default function HotelsProductInfo({ category }) {
             </div>
           </div>
 
-          {addFeatureClicked && featureItems.length < 5 && (
+          {addFeatureClicked && featureItems.length < FEATURE_MIN && (
             <p className="text-sm text-red-500">
-              Add at least {5 - featureItems.length} more feature(s).
+              Add at least {FEATURE_MIN - featureItems.length} more feature(s).
             </p>
           )}
 
@@ -870,24 +964,19 @@ export default function HotelsProductInfo({ category }) {
           )}
 
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[#6B7A99]">Minimum 5 required • Max 20</p>
+            <p className="text-sm text-[#6B7A99]">
+              Minimum {FEATURE_MIN} required • Max {FEATURE_MAX}
+            </p>
             <span
               className={`px-3 py-1 text-xs font-medium rounded-full ${
-                featureItems.length >= 5
+                featureItems.length >= FEATURE_MIN
                   ? 'bg-green-100 text-green-700'
                   : 'bg-yellow-100 text-yellow-700'
               }`}
             >
-              {featureItems.length}/20
+              {featureItems.length}/{FEATURE_MAX}
             </span>
           </div>
-
-          {/* ✅ Table Styled Like Variations */}
-          {featureItems.length === 0 && (
-            <p className="text-sm text-gray-500 mt-3">
-              No features added yet
-            </p>
-          )}
 
           {featureItems.length > 0 ? (
             <div className="space-y-3">
@@ -918,7 +1007,7 @@ export default function HotelsProductInfo({ category }) {
             </div>
           ) : (
             <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
-              No features added yet. Add at least 5 features.
+              No features added yet. Add at least {FEATURE_MIN} features.
             </div>
           )}
         </div>
@@ -941,11 +1030,11 @@ export default function HotelsProductInfo({ category }) {
               />
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => handleAddTag({ key: '' })}
-                className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] hover:text-[#C64091]"
+                disabled={!currentTag.trim() || tags.includes(currentTag.trim())}
+                className="shrink-0"
               >
-                Add
+                <Tag className="w-4 h-4 mr-1" /> Add
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
