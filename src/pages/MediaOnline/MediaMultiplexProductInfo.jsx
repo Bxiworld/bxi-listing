@@ -34,6 +34,30 @@ const columns = [
   { field: 'DiscountedPrice', headerName: 'Discounted Price', width: 150 },
 ];
 
+/** API returns { screens: [...] } (Mongo subdocs use lowercase geo fields). */
+function mapMultiplexDocToGridRows(doc) {
+  if (!doc) return [];
+  const list = Array.isArray(doc.screens)
+    ? doc.screens
+    : Array.isArray(doc)
+      ? doc
+      : [];
+  return list.map((s, idx) => ({
+    id: s._id?.toString?.() || `row-${idx}-${s.screenCode || ''}`,
+    srNo: s.srNo ?? idx + 1,
+    city: s.city || '',
+    location: s.location || '',
+    cinema: s.cinema || '',
+    audiNum: s.audiNum ?? '',
+    seatingCapacity: s.seatingCapacity ?? '',
+    screenCode: s.screenCode || '',
+    casCodes: s.casCodes ?? s.CASCodes ?? '',
+    uploadCodes: s.uploadCodes ?? s.UploadCodes ?? '',
+    PricePerUnit: s.PricePerUnit ?? 0,
+    DiscountedPrice: s.DiscountedPrice ?? 0,
+  }));
+}
+
 const schema = z.object({
   GST: z.string().min(1, 'GST is required'),
   location: z.string().min(1, 'Location is required'),
@@ -90,27 +114,13 @@ export default function MediaMultiplexProductInfo() {
     fetchProduct();
   }, [id]);
 
-  // Fetch multiplex screens
+  // Fetch multiplex screens (id = productId; API resolves MultiplexScreen by ProductId)
   useEffect(() => {
     if (!id) return;
     const fetchScreens = async () => {
       try {
         const res = await mediaApi.getMultiplexScreensById(id);
-        const screens = res?.data?.data || [];
-        const mappedRows = screens.map((s, idx) => ({
-          id: s._id || idx,
-          srNo: idx + 1,
-          city: s.City || '',
-          location: s.Location || '',
-          cinema: s.Cinema || '',
-          audiNum: s.AudiNum || '',
-          seatingCapacity: s.SeatingCapacity || '',
-          screenCode: s.ScreenCode || '',
-          casCodes: s.CASCodes || '',
-          uploadCodes: s.UploadCodes || '',
-          PricePerUnit: s.PricePerUnit || 0,
-          DiscountedPrice: s.DiscountedPrice || 0,
-        }));
+        const mappedRows = mapMultiplexDocToGridRows(res?.data?.data);
         setRows(mappedRows);
         setFilteredRows(mappedRows);
       } catch (error) {
@@ -132,13 +142,6 @@ export default function MediaMultiplexProductInfo() {
     }
   }, [selectedState, rows]);
 
-  const handleExcelDownload = () => {
-    const link = document.createElement('a');
-    link.href = '/TemplateOfScreensforMultiplexAds.xlsx';
-    link.download = 'TemplateOfScreensforMultiplexAds.xlsx';
-    link.click();
-  };
-
   const handleExcelUpload = async (event) => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
@@ -152,24 +155,12 @@ export default function MediaMultiplexProductInfo() {
       const res = await mediaApi.uploadMultiplexExcel(formData);
       toast.dismiss();
       toast.success('Excel processed successfully!');
-      
-      // Refresh screens
-      const screensRes = await mediaApi.getMultiplexScreensById(id);
-      const screens = screensRes?.data?.data || [];
-      const mappedRows = screens.map((s, idx) => ({
-        id: s._id || idx,
-        srNo: idx + 1,
-        city: s.City || '',
-        location: s.Location || '',
-        cinema: s.Cinema || '',
-        audiNum: s.AudiNum || '',
-        seatingCapacity: s.SeatingCapacity || '',
-        screenCode: s.ScreenCode || '',
-        casCodes: s.CASCodes || '',
-        uploadCodes: s.UploadCodes || '',
-        PricePerUnit: s.PricePerUnit || 0,
-        DiscountedPrice: s.DiscountedPrice || 0,
-      }));
+
+      let mappedRows = mapMultiplexDocToGridRows(res?.data?.data);
+      if (mappedRows.length === 0 && id) {
+        const screensRes = await mediaApi.getMultiplexScreensById(id);
+        mappedRows = mapMultiplexDocToGridRows(screensRes?.data?.data);
+      }
       setRows(mappedRows);
       setFilteredRows(mappedRows);
       setFile(selectedFile);
@@ -248,6 +239,12 @@ export default function MediaMultiplexProductInfo() {
     }
   };
 
+  // download template funtion with aws url
+  const handleDownloadTemplate = () => {
+    const fileUrl = 'https://bxidevelopment1.s3.ap-south-1.amazonaws.com/Excels/TemplateOfScreensforMultiplexAds.xlsx';
+    window.open(fileUrl, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
@@ -266,9 +263,10 @@ export default function MediaMultiplexProductInfo() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handleExcelDownload}
+                  onClick={handleDownloadTemplate}
                   className="border-[#C64091] text-[#C64091]"
                 >
+
                   <Download className="w-4 h-4 mr-2" />
                   Download Template
                 </Button>

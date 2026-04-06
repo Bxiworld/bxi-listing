@@ -11,6 +11,10 @@ import { DataGrid } from '@mui/x-data-grid';
 import api from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
 
+/** Official hoarding bulk-upload template (same as BXI-frontend). */
+const HOARDING_EXCEL_TEMPLATE_URL =
+  'https://bxidevelopment1.s3.ap-south-1.amazonaws.com/Excels/Hoarding%2BTemplate.xlsx';
+
 // 29 States for visual selector
 const INDIAN_STATES = [
   'Andaman and Nicobar', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
@@ -61,74 +65,8 @@ export default function HoardingProductInfo() {
   };
 
   const handleDownloadTemplate = () => {
-    // Create Excel template for hoarding bulk upload
-    const wb = XLSX.utils.book_new();
-    
-    const headers = [
-      'Name*', 'Area*', 'Landmark', 'State*', 'City*', 
-      'Latitude', 'Longitude', 'Media Vehicle*', 'Media Category*', 
-      'Media Type*', 'Quantity*', 'Size (Sq.Ft)*', 'MRP*', 'Discounted Price*'
-    ];
-    
-    const sampleData = [
-      [
-        'Main Road Hoarding',
-        'Andheri West',
-        'Near Railway Station',
-        selectedState || 'Maharashtra',
-        'Mumbai',
-        '19.1136',
-        '72.8697',
-        'Hoarding',
-        'Outdoor',
-        'Static',
-        '1',
-        '100',
-        '50000',
-        '45000'
-      ]
-    ];
-    
-    const wsData = [headers, ...sampleData];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    
-    // Set column widths
-    ws['!cols'] = headers.map(() => ({ wch: 18 }));
-    
-    XLSX.utils.book_append_sheet(wb, ws, 'Hoardings');
-    
-    // Add instructions sheet
-    const instructionsData = [
-      ['Hoarding Bulk Upload Instructions'],
-      [''],
-      ['Important Notes:'],
-      ['1. Fields marked with * are mandatory'],
-      ['2. Do not modify the header row'],
-      ['3. State must match the selected state'],
-      ['4. Latitude/Longitude are optional but recommended'],
-      ['5. Size should be in Square Feet'],
-      ['6. MRP and Discounted Price in INR'],
-      ['7. Quantity is typically 1 per hoarding'],
-      ['8. Delete the sample row before uploading'],
-      ['9. Maximum 500 hoardings per upload'],
-      [''],
-      [selectedState ? `Selected State: ${selectedState}` : 'Please select a state first'],
-    ];
-    const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
-    wsInstructions['!cols'] = [{ wch: 60 }];
-    XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
-    
-    // Generate and download
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([wbout], { type: 'application/octet-stream' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Hoarding_Template_${selectedState || 'India'}.xlsx`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-    
-    toast.success('Template downloaded successfully!');
+    window.open(HOARDING_EXCEL_TEMPLATE_URL, '_blank', 'noopener,noreferrer');
+    toast.success('Opening official hoarding template…');
   };
 
   const handleFileChange = (e) => {
@@ -355,7 +293,7 @@ export default function HoardingProductInfo() {
               className="border-[#C64091] text-[#C64091]"
             >
               <Download className="w-4 h-4 mr-2" />
-              Download Hoarding Template ({selectedState})
+              Download Hoarding Template
             </Button>
           </div>
         )}
