@@ -33,6 +33,7 @@ import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import Bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { Stepper } from '../AddProduct/AddProductSteps';
 import ToolTip from '../../components/ToolTip';
 import StateData from '../../utils/StateCityArray.json';
 
@@ -645,6 +646,13 @@ const MediaProductInfo = () => {
   };
 
   return (
+    <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} category="mediaoffline" completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
     <div className="listing-journey">
       <div className="listing-journey-container">
         <form
@@ -3382,6 +3390,10 @@ const MediaProductInfo = () => {
           </Box>
         </Box>
       </form>
+      </div>
+    </div>
+          </main>
+        </div>
       </div>
     </div>
   );

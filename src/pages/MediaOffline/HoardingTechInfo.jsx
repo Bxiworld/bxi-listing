@@ -28,6 +28,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import OthercostPortion from './OthercostPortion.jsx';
 import ToolTip from '../../components/ToolTip';
+import { Stepper } from '../AddProduct/AddProductSteps';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 
 
@@ -510,6 +511,13 @@ export default function HoardingTechInfo() {
     ];
 
     return (
+        <div className="min-h-screen bg-[#F8F9FA] py-8">
+            <div className="form-container">
+                <div className="stepper-layout">
+                    <aside className="stepper-rail">
+                        <Stepper currentStep={3} category="mediaoffline" completedSteps={[1, 2]} />
+                    </aside>
+                    <main className="stepper-content">
         <Box className="listing-journey">
             <form onSubmit={updateProductTechinfostatus}>
                 <Box className="listing-journey-container">
@@ -1687,6 +1695,10 @@ export default function HoardingTechInfo() {
                 </Box>
             </form>
         </Box>
+                    </main>
+                </div>
+            </div>
+        </div>
     );
 }
 

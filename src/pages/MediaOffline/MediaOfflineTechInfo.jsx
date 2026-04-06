@@ -19,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../../components/ui/tooltip';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 const SUPPORTING_DOC_OPTIONS = [
   { key: 'inspectionPass', label: 'Inspection pass' },
@@ -197,6 +198,12 @@ export default function TechInfo() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={3} category="mediaoffline" completedSteps={[1, 2]} />
+          </aside>
+          <main className="stepper-content">
       <div className="listing-journey">
         <div className="listing-journey-container px-4">
           <form
@@ -432,6 +439,9 @@ export default function TechInfo() {
               </div>
             </Box>
           </form>
+        </div>
+      </div>
+          </main>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx';
 import { DataGrid } from '@mui/x-data-grid';
 import api from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 // 29 States for visual selector
 const INDIAN_STATES = [
@@ -302,6 +303,12 @@ export default function HoardingProductInfo() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} category="mediaoffline" completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
       <div className="max-w-7xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-2xl font-bold text-[#111827] mb-2">Hoarding Product Information</h2>
@@ -484,6 +491,9 @@ export default function HoardingProductInfo() {
             {isSubmitting ? 'Saving...' : 'Save & Next'}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
+        </div>
+      </div>
+          </main>
         </div>
       </div>
     </div>
