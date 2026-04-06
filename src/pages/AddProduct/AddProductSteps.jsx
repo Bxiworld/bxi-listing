@@ -57,6 +57,13 @@ import {
 } from '../../utils/voucherType';
 import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 
+/** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
+function formatSizeOptionButtonLabel(opt) {
+  if (typeof opt !== 'string') return opt;
+  if (opt.includes(' ')) return opt;
+  return opt.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
   'Rajasthan': 'North', 'Himachal Pradesh': 'North', 'Uttarakhand': 'North',
@@ -398,7 +405,6 @@ export const GeneralInformation = ({ category }) => {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    console.log("data", data);
     try {
       let productId = id;
       const normalizedSubcategory = data.subcategory || '';
@@ -835,7 +841,7 @@ const UK_SHOE_SIZES = [2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9
 const EU_SHOE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
 const inferSelectedSizeFromVariation = (row, options = []) => {
   if (!row) return '';
-  if (row.ShoeSize) return 'Shoes';
+  if (row.ShoeSize) return 'Shoes Size';
   if (row.Length && row.Height && row.Width) return 'Length x Height x Width';
   if (row.Length && row.Height) return 'Length x Height';
   if (row.Length) return 'Length';
@@ -846,6 +852,13 @@ const inferSelectedSizeFromVariation = (row, options = []) => {
   const normalized = rawSize.toLowerCase();
   const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
   if (directMatch) return directMatch;
+  if (options.includes('Custom Size') && !row.ShoeSize && !(row.Length || row.Height || row.Width || row.Weight)) {
+    const mu = String(row.MeasurementUnit || '').trim();
+    const parts = rawSize.split(/\s+/).filter(Boolean);
+    if (mu && parts.length >= 2 && parts[parts.length - 1] === mu) {
+      return 'Custom Size';
+    }
+  }
   if (normalized.includes('ml') || normalized.includes('cl') || normalized.endsWith('l')) return 'Volume';
   if (normalized.includes('kg') || normalized.includes(' g') || normalized.includes('lb')) return 'Weight';
   return '';
@@ -853,7 +866,10 @@ const inferSelectedSizeFromVariation = (row, options = []) => {
 
 const formatVariationSize = (row) => {
   if (!row) return '—';
-  const unit = String(row.MeasurementUnit || 'cm').trim();
+  // `MeasurementUnit` is shared across size types. For shoe sizes, default to US.
+  // For length-based sizes, default to cm.
+  const defaultUnit = row.ShoeSize ? 'US' : 'cm';
+  const unit = String(row.MeasurementUnit || defaultUnit).trim();
   if (row.ShoeSize) return `${row.ShoeSize} (${unit || 'US'})`;
   if (row.Length && row.Height && row.Width) return `${row.Length} x ${row.Height} x ${row.Width} ${unit}`.trim();
   if (row.Length && row.Height) return `${row.Length} x ${row.Height} ${unit}`.trim();
@@ -917,8 +933,6 @@ export const ProductInfo = ({ category }) => {
     ? (activeVoucherConfig?.sizeOptions || [])
     : (piConfig.sizeOptions || []);
   const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
-  console.log("effectiveSizeOptions", effectiveSizeOptions);
-  console.log("hasSizeOptions", hasSizeOptions);
 
   const getSizeUnitOptions = (sizeType) => {
     if (!sizeType) return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
@@ -999,7 +1013,6 @@ export const ProductInfo = ({ category }) => {
         const res = await api.get(featureEndpoint);
         const root = res?.data?.data ?? res?.data?.body ?? res?.data ;
         const list = Array.isArray(root) ? root : root?.data ? root.data : [];
-        console.log("list", list);
         let opts = list
           .map((item) => {
             const label = item?.[featureNameField] || item?.name || item?.value || item?.FmcgproductinfoType || item?.OtherFeature || item?.OfficesupplyFeature  || item?.TextileFeature;
@@ -1008,7 +1021,7 @@ export const ProductInfo = ({ category }) => {
           .filter(Boolean);
         if (category === 'qsrVoucher') {
           const hardcoded = QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f }));
-          const existing = new Set(opts.map((o) => o.value));
+          const existing = new Set(opts.map((o) => o.value)); 
           opts = [...opts, ...hardcoded.filter((h) => !existing.has(h.value))];
         }
         opts.sort((a, b) => a.label.localeCompare(b.label));
@@ -1054,56 +1067,77 @@ export const ProductInfo = ({ category }) => {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const data = await res.json();
       if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
-        const po = data[0].PostOffice[0];
+        const postOffices = data?.[0]?.PostOffice || [];
+        const firstPo = postOffices?.[0];
         const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
 
-        const apiStateName = po.State;
-        const apiDistrict =  po.District || po.Block;
-        const apiLandmark = po.Name;
+        const apiStateName = firstPo?.State;
+        const apiDistrict = firstPo?.District || firstPo?.Block;
+        const apiLandmark = firstPo?.Name;
 
         const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
         if (matchedState) {
           const cities = matchedState.data || [];
 
-          const normalizedApiDistrict = normalize(apiDistrict);
-          const normalizedApiCityLabel = normalize(po.Name || apiDistrict || '');
+          const findMatchingCity = (candidate) => {
+            const candNorm = normalize(candidate);
+            if (!candNorm) return null;
 
-          const findMatchingCity = (candidate) =>
-            cities.find((c) => normalize(c) === normalize(candidate)) ||
-            cities.find((c) => normalize(c).includes(normalize(candidate)) || normalize(candidate).includes(normalize(c)));
+            const exact = cities.find((c) => normalize(c) === candNorm);
+            if (exact) return exact;
+
+            const partial = cities.find(
+              (c) =>
+                normalize(c).includes(candNorm) ||
+                candNorm.includes(normalize(c))
+            );
+            return partial || null;
+          };
+
+          // Use all PostOffice entries for city selection because the API can return
+          // multiple records for the same pincode.
+          const candidateStrings = Array.from(
+            new Set(
+              postOffices
+                .flatMap((po) => [po?.District, po?.Block, po?.Region])
+                .filter(Boolean)
+            )
+          );
 
           const matchedCity =
-            findMatchingCity(po.Name) ||
-            findMatchingCity(apiDistrict) ||
-            findMatchingCity(apiStateName);
+            candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
 
-          const fallbackCity = po.Name || apiDistrict || '';
+          const fallbackCity =
+            apiDistrict || apiStateName || candidateStrings[0] || '';
 
-          // Prefer exact matched city, otherwise try fallback from API city/district,
-          // only then use state city list first item as last resort.
-          const nextCity =
-            matchedCity ||
-            (fallbackCity ? fallbackCity : '') ||
-            cities?.[0] ||
-            '';
+          // Prefer exact/partial matched city, otherwise use fallback, then first city in state.
+          const nextCity = matchedCity || fallbackCity || cities?.[0] || '';
+          const nextCityStr = String(nextCity || '').trim();
 
-          const cityCandidates = [
+          // Debug: Helps validate city auto-fill when API returns multiple PostOffice records.
+          // (Keep this lightweight; remove after validation if desired.)
+          console.log('[pincodeLookup]', {
+            pincode,
+            apiStateName,
+            apiDistrict,
+            apiLandmark,
+            candidateStrings,
             matchedCity,
             fallbackCity,
-            apiDistrict,
-            apiStateName,
-          ]
-            .filter(Boolean)
-            .map((c) => c.trim())
-            .filter((c, i, arr) => arr.findIndex((x) => normalize(x) === normalize(c)) === i);
+            nextCity: nextCityStr,
+            citiesFirst: Array.isArray(cities) ? cities.slice(0, 5) : cities,
+          });
 
+          // Ensure the selected `nextCity` is present in the dropdown options.
           const nextCityArray = (() => {
-            if (!cities?.length) return cityCandidates;
-
-            const normalizedCities = cities.map((c) => normalize(c));
-            const extraCandidates = cityCandidates.filter((c) => !normalizedCities.includes(normalize(c)));
-
-            return [...extraCandidates, ...cities];
+            const arr = [nextCityStr, ...(Array.isArray(cities) ? cities : [])].filter(Boolean);
+            const seen = new Set();
+            return arr.filter((c) => {
+              const key = normalize(c);
+              if (!key || seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
           })();
 
           setLocationDetails((prev) => ({
@@ -1111,7 +1145,7 @@ export const ProductInfo = ({ category }) => {
             pincode: String(pincode),
             region: STATE_REGION_MAP[matchedState.name] || 'North',
             state: matchedState.name,
-            city: nextCity,
+            city: nextCityStr,
             landmark: apiLandmark || prev.landmark,
           }));
           setCityArray(nextCityArray);
@@ -1240,7 +1274,7 @@ export const ProductInfo = ({ category }) => {
       toast.error('HSN cannot be all zeros');
       return;
     }
-    if (d.selectedSize === 'Shoes' && !d.shoeSize) {
+    if (d.selectedSize === 'Shoes Size' && !d.shoeSize) {
       toast.error('Please select a shoe size');
       return;
     }
@@ -1248,10 +1282,14 @@ export const ProductInfo = ({ category }) => {
       toast.error('Please enter volume');
       return;
     }
+    if (d.selectedSize === 'Custom Size' && !String(d.sizeValue || '').trim()) {
+      toast.error('Please enter a custom size or description');
+      return;
+    }
     let productSize = d.selectedSize || '';
     let measurementUnit = d.sizeUnit || 'cm';
     let shoeSize = '';
-    if (d.selectedSize === 'Shoes' && d.shoeSize) {
+    if (d.selectedSize === 'Shoes Size' && d.shoeSize) {
       shoeSize = String(d.shoeSize);
       measurementUnit = d.shoeMeasurementUnit || 'US';
       productSize = shoeSize;
@@ -1259,6 +1297,11 @@ export const ProductInfo = ({ category }) => {
       productSize = d.selectedSize;
     } else if (d.selectedSize === 'Volume' && d.volume) {
       productSize = `${d.volume}${d.sizeUnit || 'L'}`;
+    } else if (d.selectedSize === 'Custom Size') {
+      const v = String(d.sizeValue || '').trim();
+      const u = String(d.sizeUnit || '').trim();
+      productSize = u ? `${v} ${u}` : v;
+      measurementUnit = u || 'cm';
     } else if (d.selectedSize && d.sizeValue) {
       productSize = `${d.sizeValue}${d.sizeUnit || 'cm'}`;
     } else if (d.selectedSize) {
@@ -1322,10 +1365,10 @@ export const ProductInfo = ({ category }) => {
       ProductSize: productSize,
       ProductColor: extraCol === 'color' ? (d.productColor || '#ffffff') : (d.productColor || '#ffffff'),
       ProductIdType: d.productIdType || `SKU-${Date.now()}`,
-      Length: d.length || '',
-      Width: d.width || '',
-      Height: d.height || '',
-      Weight: d.weight || '',
+      Length: d.selectedSize === 'Custom Size' ? '' : (d.length || ''),
+      Width: d.selectedSize === 'Custom Size' ? '' : (d.width || ''),
+      Height: d.selectedSize === 'Custom Size' ? '' : (d.height || ''),
+      Weight: d.selectedSize === 'Custom Size' ? '' : (d.weight || ''),
       MeasurementUnit: measurementUnit,
       TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
       ...(wantsSample && {
@@ -1402,6 +1445,18 @@ export const ProductInfo = ({ category }) => {
     setValue('weight', row.Weight ?? '');
     const derivedSelectedSize = inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '';
     setValue('selectedSize', derivedSelectedSize);
+    if (derivedSelectedSize === 'Custom Size') {
+      const rawPs = String(row.ProductSize || '').trim();
+      const mu = String(row.MeasurementUnit || '').trim();
+      const parts = rawPs.split(/\s+/).filter(Boolean);
+      if (mu && parts.length >= 2 && parts[parts.length - 1] === mu) {
+        setValue('sizeValue', parts.slice(0, -1).join(' '));
+        setValue('sizeUnit', mu);
+      } else {
+        setValue('sizeValue', rawPs);
+        setValue('sizeUnit', mu || 'cm');
+      }
+    }
     if (row.ShoeSize) {
       setValue('shoeSize', String(row.ShoeSize));
       setValue('shoeMeasurementUnit', row.MeasurementUnit || 'US');
@@ -1530,7 +1585,7 @@ export const ProductInfo = ({ category }) => {
         }
         
       } catch (error) {
-        console.error('Error fetching product in ProductInfo:', error);
+        GlobalToast('Error fetching product in ProductInfo:', error);
       }
     };
     fetchProduct();
@@ -1766,7 +1821,11 @@ export const ProductInfo = ({ category }) => {
                         }
                       }}
                     >
-                      {opt === 'Length x Height' ? 'L x H' : opt === 'Length x Height x Width' ? 'L x H x W' : opt}
+                      {opt === 'Length x Height'
+                        ? 'L x H'
+                        : opt === 'Length x Height x Width'
+                          ? 'L x H x W'
+                          : formatSizeOptionButtonLabel(opt)}
                     </Button>
                   ))}
                 </div>
@@ -1777,7 +1836,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Shoes size – ShoeSize dropdown + MeasurementUnit (US/UK/EU) */}
-            {hasSizeOptions && selectedSize === 'Shoes' && (
+            {hasSizeOptions && selectedSize === 'Shoes Size' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Shoe Size <span className="text-red-500">*</span></Label>
@@ -1816,34 +1875,47 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Generic size value + unit – For any size option not caught by specialized blocks */}
-            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes' && 
-             !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size', 'Volume'].includes(selectedSize) && (
+            {/* Generic size value + unit – For any size option not caught by specialized blocks (incl. Custom Size: free-text value + unit) */}
+            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes Size' && 
+             !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume'].includes(selectedSize) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{selectedSize} <span className="text-red-500">*</span></Label>
+                  <Label>
+                    {selectedSize === 'Custom Size' ? 'Custom size / description' : selectedSize}{' '}
+                    <span className="text-red-500">*</span>
+                  </Label>
                   <div className="flex gap-2 items-end">
                     <Input
-                      type="number"
-                      placeholder="e.g. 10"
+                      type={selectedSize === 'Custom Size' ? 'text' : 'number'}
+                      placeholder={selectedSize === 'Custom Size' ? 'e.g. 10 x 12, Large, As per spec' : 'e.g. 10'}
                       {...register('sizeValue')}
                       className="flex-1"
                     />
-                    <div className="w-28">
+                    <div className={selectedSize === 'Custom Size' ? 'w-40' : 'w-28'}>
                       <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
-                      <Select
-                        value={watch('sizeUnit')}
-                        onValueChange={(v) => setValue('sizeUnit', v)}
-                      >
-                        <SelectTrigger className="w-full mt-1">
-                          <SelectValue placeholder="Unit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getSizeUnitOptions(selectedSize).map((unit) => (
-                            <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {selectedSize === 'Custom Size' ? (
+                        <Input
+                          id="sizeUnit"
+                          type="text"
+                          placeholder="e.g. cm, pcs"
+                          className="mt-1"
+                          {...register('sizeUnit')}
+                        />
+                      ) : (
+                        <Select
+                          value={watch('sizeUnit')}
+                          onValueChange={(v) => setValue('sizeUnit', v)}
+                        >
+                          <SelectTrigger className="w-full mt-1">
+                            <SelectValue placeholder="Unit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getSizeUnitOptions(selectedSize).map((unit) => (
+                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1858,10 +1930,10 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Dimension fields – shown for Length-based sizes */}
-            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Custom Size'].includes(selectedSize) && (
+            {/* Dimension fields – Length / L×H / L×H×W / Weight (Custom Size uses free-text value + unit above) */}
+            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight'].includes(selectedSize) && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width') && (
                   <div className="space-y-2">
                     <Label>Length ({watch('sizeUnit') || 'cm'})</Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('length')} />
@@ -1869,14 +1941,14 @@ export const ProductInfo = ({ category }) => {
                 )}
 
                 {/* Height should appear for both LxH and LxHxW */}
-                {(selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                {(selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width') && (
                   <div className="space-y-2">
                     <Label>Height ({watch('sizeUnit') || 'cm'})</Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('height')} />
                   </div>
                 )}
 
-                {(selectedSize === 'Length x Height x Width' || selectedSize === 'Custom Size') && (
+                {selectedSize === 'Length x Height x Width' && (
                   <div className="space-y-2">
                     <Label>Width ({watch('sizeUnit') || 'cm'})</Label>
                     <Input type="number" step="0.01" placeholder="0" {...register('width')} />
@@ -2340,9 +2412,8 @@ export const ProductInfo = ({ category }) => {
             <div className="space-y-4 pt-4">
               <Button
                 type="button"
-                variant="secondary"
                 onClick={handleAddVariation}
-                className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                className="w-full"
                 data-testid="btn-add-variation"
               >
                 {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
@@ -2598,17 +2669,31 @@ export const ProductInfo = ({ category }) => {
                       value={locationDetails.city}
                       onValueChange={(v) => setLocationDetails((prev) => ({ ...prev, city: v }))}
                     >
-                      <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+                      <SelectTrigger>
+                        {locationDetails.city ? (
+                          <span className="text-sm text-foreground">{String(locationDetails.city)}</span>
+                        ) : (
+                          <SelectValue placeholder="Select city" />
+                        )}
+                      </SelectTrigger>
                       <SelectContent>
                         {(() => {
                           const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '');
-                          const current = String(locationDetails.city || '');
                           const base = Array.isArray(cityArray) ? cityArray : [];
-                          const merged =
-                            current && !base.some((c) => normalize(c) === normalize(current))
-                              ? [current, ...base]
-                              : base;
-                          return merged.map((c, i) => (
+                          // Always include the currently selected city string first.
+                          // This guarantees the Select can match `value={locationDetails.city}`
+                          // to an existing `SelectItem` even if the cityArray contains a
+                          // slightly differently-formatted duplicate.
+                          const merged = [locationDetails.city, ...base].filter((c) => String(c || '').trim() !== '');
+                          const seen = new Set();
+                          const unique = [];
+                          for (const c of merged) {
+                            const key = normalize(c);
+                            if (!key || seen.has(key)) continue;
+                            seen.add(key);
+                            unique.push(c);
+                          }
+                          return unique.map((c, i) => (
                             <SelectItem key={`${String(c)}-${i}`} value={String(c)}>
                               {String(c)}
                             </SelectItem>
@@ -2805,9 +2890,8 @@ export const ProductInfo = ({ category }) => {
                   <div className="flex items-end">
                     <Button
                       type="button"
-                      variant="secondary"
                       onClick={handleAddOtherCost}
-                      className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3]"
+                      className="w-full"
                     >
                       Add Additional Cost
                     </Button>
@@ -3171,7 +3255,7 @@ export const TechInfo = ({ category }) => {
           if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0) setTags(techInfo.Tags);
         }
       } catch (error) {
-        console.error('Error fetching product:', error);
+        GlobalToast('Error fetching product:', error);
       }
     };
     fetchProduct();
@@ -3629,25 +3713,12 @@ export const GoLive = ({ category }) => {
     formData.append('productDescription', productData?.ProductDescription || '');
     files.forEach((f) => formData.append('files', f));
     if (sizechart) formData.append('sizechart', sizechart);
-
-    console.log("formData",formData);
-    console.log("files",files);
-    console.log("sizechart",sizechart);
-    console.log("data.listPeriod",data.listPeriod);
-    console.log("productData?.listperiod",productData?.listperiod);
-    console.log("productData?.ListingType",productData?.ListingType);
-    console.log("productData?.ProductName",productData?.ProductName);
-    console.log("productData?.ProductSubCategory",productData?.ProductSubCategory);
-    console.log("productData?.ProductDescription",productData?.ProductDescription);
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      console.log("formData in try block before api call",formData); 
       const response = await productApi.productMutationFormData(formData, (ev) => {
-        console.log("ev",ev);
         if (ev.total) setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
       });
-      console.log("response in try block after api call",response);
       toast.success('Images uploaded! Redirecting to preview.');
       if (isMediaCategory) {
         navigate(`/mediaonlineproductpreview/${id}`);

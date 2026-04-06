@@ -423,13 +423,6 @@ function setupDevServer(config) {
         const otherChanges = changes.filter(c => c.type !== "variableEdit");
 
         for (const change of variableEditChanges) {
-          console.log(`[backend] Processing variableEdit change:`, {
-            sourceFile: change.sourceFile,
-            variableName: change.variableName,
-            arrayIndex: change.arrayIndex,
-            propertyPath: change.propertyPath,
-          });
-
           // Validate the change request
           const validation = validateVariableEdit(change);
           if (!validation.valid) {
@@ -646,19 +639,12 @@ function setupDevServer(config) {
                 if (elementName !== change.component) return;
 
                 // FIXED: Conditional processing based on change type
-                console.log(
-                  `[backend] Processing change type: ${change.type || "legacy"} for element: ${elementName}`,
-                );
 
                 if (
                   change.type === "className" &&
                   change.className !== undefined
                 ) {
                   // CLASSNAME/TAILWIND PROCESSING
-                  console.log(
-                    `[backend] Processing className change:`,
-                    change.className,
-                  );
 
                   // Find existing className attribute
                   let classAttr = path.node.attributes.find(
@@ -672,19 +658,9 @@ function setupDevServer(config) {
 
                   if (classAttr) {
                     // Update existing className
-                    console.log(
-                      `[backend] Updating existing className from:`,
-                      classAttr.value?.value,
-                      "to:",
-                      change.className,
-                    );
                     classAttr.value = t.stringLiteral(change.className);
                   } else {
                     // Create new className attribute
-                    console.log(
-                      `[backend] Creating new className attribute:`,
-                      change.className,
-                    );
                     const newClassAttr = t.jsxAttribute(
                       t.jsxIdentifier("className"),
                       t.stringLiteral(change.className),
@@ -706,10 +682,6 @@ function setupDevServer(config) {
                   (Array.isArray(change.textParts) ||
                     change.textContent !== undefined)
                 ) {
-                  console.log(
-                    `[backend] Processing textContent change:`,
-                    change.textContent,
-                  );
 
                   const parentElementPath = path.parentPath;
                   if (parentElementPath && parentElementPath.isJSXElement()) {
@@ -826,10 +798,6 @@ function setupDevServer(config) {
                   change.content !== undefined
                 ) {
                   // CONTENT-ONLY PROCESSING
-                  console.log(
-                    `[backend] Processing content-only change:`,
-                    change.content.slice(0, 100),
-                  );
 
                   const parentElementPath = path.parentPath;
                   if (parentElementPath && parentElementPath.isJSXElement()) {
@@ -870,12 +838,6 @@ function setupDevServer(config) {
                     lineNumber: lineNumber,
                     element: elementName,
                   });
-
-                  // Still log for debugging
-                  console.error(`[backend] REJECTED: ${reason}`, change);
-                  console.error(
-                    `[backend] This change will be IGNORED to prevent contamination.`,
-                  );
                 }
               });
 
@@ -908,7 +870,6 @@ function setupDevServer(config) {
             execSync(`git -c user.name="visual-edit" -c user.email="support@emergent.sh" add "${targetFile}"`);
             execSync(`git -c user.name="visual-edit" -c user.email="support@emergent.sh" commit -m "visual_edit_${timestamp}"`);
           } catch (gitError) {
-            console.error(`Git commit failed: ${gitError.message}`);
             // Continue even if git fails - file write succeeded
           }
 

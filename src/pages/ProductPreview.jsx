@@ -29,6 +29,8 @@ import {
   DialogContent,
   useMediaQuery,
   useTheme,
+  Popover,
+  Divider,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
@@ -162,6 +164,122 @@ function TabPanel({ children, value, index, ...rest }) {
   );
 }
 
+function getVariantSizesDisplay(v) {
+  if (!v) return '';
+  if (v.ShoeSize != null && v.ShoeSize !== '') {
+    return `${v.ShoeSize} ${v.MeasurementUnit || ''}`.trim();
+  }
+  if (v.ProductSize != null && v.ProductSize !== '') return String(v.ProductSize);
+  if (v.NutritionInfo != null && v.NutritionInfo !== '') return String(v.NutritionInfo);
+  const lenDim = v?.Length ?? v?.length;
+  if (lenDim != null && lenDim !== '' && v?.MeasurementUnit) {
+    return `${lenDim} ${v.MeasurementUnit}`;
+  }
+  return '';
+}
+
+function variantQtyHasValue(q) {
+  return q != null && q !== '' && !Number.isNaN(Number(q));
+}
+
+/** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
+function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
+  if (!selectedVariantData) return [];
+  const v = selectedVariantData;
+  const cols = [];
+
+  const discRaw = v.DiscountedPrice;
+  const hasDisc =
+    discRaw != null &&
+    discRaw !== '' &&
+    !(typeof discRaw === 'number' && Number.isNaN(discRaw));
+  if (hasDisc) {
+    cols.push({
+      id: 'discountedMrp',
+      heading: 'Disc. MRP',
+      minWidth: 128,
+      cell: (
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+          <img src={BXIIconSrc} alt="BXI" style={{ height: 16, width: 16 }} />
+          <Typography variant="body2" fontWeight="600">
+            {formatPrice(v.DiscountedPrice) || 'N/A'}
+          </Typography>
+        </Stack>
+      ),
+    });
+  }
+
+  const sizesText = getVariantSizesDisplay(v);
+  if (sizesText) {
+    cols.push({
+      id: 'sizes',
+      heading: 'Sizes',
+      minWidth: 112,
+      cell: <Typography variant="body2">{sizesText}</Typography>,
+    });
+  }
+
+  if (variantQtyHasValue(v.MinOrderQuantity)) {
+    cols.push({
+      id: 'minQty',
+      heading: 'Min QTY',
+      minWidth: 96,
+      cell: (
+        <Chip label={v.MinOrderQuantity} size="small" color="primary" variant="outlined" />
+      ),
+    });
+  }
+
+  if (variantQtyHasValue(v.MaxOrderQuantity)) {
+    cols.push({
+      id: 'maxQty',
+      heading: 'Max QTY',
+      minWidth: 96,
+      cell: (
+        <Chip label={v.MaxOrderQuantity} size="small" color="primary" variant="outlined" />
+      ),
+    });
+  }
+
+  if (v.GST != null && v.GST !== '' && !(typeof v.GST === 'number' && Number.isNaN(v.GST))) {
+    cols.push({
+      id: 'gst',
+      heading: 'GST',
+      minWidth: 72,
+      cell: <Typography variant="body2">{`${v.GST}%`}</Typography>,
+    });
+  }
+
+  if (v.HSN != null && v.HSN !== '') {
+    cols.push({
+      id: 'hsn',
+      heading: 'HSN',
+      minWidth: 88,
+      cell: <Typography variant="body2">{v.HSN}</Typography>,
+    });
+  }
+
+  if (v.ProductSize != null && v.ProductSize !== '') {
+    cols.push({
+      id: 'productSize',
+      heading: 'Product Size',
+      minWidth: 112,
+      cell: <Typography variant="body2">{v.ProductSize}</Typography>,
+    });
+  }
+
+  if (v.ProductIdType != null && v.ProductIdType !== '') {
+    cols.push({
+      id: 'productId',
+      heading: 'Product ID',
+      minWidth: 120,
+      cell: <Typography variant="body2">{v.ProductIdType}</Typography>,
+    });
+  }
+
+  return cols;
+}
+
 export default function ProductPreview() {
   const theme = useTheme();
   const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -192,8 +310,9 @@ export default function ProductPreview() {
         const data = raw?.body ?? raw?.data ?? raw;
         if (cancelled) return;
         setProduct(data);
-        const variants = data?.ProductsVariantions ?? [];
-        if (variants?.length > 0) {
+        const rawVariants = data?.ProductsVariantions;
+        const variants = Array.isArray(rawVariants) ? rawVariants : [];
+        if (variants.length > 0) {
           setSelectedVariant(variants[0]?._id ?? variants[0]?.id);
         }
       })
@@ -239,13 +358,18 @@ export default function ProductPreview() {
       .finally(() => setUploading(false));
   };
 
-  const variants = product?.ProductsVariantions ?? [];
+  const rawVariantsList = product?.ProductsVariantions;
+  const variants = Array.isArray(rawVariantsList) ? rawVariantsList : [];
   const selectedVariantData = variants.find(
     (v) => (v._id ?? v.id) === selectedVariant
   );
 
   const isVoucherListing = product?.ListingType === 'Voucher';
-  const images = product?.ListingType === 'Product' ? product?.ProductImages  : product?.ListingType === "Media" ?  product?.ProductImages : product?.VoucherImages || [];
+  const rawImages =
+    product?.ListingType === 'Product' || product?.ListingType === 'Media'
+      ? product?.ProductImages
+      : product?.VoucherImages;
+  const images = Array.isArray(rawImages) ? rawImages : [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
     product?.ProductUploadStatus !== 'Approved' &&
@@ -336,16 +460,8 @@ export default function ProductPreview() {
       product?.ProductCategoryName
     ) || !product?.ProductCategoryName;
 
-  const tableHeadings = [
-    'Disc. MRP',
-    'Sizes',
-    'Min QTY',
-    'Max QTY',
-    'GST',
-    'HSN',
-    'Product Size',
-    'Product ID',
-  ];
+  const variantPreviewColumns = getVariantPreviewTableColumns(selectedVariantData, BXIIcon);
+  const variantTableMinTotal = variantPreviewColumns.reduce((sum, c) => sum + c.minWidth, 0);
 
   return (
     <Box
@@ -502,7 +618,8 @@ export default function ProductPreview() {
                 percentage={selectedVariantData?.GST}
               />
 
-              {product?.ProductCategoryName !== 'QSR' &&
+              {!isVoucherListing &&
+                product?.ProductCategoryName !== 'QSR' &&
                 product?.ProductCategoryName !== 'FMCG' &&
                 selectedVariantData?.ProductColor && (
                   <Box>
@@ -533,16 +650,36 @@ export default function ProductPreview() {
                 </Box>
               )}
 
-              {/* Variant table */}
-              {selectedVariantData && (
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2 }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: 'grey.100' }}>
-                        {tableHeadings.map((heading) => (
-                          <TableCell key={heading} align="center" sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', color: 'text.secondary' }}>
-                            {heading}
-                          </TableCell>
+              {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
+              {selectedVariantData && variantPreviewColumns.length > 0 && (
+                <>
+                  <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
+                  <TableContainer
+                    component={Paper}
+                    elevation={0}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                      borderRadius: 2,
+                      overflowX: 'auto',
+                    }}
+                  >
+                    <Table
+                      size="small"
+                      sx={{
+                        tableLayout: 'fixed',
+                        width: '100%',
+                        minWidth: Math.max(variantTableMinTotal, 320),
+                      }}
+                    >
+                      <colgroup>
+                        {variantPreviewColumns.map((col) => (
+                          <col
+                            key={col.id}
+                            style={{
+                              width: `${(col.minWidth / variantTableMinTotal) * 100}%`,
+                            }}
+                          />
                         ))}
                       </TableRow>
                     </TableHead>
@@ -908,9 +1045,12 @@ export default function ProductPreview() {
                     product?.RedemptionSteps || product?.redemptionSteps;
                   const redemptionType = product?.redemptionType;
                   const redemptionUrl = product?.Link || product?.redemptionURL;
-                  const tags = product?.ProductTags?.map((tag, index) => (
-                    <span key={index}>{tag}</span>
-                  ));
+                  const voucherTagsRaw = product?.ProductTags ?? product?.Tags;
+                  const voucherTags = Array.isArray(voucherTagsRaw)
+                    ? voucherTagsRaw
+                    : voucherTagsRaw != null && String(voucherTagsRaw).trim()
+                      ? [String(voucherTagsRaw).trim()]
+                      : [];
 
                   const hasVoucherTechInfo =
                     inclusions ||
@@ -919,7 +1059,7 @@ export default function ProductPreview() {
                     redemptionSteps ||
                     redemptionType ||
                     redemptionUrl ||
-                    tags;
+                    voucherTags.length > 0;
 
                   if (!hasVoucherTechInfo) {
                     return (
@@ -995,14 +1135,14 @@ export default function ProductPreview() {
                           </Typography>
                         </Box>
                       )}
-                      {tags.length > 0 && (
+                      {voucherTags.length > 0 && (
                         <Box>
                           <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                             Tags
                           </Typography>
                           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                            {tags.map((tag, index) => (
-                              <Chip key={index} label={tag} size="small" />
+                            {voucherTags.map((tag, index) => (
+                              <Chip key={index} label={String(tag)} size="small" />
                             ))}
                           </Box>
                         </Box>
@@ -1127,7 +1267,7 @@ export default function ProductPreview() {
                         </Typography>
                       </Box>
                     )}
-                    {ti.Tags && (
+                    {Array.isArray(ti?.Tags) && ti.Tags.length > 0 && (
                       <Box>
                         <Typography
                           variant="body2"
@@ -1168,7 +1308,7 @@ export default function ProductPreview() {
                 <Typography variant="body2" fontWeight="600" color="#156DB6" sx={{ mb: 2 }}>
                   Key Features
                 </Typography>
-                {product?.ProductFeatures?.length > 0 ? (
+                {Array.isArray(product?.ProductFeatures) && product.ProductFeatures.length > 0 ? (
                   <Grid container spacing={3}>
                     {product.ProductFeatures.map((f, i) => (
                       <Grid item xs={12} sm={6} lg={4} key={i}>

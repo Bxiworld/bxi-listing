@@ -422,7 +422,6 @@ export default function VoucherGoLive({ category }) {
             <div className="flex justify-center">
               {productData?._id ? (
                 <div className="bg-[#F8F9FA] p-8 rounded-lg">
-                  {console.log("productData", productData)}
                   <QRCode value={productData._id} size={200} />
                   <p className="text-center text-sm text-[#6B7A99] mt-4">
                     Scan to view voucher
