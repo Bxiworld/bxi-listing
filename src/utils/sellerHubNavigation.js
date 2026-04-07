@@ -64,10 +64,64 @@ const previewRoutes = {
 
 // Step mappings for edit navigation (based on reviewReasonNavigation)
 const stepMappings = {
-  'generalinformation': '/general-info',
-  'productinformation': '/product-info',
-  'technicalinformation': '/tech-info',
-  'golive': '/go-live',
+  generalinformation: '/general-info',
+  productinformation: '/product-info',
+  technicalinformation: '/tech-info',
+  golive: '/go-live',
+  // Voucher-only status: same path segment as go-live; voucherStepMap maps to /voucherdesign
+  voucherdesign: '/go-live',
+};
+
+/** Order for picking the furthest known step from multiple API fields */
+const STEP_PROGRESS_ORDER = {
+  generalinformation: 1,
+  productinformation: 2,
+  technicalinformation: 3,
+  golive: 4,
+  voucherdesign: 5,
+};
+
+/** Normalized labels that are not real step keys — ignore for routing */
+const GENERIC_UPLOAD_STATUS_KEYS = new Set(['draft', 'indraft']);
+
+/**
+ * Resolve which listing step key (generalinformation, productinformation, …) edit should open.
+ * Unmapped reviewReasonNavigation is ignored so ProductUploadStatus / nested tech can be used.
+ */
+const resolveListingStepKey = (product, reviewReasonNavigation, normalizeKey) => {
+  const normReview = normalizeKey(reviewReasonNavigation);
+  const normRoot = normalizeKey(product?.ProductUploadStatus);
+  const normNested = normalizeKey(product?.ProductTechInfo?.ProductUploadStatus);
+
+  if (normReview && stepMappings[normReview]) {
+    return normReview;
+  }
+
+  const candidates = [];
+  if (normRoot && !GENERIC_UPLOAD_STATUS_KEYS.has(normRoot) && stepMappings[normRoot]) {
+    candidates.push(normRoot);
+  }
+  if (normNested && !GENERIC_UPLOAD_STATUS_KEYS.has(normNested) && stepMappings[normNested]) {
+    candidates.push(normNested);
+  }
+
+  let bestKey = '';
+  let bestOrder = 0;
+  for (const k of candidates) {
+    const ord = STEP_PROGRESS_ORDER[k] || 0;
+    if (ord > bestOrder) {
+      bestOrder = ord;
+      bestKey = k;
+    }
+  }
+
+  if (!bestKey && Array.isArray(product?.ProductsVariantions) && product.ProductsVariantions.length > 0) {
+    bestKey = 'productinformation';
+  }
+  if (!bestKey) {
+    bestKey = 'generalinformation';
+  }
+  return bestKey;
 };
 
 // Hotel voucher uses different step names (per bxi-dashboard)
@@ -197,12 +251,8 @@ const resolveEditRoute = ({
   };
 
   const normalizedReviewKey = normalizeReviewKey(reviewReasonNavigation);
-  const normalizedProductUploadStatus = normalizeReviewKey(product?.ProductUploadStatus);
-  const normalizedProductTechUploadStatus = normalizeReviewKey(product?.ProductTechInfo?.ProductUploadStatus);
-
-  // Determine step from reviewReasonNavigation
-  const stepSourceKey = normalizedReviewKey || normalizedProductUploadStatus || normalizedProductTechUploadStatus;
-  const step = stepSourceKey ? stepMappings[stepSourceKey] || '/general-info' : '/general-info';
+  const listingStepKey = resolveListingStepKey(product, reviewReasonNavigation, normalizeReviewKey);
+  const step = stepMappings[listingStepKey] || '/general-info';
 
   const normalizeKeyForCategoryCompare = (key) => {
     if (!key) return '';
@@ -216,7 +266,7 @@ const resolveEditRoute = ({
 
   // Handle Media company type (multiplex, digital, hoarding have specific step routes)
   if (companyType === 'Media') {
-    const reviewKey = normalizedReviewKey || 'productinformation';
+    const reviewKey = listingStepKey;
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
         const digitalSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
@@ -273,9 +323,12 @@ const resolveEditRoute = ({
       isHotelCategory(getVoucherVertical(product));
 
     // Hotel voucher uses different step names (hotelsproductinfo, hotelstechinfo, hotelsgolive)
-    const reviewKey = normalizedReviewKey;
-    if (isHotel && hotelVoucherStepMappings[reviewKey]) {
-      return `${voucherRoute}${hotelVoucherStepMappings[reviewKey]}/${productId}`;
+    const hotelStepKey =
+      normalizedReviewKey && hotelVoucherStepMappings[normalizedReviewKey]
+        ? normalizedReviewKey
+        : listingStepKey;
+    if (isHotel && hotelVoucherStepMappings[hotelStepKey]) {
+      return `${voucherRoute}${hotelVoucherStepMappings[hotelStepKey]}/${productId}`;
     }
     // Generic voucher step mapping: product step 2->techinfo, 3->golive, 4->voucherdesign
     const voucherStepMap = {

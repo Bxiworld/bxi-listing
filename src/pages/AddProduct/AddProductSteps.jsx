@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
@@ -225,6 +225,8 @@ export const GeneralInformation = ({ category }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
+  const [pendingTextileGenderHydrate, setPendingTextileGenderHydrate] = useState(null);
+  const [pendingTextileSubcategoryHydrate, setPendingTextileSubcategoryHydrate] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subcategoryOptions, setSubcategoryOptions] = useState([]);
   const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
@@ -252,6 +254,68 @@ export const GeneralInformation = ({ category }) => {
       gender: '',
     }
   });
+
+  // Hydrate draft / edit when URL includes product id (parity with ProductInfo / TechInfo / GoLive)
+  useEffect(() => {
+    if (!id) {
+      setPendingTextileGenderHydrate(null);
+      setPendingTextileSubcategoryHydrate(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await productApi.getProductById(id);
+        const raw = res?.data ?? res;
+        const data = raw?.body ?? raw?.data ?? raw;
+        if (cancelled || !data) return;
+
+        setValue('productName', data.ProductName || '', { shouldDirty: false });
+        setValue('description', data.ProductDescription || '', { shouldDirty: false });
+        if (giConfig.hasSubtitle) {
+          setValue('productSubtitle', data.ProductSubtitle || '', { shouldDirty: false });
+        }
+        if (giConfig.hasRadioButtons && !isVoucherCategory) {
+          const v = data.HasRegistrationProcess;
+          if (v === 'Yes' || v === 'No') {
+            setValue('hasRegistrationProcess', v, { shouldDirty: false });
+          }
+        }
+        if (giConfig.hasStarRating && data.HotelStars != null && String(data.HotelStars).trim() !== '') {
+          setValue('HotelStars', String(data.HotelStars), { shouldDirty: false });
+        }
+
+        const subVal = data.ProductSubCategory ?? data.productSubCategory;
+        const subStr = subVal != null && subVal !== '' ? String(subVal) : '';
+
+        if (giConfig.hasGenderSelection && data.Gender) {
+          setPendingTextileGenderHydrate(String(data.Gender));
+          setPendingTextileSubcategoryHydrate(subStr || null);
+          setValue('gender', data.Gender, { shouldDirty: false });
+        } else {
+          setPendingTextileGenderHydrate(null);
+          setPendingTextileSubcategoryHydrate(null);
+          if (category !== 'airlineVoucher' && subStr) {
+            setValue('subcategory', subStr, { shouldDirty: false });
+          }
+        }
+      } catch {
+        toast.error('Failed to load product details.');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    id,
+    category,
+    isVoucherCategory,
+    setValue,
+    giConfig.hasSubtitle,
+    giConfig.hasRadioButtons,
+    giConfig.hasStarRating,
+    giConfig.hasGenderSelection,
+  ]);
 
   const normalizeCategoryLabel = (cat) => {
     if (!cat) return 'Product';
@@ -284,7 +348,7 @@ export const GeneralInformation = ({ category }) => {
       setSelectedGenderId(null);
       setSelectedGender('Unisex');
       setSubcategoriesLoading(false);
-      setValue('subcategory', '');
+      if (!id) setValue('subcategory', '');
       return;
     }
     if (isVoucherCategory) {
@@ -312,7 +376,7 @@ export const GeneralInformation = ({ category }) => {
         setGenderCategoryData([]);
         setSelectedGenderId(null);
         setSelectedGender('Unisex');
-        setValue('subcategory', '');
+        if (!id) setValue('subcategory', '');
         return;
       }
 
@@ -332,7 +396,7 @@ export const GeneralInformation = ({ category }) => {
             })).filter((o) => o.value != null && o.label != null);
             options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
             setSubcategoryOptions(options);
-            setValue('subcategory', '');
+            if (!id) setValue('subcategory', '');
           })
           .catch(() => {
             setSubcategoryOptions([]);
@@ -349,7 +413,7 @@ export const GeneralInformation = ({ category }) => {
       setGenderCategoryData([]);
       setSelectedGenderId(null);
       setSelectedGender('Unisex');
-      setValue('subcategory', '');
+      if (!id) setValue('subcategory', '');
       return;
     }
 
@@ -367,21 +431,25 @@ export const GeneralInformation = ({ category }) => {
           Array.isArray(root[0]?.SubcategoryValue)
         ) {
           setGenderCategoryData(root);
-          const defaultGenderGroup =
-            root.find(
-              (item) =>
-                String(item?.SubcategoryName || '').toLowerCase() === 'unisex'
-            ) || root[0];
-          const defaultGenderName = defaultGenderGroup?.SubcategoryName || 'Unisex';
-          setSelectedGenderId(defaultGenderGroup?._id || null);
-          setSelectedGender(defaultGenderName);
-          setValue('gender', defaultGenderName);
-          const options = getSubcategoryOptions({
-            data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
-          });
-          options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
-          setSubcategoryOptions(options);
-          setValue('subcategory', '');
+          if (id) {
+            // Editing: hydrate effect + textileGenderHydrateRef apply saved gender/subcategory
+          } else {
+            const defaultGenderGroup =
+              root.find(
+                (item) =>
+                  String(item?.SubcategoryName || '').toLowerCase() === 'unisex'
+              ) || root[0];
+            const defaultGenderName = defaultGenderGroup?.SubcategoryName || 'Unisex';
+            setSelectedGenderId(defaultGenderGroup?._id || null);
+            setSelectedGender(defaultGenderName);
+            setValue('gender', defaultGenderName);
+            const options = getSubcategoryOptions({
+              data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
+            });
+            options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+            setSubcategoryOptions(options);
+            setValue('subcategory', '');
+          }
         } else {
           setGenderCategoryData([]);
           setSelectedGenderId(null);
@@ -400,9 +468,9 @@ export const GeneralInformation = ({ category }) => {
     };
 
     fetchSubcategories();
-  }, [category, isVoucherCategory, setValue]);
+  }, [category, isVoucherCategory, id, setValue]);
 
-  const handleTextileGenderSelect = (genderGroup) => {
+  const handleTextileGenderSelect = useCallback((genderGroup) => {
     setSelectedGenderId(genderGroup?._id || null);
     const name = genderGroup?.SubcategoryName || 'Unisex';
     setSelectedGender(name);
@@ -413,7 +481,36 @@ export const GeneralInformation = ({ category }) => {
     options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
     setSubcategoryOptions(options);
     setValue('subcategory', '', { shouldValidate: true });
-  };
+  }, [setValue]);
+
+  useEffect(() => {
+    if (!giConfig.hasGenderSelection || !genderCategoryData.length || !pendingTextileGenderHydrate) {
+      return;
+    }
+    const g = pendingTextileGenderHydrate;
+    const match = genderCategoryData.find(
+      (item) => String(item?.SubcategoryName || '').toLowerCase() === g.toLowerCase()
+    );
+    if (!match) {
+      setPendingTextileGenderHydrate(null);
+      setPendingTextileSubcategoryHydrate(null);
+      return;
+    }
+    handleTextileGenderSelect(match);
+    const pend = pendingTextileSubcategoryHydrate;
+    setPendingTextileGenderHydrate(null);
+    setPendingTextileSubcategoryHydrate(null);
+    if (pend) {
+      setValue('subcategory', pend, { shouldDirty: false });
+    }
+  }, [
+    genderCategoryData,
+    giConfig.hasGenderSelection,
+    pendingTextileGenderHydrate,
+    pendingTextileSubcategoryHydrate,
+    setValue,
+    handleTextileGenderSelect,
+  ]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
@@ -806,7 +903,7 @@ export const GeneralInformation = ({ category }) => {
                 <Label>{giConfig.starRatingLabel} <span className="text-red-500">*</span></Label>
                 <input type="hidden" {...register(giConfig.starRatingField, { required: valSchema?.HotelStars?.required ? 'Please select hotel star rating' : false })} />
                 <Select
-                  defaultValue="5"
+                  value={watch(giConfig.starRatingField) || '5'}
                   onValueChange={(value) => setValue(giConfig.starRatingField, value, { shouldValidate: true })}
                 >
                   <SelectTrigger>
@@ -3274,17 +3371,19 @@ export const TechInfo = ({ category }) => {
     const fetchProduct = async () => {
       try {
         const res = await productApi.getProductById(id);
-        setProductData(res?.data);
-        
+        const raw = res?.data ?? res;
+        const data = raw?.body ?? raw?.data ?? raw;
+        setProductData(data);
+
         // Pre-fill if data exists
-        const techInfo = res?.data?.ProductTechInfo || {};
+        const techInfo = data?.ProductTechInfo || {};
         if (techInfo) {
           if (techInfo.Warranty != null) setValue('warrantyValue', String(techInfo.Warranty));
-          if (res?.data?.WarrantyPeriod) setValue('warrantyPeriod', res.data.WarrantyPeriod);
+          if (data?.WarrantyPeriod) setValue('warrantyPeriod', data.WarrantyPeriod);
           if (techInfo.Guarantee != null) setValue('guaranteeValue', String(techInfo.Guarantee));
-          if (res?.data?.GuaranteePeriod) setValue('guaranteePeriod', res.data.GuaranteePeriod);
+          if (data?.GuaranteePeriod) setValue('guaranteePeriod', data.GuaranteePeriod);
           if (techInfo.WeightBeforePackingPerUnit != null) setValue('weightBeforePacking', String(techInfo.WeightBeforePackingPerUnit));
-          if (res?.data?.WeightBeforePackingPerUnitMeasurUnit) setValue('weightUnit', res.data.WeightBeforePackingPerUnitMeasurUnit);
+          if (data?.WeightBeforePackingPerUnitMeasurUnit) setValue('weightUnit', data.WeightBeforePackingPerUnitMeasurUnit);
           setValue('packagingInstructions', techInfo.PackagingAndDeliveryInstructionsIfAny || '');
           setValue('usageInstructions', techInfo.InstructionsToUseProduct || '');
           if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0) setTags(techInfo.Tags);
@@ -3321,8 +3420,8 @@ export const TechInfo = ({ category }) => {
           PackagingAndDeliveryInstructionsIfAny: data.packagingInstructions,
           InstructionsToUseProduct: data.usageInstructions,
           Tags: tags,
-          // Nested status aligns with BXI Frontend's TechInfo submit payload.
-          ProductUploadStatus: 'golive',
+          // Keep nested status aligned with root so Seller Hub routing does not read "golive" before Go Live is saved.
+          ProductUploadStatus: 'technicalinformation',
         },
       };
       await productApi.updateProduct(payload);
