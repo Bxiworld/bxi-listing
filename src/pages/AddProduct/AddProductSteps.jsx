@@ -20,7 +20,6 @@ import { cn } from '../../lib/utils';
 import { productApi } from '../../utils/api';
 import api from '../../utils/api';
 import {
-  SUBCATEGORY_ENDPOINTS,
   PRODUCT_TYPE_BY_CATEGORY,
   getGeneralInfoConfig,
   getProductInfoConfig,
@@ -279,6 +278,15 @@ export const GeneralInformation = ({ category }) => {
       : genderCategoryData;
 
   useEffect(() => {
+    if (category === 'airlineVoucher') {
+      setSubcategoryOptions([]);
+      setGenderCategoryData([]);
+      setSelectedGenderId(null);
+      setSelectedGender('Unisex');
+      setSubcategoriesLoading(false);
+      setValue('subcategory', '');
+      return;
+    }
     if (isVoucherCategory) {
       const currentVoucherJourneyType = getVoucherJourneyTypeFromStorage();
 
@@ -413,6 +421,8 @@ export const GeneralInformation = ({ category }) => {
       let productId = id;
       const normalizedSubcategory = data.subcategory || '';
       const subcategoryName = subcategoryOptions.find((o) => o.value === normalizedSubcategory)?.label || normalizedSubcategory;
+      const airlineSubcategoryValue =
+        PRODUCT_TYPE_BY_CATEGORY[category] || 'Airline Tickets';
 
       const isMediaOnline = category === 'mediaonline';
       const isMediaOffline = category === 'mediaoffline';
@@ -443,8 +453,10 @@ export const GeneralInformation = ({ category }) => {
           ListingType: isVoucherCategory ? 'Voucher' : 'Product',
           ProductType:
             PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others',
-          ProductSubCategory: normalizedSubcategory,
-          ProductSubCategoryName: normalizedSubcategory,
+          ProductSubCategory:
+            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
+          ProductSubCategoryName:
+            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
           Gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           ProductSubtitle: giConfig.hasSubtitle ? data.productSubtitle : undefined,
@@ -643,7 +655,6 @@ export const GeneralInformation = ({ category }) => {
                 </div>
               )}
 
-              <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
               <input
                 type="hidden"
                 {...register('subcategory', (() => {
@@ -652,35 +663,40 @@ export const GeneralInformation = ({ category }) => {
                   return { required: p.required ? 'Please select a subcategory' : false };
                 })())}
               />
-              <Select
-                value={selectedSubcategory || ''}
-                onValueChange={(value) => setValue('subcategory', value, { shouldValidate: true })}
-              >
-                <SelectTrigger id="subcategory" data-testid="select-subcategory">
-                  <SelectValue
-                    placeholder={
-                      subcategoriesLoading
-                        ? 'Loading subcategories...'
-                        : 'Select subcategory'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategoryOptions.length > 0 ? (
-                    subcategoryOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__no_subcategory__" disabled>
-                      No subcategories found
-                    </SelectItem>
+              {category !== 'airlineVoucher' && (
+                <>
+                  <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={selectedSubcategory || ''}
+                    onValueChange={(value) => setValue('subcategory', value, { shouldValidate: true })}
+                  >
+                    <SelectTrigger id="subcategory" data-testid="select-subcategory">
+                      <SelectValue
+                        placeholder={
+                          subcategoriesLoading
+                            ? 'Loading subcategories...'
+                            : 'Select subcategory'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategoryOptions.length > 0 ? (
+                        subcategoryOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="__no_subcategory__" disabled>
+                          No subcategories found
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.subcategory && (
+                    <p className="text-sm text-red-500">{errors.subcategory.message}</p>
                   )}
-                </SelectContent>
-              </Select>
-              {errors.subcategory && (
-                <p className="text-sm text-red-500">{errors.subcategory.message}</p>
+                </>
               )}
             </div>
             {/* Product Name – validation from getValidationSchema (bxi parity) */}
@@ -818,7 +834,12 @@ export const GeneralInformation = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory')  }
+                disabled={
+                  isSubmitting ||
+                  !watch('productName') ||
+                  !watch('description') ||
+                  (category !== 'airlineVoucher' && !watch('subcategory'))
+                }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >

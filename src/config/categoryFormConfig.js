@@ -26,7 +26,6 @@ export const SUBCATEGORY_ENDPOINTS = {
   lifestyleVoucher: 'lifestylesubcategory/lifestylegetsubcategory',
   qsrVoucher: 'restaurantsub/getrestuarantsubcategory',
   otherVoucher: 'OtherSub/Get_other_Sub',
-  airlineVoucher: 'airfeature/Get_airline_feature',
 };
 
 // Product type / API product type per category
@@ -185,7 +184,7 @@ export const GENERAL_INFO_CONFIG = {
     hasSubtitle: true,
     hasRadioButtons: false,
     hasStarRating: false,
-    fields: ['subcategory', 'productname', 'productsubtitle', 'productdescription'],
+    fields: ['productname', 'productsubtitle', 'productdescription'],
   },
   electronicsVoucher: {
     hasGenderSelection: false,
@@ -370,7 +369,7 @@ export const VALIDATION_SCHEMAS = {
       productdescription: { min: 20, max: 1000, required: true },
     },
     airlineVoucher: {
-      subcategory: { min: 1, required: true },
+      subcategory: { min: 0, required: false },
       productname: { min: 5, max: 50, required: true },
       productsubtitle: { min: 10, max: 75, required: true },
       productdescription: { min: 20, max: 1000, required: true },
