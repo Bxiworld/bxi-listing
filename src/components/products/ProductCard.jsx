@@ -5,6 +5,13 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
 import { resolveSellerHubRoute } from '../../utils/sellerHubNavigation';
+import {
+  getListingType,
+  getProductType,
+  getProductCategoryName,
+  getVoucherVertical,
+  isVoucherListing,
+} from '../../utils/listingProductFields';
 import bxitoken from '../../assets/bxi-token.svg'; 
 
 const statusConfig = {
@@ -36,9 +43,6 @@ export const ProductCard = ({
     _id,
     ProductName,
     ProductUploadStatus,
-    ListingType,
-    ProductCategoryName,
-    ProductType,
     ProductImages,
     VoucherImages,
     ProductsVariantions,
@@ -53,6 +57,11 @@ export const ProductCard = ({
   
   // Get status config
   const status = statusConfig[ProductUploadStatus] || statusConfig['Draft'];
+
+  const voucherRow = isVoucherListing(product);
+  const categoryLabel = voucherRow
+    ? getVoucherVertical(product)
+    : getProductCategoryName(product) || getProductType(product);
 
   // Handle View
   const handleView = () => {
@@ -108,7 +117,7 @@ export const ProductCard = ({
             e.target.src = defaultImage;
           }}
         />
-        {ListingType === 'Voucher' && (
+        {voucherRow && (
           <div className="absolute top-3 left-3">
             <Badge className="bg-[#C64091] text-white text-xs">
               Voucher
@@ -124,7 +133,7 @@ export const ProductCard = ({
         </h3>
         
         <p className="product-card-category">
-          {ProductCategoryName || ProductType || ListingType || 'Uncategorized'}
+          {categoryLabel || getListingType(product) || 'Uncategorized'}
         </p>
 
         {price && (

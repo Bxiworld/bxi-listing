@@ -3,6 +3,12 @@
  * Based on product type, company type, listing type, and action
  */
 import { getVoucherJourneyType, VOUCHER_JOURNEY_TYPE } from './voucherType';
+import {
+  getProductType,
+  getProductCategoryName,
+  getVoucherVertical,
+  isVoucherListing,
+} from './listingProductFields';
 
 // Category route mappings for products
 const categoryRoutes = {
@@ -84,10 +90,9 @@ const hotelVoucherStepMappings = {
  */
 export const resolveSellerHubRoute = ({ product, companyType, action, reviewReasonNavigation }) => {
   const productId = product?._id;
-  const listingType = product?.ListingType;
-  const productCategory = product?.ProductCategoryName;
-  const productSubCategory = product?.ProductSubCategoryName;
-  const voucherType = product?.VoucherType;
+  const productCategory = getProductCategoryName(product);
+  const productSubCategory =
+    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '';
   const isBulkUpload = !!product?.bulk_upload_res_id;
 
   if (!productId) {
@@ -97,7 +102,7 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
 
   // Handle View action
   if (action === 'view') {
-    return resolveViewRoute({ product, companyType, listingType, productCategory, productSubCategory, productId });
+    return resolveViewRoute({ product, companyType, productCategory, productSubCategory, productId });
   }
 
   // Handle Edit action
@@ -105,10 +110,8 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
     return resolveEditRoute({ 
       product, 
       companyType, 
-      listingType, 
       productCategory, 
       productSubCategory, 
-      voucherType,
       productId, 
       reviewReasonNavigation,
       isBulkUpload 
@@ -121,7 +124,7 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
 /**
  * Resolve View route
  */
-const resolveViewRoute = ({ product, companyType, listingType, productCategory, productSubCategory, productId }) => {
+const resolveViewRoute = ({ product, companyType, productCategory, productSubCategory, productId }) => {
   // Handle Media company type
   if (companyType === 'Media') {
     if (productCategory === 'Multiplex ADs') {
@@ -137,8 +140,10 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
   }
 
   // Handle Voucher listing type
-  if (listingType === 'Voucher') {
-    const voucherType = getVoucherJourneyType(product?.VoucherType);
+  if (isVoucherListing(product)) {
+    const voucherType = getVoucherJourneyType(
+      product?.VoucherType ?? product?.voucherType
+    );
     if (voucherType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
       return `/valueandgiftvoucher/${productId}`;
     }
@@ -154,7 +159,8 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
     return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
   };
 
-  const categoryCandidate = productCategory || product?.ProductType || product?.Type || companyType;
+  const categoryCandidate =
+    productCategory || getProductType(product) || companyType;
   const previewRouteFromExact =
     previewRoutes[categoryCandidate] || previewRoutes[productCategory] || previewRoutes[companyType];
 
@@ -175,10 +181,8 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
 const resolveEditRoute = ({ 
   product, 
   companyType, 
-  listingType, 
   productCategory, 
   productSubCategory,
-  voucherType,
   productId, 
   reviewReasonNavigation,
   isBulkUpload 
@@ -199,6 +203,11 @@ const resolveEditRoute = ({
   // Determine step from reviewReasonNavigation
   const stepSourceKey = normalizedReviewKey || normalizedProductUploadStatus || normalizedProductTechUploadStatus;
   const step = stepSourceKey ? stepMappings[stepSourceKey] || '/general-info' : '/general-info';
+
+  const normalizeKeyForCategoryCompare = (key) => {
+    if (!key) return '';
+    return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  };
 
   // Handle bulk upload products
   if (isBulkUpload) {
@@ -230,39 +239,61 @@ const resolveEditRoute = ({
     return `/mediaoffline/product-info/${productId}`;
   }
 
-  // Handle Voucher listing type
-  if (listingType === 'Voucher') {
-    const voucherRoute = voucherRoutes[companyType];
-    if (voucherRoute) {
-      // Hotel voucher uses different step names (hotelsproductinfo, hotelstechinfo, hotelsgolive)
-      const isHotel = companyType === 'Hotel' || companyType === 'Hotels';
-      const reviewKey = normalizedReviewKey;
-      if (isHotel && hotelVoucherStepMappings[reviewKey]) {
-        return `${voucherRoute}${hotelVoucherStepMappings[reviewKey]}/${productId}`;
-      }
-      // Generic voucher step mapping: product step 2->techinfo, 3->golive, 4->voucherdesign
-      const voucherStepMap = {
-        '/general-info': '/generalinformation',
-        '/product-info': '/techinfo',
-        '/tech-info': '/golive',
-        '/go-live': '/voucherdesign',
-      };
-      const voucherStep = voucherStepMap[step] || '/generalinformation';
-      return `${voucherRoute}${voucherStep}/${productId}`;
+  // Handle Voucher listing type — use getVoucherVertical: ProductType may be wrongly "Others" while
+  // ProductCategoryName has the real vertical (e.g. Textile).
+  if (isVoucherListing(product)) {
+    const voucherCategoryCandidate =
+      getVoucherVertical(product) || companyType;
+    const voucherRouteFromExactMatch =
+      voucherRoutes[voucherCategoryCandidate] || voucherRoutes[productCategory] || voucherRoutes[companyType];
+    const normalizedVoucherCategory = normalizeKeyForCategoryCompare(voucherCategoryCandidate);
+    const voucherRouteFromFuzzyMatch = !voucherRouteFromExactMatch && normalizedVoucherCategory
+      ? Object.keys(voucherRoutes).find((k) => normalizeKeyForCategoryCompare(k) === normalizedVoucherCategory)
+      : null;
+
+    const isHotelCategory = (val) => {
+      const n = normalizeKeyForCategoryCompare(val);
+      return n === 'hotel' || n === 'hotels';
+    };
+    // Map key is "Hotel" only; API may send "Hotels" — align with hotels voucher route.
+    const voucherRouteFromHotelSynonym =
+      !voucherRouteFromExactMatch && !voucherRouteFromFuzzyMatch && isHotelCategory(voucherCategoryCandidate)
+        ? voucherRoutes.Hotel
+        : null;
+
+    const voucherRoute =
+      voucherRouteFromExactMatch ||
+      (voucherRouteFromFuzzyMatch ? voucherRoutes[voucherRouteFromFuzzyMatch] : null) ||
+      voucherRouteFromHotelSynonym ||
+      voucherRoutes.Others;
+    const isHotel =
+      companyType === 'Hotel' ||
+      companyType === 'Hotels' ||
+      isHotelCategory(productCategory) ||
+      isHotelCategory(getVoucherVertical(product));
+
+    // Hotel voucher uses different step names (hotelsproductinfo, hotelstechinfo, hotelsgolive)
+    const reviewKey = normalizedReviewKey;
+    if (isHotel && hotelVoucherStepMappings[reviewKey]) {
+      return `${voucherRoute}${hotelVoucherStepMappings[reviewKey]}/${productId}`;
     }
-    return `/voucher/voucherinfo/${productId}`;
+    // Generic voucher step mapping: product step 2->techinfo, 3->golive, 4->voucherdesign
+    const voucherStepMap = {
+      '/general-info': '/generalinformation',
+      '/product-info': '/techinfo',
+      '/tech-info': '/golive',
+      '/go-live': '/voucherdesign',
+    };
+    const voucherStep = voucherStepMap[step] || '/generalinformation';
+    return `${voucherRoute}${voucherStep}/${productId}`;
   }
 
   // Handle Product listing type
   // In Admin view, `companyType` is often "Admin", so prefer the actual saved product category.
-  const normalizeKeyForCategoryCompare = (key) => {
-    if (!key) return '';
-    return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-  };
 
   // Some draft/listing items may not have `ProductCategoryName` populated consistently.
   // Fall back to other fields used elsewhere in the page (ProductType / Type).
-  const categoryCandidate = productCategory || product?.ProductType || product?.Type;
+  const categoryCandidate = productCategory || getProductType(product);
 
   const categoryRouteFromExactMatch =
     categoryRoutes[categoryCandidate] || categoryRoutes[productCategory] || categoryRoutes[companyType];

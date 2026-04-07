@@ -446,13 +446,16 @@ export const GeneralInformation = ({ category }) => {
           ...(id && { id }),
         };
       } else {
+        const resolvedVerticalType =
+          PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others';
         payload = {
           ProductName: data.productName,
           ProductDescription: data.description,
           ProductUploadStatus: 'productinformation',
           ListingType: isVoucherCategory ? 'Voucher' : 'Product',
-          ProductType:
-            PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others',
+          ProductType: resolvedVerticalType,
+          // API defaults ProductCategoryName to "Others" when omitted; Seller Hub and filters use it first.
+          ...(isVoucherCategory && { ProductCategoryName: resolvedVerticalType }),
           ProductSubCategory:
             category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
           ProductSubCategoryName:
