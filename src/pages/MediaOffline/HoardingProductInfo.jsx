@@ -38,7 +38,19 @@ export default function HoardingProductInfo() {
   const [isUploading, setIsUploading] = useState(false);
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [productSubCategory, setProductSubCategory] = useState('650296faeaa5251874e8c716');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!id) return;
+    api
+      .get(`product/get_product_byId/${id}`)
+      .then((res) => {
+        const sub = res?.data?.ProductSubCategory;
+        if (sub) setProductSubCategory(sub);
+      })
+      .catch(() => {});
+  }, [id]);
 
   // DataGrid columns matching bxi-dashboard
   const columns = [
@@ -55,6 +67,8 @@ export default function HoardingProductInfo() {
     { field: 'mediaType', headerName: 'Media Type', width: 130 },
     { field: 'quantity', headerName: 'Quantity', width: 90 },
     { field: 'size', headerName: 'Size (Sq.Ft)', width: 110 },
+    { field: 'width', headerName: 'Width (ft.)', width: 110 },
+    { field: 'height', headerName: 'Height (ft.)', width: 110 },
     { field: 'mrp', headerName: 'MRP', width: 100 },
     { field: 'discountedPrice', headerName: 'Discounted Price', width: 140 },
   ];
@@ -117,24 +131,15 @@ export default function HoardingProductInfo() {
           mediaType: row['Media Type*'] || row['Media Type'] || 'Static',
           quantity: row['Quantity*'] || row['Quantity'] || 1,
           size: row['Size (Sq.Ft)*'] || row['Size'] || 0,
+          width: row['Width (ft.)*'] || row['Width (ft.)'] || 0,
+          height: row['Height (ft.)*'] || row['Height (ft.)'] || 0,
           mrp: row['MRP*'] || row['MRP'] || 0,
-          discountedPrice: row['Discounted Price*'] || row['Discounted Price'] || 0,
+          discountedPrice: row['Discounted MRP*'] || row['Discounted MRP'] || 0,
         }));
-
-        // Validate required fields
-        const invalidRows = mappedData.filter(
-          (row) => !row.name || !row.area || !row.state || !row.city || !row.size || !row.mrp
-        );
-
-        if (invalidRows.length > 0) {
-          toast.error(`${invalidRows.length} rows have missing required fields`);
-          return;
-        }
 
         setHoardingData(mappedData);
         toast.success(`${mappedData.length} hoardings loaded from Excel`);
       } catch (error) {
-        console.error('Error parsing Excel:', error);
         toast.error('Failed to parse Excel file');
       }
     };
@@ -155,16 +160,23 @@ export default function HoardingProductInfo() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('excelFile', excelFile);
-      formData.append('productId', id);
-      formData.append('state', selectedState);
-      formData.append('hoardingData', JSON.stringify(hoardingData));
+      // BXI multer expects field name "file" (see product_routes Hoarding_Excel_Process).
+      formData.append('file', excelFile);
+      formData.append('ProductId', id);
+      formData.append('ProductType', 'Media');
+      formData.append('ProductCategory', 'MediaOffline');
+      formData.append('ProductSubCategory', productSubCategory);
+      formData.append('ProductUploadStatus', 'productinformation');
+      formData.append('ListingType', 'Media');
 
       const response = await api.post('/product/Hoarding_Excel_Process', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      const listId = response?.data?.Hoarding_list_id || response?.data?.data?.Hoarding_list_id;
+      const listId =
+        response?.data?.data?._id ||
+        response?.data?.Hoarding_list_id ||
+        response?.data?.data?.Hoarding_list_id;
       
       if (listId) {
         setHoardingListId(listId);
@@ -207,9 +219,11 @@ export default function HoardingProductInfo() {
 
     setIsSubmitting(true);
     try {
+      // HoardingsController uses req.body.id (not _id) to choose update vs create.
       const payload = {
-        _id: id,
+        id,
         ProductUploadStatus: 'technicalinformation',
+        ListingType: 'Media',
         Hoarding_list_id: hoardingListId,
         hoardings_list: hoardingData,
         GeographicalData: {
@@ -224,7 +238,7 @@ export default function HoardingProductInfo() {
           MinOrderQuantity: '1',
           MaxOrderQuantity: '1',
         },
-        ProductTags: tags,
+        tags,
       };
 
       await api.post('/product/product_mutation_hoardings', payload);
@@ -329,17 +343,6 @@ export default function HoardingProductInfo() {
                 )}
               </div>
 
-              {hoardingData.length > 0 && !hoardingListId && (
-                <Button
-                  onClick={handleUploadExcel}
-                  disabled={isUploading}
-                  className="bg-[#C64091] hover:bg-[#A03375]"
-                >
-                  {isUploading ? 'Uploading...' : `Upload ${hoardingData.length} Hoardings`}
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              )}
-
               {hoardingListId && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded">
                   <p className="text-sm text-green-800">
@@ -354,10 +357,34 @@ export default function HoardingProductInfo() {
         {/* Step 4: Preview Data */}
         {hoardingData.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h3 className="text-lg font-semibold text-[#111827] mb-4">
-              Hoarding Data Preview ({hoardingData.length} hoardings)
-            </h3>
-            <div style={{ height: 400, width: '100%' }}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6 mb-4">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-semibold text-[#111827]">
+                  Hoarding Data Preview ({hoardingData.length} hoardings)
+                </h3>
+                <p className="text-sm text-[#6B7A99] mt-1">
+                  Review the grid below, then upload to save this list to your product.
+                </p>
+              </div>
+              {!hoardingListId && (
+                <Button
+                  type="button"
+                  onClick={handleUploadExcel}
+                  disabled={isUploading}
+                  className="shrink-0 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#C64091] hover:bg-[#A03375] text-white font-semibold rounded-lg px-5 py-2.5 shadow-sm"
+                >
+                  {isUploading ? (
+                    'Uploading...'
+                  ) : (
+                    <>
+                      Upload {hoardingData.length} hoardings
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            <div className="rounded-lg border border-[#E5E8EB] overflow-hidden" style={{ height: 400, width: '100%' }}>
               <DataGrid
                 rows={hoardingData}
                 columns={columns}
@@ -365,6 +392,7 @@ export default function HoardingProductInfo() {
                 rowsPerPageOptions={[10, 25, 50]}
                 disableSelectionOnClick
                 sx={{
+                  border: 'none',
                   '& .MuiDataGrid-cell': { fontSize: '0.875rem' },
                   '& .MuiDataGrid-columnHeaders': { backgroundColor: '#F8F9FA', fontWeight: 600 },
                 }}
@@ -372,6 +400,7 @@ export default function HoardingProductInfo() {
             </div>
           </div>
         )}
+        
 
         {/* Tags */}
         {hoardingListId && (

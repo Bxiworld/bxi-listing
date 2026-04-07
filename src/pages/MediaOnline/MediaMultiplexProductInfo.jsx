@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight, Download, Upload, X, Info } from 'lucide-react';
@@ -19,6 +19,9 @@ import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import api, { mediaApi } from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
+
+/** Radix Select forbids SelectItem value=""; use sentinel for “show all states”. */
+const ALL_STATES_VALUE = '__all_states__';
 
 const columns = [
   { field: 'srNo', headerName: 'Sr No', width: 80 },
@@ -74,7 +77,7 @@ export default function MediaMultiplexProductInfo() {
   const [file, setFile] = useState(null);
   const [rows, setRows] = useState([]);
   const [filteredRows, setFilteredRows] = useState([]);
-  const [selectedState, setSelectedState] = useState('');
+  const [selectedState, setSelectedState] = useState(ALL_STATES_VALUE);
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [mediaVariations, setMediaVariations] = useState([]);
@@ -114,6 +117,10 @@ export default function MediaMultiplexProductInfo() {
     fetchProduct();
   }, [id]);
 
+  useEffect(() => {
+    setSelectedState(ALL_STATES_VALUE);
+  }, [id]);
+
   // Fetch multiplex screens (id = productId; API resolves MultiplexScreen by ProductId)
   useEffect(() => {
     if (!id) return;
@@ -124,6 +131,13 @@ export default function MediaMultiplexProductInfo() {
         setRows(mappedRows);
         setFilteredRows(mappedRows);
       } catch (error) {
+        const status = error?.response?.status;
+        // No MultiplexScreen doc yet (user has not uploaded Excel) — expected, not an error.
+        if (status === 404) {
+          setRows([]);
+          setFilteredRows([]);
+          return;
+        }
         console.error('Error fetching screens:', error);
       }
     };
@@ -132,7 +146,7 @@ export default function MediaMultiplexProductInfo() {
 
   // Filter rows by state
   useEffect(() => {
-    if (!selectedState) {
+    if (!selectedState || selectedState === ALL_STATES_VALUE) {
       setFilteredRows(rows);
     } else {
       setFilteredRows(rows.filter((r) => {
@@ -158,8 +172,14 @@ export default function MediaMultiplexProductInfo() {
 
       let mappedRows = mapMultiplexDocToGridRows(res?.data?.data);
       if (mappedRows.length === 0 && id) {
-        const screensRes = await mediaApi.getMultiplexScreensById(id);
-        mappedRows = mapMultiplexDocToGridRows(screensRes?.data?.data);
+        try {
+          const screensRes = await mediaApi.getMultiplexScreensById(id);
+          mappedRows = mapMultiplexDocToGridRows(screensRes?.data?.data);
+        } catch (refetchErr) {
+          if (refetchErr?.response?.status !== 404) {
+            throw refetchErr;
+          }
+        }
       }
       setRows(mappedRows);
       setFilteredRows(mappedRows);
@@ -312,7 +332,7 @@ export default function MediaMultiplexProductInfo() {
                     <SelectValue placeholder="All states" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All States</SelectItem>
+                    <SelectItem value={ALL_STATES_VALUE}>All States</SelectItem>
                     {StateData.map((s) => (
                       <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
                     ))}

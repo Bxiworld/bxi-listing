@@ -1,12 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Upload, Eye, Check, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Upload, Check, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+
+const MONGO_ID_RE = /^[a-fA-F0-9]{24}$/;
+
+function normalizeMongoId(raw) {
+  if (raw == null) return '';
+  if (typeof raw === 'object' && raw.$oid) return String(raw.$oid);
+  return String(raw);
+}
+
+function normalizeImageUrl(entry) {
+  if (typeof entry === 'string') return entry;
+  if (entry && typeof entry.url === 'string') return entry.url;
+  return '';
+}
 
 export default function HoardingsGoLive() {
   const { id } = useParams();
@@ -16,9 +30,10 @@ export default function HoardingsGoLive() {
   const [hoardingsList, setHoardingsList] = useState([]);
   const [hoardingListId, setHoardingListId] = useState(null);
   const [selectedHoardings, setSelectedHoardings] = useState([]);
+  /** URLs already stored on the server (not re-sent as files). */
+  const [existingImagesById, setExistingImagesById] = useState({});
+  /** Pending uploads only: { file, preview }[] per hoarding id. */
   const [hoardingImages, setHoardingImages] = useState({});
-  const [bulkImages, setBulkImages] = useState([]);
-  const [previewHoarding, setPreviewHoarding] = useState(null);
   const bulkUploadRef = useRef(null);
   const individualUploadRefs = useRef({});
 
@@ -51,21 +66,32 @@ export default function HoardingsGoLive() {
         return;
       }
 
-      // Initialize with IDs and uploaded status
-      const processedHoardings = hoardings.map((h, index) => ({
-        ...h,
-        _id: h._id || `temp-${index}`,
-        uploadedImages: h.images || [],
-      }));
+      const processedHoardings = [];
+      for (const h of hoardings) {
+        const hid = normalizeMongoId(h._id);
+        if (!MONGO_ID_RE.test(hid)) {
+          toast.error(
+            'Hoarding list has invalid ids. Re-upload your list or complete the previous step again.'
+          );
+          return;
+        }
+        processedHoardings.push({
+          ...h,
+          _id: hid,
+        });
+      }
 
       setHoardingsList(processedHoardings);
-      
-      // Initialize hoarding images state
-      const imagesState = {};
+
+      const existing = {};
       processedHoardings.forEach((h) => {
-        imagesState[h._id] = h.uploadedImages || [];
+        const urls = (Array.isArray(h.images) ? h.images : [])
+          .map((img) => normalizeImageUrl(img))
+          .filter(Boolean);
+        existing[h._id] = urls;
       });
-      setHoardingImages(imagesState);
+      setExistingImagesById(existing);
+      setHoardingImages({});
 
       toast.success(`Loaded ${processedHoardings.length} hoardings`);
     } catch (error) {
@@ -132,14 +158,14 @@ export default function HoardingsGoLive() {
     });
 
     Promise.all(imagePromises).then((images) => {
-      setBulkImages(images);
-      
-      // Apply to selected hoardings
       const newImagesState = { ...hoardingImages };
       selectedHoardings.forEach((hoardingId) => {
+        const existing = existingImagesById[hoardingId]?.length || 0;
+        const pending = newImagesState[hoardingId]?.length || 0;
+        const room = Math.max(0, 3 - existing - pending);
         newImagesState[hoardingId] = [
           ...(newImagesState[hoardingId] || []),
-          ...images.slice(0, 3 - (newImagesState[hoardingId]?.length || 0)),
+          ...images.slice(0, room),
         ];
       });
       setHoardingImages(newImagesState);
@@ -153,10 +179,11 @@ export default function HoardingsGoLive() {
     
     if (files.length === 0) return;
 
+    const existing = existingImagesById[hoardingId]?.length || 0;
     const currentImages = hoardingImages[hoardingId] || [];
-    const remainingSlots = 3 - currentImages.length;
+    const remainingSlots = 3 - existing - currentImages.length;
 
-    if (remainingSlots === 0) {
+    if (remainingSlots <= 0) {
       toast.error('Maximum 3 images already uploaded for this hoarding');
       return;
     }
@@ -198,10 +225,12 @@ export default function HoardingsGoLive() {
     });
   };
 
+  const imageCountForHoarding = (hid) =>
+    (existingImagesById[hid]?.length || 0) + (hoardingImages[hid]?.length || 0);
+
   const handlePublish = async () => {
-    // Validate that all hoardings have at least one image
     const hoardingsWithoutImages = hoardingsList.filter(
-      (h) => !(hoardingImages[h._id]?.length > 0)
+      (h) => imageCountForHoarding(h._id) === 0
     );
 
     if (hoardingsWithoutImages.length > 0) {
@@ -211,31 +240,28 @@ export default function HoardingsGoLive() {
 
     setIsSubmitting(true);
     try {
-      // Prepare form data with images
       const formData = new FormData();
+      formData.append('id', id);
       formData.append('_id', id);
       formData.append('ProductUploadStatus', 'completed');
       formData.append('IsActive', 'true');
       formData.append('Hoarding_list_id', hoardingListId);
 
-      // Add images for each hoarding
       hoardingsList.forEach((hoarding) => {
         const images = hoardingImages[hoarding._id] || [];
         images.forEach((img, idx) => {
-          if (img.file) {
+          if (img?.file) {
             formData.append(`hoarding_${hoarding._id}_image_${idx}`, img.file);
           }
         });
       });
 
-      await api.post('/product/product_mutation_hoardings', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/product/product_mutation_hoardings', formData);
 
-      toast.success('All hoardings published successfully! 🎉');
+      toast.success('Hoarding images saved. Opening preview…');
       setTimeout(() => {
-        navigate('/sellerhub');
-      }, 1500);
+        navigate(`/hoardingmediaofflineproductpreview/${id}`);
+      }, 800);
     } catch (error) {
       console.error('Error:', error);
       toast.error(error?.response?.data?.message || 'Failed to publish hoardings');
@@ -317,7 +343,7 @@ export default function HoardingsGoLive() {
                             {hoarding.city}, {hoarding.state}
                           </p>
                           <Badge variant="secondary" className="mt-2">
-                            {hoardingImages[hoarding._id]?.length || 0}/3 images
+                            {imageCountForHoarding(hoarding._id)}/3 images
                           </Badge>
                         </div>
                       </div>
@@ -368,21 +394,31 @@ export default function HoardingsGoLive() {
                         </p>
                       </div>
                       <Badge>
-                        {hoardingImages[hoarding._id]?.length || 0}/3 images
+                        {imageCountForHoarding(hoarding._id)}/3 images
                       </Badge>
                     </div>
 
-                    {/* Image Preview */}
-                    {hoardingImages[hoarding._id]?.length > 0 && (
+                    {(existingImagesById[hoarding._id]?.length > 0 ||
+                      hoardingImages[hoarding._id]?.length > 0) && (
                       <div className="flex gap-2 mb-3 flex-wrap">
-                        {hoardingImages[hoarding._id].map((img, idx) => (
-                          <div key={idx} className="relative group">
+                        {(existingImagesById[hoarding._id] || []).map((url, idx) => (
+                          <div key={`saved-${idx}`} className="relative group">
+                            <img
+                              src={url}
+                              alt={`Saved ${idx + 1}`}
+                              className="w-24 h-24 object-cover rounded border"
+                            />
+                          </div>
+                        ))}
+                        {(hoardingImages[hoarding._id] || []).map((img, idx) => (
+                          <div key={`new-${idx}`} className="relative group">
                             <img
                               src={img.preview}
-                              alt={`Hoarding ${idx + 1}`}
+                              alt={`New ${idx + 1}`}
                               className="w-24 h-24 object-cover rounded border"
                             />
                             <button
+                              type="button"
                               onClick={() => handleRemoveImage(hoarding._id, idx)}
                               className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
@@ -406,10 +442,10 @@ export default function HoardingsGoLive() {
                       onClick={() => individualUploadRefs.current[hoarding._id]?.click()}
                       variant="outline"
                       size="sm"
-                      disabled={(hoardingImages[hoarding._id]?.length || 0) >= 3}
+                      disabled={imageCountForHoarding(hoarding._id) >= 3}
                     >
                       <ImageIcon className="w-4 h-4 mr-2" />
-                      {(hoardingImages[hoarding._id]?.length || 0) >= 3
+                      {imageCountForHoarding(hoarding._id) >= 3
                         ? 'Max Images Uploaded'
                         : 'Upload Images'}
                     </Button>
@@ -441,7 +477,7 @@ export default function HoardingsGoLive() {
                 onClick={handlePublish}
                 disabled={
                   isSubmitting ||
-                  hoardingsList.some((h) => !(hoardingImages[h._id]?.length > 0))
+                  hoardingsList.some((h) => imageCountForHoarding(h._id) === 0)
                 }
                 className="bg-white text-[#C64091] hover:bg-gray-100"
               >

@@ -1,36 +1,38 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useListingEntryContext from "../hooks/useListingEntryContext";
+import api from "../utils/api";
 
-import Cinema from "../assets/AddMediaCategoryPageIcons/Cinema.svg"
-import Airport from "../assets/AddMediaCategoryPageIcons/Airport.svg"
-import DOOH from "../assets/AddMediaCategoryPageIcons/Dooh.svg"
-import Outdoor from "../assets/AddMediaCategoryPageIcons/Outdoor.svg"
-import OfflineBTL from "../assets/AddMediaCategoryPageIcons/Offline-BTL.svg"
-import Print from "../assets/AddMediaCategoryPageIcons/Print.svg"
-import Radio from "../assets/AddMediaCategoryPageIcons/Radio.svg"
-import Television from "../assets/AddMediaCategoryPageIcons/Television.svg"
-import Other from "../assets/AddMediaCategoryPageIcons/Other.svg"
+import Cinema from "../assets/AddMediaCategoryPageIcons/Cinema.svg";
+import Airport from "../assets/AddMediaCategoryPageIcons/Airport.svg";
+import DOOH from "../assets/AddMediaCategoryPageIcons/Dooh.svg";
+import Outdoor from "../assets/AddMediaCategoryPageIcons/Outdoor.svg";
+import OfflineBTL from "../assets/AddMediaCategoryPageIcons/Offline-BTL.svg";
+import Print from "../assets/AddMediaCategoryPageIcons/Print.svg";
+import Radio from "../assets/AddMediaCategoryPageIcons/Radio.svg";
+import Television from "../assets/AddMediaCategoryPageIcons/Television.svg";
+import Other from "../assets/AddMediaCategoryPageIcons/Other.svg";
 
 /**
- * Media Categories with their journey mappings:
- * - Television → Digital Ads journey (mediaonline, subcategory: Digital ADs)
- * - Print Media → Newspaper journey (mediaoffline, News Papers / Magazines)
- * - Radio → Display video journey (mediaonline, non-excel upload)
- * - Hoarding → Hoarding journey (mediaoffline, subcategory: Hoardings)
- * - Multiplex → Multiplex journey (mediaonline, subcategory: Multiplex ADs)
- * - DOOH → Digital Ads journey (mediaonline, subcategory: Digital ADs)
- * - Airport → Airport journey (mediaonline)
- * - Offline BTL → Car wrap/bus wrap journey (mediaoffline)
- * - Other → Display video journey (mediaonline, non-excel upload)
+ * Offline listing flows use /mediaoffline/general-info; online use /mediaonline/general-info.
+ * After general info, MediaGeneralInfo / GeneralInformation route by `journey`:
+ * - multiplex → Excel/screens step (mediaonlinemultiplexproductinfo)
+ * - digital-ads → digital screens Excel flow
+ * - hoarding → hoarding Excel flow (mediaofflinehoardinginfo)
+ * - newspaper / btl → offline product-info style flows
  */
+function generalInfoPathForJourney(journey) {
+  const offlineJourneys = new Set(["newspaper", "hoarding", "btl"]);
+  const base = offlineJourneys.has(journey) ? "/mediaoffline" : "/mediaonline";
+  return `${base}/general-info`;
+}
+
 const MEDIA_CATEGORIES = [
   {
     id: 1,
     key: "television",
     label: "Television",
     icon: Television,
-    mediaType: "mediaonline",
     subcategoryHint: "Digital ADs",
     journey: "digital-ads",
   },
@@ -39,7 +41,6 @@ const MEDIA_CATEGORIES = [
     key: "print",
     label: "Print Media",
     icon: Print,
-    mediaType: "mediaoffline",
     subcategoryHint: "News Papers / Magazines",
     journey: "newspaper",
   },
@@ -48,7 +49,6 @@ const MEDIA_CATEGORIES = [
     key: "radio",
     label: "Radio",
     icon: Radio,
-    mediaType: "mediaonline",
     subcategoryHint: "Display Video",
     journey: "display-video",
   },
@@ -57,7 +57,6 @@ const MEDIA_CATEGORIES = [
     key: "hoarding",
     label: "Hoarding",
     icon: Outdoor,
-    mediaType: "mediaoffline",
     subcategoryHint: "Hoardings",
     journey: "hoarding",
   },
@@ -66,7 +65,6 @@ const MEDIA_CATEGORIES = [
     key: "multiplex",
     label: "Multiplex",
     icon: Cinema,
-    mediaType: "mediaonline",
     subcategoryHint: "Multiplex ADs",
     journey: "multiplex",
   },
@@ -75,7 +73,6 @@ const MEDIA_CATEGORIES = [
     key: "dooh",
     label: "DOOH",
     icon: DOOH,
-    mediaType: "mediaonline",
     subcategoryHint: "Digital ADs",
     journey: "digital-ads",
   },
@@ -84,7 +81,6 @@ const MEDIA_CATEGORIES = [
     key: "airport",
     label: "Airport",
     icon: Airport,
-    mediaType: "mediaonline",
     subcategoryHint: "Airport",
     journey: "airport",
   },
@@ -93,7 +89,6 @@ const MEDIA_CATEGORIES = [
     key: "offlinebtl",
     label: "Offline BTL",
     icon: OfflineBTL,
-    mediaType: "mediaoffline",
     subcategoryHint: "Car Wrap",
     journey: "btl",
   },
@@ -102,55 +97,182 @@ const MEDIA_CATEGORIES = [
     key: "other",
     label: "Other",
     icon: Other,
-    mediaType: "mediaonline",
     subcategoryHint: "Display Video",
     journey: "display-video",
   },
 ];
 
+function normalizeLabel(s) {
+  return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Supports:
+ * - Nested: { subcategory: [{ categoryName, subCategories: [{ _id, subCategoryName }] }] }
+ * - Flat rows: { subcategory: [{ _id, subCategoryName, categoryName, DisplayName?, iconurl? }] }
+ */
+function normalizeListingPayload(payload) {
+  const docs = payload?.subcategory ?? payload?.data ?? [];
+  if (!Array.isArray(docs) || docs.length === 0) return [];
+
+  const first = docs[0];
+  const looksFlat =
+    first &&
+    (first.subCategoryName || first.DisplayName) &&
+    !Array.isArray(first.subCategories);
+
+  if (looksFlat) {
+    return docs
+      .filter((d) => d?._id && (d.subCategoryName || d.DisplayName))
+      .map((d) => ({
+        _id: String(d._id),
+        subCategoryName: d.subCategoryName || d.DisplayName,
+        categoryName: d.categoryName || "",
+        displayName: d.DisplayName || d.displayName || d.subCategoryName,
+        iconUrl: d.iconurl || d.iconUrl || null,
+      }));
+  }
+
+  const rows = [];
+  for (const doc of docs) {
+    for (const sub of doc.subCategories || []) {
+      if (!sub?._id || !sub.subCategoryName) continue;
+      rows.push({
+        _id: String(sub._id),
+        subCategoryName: sub.subCategoryName,
+        categoryName: doc.categoryName || "",
+        displayName:
+          sub.DisplayName || sub.displayName || sub.subCategoryName,
+        iconUrl: sub.iconurl || sub.iconUrl || null,
+      });
+    }
+  }
+  return rows;
+}
+
+const LABEL_ALIASES = {
+  [normalizeLabel("Digital Out-of-Home")]: normalizeLabel("DOOH"),
+  [normalizeLabel("Digital Out Of Home")]: normalizeLabel("DOOH"),
+  [normalizeLabel("BTL")]: normalizeLabel("Offline BTL"),
+  [normalizeLabel("Multiplex ADs")]: normalizeLabel("Multiplex"),
+  [normalizeLabel("Multiplex Ads")]: normalizeLabel("Multiplex"),
+};
+
+const OFFLINE_JOURNEYS = new Set(["newspaper", "hoarding", "btl"]);
+
+/**
+ * Pick one API row for a canonical tile. API often has many leaf subcategories; we only show 9 top-level tiles.
+ * 1) Subdocument whose name matches the canonical label (or alias → canonical).
+ * 2) Else first sub under a parent whose categoryName matches the canonical label.
+ */
+function matchApiRowForCanonical(flat, cat) {
+  if (!Array.isArray(flat) || flat.length === 0) return null;
+  const target = normalizeLabel(cat.label);
+
+  const bySubName = flat.find((r) => {
+    const n = normalizeLabel(r.subCategoryName);
+    const resolved = LABEL_ALIASES[n] || n;
+    return resolved === target || n === target;
+  });
+  if (bySubName) return bySubName;
+
+  const underParent = flat.filter(
+    (r) => normalizeLabel(r.categoryName) === target
+  );
+  if (underParent.length) return underParent[0];
+
+  return null;
+}
+
 export default function AllMediaCategories() {
   const navigate = useNavigate();
   const { source } = useListingEntryContext();
+  const [flatRows, setFlatRows] = useState([]);
+  const [fetchState, setFetchState] = useState({ loading: true, error: "" });
 
-  const handleCategoryClick = (category) => {
-    // Store media category info for the general-info page to use
+  /** Always 9 UI tiles; `apiRow` links to backend when names align. */
+  const tiles = useMemo(
+    () =>
+      MEDIA_CATEGORIES.map((meta) => ({
+        meta,
+        apiRow: matchApiRowForCanonical(flatRows, meta),
+      })),
+    [flatRows]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setFetchState({ loading: true, error: "" });
+      try {
+        const res = await api.get("/mediasubcategory/for_listing");
+        const flat = normalizeListingPayload(res?.data);
+        if (!cancelled) {
+          setFlatRows(flat);
+          setFetchState({ loading: false, error: "" });
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setFlatRows([]);
+          setFetchState({
+            loading: false,
+            error:
+              e?.response?.data?.message ||
+              e?.message ||
+              "Failed to load categories",
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleCategoryClick = (apiRow, meta) => {
+    const journey = meta.journey;
+    const isOffline = OFFLINE_JOURNEYS.has(journey);
+    const hasOnlineLink =
+      Boolean(apiRow?._id && apiRow?.categoryName) && !isOffline;
+
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("mediaCategory", category.key);
-      localStorage.setItem("mediaSubcategoryHint", category.subcategoryHint);
-      localStorage.setItem("mediaJourney", category.journey);
+      localStorage.setItem("mediaCategory", meta.key);
+      localStorage.setItem("mediaSubcategoryHint", meta.subcategoryHint);
+      localStorage.setItem("mediaJourney", journey);
+      if (hasOnlineLink) {
+        localStorage.setItem("mediaParent", apiRow.categoryName);
+        localStorage.setItem("preselectedSubcategoryId", apiRow._id);
+      } else {
+        localStorage.removeItem("mediaParent");
+        localStorage.removeItem("preselectedSubcategoryId");
+      }
     }
     if (typeof sessionStorage !== "undefined") {
-      sessionStorage.setItem("mediaCategory", category.key);
-      sessionStorage.setItem("mediaSubcategoryHint", category.subcategoryHint);
-      sessionStorage.setItem("mediaJourney", category.journey);
+      sessionStorage.setItem("mediaCategory", meta.key);
+      sessionStorage.setItem("mediaSubcategoryHint", meta.subcategoryHint);
+      sessionStorage.setItem("mediaJourney", journey);
+      if (hasOnlineLink) {
+        sessionStorage.setItem("mediaParent", apiRow.categoryName);
+        sessionStorage.setItem("preselectedSubcategoryId", apiRow._id);
+      } else {
+        sessionStorage.removeItem("mediaParent");
+        sessionStorage.removeItem("preselectedSubcategoryId");
+      }
     }
 
-    // Build params preserving admin context
     const params = new URLSearchParams();
     if (source === "admin") {
       params.set("source", "admin");
     }
-    params.set("mediaCategory", category.key);
-    params.set("journey", category.journey);
-
-    // Navigate to appropriate general-info page based on mediaType
-    const basePath = category.mediaType === "mediaoffline"
-      ? "/mediaoffline/general-info"
-      : "/mediaonline/general-info";
-
-    navigate(`${basePath}?${params.toString()}`);
-  };
-
-  const handleBackToAdmin = () => {
-    try {
-      if (window.history && window.history.length > 1) {
-        window.history.back();
-        return;
-      }
-    } catch {
-      // ignore history access issues
+    params.set("mediaCategory", meta.key);
+    params.set("journey", journey);
+    if (hasOnlineLink) {
+      params.set("mediaParent", apiRow.categoryName);
+      params.set("preselectedSubcategoryId", apiRow._id);
     }
-    navigate("/sellerhub");
+
+    const basePath = generalInfoPathForJourney(journey);
+    navigate(`${basePath}?${params.toString()}`);
   };
 
   return (
@@ -159,7 +281,6 @@ export default function AllMediaCategories() {
       data-testid="all-categories-admin-page"
     >
       <div className="media-categories-overlay">
-
         <main className="media-categories-main">
           <div className="media-categories-card">
             <h1 className="media-categories-title">Choose Any Media Category</h1>
@@ -168,21 +289,39 @@ export default function AllMediaCategories() {
             </p>
 
             <div className="media-category-grid">
-              {MEDIA_CATEGORIES.map((cat) => {
-                const Icon = cat.icon;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className="media-category-tile"
-                    onClick={() => handleCategoryClick(cat)}
-                    data-testid={`admin-category-${cat.key}`}
-                  >
-                    <img src={Icon} className="media-category-icon" />
-                    <span className="media-category-label">{cat.label}</span>
-                  </button>
-                );
-              })}
+              {fetchState.loading && (
+                <p className="media-categories-subtitle col-span-full text-center">
+                  Loading categories…
+                </p>
+              )}
+              {!fetchState.loading && fetchState.error && (
+                <p className="media-categories-subtitle col-span-full text-center text-red-600">
+                  {fetchState.error}
+                </p>
+              )}
+              {!fetchState.loading &&
+                !fetchState.error &&
+                tiles.map(({ meta, apiRow }) => {
+                  const Icon = apiRow?.iconUrl || meta.icon;
+                  return (
+                    <button
+                      key={meta.key}
+                      type="button"
+                      className="media-category-tile"
+                      onClick={() => handleCategoryClick(apiRow, meta)}
+                      data-testid={`admin-category-${meta.key}`}
+                    >
+                      <img
+                        src={Icon}
+                        alt=""
+                        className="media-category-icon"
+                      />
+                      <span className="media-category-label">
+                        {meta.label}
+                      </span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </main>
@@ -190,4 +329,3 @@ export default function AllMediaCategories() {
     </div>
   );
 }
-

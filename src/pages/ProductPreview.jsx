@@ -681,53 +681,34 @@ export default function ProductPreview() {
                             }}
                           />
                         ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
-                            <img src={BXIIcon} alt="BXI" style={{ height: 16, width: 16 }} />
-                            <Typography variant="body2" fontWeight="600">
-                              {formatPrice(selectedVariantData.DiscountedPrice) || 'N/A'}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">
-                            {selectedVariantData.ShoeSize != null
-                              ? `${selectedVariantData.ShoeSize} ${selectedVariantData.MeasurementUnit || ''}`
-                              : selectedVariantData.ProductSize ||
-                                selectedVariantData.NutritionInfo ||
-                                (selectedVariantData?.length && selectedVariantData?.MeasurementUnit
-                                  ? `${selectedVariantData?.length} ${selectedVariantData?.MeasurementUnit}`
-                                  : 'N/A')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Chip label={selectedVariantData.MinOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Chip label={selectedVariantData.MaxOrderQuantity ?? 'N/A'} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">
-                            {selectedVariantData.GST ? `${selectedVariantData.GST}%` : 'N/A'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.HSN ?? 'N/A'}</Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.ProductSize ?? 'N/A'}</Typography>
-                        </TableCell>
-                        <TableCell align="center" sx={{ py: 2 }}>
-                          <Typography variant="body2">{selectedVariantData.ProductIdType ?? 'N/A'}</Typography>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                      </colgroup>
+                      <TableHead>
+                        <TableRow>
+                          {variantPreviewColumns.map((col) => (
+                            <TableCell
+                              key={col.id}
+                              align="center"
+                              sx={{ fontWeight: 600, bgcolor: 'grey.100', py: 1.5 }}
+                            >
+                              <Typography variant="caption" fontWeight="600" color="text.secondary">
+                                {col.heading}
+                              </Typography>
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                          {variantPreviewColumns.map((col) => (
+                            <TableCell key={col.id} align="center" sx={{ py: 2 }}>
+                              {col.cell}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </>
               )}
 
               {/* Size chart */}

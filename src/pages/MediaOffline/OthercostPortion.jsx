@@ -107,7 +107,7 @@ export default function TextileProductInform(props) {
       <Typography
         sx={{
           fontWeight: 500,
-          fontFamily: 'Poppins',
+          fontFamily: 'Inter, sans-serif',
           color: '#6B7A99',
           fontSize: '20px',
           marginBottom: '10px',
@@ -146,7 +146,7 @@ export default function TextileProductInform(props) {
               height: '48px',
               background: '#FFFFFF',
               borderRadius: '10px',
-              fontFamily: 'Poppins',
+              fontFamily: 'Inter, sans-serif',
               fontStyle: 'normal',
               fontSize: '12px',
               fontWeight: 400,
@@ -156,7 +156,7 @@ export default function TextileProductInform(props) {
                 ? '1px solid red'
                 : '1px solid #C4C4C4',
               '& .MuiSelect-select': {
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter, sans-serif',
                 color: '#C64091',
                 fontSize: '12px',
               },
@@ -256,7 +256,7 @@ export default function TextileProductInform(props) {
                 }}
                 inputProps={{
                   style: {
-                    fontFamily: 'Poppins',
+                    fontFamily: 'Inter, sans',
                     fontSize: '13px',
                     color: '#C64091',
                   },
@@ -284,7 +284,7 @@ export default function TextileProductInform(props) {
 
                 color: '#6B7A99',
                 fontSize: '12px',
-                fontFamily: 'Poppins',
+                fontFamily: 'Inter, sans',
                 fontStyle: 'normal',
                 fontWeight: 400,
                 borderRadius: '0px 10px 10px 0px',
@@ -304,7 +304,7 @@ export default function TextileProductInform(props) {
               <MenuItem value='₹'>₹</MenuItem>
             </Select>
           </Box>
-          <Typography sx={{ color: 'red', fontFamily: 'Poppins' }}>
+          <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
             {errors['CostPrice']?.message}
           </Typography>
         </Box>
@@ -361,7 +361,7 @@ export default function TextileProductInform(props) {
 
           {errors?.AdCostHSN && (
             <Typography
-              sx={{ color: 'red', fontFamily: 'Poppins', fontSize: '12px' }}
+              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
             >
               {errors?.AdCostHSN?.message}
             </Typography>
@@ -429,7 +429,7 @@ export default function TextileProductInform(props) {
 
           {errors?.AdCostGST && (
             <Typography
-              sx={{ color: 'red', fontFamily: 'Poppins', fontSize: '12px' }}
+              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
             >
               {errors?.AdCostGST?.message}
             </Typography>
@@ -490,7 +490,7 @@ export default function TextileProductInform(props) {
 
           {errors['ReasonOfCost'] && (
             <Typography
-              sx={{ color: 'red', fontFamily: 'Poppins', fontSize: '12px' }}
+              sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
             >
               {errors['ReasonOfCost']?.message}
             </Typography>
@@ -515,7 +515,7 @@ export default function TextileProductInform(props) {
             height: '41px',
             width: '100%',
             borderRadius: '10px',
-            fontFamily: 'Poppins',
+            fontFamily: 'Inter, sans-serif',
             fontStyle: 'normal',
             fontWeight: 400,
             boxShadow: 'none',
@@ -545,7 +545,7 @@ export default function TextileProductInform(props) {
 }
 
 const CommonTextStyle = {
-  fontFamily: 'Poppins',
+  fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
   fontSize: '14px',
@@ -556,13 +556,13 @@ const CommonTextStyle = {
 const MenuItems = {
   fontSize: '12px',
   color: '#c64091',
-  fontFamily: 'Poppins',
+  fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
 };
 
 const ToolTextStyle = {
-  fontFamily: 'Poppins',
+  fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
   fontSize: '10px',

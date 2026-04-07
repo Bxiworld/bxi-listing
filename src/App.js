@@ -34,6 +34,8 @@ import MediaOnlineProductInfo from './pages/MediaOnline/MediaOnlineProductInfo';
 import MediaOnlineTechInfo from './pages/MediaOnline/MediaOnlineTechInfo';
 import MediaMultiplexProductInfo from './pages/MediaOnline/MediaMultiplexProductInfo';
 import MediaMultiplexTechInfo from './pages/MediaOnline/MediaMultiplexTechInfo';
+import MultiplexMediaProductPreview from './pages/MediaOnline/MultiplexMediaProductPreview';
+import MultiplexGoLive from './pages/MediaOnline/MultiplexGoLive';
 import DigitalScreensProductInfo from './pages/MediaOnline/DigitalScreensProductInfo';
 import DigitalScreensTechInfo from './pages/MediaOnline/DigitalScreensTechInfo';
 import DigitalScreensGoLive from './pages/MediaOnline/DigitalScreensGoLive';
@@ -44,6 +46,7 @@ import MediaOfflineProductInfo from './pages/MediaOffline/MediaOfflineProductInf
 import HoardingProductInfo from './pages/MediaOffline/HoardingProductInfo';
 import HoardingTechInfo from './pages/MediaOffline/HoardingTechInfo';
 import HoardingsGoLive from './pages/MediaOffline/HoardingsGoLive';
+import HoardingMediaProductPreview from './pages/MediaOffline/HoardingMediaProductPreview';
 import MediaOfflineTechInfo from './pages/MediaOffline/MediaOfflineTechInfo';
 
 // Voucher Components
@@ -301,6 +304,14 @@ function App() {
                     <ProductStepLayout category="mediaonline">
                       <GoLive category="mediaonline" />
                     </ProductStepLayout>
+                  </ListingAccessGuard>
+                }
+              />
+              <Route
+                path="/mediaonline/multiplexgolive/:id"
+                element={
+                  <ListingAccessGuard kind="product" category="mediaonline">
+                    <MultiplexGoLive />
                   </ListingAccessGuard>
                 }
               />
@@ -610,7 +621,8 @@ function App() {
               <Route path="/RestaurantProductPreview/:id" element={<ProductPreview />} />
               <Route path="/fmcgproductpreview/:id" element={<ProductPreview />} />
               <Route path="/mediaonlineproductpreview/:id" element={<ProductPreview />} />
-              <Route path="/multiplexmediaonlineproductpreview/:id" element={<ProductPreview />} />
+              <Route path="/multiplexmediaonlineproductpreview/:id" element={<MultiplexMediaProductPreview />} />
+              <Route path="/hoardingmediaofflineproductpreview/:id" element={<HoardingMediaProductPreview />} />
               <Route path="/mediaSheetsProductsPreview/:id" element={<ProductPreview />} />
               <Route path="/mobilityproductpreview/:id" element={<ProductPreview />} />
               <Route path="/textilepreviewpage/:id" element={<ProductPreview />} />

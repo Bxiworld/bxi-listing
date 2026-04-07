@@ -69,13 +69,30 @@ export default function MediaGeneralInfo() {
       '';
   }, [searchParams]);
 
+  /** Parent document `categoryName` from /mediasubcategory/for_listing (tile click). */
+  const listingParent = useMemo(() => {
+    return (
+      searchParams.get('mediaParent') ||
+      sessionStorage.getItem('mediaParent') ||
+      localStorage.getItem('mediaParent') ||
+      ''
+    );
+  }, [searchParams]);
+
   const filteredSubcategories = useMemo(() => {
+    if (listingParent) {
+      const byParent = subcategories.find(
+        (cat) => cat.categoryName === listingParent
+      );
+      if (byParent?.subCategories?.length) {
+        return byParent.subCategories;
+      }
+    }
     const selectedCategory = subcategories.find(
       (cat) => cat.categoryName === mediaCategory
     );
-
     return selectedCategory?.subCategories || [];
-  }, [subcategories, mediaCategory]);
+  }, [subcategories, mediaCategory, listingParent]);
 
   // Get journey and media category from URL params or storage
   const journey = useMemo(() => {
@@ -132,6 +149,35 @@ export default function MediaGeneralInfo() {
     fetchSubcategories();
   }, [useStaticSubcategories]);
 
+  useEffect(() => {
+    if (loading || useStaticSubcategories) return;
+    const productId = id || location?.state?.id;
+    if (productId) return;
+
+    const preId =
+      searchParams.get('preselectedSubcategoryId') ||
+      sessionStorage.getItem('preselectedSubcategoryId') ||
+      localStorage.getItem('preselectedSubcategoryId');
+    if (!preId) return;
+
+    const match = filteredSubcategories.some(
+      (s) => String(s._id) === String(preId)
+    );
+    if (!match) return;
+
+    setValue('subcategory', String(preId), { shouldValidate: true });
+    sessionStorage.removeItem('preselectedSubcategoryId');
+    localStorage.removeItem('preselectedSubcategoryId');
+  }, [
+    loading,
+    useStaticSubcategories,
+    id,
+    location?.state?.id,
+    filteredSubcategories,
+    setValue,
+    searchParams,
+  ]);
+
   // Fetch existing product data if editing
   useEffect(() => {
     const fetchProduct = async () => {
@@ -168,30 +214,24 @@ export default function MediaGeneralInfo() {
     if (!subcategoryId) return '';
     if (useStaticSubcategories && staticSubcategories.includes(subcategoryId))
       return subcategoryId;
-    if (productData?.ProductSubCategory === subcategoryId && productData?.ProductSubCategoryName)
+    if (
+      productData?.ProductSubCategory === subcategoryId &&
+      productData?.ProductSubCategoryName
+    )
       return productData.ProductSubCategoryName;
-    const getSubcategoryName = (subcategoryId) => {
-      if (!subcategoryId) return '';
 
-      if (useStaticSubcategories && staticSubcategories.includes(subcategoryId))
-        return subcategoryId;
-
-      if (
-        productData?.ProductSubCategory === subcategoryId &&
-        productData?.ProductSubCategoryName
-      )
-        return productData.ProductSubCategoryName;
-
-          const selectedCategory = subcategories.find(
-      (cat) => cat.categoryName.toLowerCase() === mediaCategory.toLowerCase()
+    const inFiltered = filteredSubcategories.find(
+      (sub) => String(sub._id) === String(subcategoryId)
     );
+    if (inFiltered?.subCategoryName) return inFiltered.subCategoryName;
 
-    const found = selectedCategory?.subCategories?.find(
-      (sub) => sub._id === subcategoryId
-    );
-
-    return found?.subCategoryName || subcategoryId;
-      };
+    for (const cat of subcategories) {
+      const found = cat.subCategories?.find(
+        (sub) => String(sub._id) === String(subcategoryId)
+      );
+      if (found?.subCategoryName) return found.subCategoryName;
+    }
+    return subcategoryId;
   };
 
   const onSubmit = async (data) => {

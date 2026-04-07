@@ -92,3 +92,13 @@ export function getMediaSubcategories(mediaCategory) {
   const key = mediaCategory.toLowerCase().trim();
   return MEDIA_SUBCATEGORIES_BY_CATEGORY[key] || [];
 }
+
+
+export function getMediaSubcategoriesForListing() {
+  // call this api 'mediasubcategory/for_listing'
+  const  getMediaSubcategoriesForListing = async () => {
+    const response = await axios.get('mediasubcategory/for_listing');
+    return response?.data?.subcategory;
+  }
+  return getMediaSubcategoriesForListing();
+}

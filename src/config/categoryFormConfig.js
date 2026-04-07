@@ -655,7 +655,8 @@ export const HOTEL_VOUCHER_STEP_PATHS = {
 const MEDIA_STEP_PATHS = {
   mediaonline: {
     mediaonlinemultiplexproductinfo: { prev: 'general-info', next: 'mediamultiplextechinfo' },
-    mediamultiplextechinfo: { prev: 'mediaonlinemultiplexproductinfo', next: 'go-live' },
+    mediamultiplextechinfo: { prev: 'mediaonlinemultiplexproductinfo', next: 'multiplexgolive' },
+    multiplexgolive: { prev: 'mediamultiplextechinfo', next: null },
     mediaonlinedigitalscreensinfo: { prev: 'general-info', next: 'mediaonlinedigitalscreenstechinfo' },
     mediaonlinedigitalscreenstechinfo: { prev: 'mediaonlinedigitalscreensinfo', next: 'digitalscreensgolive' },
     digitalscreensgolive: { prev: 'mediaonlinedigitalscreenstechinfo', next: null },

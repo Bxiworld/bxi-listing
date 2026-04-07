@@ -131,7 +131,7 @@ const resolveViewRoute = ({ product, companyType, listingType, productCategory, 
       return `/multiplexmediaonlineproductpreview/${productId}`;
     }
     if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      return `/mediaonlineproductpreview/${productId}`;
+      return `/hoardingmediaofflineproductpreview/${productId}`;
     }
     return `/mediaonlineproductpreview/${productId}`;
   }
@@ -214,7 +214,7 @@ const resolveEditRoute = ({
         const digitalStep = digitalSteps[reviewKey] || 'mediaonlinedigitalscreensinfo';
         return `/mediaonline/${digitalStep}/${productId}`;
       }
-      const multiplexSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'go-live' };
+      const multiplexSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'multiplexgolive' };
       const multiplexStep = multiplexSteps[reviewKey] || 'mediaonlinemultiplexproductinfo';
       return `/mediaonline/${multiplexStep}/${productId}`;
     }

@@ -27,8 +27,9 @@ import api from '../../utils/api';
 import { useFieldArray, useForm } from 'react-hook-form';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import OthercostPortion from './OthercostPortion.jsx';
-import ToolTip from '../../components/ToolTip';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { Button as UiButton } from '../../components/ui/button';
 
 
 // Constants
@@ -492,15 +493,6 @@ export default function HoardingTechInfo() {
     }, []);
 
 
-    const CancelJourney = () => {
-        const WindowConfirmation = window.confirm(
-            'Are you sure you want to cancel the product?',
-        );
-        if (WindowConfirmation) {
-            navigate('/sellerhub');
-        }
-    };
-
     const OthercostFieldsarray = [
         'Applicable On',
         'Other cost ',
@@ -510,22 +502,20 @@ export default function HoardingTechInfo() {
     ];
 
     return (
-        <Box className="listing-journey">
-            <form onSubmit={updateProductTechinfostatus}>
-                <Box className="listing-journey-container">
-                    <Box className="listing-journey-form">
-                        <Box className="listing-header">
-                            <Typography className="listing-header-title">
-                                Technical Information
-                                <ToolTip
-                                    info={
-                                        'Technical Information refers to specific details and specifications about a product\'s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product, This is Critical Information from Logistic & Buying Perspective for Making Informed Decisions'
-                                    }
-                                />
-                            </Typography>
-                        </Box>
+        <div className="min-h-screen bg-[#F8F9FA] py-8">
+            <div className="max-w-7xl mx-auto px-4">
+                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                    <h2 className="text-2xl font-bold text-[#111827] mb-2">
+                        Hoarding Technical Information
+                    </h2>
+                    <p className="text-sm text-[#6B7A99]">
+                        Set timelines, slots, HSN/GST, key features, supporting documents, tags, and other costs for your hoarding listing.
+                    </p>
+                </div>
 
-                        <Box className="listing-section" sx={{ mt: 2, mb: 3 }}>
+                <form onSubmit={updateProductTechinfostatus} className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                        <Box sx={{ mt: 0, mb: 0 }}>
                                     <Box
                                         sx={{
                                             height: 'auto',
@@ -728,7 +718,7 @@ export default function HoardingTechInfo() {
                                                 </Select>
 
                                                 <Typography
-                                                    sx={{ color: 'red', fontFamily: 'Poppins' }}
+                                                    sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
                                                 >
                                                     {errors?.mediaVariation?.adType?.message}
                                                 </Typography>
@@ -810,7 +800,7 @@ export default function HoardingTechInfo() {
                                                     </Select>
 
                                                     <Typography
-                                                        sx={{ color: 'red', fontFamily: 'Poppins' }}
+                                                        sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
                                                     >
                                                         {errors?.mediaVariation?.timeline?.message}
                                                     </Typography>
@@ -969,7 +959,7 @@ export default function HoardingTechInfo() {
                                                         </Typography>
                                                     )}
                                                     <Typography
-                                                        sx={{ color: 'red', fontFamily: 'Poppins' }}
+                                                        sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
                                                     >
                                                         {errors?.mediaVariation?.GST?.message}
                                                     </Typography>
@@ -1199,7 +1189,7 @@ export default function HoardingTechInfo() {
                                     >
                                         <Box
                                             sx={{
-                                                fontFamily: 'Poppins',
+                                                fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                 color: '#6B7A99',
                                                 mb: 2,
                                             }}
@@ -1295,7 +1285,7 @@ export default function HoardingTechInfo() {
                                                 </Select>
                                                 {items?.length > 0 && items.length < 5 && (
                                                     <Typography
-                                                        sx={{ color: 'red', fontFamily: 'Poppins' }}
+                                                        sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
                                                     >
                                                         Select{' '}
                                                         {5 - items?.length} more feature
@@ -1348,14 +1338,14 @@ export default function HoardingTechInfo() {
                                                             <Typography
                                                                 variant="body1"
                                                                 style={{
-                                                                    fontFamily: 'Poppins',
+                                                                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                                     fontSize: '12px',
                                                                     color: '#c64091',
                                                                 }}
                                                             ></Typography>
                                                         ),
                                                         style: {
-                                                            fontFamily: 'Poppins',
+                                                            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                             fontSize: '12px',
                                                             padding: '10px',
                                                             color: '#c64091',
@@ -1364,7 +1354,7 @@ export default function HoardingTechInfo() {
                                                 />
                                                 {items?.length > 0 && items.length < 5 && (
                                                     <Typography
-                                                        sx={{ color: 'red', fontFamily: 'Poppins', mt: 1 }}
+                                                        sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif', mt: 1 }}
                                                     >
                                                         Enter{' '}
                                                         {5 - items?.length} more feature description
@@ -1382,7 +1372,7 @@ export default function HoardingTechInfo() {
                                             <Typography
                                                 sx={{
                                                     color: '#6B7A99',
-                                                    fontFamily: 'Poppins',
+                                                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                     fontSize: '16px',
                                                     fontWeight: 600,
                                                     mb: 2,
@@ -1425,7 +1415,7 @@ export default function HoardingTechInfo() {
                                                                         fontSize: '12px',
                                                                         height: 'auto',
                                                                         color: ' #6B7A99',
-                                                                        fontFamily: 'Poppins',
+                                                                        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                                     }}
                                                                 >
                                                                     {item.name}
@@ -1552,7 +1542,7 @@ export default function HoardingTechInfo() {
                                                         disableUnderline: 'true',
                                                         style: {
                                                             color: 'rgba(107, 122, 153)',
-                                                            fontFamily: 'Poppins',
+                                                            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                             fontSize: '14px',
                                                             padding: '7px',
                                                         },
@@ -1563,7 +1553,7 @@ export default function HoardingTechInfo() {
                                                         },
                                                     }}
                                                     sx={{
-                                                        fontFamily: 'Poppins',
+                                                        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
                                                         background: 'transparent',
                                                         padding: '10px',
                                                         color: '#1A202C',
@@ -1665,33 +1655,34 @@ export default function HoardingTechInfo() {
                                         </Box>
                                     </Box>
                         </Box>
-                        <Box className="listing-actions">
-                            <Button
-                                variant="outlined"
-                                className="listing-btn-secondary"
-                                onClick={() => CancelJourney()}
-                                sx={{ minWidth: '120px' }}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                className="listing-btn-primary"
-                                sx={{ minWidth: '120px' }}
-                            >
-                                Next
-                            </Button>
-                        </Box>
-                    </Box>
-                </Box>
-            </form>
-        </Box>
+                    </div>
+
+                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <UiButton
+                            type="button"
+                            variant="outline"
+                            className="border-[#E5E8EB] text-[#111827] hover:bg-[#F8F9FA]"
+                            onClick={() => navigate(`/mediaoffline/mediaofflinehoardinginfo/${ProductId}`)}
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back
+                        </UiButton>
+                        <UiButton
+                            type="submit"
+                            className="bg-[#C64091] hover:bg-[#A03375] text-white shadow-sm"
+                        >
+                            Next
+                            <ArrowRight className="w-4 h-4" />
+                        </UiButton>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 }
 
 const CommonTextStyle = {
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 400,
     fontSize: '14px',
@@ -1706,8 +1697,9 @@ const inputStyles = {
     borderRadius: '8px',
     padding: '0px 10px',
     fontSize: '12px',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     color: '#1A202C',
-    border: '1px solid #CBD5E0',
+    border: '1px solid #E5E8EB',
     '&:hover': {
         border: '1px solid #94A3B8',
     },
@@ -1732,8 +1724,8 @@ const TextFieldStyle = {
     height: '48px',
     background: '#fff',
     borderRadius: '8px',
-    border: '1px solid #CBD5E0',
-    fontFamily: 'Poppins',
+    border: '1px solid #E5E8EB',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 400,
     fontSize: '14px',
@@ -1765,7 +1757,7 @@ const TextFieldStyle = {
 };
 const mapdata = {
     color: ' #6B7A99',
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     width: '100%',
     fontSize: '12px',
     minHeight: '60px',
@@ -1773,7 +1765,7 @@ const mapdata = {
 };
 
 const tableDataStyle = {
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 500,
     fontSize: 12,
@@ -1781,7 +1773,7 @@ const tableDataStyle = {
 };
 
 const TableCellStyle = {
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 500,
     fontSize: 12,
@@ -1793,7 +1785,7 @@ const TableCellStyle = {
 
 
 const TypographyStyle = {
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 400,
     fontSize: '14px',
@@ -1823,7 +1815,7 @@ const crosstagstyle = {
     },
 };
 const FilterTitle = {
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 500,
     fontSize: '18px',
@@ -1838,7 +1830,7 @@ const ProceedToAddButtonStyle = {
     height: '41px',
     background: '#C64091',
     borderRadius: '10px',
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 500,
     fontSize: '14px',
@@ -1854,7 +1846,7 @@ const ProceedToAddButtonStyle = {
 const MenuItemsCss = {
     fontSize: '12px',
     color: '#1A202C',
-    fontFamily: 'Poppins',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontStyle: 'normal',
     fontWeight: 400,
     '&.Mui-selected': {
