@@ -301,7 +301,7 @@ export default function SellerHub() {
     try {
       await dispatch(delistProduct({
         productId: product._id,
-        ProductUploadStatus: 'delist',
+        ProductUploadStatus: 'Delist',
       })).unwrap();
       toast.success('Product delisted successfully');
       dispatch(triggerRefresh());
