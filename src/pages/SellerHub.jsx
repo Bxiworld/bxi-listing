@@ -45,7 +45,7 @@ const TABS = ['Live', 'In Draft', 'Admin Review', 'Delist', 'Rejected', 'All'];
 const CATEGORY_FILTER_OPTIONS = Array.from(
   new Set(Object.values(PRODUCT_TYPE_BY_CATEGORY))
 ).sort((a, b) => a.localeCompare(b));
-const LISTING_TYPE_FILTER_OPTIONS = ['Product', 'Voucher', 'Media Online', 'Media Offline'];
+const LISTING_TYPE_FILTER_OPTIONS = ['Product', 'Voucher', 'Media'];
 const CATEGORY_FILTER_ALIASES = {
   'QSR': ['qsr', 'restaurant', 'restaurant / qsr'],
   'Office Supply': ['office supply', 'officesupply'],
@@ -209,19 +209,21 @@ export default function SellerHub() {
     return filteredProducts.filter((product) => {
       const listingTypeNorm = normalizeCategory(product?.ListingType);
       const categoryNorm = normalizeCategory(product?.ProductCategoryName);
-      const isMediaOnline = categoryNorm.includes('media online') || categoryNorm.includes('mediaonline');
-      const isMediaOffline = categoryNorm.includes('media offline') || categoryNorm.includes('mediaoffline');
+      const isMedia =
+        listingTypeNorm === 'media' ||
+        categoryNorm.includes('mediaonline') ||
+        categoryNorm.includes('mediaoffline') ||
+        categoryNorm.includes('media online') ||
+        categoryNorm.includes('media offline');
       const isVoucher = listingTypeNorm === 'voucher' || categoryNorm.includes('voucher');
 
       switch (selectedListingType) {
         case 'Product':
-          return !isVoucher && !isMediaOnline && !isMediaOffline;
+          return !isVoucher && !isMedia;
         case 'Voucher':
           return isVoucher;
-        case 'Media Online':
-          return isMediaOnline;
-        case 'Media Offline':
-          return isMediaOffline;
+        case 'Media':
+          return isMedia;
         default:
           return true;
       }

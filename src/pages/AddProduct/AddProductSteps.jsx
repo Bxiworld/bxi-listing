@@ -3665,7 +3665,7 @@ export const TechInfo = ({ category }) => {
 const MEDIA_CATEGORIES = ['mediaonline', 'mediaoffline'];
 const RESTRICTED_ASPECT_CATEGORIES = ['textile', 'officesupply', 'lifestyle', 'others'];
 
-export const GoLive = ({ category }) => {
+export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
@@ -3855,7 +3855,8 @@ export const GoLive = ({ category }) => {
       });
       toast.success('Images uploaded! Redirecting to preview.');
       if (isMediaCategory) {
-        navigate(`/mediaonlineproductpreview/${id}`);
+        const base = (mediaOnlinePreviewPath || '/mediaonlineproductpreview').replace(/\/$/, '');
+        navigate(`${base}/${id}`);
       } else {
         navigate(`/allproductpreview/${id}`);
       }
