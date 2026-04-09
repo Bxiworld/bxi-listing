@@ -1666,7 +1666,7 @@ export default function HoardingTechInfo() {
                                         </Box>
                                     </Box>
                         </Box>
-                    </div>
+                    </Box>
 
                     <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <UiButton
@@ -1686,8 +1686,12 @@ export default function HoardingTechInfo() {
                             <ArrowRight className="w-4 h-4" />
                         </UiButton>
                     </div>
+                </Box>
                 </form>
-            </div>
+        </Box>
+        </main>
+        </div>
+        </div>
         </div>
     );
 }
