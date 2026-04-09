@@ -967,16 +967,26 @@ const EU_SHOE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
 const inferSelectedSizeFromVariation = (row, options = []) => {
   if (!row) return '';
   if (row.ShoeSize) return 'Shoes Size';
+
+  const rawSize = String(row.ProductSize || '').trim();
+  const normalized = rawSize.toLowerCase();
+
+  // Priority 1: direct match of ProductSize against known options (e.g. "GSM", "Weight")
+  if (rawSize) {
+    const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
+    if (directMatch) return directMatch;
+  }
+
+  // Priority 2: infer from L/W/H/Weight fields only when no ProductSize option matched,
+  // so stale dimension fields from legacy variants don't override the actual dimension.
   if (row.Length && row.Height && row.Width) return 'Length x Height x Width';
   if (row.Length && row.Height) return 'Length x Height';
   if (row.Length) return 'Length';
   if (row.Weight) return 'Weight';
 
-  const rawSize = String(row.ProductSize || '').trim();
   if (!rawSize) return '';
-  const normalized = rawSize.toLowerCase();
-  const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
-  if (directMatch) return directMatch;
+
+  // Priority 3: heuristic inference from ProductSize string
   if (options.includes('Custom Size') && !row.ShoeSize && !(row.Length || row.Height || row.Width || row.Weight)) {
     const mu = String(row.MeasurementUnit || '').trim();
     const parts = rawSize.split(/\s+/).filter(Boolean);
@@ -1589,13 +1599,19 @@ export const ProductInfo = ({ category }) => {
     setValue('sampleAvailability', row.SampleQty ? String(row.SampleQty) : '');
     setValue('priceOfSample', row.SamplePrice ? String(row.SamplePrice) : '');
 
-    // Size/dimensions
+    // Size/dimensions — use the currently locked dimension if variants exist,
+    // so editing doesn't flip the dimension to a wrong type from stale L/W/H/Weight fields.
+    const currentLockedSize = getValues('selectedSize');
+    const derivedSelectedSize = (isDimensionSelectionLocked && currentLockedSize)
+      ? currentLockedSize
+      : (inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '');
+    setValue('selectedSize', derivedSelectedSize);
+
     setValue('length', row.Length ?? '');
     setValue('width', row.Width ?? '');
     setValue('height', row.Height ?? '');
     setValue('weight', row.Weight ?? '');
-    const derivedSelectedSize = inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '';
-    setValue('selectedSize', derivedSelectedSize);
+
     if (derivedSelectedSize === 'Custom Size') {
       const rawPs = String(row.ProductSize || '').trim();
       const mu = String(row.MeasurementUnit || '').trim();
@@ -1607,6 +1623,17 @@ export const ProductInfo = ({ category }) => {
         setValue('sizeValue', rawPs);
         setValue('sizeUnit', mu || 'cm');
       }
+    } else if (!['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Shoes Size'].includes(derivedSelectedSize)) {
+      // For non-L/W/H/Weight dimensions (e.g. GSM, Battery Capacity), populate sizeValue
+      // from ProductSize by stripping the unit suffix if present.
+      const rawPs = String(row.ProductSize || '').trim();
+      const mu = String(row.MeasurementUnit || '').trim();
+      if (mu && rawPs.endsWith(mu)) {
+        setValue('sizeValue', rawPs.slice(0, -mu.length).trim());
+      } else {
+        setValue('sizeValue', rawPs);
+      }
+      setValue('sizeUnit', mu || 'cm');
     }
     if (row.ShoeSize) {
       setValue('shoeSize', String(row.ShoeSize));
