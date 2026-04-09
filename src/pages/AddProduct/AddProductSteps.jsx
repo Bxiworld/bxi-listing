@@ -1490,10 +1490,10 @@ export const ProductInfo = ({ category }) => {
       ProductSize: productSize,
       ProductColor: extraCol === 'color' ? (d.productColor || '#ffffff') : (d.productColor || '#ffffff'),
       ProductIdType: d.productIdType || `SKU-${Date.now()}`,
-      Length: d.selectedSize === 'Custom Size' ? '' : (d.length || ''),
-      Width: d.selectedSize === 'Custom Size' ? '' : (d.width || ''),
-      Height: d.selectedSize === 'Custom Size' ? '' : (d.height || ''),
-      Weight: d.selectedSize === 'Custom Size' ? '' : (d.weight || ''),
+      Length: ['Length', 'Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.length || '') : '',
+      Width: d.selectedSize === 'Length x Height x Width' ? (d.width || '') : '',
+      Height: ['Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.height || '') : '',
+      Weight: d.selectedSize === 'Weight' ? (d.weight || '') : '',
       MeasurementUnit: measurementUnit,
       TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
       ...(wantsSample && {
@@ -1544,8 +1544,27 @@ export const ProductInfo = ({ category }) => {
     setValue('flavor', '');
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
-    // Keep size selection fixed once variants exist (BXI Frontend parity).
-    setValue('sizeUnit', 'cm');
+    // Keep size selection & unit fixed once variants exist (BXI Frontend parity).
+    // Don't reset sizeUnit to 'cm' unconditionally — re-derive from the locked dimension
+    // so subsequent variants keep the correct unit (e.g. 'gsm' for GSM, 'kg' for Weight).
+    const lockedSize = (getValues('selectedSize') || '').toLowerCase();
+    if (lockedSize.includes('weight') || lockedSize === 'gsm') {
+      setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
+    } else if (lockedSize.includes('battery') || lockedSize.includes('power')) {
+      setValue('sizeUnit', lockedSize.includes('battery') ? 'mAh' : 'W');
+    } else if (lockedSize.includes('volume') || lockedSize.includes('capacity')) {
+      setValue('sizeUnit', 'ml');
+    } else if (lockedSize.includes('calorie')) {
+      setValue('sizeUnit', 'kcal');
+    } else if (lockedSize.includes('nutritional')) {
+      setValue('sizeUnit', 'g');
+    } else if (lockedSize.includes('shelf life') || lockedSize.includes('shelflife')) {
+      setValue('sizeUnit', 'Months');
+    } else if (lockedSize.includes('temprature') || lockedSize.includes('temperature') || lockedSize.includes('temp')) {
+      setValue('sizeUnit', '°C');
+    } else {
+      setValue('sizeUnit', 'cm');
+    }
     setValue('shoeMeasurementUnit', 'US');
     setValue('isSample', false);
     setValue('sampleAvailability', '');
@@ -1950,6 +1969,13 @@ export const ProductInfo = ({ category }) => {
                       onClick={() => {
                         if (isDimensionSelectionLocked) return;
                         setValue('selectedSize', opt);
+                        setValue('length', '');
+                        setValue('width', '');
+                        setValue('height', '');
+                        setValue('weight', '');
+                        setValue('sizeValue', '');
+                        setValue('volume', '');
+                        setValue('shoeSize', '');
                         if (errors.selectedSize) {
                           setError('selectedSize', { type: 'manual', message: '' });
                         }
