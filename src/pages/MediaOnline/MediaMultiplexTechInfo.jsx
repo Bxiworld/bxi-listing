@@ -49,6 +49,7 @@ import OthercostPortion from '../MediaOffline/OthercostPortion.jsx';
 import dayjs from 'dayjs';
 
 import ToolTip from '../../components/ToolTip';
+import { Stepper } from '../AddProduct/AddProductSteps';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 
@@ -718,6 +719,13 @@ export default function MediaMultiplexTechInfo() {
   ];
 
   return (
+    <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={3} category="mediaonline" completedSteps={[1, 2]} />
+          </aside>
+          <main className="stepper-content">
     <>
       <form onSubmit={updateProductTechinfostatus}>
         <Card
@@ -2091,6 +2099,10 @@ export default function MediaMultiplexTechInfo() {
         </Card>
       </form>
     </>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 }
 

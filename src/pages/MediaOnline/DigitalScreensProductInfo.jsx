@@ -15,6 +15,7 @@ import { Badge } from '../../components/ui/badge';
 import { DataGrid } from '@mui/x-data-grid';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 const schema = z.object({
   location: z.string().min(1, 'Location is required'),
@@ -232,7 +233,13 @@ export default function DigitalScreensProductInfo() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
-      <div className="form-container max-w-5xl mx-auto px-4">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} category="mediaonline" completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
+      <div className="max-w-5xl mx-auto px-4">
         <div className="form-section bg-white rounded-lg shadow-sm p-6">
           <h2 className="form-section-title mb-6">Digital Screens – Media Information</h2>
 
@@ -408,6 +415,9 @@ export default function DigitalScreensProductInfo() {
           <Button variant="ghost" className="mt-4 text-[#6B7A99]" onClick={() => window.confirm('Cancel product?') && navigate('/sellerhub')}>
             Cancel
           </Button>
+        </div>
+      </div>
+          </main>
         </div>
       </div>
     </div>

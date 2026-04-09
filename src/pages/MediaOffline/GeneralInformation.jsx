@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import api from '../../utils/api';
 import { getMediaSubcategories } from '../../config/mediaSubcategories';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 /**
  * Journey type determines the flow after general info:
@@ -244,6 +245,11 @@ export default function MediaOfflineGeneralInfo() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={1} category="mediaoffline" />
+          </aside>
+          <main className="stepper-content">
         <div className="form-section">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="form-section-title">
@@ -378,6 +384,8 @@ export default function MediaOfflineGeneralInfo() {
               </Button>
             </div>
           </form>
+        </div>
+          </main>
         </div>
       </div>
     </div>

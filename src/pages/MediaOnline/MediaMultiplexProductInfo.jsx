@@ -19,6 +19,7 @@ import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import api, { mediaApi } from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 /** Radix Select forbids SelectItem value=""; use sentinel for “show all states”. */
 const ALL_STATES_VALUE = '__all_states__';
@@ -268,6 +269,11 @@ export default function MediaMultiplexProductInfo() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} category="mediaonline" completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
         <div className="form-section">
           <h2 className="form-section-title">Multiplex Product Information</h2>
 
@@ -467,6 +473,8 @@ export default function MediaMultiplexProductInfo() {
               </Button>
             </div>
           </form>
+        </div>
+          </main>
         </div>
       </div>
     </div>

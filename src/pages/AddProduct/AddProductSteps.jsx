@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
@@ -20,7 +20,6 @@ import { cn } from '../../lib/utils';
 import { productApi } from '../../utils/api';
 import api from '../../utils/api';
 import {
-  SUBCATEGORY_ENDPOINTS,
   PRODUCT_TYPE_BY_CATEGORY,
   getGeneralInfoConfig,
   getProductInfoConfig,
@@ -173,7 +172,11 @@ const STEPS = [
 const getStepName = (stepId, category) => {
   if (stepId !== 2) return STEPS[stepId - 1].name;
   const isVoucherCategory = category?.endsWith?.('Voucher');
-  return isVoucherCategory ? 'Voucher Information' : 'Product Information';
+  if (isVoucherCategory) return 'Voucher Information';
+  const isMediaCategory =
+    category === 'mediaonline' || category === 'mediaoffline' || category === 'media';
+  if (isMediaCategory) return 'Media Information';
+  return 'Product Information';
 };
 
 // Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
@@ -222,6 +225,8 @@ export const GeneralInformation = ({ category }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
+  const [pendingTextileGenderHydrate, setPendingTextileGenderHydrate] = useState(null);
+  const [pendingTextileSubcategoryHydrate, setPendingTextileSubcategoryHydrate] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subcategoryOptions, setSubcategoryOptions] = useState([]);
   const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
@@ -250,6 +255,68 @@ export const GeneralInformation = ({ category }) => {
     }
   });
 
+  // Hydrate draft / edit when URL includes product id (parity with ProductInfo / TechInfo / GoLive)
+  useEffect(() => {
+    if (!id) {
+      setPendingTextileGenderHydrate(null);
+      setPendingTextileSubcategoryHydrate(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await productApi.getProductById(id);
+        const raw = res?.data ?? res;
+        const data = raw?.body ?? raw?.data ?? raw;
+        if (cancelled || !data) return;
+
+        setValue('productName', data.ProductName || '', { shouldDirty: false });
+        setValue('description', data.ProductDescription || '', { shouldDirty: false });
+        if (giConfig.hasSubtitle) {
+          setValue('productSubtitle', data.ProductSubtitle || '', { shouldDirty: false });
+        }
+        if (giConfig.hasRadioButtons && !isVoucherCategory) {
+          const v = data.HasRegistrationProcess;
+          if (v === 'Yes' || v === 'No') {
+            setValue('hasRegistrationProcess', v, { shouldDirty: false });
+          }
+        }
+        if (giConfig.hasStarRating && data.HotelStars != null && String(data.HotelStars).trim() !== '') {
+          setValue('HotelStars', String(data.HotelStars), { shouldDirty: false });
+        }
+
+        const subVal = data.ProductSubCategory ?? data.productSubCategory;
+        const subStr = subVal != null && subVal !== '' ? String(subVal) : '';
+
+        if (giConfig.hasGenderSelection && data.Gender) {
+          setPendingTextileGenderHydrate(String(data.Gender));
+          setPendingTextileSubcategoryHydrate(subStr || null);
+          setValue('gender', data.Gender, { shouldDirty: false });
+        } else {
+          setPendingTextileGenderHydrate(null);
+          setPendingTextileSubcategoryHydrate(null);
+          if (category !== 'airlineVoucher' && subStr) {
+            setValue('subcategory', subStr, { shouldDirty: false });
+          }
+        }
+      } catch {
+        toast.error('Failed to load product details.');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    id,
+    category,
+    isVoucherCategory,
+    setValue,
+    giConfig.hasSubtitle,
+    giConfig.hasRadioButtons,
+    giConfig.hasStarRating,
+    giConfig.hasGenderSelection,
+  ]);
+
   const normalizeCategoryLabel = (cat) => {
     if (!cat) return 'Product';
     const cleaned = cat.replace(/voucher$/i, '');
@@ -275,6 +342,15 @@ export const GeneralInformation = ({ category }) => {
       : genderCategoryData;
 
   useEffect(() => {
+    if (category === 'airlineVoucher') {
+      setSubcategoryOptions([]);
+      setGenderCategoryData([]);
+      setSelectedGenderId(null);
+      setSelectedGender('Unisex');
+      setSubcategoriesLoading(false);
+      if (!id) setValue('subcategory', '');
+      return;
+    }
     if (isVoucherCategory) {
       const currentVoucherJourneyType = getVoucherJourneyTypeFromStorage();
 
@@ -300,7 +376,7 @@ export const GeneralInformation = ({ category }) => {
         setGenderCategoryData([]);
         setSelectedGenderId(null);
         setSelectedGender('Unisex');
-        setValue('subcategory', '');
+        if (!id) setValue('subcategory', '');
         return;
       }
 
@@ -320,7 +396,7 @@ export const GeneralInformation = ({ category }) => {
             })).filter((o) => o.value != null && o.label != null);
             options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
             setSubcategoryOptions(options);
-            setValue('subcategory', '');
+            if (!id) setValue('subcategory', '');
           })
           .catch(() => {
             setSubcategoryOptions([]);
@@ -337,7 +413,7 @@ export const GeneralInformation = ({ category }) => {
       setGenderCategoryData([]);
       setSelectedGenderId(null);
       setSelectedGender('Unisex');
-      setValue('subcategory', '');
+      if (!id) setValue('subcategory', '');
       return;
     }
 
@@ -355,21 +431,25 @@ export const GeneralInformation = ({ category }) => {
           Array.isArray(root[0]?.SubcategoryValue)
         ) {
           setGenderCategoryData(root);
-          const defaultGenderGroup =
-            root.find(
-              (item) =>
-                String(item?.SubcategoryName || '').toLowerCase() === 'unisex'
-            ) || root[0];
-          const defaultGenderName = defaultGenderGroup?.SubcategoryName || 'Unisex';
-          setSelectedGenderId(defaultGenderGroup?._id || null);
-          setSelectedGender(defaultGenderName);
-          setValue('gender', defaultGenderName);
-          const options = getSubcategoryOptions({
-            data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
-          });
-          options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
-          setSubcategoryOptions(options);
-          setValue('subcategory', '');
+          if (id) {
+            // Editing: hydrate effect + textileGenderHydrateRef apply saved gender/subcategory
+          } else {
+            const defaultGenderGroup =
+              root.find(
+                (item) =>
+                  String(item?.SubcategoryName || '').toLowerCase() === 'unisex'
+              ) || root[0];
+            const defaultGenderName = defaultGenderGroup?.SubcategoryName || 'Unisex';
+            setSelectedGenderId(defaultGenderGroup?._id || null);
+            setSelectedGender(defaultGenderName);
+            setValue('gender', defaultGenderName);
+            const options = getSubcategoryOptions({
+              data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
+            });
+            options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+            setSubcategoryOptions(options);
+            setValue('subcategory', '');
+          }
         } else {
           setGenderCategoryData([]);
           setSelectedGenderId(null);
@@ -388,9 +468,9 @@ export const GeneralInformation = ({ category }) => {
     };
 
     fetchSubcategories();
-  }, [category, isVoucherCategory, setValue]);
+  }, [category, isVoucherCategory, id, setValue]);
 
-  const handleTextileGenderSelect = (genderGroup) => {
+  const handleTextileGenderSelect = useCallback((genderGroup) => {
     setSelectedGenderId(genderGroup?._id || null);
     const name = genderGroup?.SubcategoryName || 'Unisex';
     setSelectedGender(name);
@@ -401,7 +481,36 @@ export const GeneralInformation = ({ category }) => {
     options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
     setSubcategoryOptions(options);
     setValue('subcategory', '', { shouldValidate: true });
-  };
+  }, [setValue]);
+
+  useEffect(() => {
+    if (!giConfig.hasGenderSelection || !genderCategoryData.length || !pendingTextileGenderHydrate) {
+      return;
+    }
+    const g = pendingTextileGenderHydrate;
+    const match = genderCategoryData.find(
+      (item) => String(item?.SubcategoryName || '').toLowerCase() === g.toLowerCase()
+    );
+    if (!match) {
+      setPendingTextileGenderHydrate(null);
+      setPendingTextileSubcategoryHydrate(null);
+      return;
+    }
+    handleTextileGenderSelect(match);
+    const pend = pendingTextileSubcategoryHydrate;
+    setPendingTextileGenderHydrate(null);
+    setPendingTextileSubcategoryHydrate(null);
+    if (pend) {
+      setValue('subcategory', pend, { shouldDirty: false });
+    }
+  }, [
+    genderCategoryData,
+    giConfig.hasGenderSelection,
+    pendingTextileGenderHydrate,
+    pendingTextileSubcategoryHydrate,
+    setValue,
+    handleTextileGenderSelect,
+  ]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
@@ -409,6 +518,8 @@ export const GeneralInformation = ({ category }) => {
       let productId = id;
       const normalizedSubcategory = data.subcategory || '';
       const subcategoryName = subcategoryOptions.find((o) => o.value === normalizedSubcategory)?.label || normalizedSubcategory;
+      const airlineSubcategoryValue =
+        PRODUCT_TYPE_BY_CATEGORY[category] || 'Airline Tickets';
 
       const isMediaOnline = category === 'mediaonline';
       const isMediaOffline = category === 'mediaoffline';
@@ -432,15 +543,20 @@ export const GeneralInformation = ({ category }) => {
           ...(id && { id }),
         };
       } else {
+        const resolvedVerticalType =
+          PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others';
         payload = {
           ProductName: data.productName,
           ProductDescription: data.description,
           ProductUploadStatus: 'productinformation',
           ListingType: isVoucherCategory ? 'Voucher' : 'Product',
-          ProductType:
-            PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others',
-          ProductSubCategory: normalizedSubcategory,
-          ProductSubCategoryName: normalizedSubcategory,
+          ProductType: resolvedVerticalType,
+          // API defaults ProductCategoryName to "Others" when omitted; Seller Hub and filters use it first.
+          ...(isVoucherCategory && { ProductCategoryName: resolvedVerticalType }),
+          ProductSubCategory:
+            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
+          ProductSubCategoryName:
+            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
           Gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           ProductSubtitle: giConfig.hasSubtitle ? data.productSubtitle : undefined,
@@ -639,7 +755,6 @@ export const GeneralInformation = ({ category }) => {
                 </div>
               )}
 
-              <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
               <input
                 type="hidden"
                 {...register('subcategory', (() => {
@@ -648,35 +763,40 @@ export const GeneralInformation = ({ category }) => {
                   return { required: p.required ? 'Please select a subcategory' : false };
                 })())}
               />
-              <Select
-                value={selectedSubcategory || ''}
-                onValueChange={(value) => setValue('subcategory', value, { shouldValidate: true })}
-              >
-                <SelectTrigger id="subcategory" data-testid="select-subcategory">
-                  <SelectValue
-                    placeholder={
-                      subcategoriesLoading
-                        ? 'Loading subcategories...'
-                        : 'Select subcategory'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategoryOptions.length > 0 ? (
-                    subcategoryOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__no_subcategory__" disabled>
-                      No subcategories found
-                    </SelectItem>
+              {category !== 'airlineVoucher' && (
+                <>
+                  <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
+                  <Select
+                    value={selectedSubcategory || ''}
+                    onValueChange={(value) => setValue('subcategory', value, { shouldValidate: true })}
+                  >
+                    <SelectTrigger id="subcategory" data-testid="select-subcategory">
+                      <SelectValue
+                        placeholder={
+                          subcategoriesLoading
+                            ? 'Loading subcategories...'
+                            : 'Select subcategory'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategoryOptions.length > 0 ? (
+                        subcategoryOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="__no_subcategory__" disabled>
+                          No subcategories found
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.subcategory && (
+                    <p className="text-sm text-red-500">{errors.subcategory.message}</p>
                   )}
-                </SelectContent>
-              </Select>
-              {errors.subcategory && (
-                <p className="text-sm text-red-500">{errors.subcategory.message}</p>
+                </>
               )}
             </div>
             {/* Product Name – validation from getValidationSchema (bxi parity) */}
@@ -783,7 +903,7 @@ export const GeneralInformation = ({ category }) => {
                 <Label>{giConfig.starRatingLabel} <span className="text-red-500">*</span></Label>
                 <input type="hidden" {...register(giConfig.starRatingField, { required: valSchema?.HotelStars?.required ? 'Please select hotel star rating' : false })} />
                 <Select
-                  defaultValue="5"
+                  value={watch(giConfig.starRatingField) || '5'}
                   onValueChange={(value) => setValue(giConfig.starRatingField, value, { shouldValidate: true })}
                 >
                   <SelectTrigger>
@@ -814,7 +934,12 @@ export const GeneralInformation = ({ category }) => {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !watch('productName') || !watch('description') || !watch('subcategory')  }
+                disabled={
+                  isSubmitting ||
+                  !watch('productName') ||
+                  !watch('description') ||
+                  (category !== 'airlineVoucher' && !watch('subcategory'))
+                }
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 data-testid="btn-save-next"
               >
@@ -1403,8 +1528,15 @@ export const ProductInfo = ({ category }) => {
     setValue('volume', '');
     setValue('shoeSize', '');
     setValue('minOrderQty', '1');
-    setValue('maxOrderQty', '100');
-    setValue('totalAvailableQty', '1');
+    // Voucher: max must not exceed total (form still validates on Save & Next); keep defaults consistent.
+    if (isVoucherCategory) {
+      setValue('maxOrderQty', '1');
+      setValue('totalAvailableQty', '1');
+      clearErrors(['maxOrderQty', 'totalAvailableQty']);
+    } else {
+      setValue('maxOrderQty', '100');
+      setValue('totalAvailableQty', '1');
+    }
     setValue('gst', '');
     setValue('hsn', '');
     setValue('productSize', '');
@@ -1487,7 +1619,7 @@ export const ProductInfo = ({ category }) => {
   };
   const currentDateReqs = dateRequirements[category] || { manufacturing: 'optional', expiry: 'optional' };
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError } = useForm({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError, clearErrors } = useForm({
     defaultValues: {
       price: '',
       discountedPrice: '',
@@ -3239,17 +3371,19 @@ export const TechInfo = ({ category }) => {
     const fetchProduct = async () => {
       try {
         const res = await productApi.getProductById(id);
-        setProductData(res?.data);
-        
+        const raw = res?.data ?? res;
+        const data = raw?.body ?? raw?.data ?? raw;
+        setProductData(data);
+
         // Pre-fill if data exists
-        const techInfo = res?.data?.ProductTechInfo || {};
+        const techInfo = data?.ProductTechInfo || {};
         if (techInfo) {
           if (techInfo.Warranty != null) setValue('warrantyValue', String(techInfo.Warranty));
-          if (res?.data?.WarrantyPeriod) setValue('warrantyPeriod', res.data.WarrantyPeriod);
+          if (data?.WarrantyPeriod) setValue('warrantyPeriod', data.WarrantyPeriod);
           if (techInfo.Guarantee != null) setValue('guaranteeValue', String(techInfo.Guarantee));
-          if (res?.data?.GuaranteePeriod) setValue('guaranteePeriod', res.data.GuaranteePeriod);
+          if (data?.GuaranteePeriod) setValue('guaranteePeriod', data.GuaranteePeriod);
           if (techInfo.WeightBeforePackingPerUnit != null) setValue('weightBeforePacking', String(techInfo.WeightBeforePackingPerUnit));
-          if (res?.data?.WeightBeforePackingPerUnitMeasurUnit) setValue('weightUnit', res.data.WeightBeforePackingPerUnitMeasurUnit);
+          if (data?.WeightBeforePackingPerUnitMeasurUnit) setValue('weightUnit', data.WeightBeforePackingPerUnitMeasurUnit);
           setValue('packagingInstructions', techInfo.PackagingAndDeliveryInstructionsIfAny || '');
           setValue('usageInstructions', techInfo.InstructionsToUseProduct || '');
           if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0) setTags(techInfo.Tags);
@@ -3286,8 +3420,8 @@ export const TechInfo = ({ category }) => {
           PackagingAndDeliveryInstructionsIfAny: data.packagingInstructions,
           InstructionsToUseProduct: data.usageInstructions,
           Tags: tags,
-          // Nested status aligns with BXI Frontend's TechInfo submit payload.
-          ProductUploadStatus: 'golive',
+          // Keep nested status aligned with root so Seller Hub routing does not read "golive" before Go Live is saved.
+          ProductUploadStatus: 'technicalinformation',
         },
       };
       await productApi.updateProduct(payload);

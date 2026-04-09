@@ -12,8 +12,9 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Divider,
+  Stack,
 } from '@mui/material';
-import { Stack } from '@mui/system';
 import React, {
   useEffect,
   useState,
@@ -161,18 +162,34 @@ const VoucherCard = () => {
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
   // Left Card
 
+  const getValidityMax = unit => (unit === 'Months' ? 18 : 365);
+
+  /** Keeps typed/pasted values within max for the selected unit (empty allowed). */
+  const clampValidityValue = (raw, unit) => {
+    const max = getValidityMax(unit);
+    if (raw === '' || raw == null) return '';
+    const p = parseInt(String(raw), 10);
+    if (!Number.isFinite(p)) return String(raw);
+    if (p > max) return String(max);
+    return String(raw);
+  };
+
   const handleChange = event => {
     const inputValue = event.target.value;
-    setListThisProductForAmount(inputValue);
+    const unit = ListThisProductForUnitOfTime || 'Days';
+    const clamped = clampValidityValue(inputValue, unit);
+    setListThisProductForAmount(clamped);
     setHasStartedTyping(true);
     setProductData(prev =>
-      prev ? { ...prev, validityOfVoucherValue: inputValue } : prev
+      prev ? { ...prev, validityOfVoucherValue: clamped } : prev
     );
   };
 
-  const validateInput = value => {
+  const validateInput = (value, unit = ListThisProductForUnitOfTime || 'Days') => {
     const parsedValue = parseInt(value, 10);
-    return parsedValue > 0 && parsedValue <= 365;
+    if (!Number.isFinite(parsedValue) || parsedValue <= 0) return false;
+    if (unit === 'Months') return parsedValue <= 18;
+    return parsedValue <= 365;
   };
 
   useEffect(() => {
@@ -535,34 +552,63 @@ const VoucherCard = () => {
           </aside>
           <main className="stepper-content">
             <div className="form-section">
-              <Box
-                sx={{
-                  width: '100%',
-                  mx: 'auto',
-                  display: 'flex',
-                  justifyContent: 'flex-start',
-                  alignItems: 'center',
-                  gap: '0',
-                  mb: '12px',
-                }}
-              >
-                <Typography
-                  className="form-section-title"
+              <Stack sx={{ width: '100%', mb: 2 }}>
+                <Box
                   sx={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontStyle: 'normal',
-                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1.25,
+                    rowGap: 1,
+                    mb: 2,
                   }}
                 >
-                  Voucher Design & Preview - {category || 'Voucher'}
-                </Typography>
-                <ToolTip
-                  sx={{ ml: '10px' }}
-                  info={
-                    'Go to preview time at which something becomes available to use and purchased by other members on the platform.'
-                  }
+                  <Typography
+                    component="h2"
+                    variant="h6"
+                    sx={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: 700,
+                      fontSize: '1.25rem',
+                      letterSpacing: '-0.02em',
+                      color: '#111827',
+                      lineHeight: 1.35,
+                      m: 0,
+                    }}
+                  >
+                    Voucher Design & Preview
+                  </Typography>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      color: '#315794',
+                      px: 1.25,
+                      py: 0.5,
+                      borderRadius: '8px',
+                      bgcolor: 'rgba(49, 87, 148, 0.09)',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {category || 'Voucher'}
+                  </Typography>
+                  <ToolTip
+                    sx={{ ml: { xs: 0, sm: '4px' } }}
+                    info={
+                      'Go to preview time at which something becomes available to use and purchased by other members on the platform.'
+                    }
+                  />
+                </Box>
+                <Divider
+                  sx={{
+                    borderColor: '#E5E7EB',
+                    mx: '-32px',
+                    width: 'calc(100% + 64px)',
+                  }}
                 />
-              </Box>
+              </Stack>
               <Box
                 sx={{
                   width: '100%',
@@ -654,7 +700,7 @@ const VoucherCard = () => {
             <Box className={cls.fieldBox} sx={{ width: '550px', ml: '10px' }}>
               <Box sx={{ display: 'block', marginBottom: 1 }}>
                 <label className={cls.fieldLabel} style={{ fontSize: '16px', display: 'block' }}>
-                  List this voucher for number of days ( maximum 365 days )
+                  List this voucher for number of days or months
                   <span style={{ color: 'red' }}> *</span>
                 </label>
                 <label
@@ -698,7 +744,17 @@ const VoucherCard = () => {
                   variant='standard'
                   type='number'
                   name='ListThisProductForAmount'
-                  placeholder='30'
+                  placeholder={String(
+                    getValidityMax(ListThisProductForUnitOfTime || 'Days')
+                  )}
+                  inputProps={{
+                    min: 1,
+                    max:
+                      ListThisProductForUnitOfTime === 'Months'
+                        ? 18
+                        : 365,
+                    step: 1,
+                  }}
                   InputProps={{
                     disableUnderline: true,
                     style: {
@@ -715,11 +771,21 @@ const VoucherCard = () => {
                   onChange={handleChange}
                   className={cls.goLivetextField}
                   error={
-                    hasStartedTyping && !validateInput(ListThisProductForAmount)
+                    hasStartedTyping &&
+                    !validateInput(
+                      ListThisProductForAmount,
+                      ListThisProductForUnitOfTime || 'Days'
+                    )
                   }
                   helperText={
-                    hasStartedTyping && !validateInput(ListThisProductForAmount)
-                      ? 'Please enter valid days (1–365)!'
+                    hasStartedTyping &&
+                    !validateInput(
+                      ListThisProductForAmount,
+                      ListThisProductForUnitOfTime || 'Days'
+                    )
+                      ? ListThisProductForUnitOfTime === 'Months'
+                        ? 'Please enter valid months (1–18)!'
+                        : 'Please enter valid days (1–365)!'
                       : ''
                   }
                   sx={{
@@ -734,9 +800,24 @@ const VoucherCard = () => {
                   name='ListThisProductForUnitOfTime'
                   onChange={e => {
                     const unit = e.target.value;
+                    const current =
+                      ListThisProductForAmount ??
+                      productData?.validityOfVoucherValue ??
+                      '';
+                    const clamped = clampValidityValue(current, unit);
                     setListThisProductForUnitOfTime(unit);
+                    setListThisProductForAmount(clamped);
                     setProductData(prev =>
-                      prev ? { ...prev, validityOfVoucherUnit: unit } : prev
+                      prev
+                        ? {
+                            ...prev,
+                            validityOfVoucherUnit: unit,
+                            validityOfVoucherValue:
+                              clamped !== ''
+                                ? clamped
+                                : prev.validityOfVoucherValue,
+                          }
+                        : prev
                     );
                   }}
                   sx={{
@@ -842,7 +923,10 @@ const VoucherCard = () => {
                   disabled={
                     !value ||
                     !ListThisProductForAmount ||
-                    !validateInput(ListThisProductForAmount) ||
+                    !validateInput(
+                      ListThisProductForAmount,
+                      ListThisProductForUnitOfTime || 'Days'
+                    ) ||
                     files.length === 0
                   }
                   onClick={() => uploadTemplate()}

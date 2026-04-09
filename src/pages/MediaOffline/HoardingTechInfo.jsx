@@ -27,6 +27,8 @@ import api from '../../utils/api';
 import { useFieldArray, useForm } from 'react-hook-form';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import OthercostPortion from './OthercostPortion.jsx';
+import ToolTip from '../../components/ToolTip';
+import { Stepper } from '../AddProduct/AddProductSteps';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button as UiButton } from '../../components/ui/button';
@@ -503,19 +505,28 @@ export default function HoardingTechInfo() {
 
     return (
         <div className="min-h-screen bg-[#F8F9FA] py-8">
-            <div className="max-w-7xl mx-auto px-4">
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <h2 className="text-2xl font-bold text-[#111827] mb-2">
-                        Hoarding Technical Information
-                    </h2>
-                    <p className="text-sm text-[#6B7A99]">
-                        Set timelines, slots, HSN/GST, key features, supporting documents, tags, and other costs for your hoarding listing.
-                    </p>
-                </div>
+            <div className="form-container">
+                <div className="stepper-layout">
+                    <aside className="stepper-rail">
+                        <Stepper currentStep={3} category="mediaoffline" completedSteps={[1, 2]} />
+                    </aside>
+                    <main className="stepper-content">
+        <Box className="listing-journey">
+            <form onSubmit={updateProductTechinfostatus}>
+                <Box className="listing-journey-container">
+                    <Box className="listing-journey-form">
+                        <Box className="listing-header">
+                            <Typography className="listing-header-title">
+                                Technical Information
+                                <ToolTip
+                                    info={
+                                        'Technical Information refers to specific details and specifications about a product\'s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product, This is Critical Information from Logistic & Buying Perspective for Making Informed Decisions'
+                                    }
+                                />
+                            </Typography>
+                        </Box>
 
-                <form onSubmit={updateProductTechinfostatus} className="space-y-6">
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <Box sx={{ mt: 0, mb: 0 }}>
+                        <Box className="listing-section" sx={{ mt: 2, mb: 3 }}>
                                     <Box
                                         sx={{
                                             height: 'auto',

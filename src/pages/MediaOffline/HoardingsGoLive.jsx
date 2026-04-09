@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { Stepper } from '../AddProduct/AddProductSteps';
 
 const MONGO_ID_RE = /^[a-fA-F0-9]{24}$/;
 
@@ -283,6 +284,12 @@ export default function HoardingsGoLive() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={4} category="mediaoffline" completedSteps={[1, 2, 3]} />
+          </aside>
+          <main className="stepper-content">
       <div className="max-w-7xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-2xl font-bold text-[#111827] mb-2">Hoarding Go Live</h2>
@@ -492,6 +499,9 @@ export default function HoardingsGoLive() {
               </Button>
             </div>
           </div>
+        </div>
+      </div>
+          </main>
         </div>
       </div>
     </div>

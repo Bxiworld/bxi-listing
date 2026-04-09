@@ -8,6 +8,7 @@ import {
   TextField,
   Chip,
   BottomNavigation,
+  Divider,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
@@ -32,6 +33,7 @@ import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import Bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import { Stepper } from '../AddProduct/AddProductSteps';
 import ToolTip from '../../components/ToolTip';
 import StateData from '../../utils/StateCityArray.json';
 
@@ -644,6 +646,13 @@ const MediaProductInfo = () => {
   };
 
   return (
+    <div className="min-h-screen bg-[#F8F9FA] py-8">
+      <div className="form-container">
+        <div className="stepper-layout">
+          <aside className="stepper-rail">
+            <Stepper currentStep={2} category="mediaoffline" completedSteps={[1]} />
+          </aside>
+          <main className="stepper-content">
     <div className="listing-journey">
       <div className="listing-journey-container">
         <form
@@ -670,7 +679,6 @@ const MediaProductInfo = () => {
           <Box>
             <Box
               sx={{
-                backgroundColor: '#EEF1F6',
                 width: '100%',
                 mx: 'auto',
                 display: 'flex',
@@ -682,17 +690,12 @@ const MediaProductInfo = () => {
             >
               <Typography
                 sx={{
-                  fontFamily: 'Roboto',
+                  fontFamily: 'Inter, sans-serif',
                   fontStyle: 'normal',
                   fontWeight: 600,
-                  fontSize: {
-                    xs: '18px',
-                    sm: '16px',
-                    md: '16px',
-                    lg: '14px',
-                    xl: '14px',
-                  },
-                  color: '#6B7A99',
+                  fontSize: { xs: '18px', sm: '20px', md: '24px' },
+                  color: '#5c6b8a',
+                  letterSpacing: '0.01em',
                 }}
               >
                 Media Information
@@ -757,39 +760,14 @@ const MediaProductInfo = () => {
                           e.preventDefault();
                         }
                       }}
-                      sx={{
-                        ...lablechange,
-                        background: '#fff',
-                        borderRadius: '10px',
-                        padding: '0px 10px',
-                        color: '#C64091',
-                        fontSize: '12px',
-                        fontWeight: 400,
-                        lineHeight: '20px',
-                        height: 'auto',
-                        minHeight: '47px',
-                        border: errors?.medianame?.message
-                          ? '1px solid red'
-                          : null,
-                      }}
+                      sx={standardMultilineFieldSx(
+                        !!errors?.medianame?.message,
+                      )}
                       InputProps={{
                         disableUnderline: true,
-                        endAdornment: (
-                          <Typography
-                            variant="body1"
-                            style={{ fontFamily: 'Inter, sans-serif' }}
-                          ></Typography>
-                        ),
-                        style: {
-                          fontFamily: 'Inter, sans-serif',
-                          color: ' #C64091',
-                          fontSize: '12px',
-                          fontWeight: 400,
-                          lineHeight: '20px',
-                        },
                       }}
                     />
-                    <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                    <Typography sx={FieldErrorTextStyle}>
                       {errors?.medianame?.message}
                     </Typography>
                   </Box>
@@ -816,33 +794,15 @@ const MediaProductInfo = () => {
                               e.preventDefault();
                             }
                           }}
-                          sx={{
-                            ...lablechange,
-                            background: '#fff',
-                            borderRadius: '10px',
-                            padding: '0px 10px',
-                            color: '#C64091',
-                            fontSize: '12px',
-                            height: 'auto',
-                            minHeight: '47px',
-                          }}
+                          sx={standardMultilineFieldSx(
+                            !!errors?.adPosition?.message,
+                          )}
                           InputProps={{
                             disableUnderline: true,
-                            endAdornment: (
-                              <Typography
-                                variant="body1"
-                                style={{ fontFamily: 'Inter, sans-serif' }}
-                              ></Typography>
-                            ),
-                            style: {
-                              fontFamily: 'Inter, sans-serif',
-                              color: '#C64091',
-                              fontSize: '12px',
-                            },
                           }}
                         />
-                        <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
-                          {errors?.offerningbrandat?.message}
+                        <Typography sx={FieldErrorTextStyle}>
+                          {errors?.adPosition?.message}
                         </Typography>
                       </Box>
                     ) : (
@@ -872,36 +832,15 @@ const MediaProductInfo = () => {
                               }
                             }}
                             {...register('offerningbrandat')}
-                            sx={{
-                              ...lablechange,
-                              background: '#fff',
-                              borderRadius: '10px',
-                              padding: '0px 10px',
-                              color: '#C64091',
-                              fontSize: '12px',
-                              height: 'auto',
-                              minHeight: '47px',
-                              border: errors?.offerningbrandat?.message
-                                ? '1px solid red'
-                                : null,
-                            }}
+                            sx={standardMultilineFieldSx(
+                              !!errors?.offerningbrandat?.message,
+                            )}
                             InputProps={{
                               disableUnderline: true,
-                              endAdornment: (
-                                <Typography
-                                  variant="body1"
-                                  style={{ fontFamily: 'Inter, sans-serif' }}
-                                ></Typography>
-                              ),
-                              style: {
-                                fontFamily: 'Inter, sans-serif',
-                                color: '#C64091',
-                                fontSize: '12px',
-                              },
                             }}
                           />
                           <Typography
-                            sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                            sx={FieldErrorTextStyle}
                           >
                             {errors?.offerningbrandat?.message}
                           </Typography>
@@ -944,7 +883,7 @@ const MediaProductInfo = () => {
                               sx={inputStyles}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.edition?.message}
                             </Typography>
@@ -965,6 +904,28 @@ const MediaProductInfo = () => {
                             Type
                             </Typography>
                             <Select
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === ''
+                                ) {
+                                  return (
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select type
+                                    </Box>
+                                  );
+                                }
+                                return selected;
+                              }}
                               disableUnderline
                               {...register('mediaVariation.Type', {
                                 onChange: (e) => {
@@ -982,7 +943,7 @@ const MediaProductInfo = () => {
                               <MenuItem value="Custom Size">Custom Size</MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.Type?.message}
                             </Typography>
@@ -1002,6 +963,28 @@ const MediaProductInfo = () => {
                             Release Details
                             </Typography>
                             <Select
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === ''
+                                ) {
+                                  return (
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select release
+                                    </Box>
+                                  );
+                                }
+                                return selected;
+                              }}
                               disableUnderline
                               {...register('mediaVariation.releasedetails', {
                                 onChange: (e) => {
@@ -1015,7 +998,7 @@ const MediaProductInfo = () => {
                               </MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.releasedetails?.message}
                             </Typography>
@@ -1054,7 +1037,7 @@ const MediaProductInfo = () => {
                               sx={inputStyles}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {
                                 errors?.mediaVariation?.availableInsertions
@@ -1149,7 +1132,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.PricePerUnit?.message}
                             </Typography>
@@ -1208,7 +1191,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.DiscountedPrice?.message}
                             </Typography>
@@ -1245,7 +1228,7 @@ const MediaProductInfo = () => {
                               </MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.adType?.message}
                             </Typography>
@@ -1300,15 +1283,17 @@ const MediaProductInfo = () => {
                                   borderRadius: '10px',
                                   px: 1,
                                   fontSize: '12px',
-                                  color: '#C64091',
-                                  border: errors?.mediaVariation?.HSN?.message
-                                    ? '1px solid red'
-                                    : null,
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: formColors.text,
+                                  ...borderedControlSx(
+                                    !!errors?.mediaVariation?.HSN?.message,
+                                  ),
+                                  ...inputPlaceholderSx,
                                 }}
                               />
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.HSN?.message}
                             </Typography>
@@ -1331,26 +1316,16 @@ const MediaProductInfo = () => {
                             <Box sx={{ position: 'relative' }}>
                               <Select
                                 sx={{
-                                  '.MuiOutlinedInput-notchedOutline': {
-                                    border: 0,
-                                  },
-                                  '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                                {
-                                  border: 0,
-                                },
-                                  '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                                {
-                                  border: 0,
-                                },
                                   width: '70px',
                                   height: '42px',
                                   background: '#FFFFFF',
                                   borderRadius: '10px',
                                   fontSize: '12px',
-                                  color: '#C64091',
-                                  border: errors?.mediaVariation?.GST?.message
-                                    ? '1px solid red'
-                                    : null,
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: formColors.text,
+                                  ...outlinedSelectFieldSx(
+                                    !!errors?.mediaVariation?.GST?.message,
+                                  ),
                                 }}
                                 defaultValue="0"
                                 {...register('mediaVariation.GST')}
@@ -1377,7 +1352,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.GST?.message}
                             </Typography>
@@ -1429,14 +1404,36 @@ const MediaProductInfo = () => {
                                 : null}
                             </Typography>
                             <Select
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === ''
+                                ) {
+                                  return (
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select location
+                                    </Box>
+                                  );
+                                }
+                                return selected;
+                              }}
                               disableUnderline
                               {...register('mediaVariation.location')}
                               sx={{
                                 ...inputStyles,
                                 width: '140px',
-                                border: errors?.mediaVariation?.location?.message
-                                  ? '1px solid red'
-                                  : null,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.location?.message,
+                                ),
                               }}
                             >
                               <MenuItem value="All Locations">
@@ -1482,7 +1479,7 @@ const MediaProductInfo = () => {
                             </Select>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.location?.message}
                             </Typography>
@@ -1519,6 +1516,28 @@ const MediaProductInfo = () => {
                                     : null}
                                 </Typography>
                                 <Select
+                                  displayEmpty
+                                  renderValue={(selected) => {
+                                    if (
+                                      selected === undefined ||
+                                      selected === null ||
+                                      selected === ''
+                                    ) {
+                                      return (
+                                        <Box
+                                          component="span"
+                                          sx={{
+                                            color: '#6B7A99',
+                                            opacity: 0.55,
+                                            fontSize: '12px',
+                                          }}
+                                        >
+                                          Select unit
+                                        </Box>
+                                      );
+                                    }
+                                    return selected;
+                                  }}
                                   disableUnderline
                                   {...register('mediaVariation.unit', {
                                     onChange: (e) => {
@@ -1529,9 +1548,9 @@ const MediaProductInfo = () => {
                                   sx={{
                                     ...inputStyles,
                                     width: '140px',
-                                    border: errors?.mediaVariation?.unit?.message
-                                      ? '1px solid red'
-                                      : null,
+                                    ...borderedControlSx(
+                                      !!errors?.mediaVariation?.unit?.message,
+                                    ),
                                   }}
                                 >
                                   <MenuItem value="Screen">Per Screen</MenuItem>
@@ -1554,7 +1573,7 @@ const MediaProductInfo = () => {
                                     )}
                                 </Select>
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  sx={FieldErrorTextStyle}
                                 >
                                   {errors?.mediaVariation?.unit?.message}
                                 </Typography>
@@ -1585,6 +1604,28 @@ const MediaProductInfo = () => {
                                 : null}
                             </Typography>
                             <Select
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === ''
+                                ) {
+                                  return (
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select timeline
+                                    </Box>
+                                  );
+                                }
+                                return selected;
+                              }}
                               disableUnderline
                               // {...register("mediaVariation.timeline")}
                               {...register('mediaVariation.Timeline', {
@@ -1596,9 +1637,9 @@ const MediaProductInfo = () => {
                               sx={{
                                 ...inputStyles,
                                 width: '140px',
-                                border: errors?.mediaVariation?.Timeline?.message
-                                  ? '1px solid red'
-                                  : null,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.Timeline?.message,
+                                ),
                               }}
                             >
                               <MenuItem value="Day"> Per Day </MenuItem>
@@ -1608,7 +1649,7 @@ const MediaProductInfo = () => {
                               <MenuItem value="Year"> Per Year </MenuItem>
                             </Select>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.Timeline?.message}
                             </Typography>
@@ -1634,10 +1675,9 @@ const MediaProductInfo = () => {
                               sx={{
                                 ...inputStyles,
                                 width: '140px',
-                                border: errors?.mediaVariation?.repetition
-                                  ?.message
-                                  ? '1px solid red'
-                                  : null,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.repetition?.message,
+                                ),
                               }}
                               onKeyDown={(e) => {
                                 if (
@@ -1649,7 +1689,7 @@ const MediaProductInfo = () => {
                               }}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.repetition?.message}
                             </Typography>
@@ -1687,10 +1727,10 @@ const MediaProductInfo = () => {
                               sx={{
                                 ...inputStyles,
                                 width: '140px',
-                                border: errors?.mediaVariation?.dimensionSize
-                                  ?.message
-                                  ? '1px solid red'
-                                  : null,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.dimensionSize
+                                    ?.message,
+                                ),
                               }}
                               onKeyDown={(e) => {
                                 if (
@@ -1702,7 +1742,7 @@ const MediaProductInfo = () => {
                               }}
                             />
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.dimensionSize?.message}
                             </Typography>
@@ -1769,11 +1809,13 @@ const MediaProductInfo = () => {
                                   borderRadius: '10px',
                                   fontSize: '12px',
                                   px: 1,
-                                  color: '#C64091',
-                                  border: errors?.mediaVariation?.PricePerUnit
-                                    ?.message
-                                    ? '1px solid red'
-                                    : null,
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: formColors.text,
+                                  ...borderedControlSx(
+                                    !!errors?.mediaVariation?.PricePerUnit
+                                      ?.message,
+                                  ),
+                                  ...inputPlaceholderSx,
                                 }}
                               />
 
@@ -1791,7 +1833,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.PricePerUnit?.message}
                             </Typography>
@@ -1839,12 +1881,14 @@ const MediaProductInfo = () => {
                                   background: '#FFFFFF',
                                   borderRadius: '10px',
                                   fontSize: '12px',
-                                  color: '#C64091',
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: formColors.text,
                                   px: 1,
-                                  border: errors?.mediaVariation?.DiscountedPrice
-                                    ?.message
-                                    ? '1px solid red'
-                                    : null,
+                                  ...borderedControlSx(
+                                    !!errors?.mediaVariation?.DiscountedPrice
+                                      ?.message,
+                                  ),
+                                  ...inputPlaceholderSx,
                                 }}
                               />
                               <img
@@ -1861,7 +1905,7 @@ const MediaProductInfo = () => {
                             </Box>
 
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.DiscountedPrice?.message}
                             </Typography>
@@ -1915,15 +1959,17 @@ const MediaProductInfo = () => {
                                   borderRadius: '10px',
                                   px: 1,
                                   fontSize: '12px',
-                                  color: '#C64091',
-                                  border: errors?.mediaVariation?.HSN?.message
-                                    ? '1px solid red'
-                                    : null,
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: formColors.text,
+                                  ...borderedControlSx(
+                                    !!errors?.mediaVariation?.HSN?.message,
+                                  ),
+                                  ...inputPlaceholderSx,
                                 }}
                               />
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.HSN?.message}
                             </Typography>
@@ -1946,26 +1992,16 @@ const MediaProductInfo = () => {
                             <Box sx={{ position: 'relative' }}>
                               <Select
                                 sx={{
-                                  '.MuiOutlinedInput-notchedOutline': {
-                                    border: 0,
-                                  },
-                                  '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                                {
-                                  border: 0,
-                                },
-                                  '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                                {
-                                  border: 0,
-                                },
                                   width: '70px',
                                   height: '42px',
                                   background: '#FFFFFF',
                                   borderRadius: '10px',
                                   fontSize: '12px',
-                                  color: '#C64091',
-                                  border: errors?.mediaVariation?.GST?.message
-                                    ? '1px solid red'
-                                    : null,
+                                  fontFamily: 'Inter, sans-serif',
+                                  color: formColors.text,
+                                  ...outlinedSelectFieldSx(
+                                    !!errors?.mediaVariation?.GST?.message,
+                                  ),
                                 }}
                                 defaultValue="0"
                                 {...register('mediaVariation.GST')}
@@ -1992,7 +2028,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                             <Typography
-                              sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                              sx={FieldErrorTextStyle}
                             >
                               {errors?.mediaVariation?.GST?.message}
                             </Typography>
@@ -2037,13 +2073,10 @@ const MediaProductInfo = () => {
                                   >
                                     <Box
                                       sx={{
-                                        background: '#fff',
-                                        display: 'flex',
-                                        borderRadius: '10px',
-                                        border: errors?.mediaVariation
-                                          ?.minOrderQuantityunit?.message
-                                          ? '1px solid red'
-                                          : null,
+                                        ...borderedWrapperSx(
+                                          !!errors?.mediaVariation
+                                            ?.minOrderQuantityunit?.message,
+                                        ),
                                       }}
                                     >
                                       <Input
@@ -2071,7 +2104,7 @@ const MediaProductInfo = () => {
                                           },
                                         )}
                                         sx={{
-                                          ...inputStyles,
+                                          ...inputInsideGroupedFieldSx,
                                           width: '65px',
                                           padding: '0px',
                                           ml: 1,
@@ -2082,7 +2115,7 @@ const MediaProductInfo = () => {
                                         disabled
                                         {...register('mediaVariation.unit')}
                                         sx={{
-                                          ...inputStyles,
+                                          ...inputInsideGroupedFieldSx,
                                           width: '65px',
                                           padding: '0px',
                                           ml: 1,
@@ -2090,7 +2123,7 @@ const MediaProductInfo = () => {
                                       />
                                     </Box>
                                     <Typography
-                                      sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                      sx={FieldErrorTextStyle}
                                     >
                                       {
                                         errors?.mediaVariation
@@ -2126,13 +2159,10 @@ const MediaProductInfo = () => {
                                   >
                                     <Box
                                       sx={{
-                                        background: '#fff',
-                                        display: 'flex',
-                                        borderRadius: '10px',
-                                        border: errors?.mediaVariation
-                                          ?.maxOrderQuantityunit?.message
-                                          ? '1px solid red'
-                                          : null,
+                                        ...borderedWrapperSx(
+                                          !!errors?.mediaVariation
+                                            ?.maxOrderQuantityunit?.message,
+                                        ),
                                       }}
                                     >
                                       <Input
@@ -2160,7 +2190,7 @@ const MediaProductInfo = () => {
                                           },
                                         )}
                                         sx={{
-                                          ...inputStyles,
+                                          ...inputInsideGroupedFieldSx,
                                           width: '64px',
                                           padding: '0px',
                                           ml: 1,
@@ -2171,7 +2201,7 @@ const MediaProductInfo = () => {
                                         disabled
                                         {...register('mediaVariation.unit')}
                                         sx={{
-                                          ...inputStyles,
+                                          ...inputInsideGroupedFieldSx,
                                           width: '64px',
                                           padding: '0px',
                                           ml: 1,
@@ -2179,7 +2209,7 @@ const MediaProductInfo = () => {
                                       />
                                     </Box>
                                     <Typography
-                                      sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                      sx={FieldErrorTextStyle}
                                     >
                                       {
                                         errors?.mediaVariation
@@ -2218,13 +2248,10 @@ const MediaProductInfo = () => {
                               >
                                 <Box
                                   sx={{
-                                    background: '#fff',
-                                    display: 'flex',
-                                    borderRadius: '10px',
-                                    border: errors?.mediaVariation
-                                      ?.minOrderQuantitytimeline?.message
-                                      ? '1px solid red'
-                                      : null,
+                                    ...borderedWrapperSx(
+                                      !!errors?.mediaVariation
+                                        ?.minOrderQuantitytimeline?.message,
+                                    ),
                                   }}
                                 >
                                   <Input
@@ -2243,7 +2270,7 @@ const MediaProductInfo = () => {
                                       },
                                     )}
                                     sx={{
-                                      ...inputStyles,
+                                      ...inputInsideGroupedFieldSx,
                                       width: '64px',
                                       padding: '5px',
                                     }}
@@ -2262,14 +2289,14 @@ const MediaProductInfo = () => {
                                     {...register('mediaVariation.Timeline')}
                                     disabled
                                     sx={{
-                                      ...inputStyles,
+                                      ...inputInsideGroupedFieldSx,
                                       width: '65px',
                                       padding: '0px',
                                     }}
                                   />
                                 </Box>
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  sx={FieldErrorTextStyle}
                                 >
                                   {
                                     errors?.mediaVariation
@@ -2305,13 +2332,10 @@ const MediaProductInfo = () => {
                               >
                                 <Box
                                   sx={{
-                                    background: '#fff',
-                                    display: 'flex',
-                                    borderRadius: '10px',
-                                    border: errors?.mediaVariation
-                                      ?.maxOrderQuantitytimeline?.message
-                                      ? '1px solid red'
-                                      : null,
+                                    ...borderedWrapperSx(
+                                      !!errors?.mediaVariation
+                                        ?.maxOrderQuantitytimeline?.message,
+                                    ),
                                   }}
                                 >
                                   <Input
@@ -2338,7 +2362,7 @@ const MediaProductInfo = () => {
                                       }
                                     }}
                                     sx={{
-                                      ...inputStyles,
+                                      ...inputInsideGroupedFieldSx,
                                       width: '64px',
                                       padding: '0px',
                                       ml: 1,
@@ -2350,14 +2374,14 @@ const MediaProductInfo = () => {
                                     {...register('mediaVariation.Timeline')}
                                     disabled
                                     sx={{
-                                      ...inputStyles,
+                                      ...inputInsideGroupedFieldSx,
                                       width: '50px',
                                       padding: '0px',
                                     }}
                                   />
                                 </Box>
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  sx={FieldErrorTextStyle}
                                 >
                                   {
                                     errors?.mediaVariation
@@ -2510,18 +2534,36 @@ const MediaProductInfo = () => {
                                     }}
                                   >
                                     <Button
+                                      type="button"
+                                      variant="text"
+                                      aria-label="Edit additional cost"
                                       onClick={() => {
                                         SetOthercostEditId(idx);
                                       }}
+                                      sx={tableIconButtonSx}
                                     >
-                                      <Box component="img" src={EditIcon} />
+                                      <Box
+                                        component="img"
+                                        src={EditIcon}
+                                        alt=""
+                                        sx={{ width: 18, height: 18 }}
+                                      />
                                     </Button>
                                     <Button
+                                      type="button"
+                                      variant="text"
+                                      aria-label="Remove additional cost"
                                       onClick={() => {
                                         OthercostRemove(idx);
                                       }}
+                                      sx={tableIconButtonSx}
                                     >
-                                      <Box component="img" src={RemoveIcon} />
+                                      <Box
+                                        component="img"
+                                        src={RemoveIcon}
+                                        alt=""
+                                        sx={{ width: 18, height: 18 }}
+                                      />
                                     </Button>
                                   </Box>
                                 </TableRow>
@@ -2533,19 +2575,40 @@ const MediaProductInfo = () => {
                     </TableContainer>
                   </Box>
 
+                  <Divider sx={{ my: 3, borderColor: '#E2E8F0' }} />
+
                   <Box
                     sx={{
-                      mt: 4,
+                      mt: 2,
                       height: 'auto',
                       minHeight: '100px',
                       position: 'relative',
                       display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'space-between',
-                      flexDirection: 'row',
-                      gap: '10px',
+                      flexDirection: 'column',
+                      width: '100%',
                     }}
                   >
+                    <Typography
+                      sx={{
+                        fontWeight: 600,
+                        fontFamily: 'Inter, sans-serif',
+                        color: '#5c6b8a',
+                        fontSize: '15px',
+                        mb: 1.5,
+                        width: '100%',
+                      }}
+                    >
+                      Media Location
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        flexDirection: 'row',
+                        gap: '10px',
+                      }}
+                    >
                     <Box
                       sx={{
                         display: 'flex',
@@ -2567,13 +2630,35 @@ const MediaProductInfo = () => {
                         <span style={{ color: 'red' }}> *</span>
                       </Typography>
                       <Select
+                        displayEmpty
+                        renderValue={(selected) => {
+                          if (
+                            selected === undefined ||
+                            selected === null ||
+                            selected === ''
+                          ) {
+                            return (
+                              <Box
+                                component="span"
+                                sx={{
+                                  color: '#6B7A99',
+                                  opacity: 0.55,
+                                  fontSize: '12px',
+                                }}
+                              >
+                                Select region
+                              </Box>
+                            );
+                          }
+                          return selected;
+                        }}
                         disableUnderline
                         {...register('GeographicalData.region')}
                         sx={{
                           ...inputStyles,
-                          border: errors?.GeographicalData?.region?.message
-                            ? '1px solid red'
-                            : null,
+                          ...borderedControlSx(
+                            !!errors?.GeographicalData?.region?.message,
+                          ),
                         }}
                         onChange={(e) => {
                           setIsDisabled(e.target.value);
@@ -2602,7 +2687,7 @@ const MediaProductInfo = () => {
                           : {FetchedproductData?.GeographicalData?.region}
                         </Typography>
                       )}{' '}
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.region?.message}
                       </Typography>
                     </Box>
@@ -2619,15 +2704,37 @@ const MediaProductInfo = () => {
                         State <span style={{ color: 'red' }}> *</span>
                       </Typography>
                       <Select
+                        displayEmpty
+                        renderValue={(selected) => {
+                          if (
+                            selected === undefined ||
+                            selected === null ||
+                            selected === ''
+                          ) {
+                            return (
+                              <Box
+                                component="span"
+                                sx={{
+                                  color: '#6B7A99',
+                                  opacity: 0.55,
+                                  fontSize: '12px',
+                                }}
+                              >
+                                Select state
+                              </Box>
+                            );
+                          }
+                          return selected;
+                        }}
                         disableUnderline
                         disabled={IsDisabled === 'PAN India' ? true : false}
                         {...register('GeographicalData.state')}
                         sx={{
                           ...inputStyles,
                           width: '139px',
-                          border: errors?.GeographicalData?.state?.message
-                            ? '1px solid red'
-                            : null,
+                          ...borderedControlSx(
+                            !!errors?.GeographicalData?.state?.message,
+                          ),
                         }}
                         onChange={(e) => {
                           setStoreDataOfLocation({
@@ -2657,7 +2764,7 @@ const MediaProductInfo = () => {
                           : {FetchedproductData?.GeographicalData?.state}
                         </Typography>
                       ) : null}{' '}
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.state?.message}
                       </Typography>
                     </Box>
@@ -2674,15 +2781,37 @@ const MediaProductInfo = () => {
                         City <span style={{ color: 'red' }}> *</span>
                       </Typography>
                       <Select
+                        displayEmpty
+                        renderValue={(selected) => {
+                          if (
+                            selected === undefined ||
+                            selected === null ||
+                            selected === ''
+                          ) {
+                            return (
+                              <Box
+                                component="span"
+                                sx={{
+                                  color: '#6B7A99',
+                                  opacity: 0.55,
+                                  fontSize: '12px',
+                                }}
+                              >
+                                Select city
+                              </Box>
+                            );
+                          }
+                          return selected;
+                        }}
                         disableUnderline
                         disabled={IsDisabled === 'PAN India' ? true : false}
                         {...register('GeographicalData.city')}
                         sx={{
                           ...inputStyles,
                           width: '139px',
-                          border: errors?.GeographicalData?.city?.message
-                            ? '1px solid red'
-                            : null,
+                          ...borderedControlSx(
+                            !!errors?.GeographicalData?.city?.message,
+                          ),
                         }}
                         onChange={(e) => {
                           setStoreDataOfLocation({
@@ -2705,7 +2834,7 @@ const MediaProductInfo = () => {
                           : {FetchedproductData?.GeographicalData?.city}
                         </Typography>
                       ) : null}{' '}
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.city?.message}
                       </Typography>
                     </Box>
@@ -2737,18 +2866,23 @@ const MediaProductInfo = () => {
                           background: '#FFFFFF',
                           borderRadius: '10px',
                           px: 1,
-                          color: '#C64091',
+                          fontFamily: 'Inter, sans-serif',
+                          color: formColors.text,
                           fontSize: '12px',
-                          border: errors?.GeographicalData?.landmark?.message
-                            ? '1px solid red'
-                            : null,
+                          ...borderedControlSx(
+                            !!errors?.GeographicalData?.landmark?.message,
+                          ),
+                          ...inputPlaceholderSx,
                         }}
                       />
-                      <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+                      <Typography sx={FieldErrorTextStyle}>
                         {errors?.GeographicalData?.landmark?.message}
                       </Typography>
                     </Box>
+                    </Box>
                   </Box>
+
+                  <Divider sx={{ my: 3, borderColor: '#E2E8F0' }} />
 
                   <Box
                     sx={{
@@ -2758,16 +2892,23 @@ const MediaProductInfo = () => {
                     <Box
                       sx={{
                         fontFamily: 'Inter, sans-serif',
-                        color: '#6B7A99',
+                        color: '#5c6b8a',
                       }}
                     >
-                      <Typography sx={{ fontSize: '16px', fontWeight: '500' }}>
+                      <Typography
+                        sx={{
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          color: '#5c6b8a',
+                        }}
+                      >
                         Select the best features that describe your brand/media
                       </Typography>
-                      <Typography sx={{ fontSize: '12px' }}>
-                        {' '}
+                      <Typography
+                        sx={{ fontSize: '12px', color: '#5c6b8a', mt: 0.5 }}
+                      >
                         (The more features you write the more you are
-                        discovered){' '}
+                        discovered)
                       </Typography>
                     </Box>
 
@@ -2789,20 +2930,14 @@ const MediaProductInfo = () => {
                           onChange={(e) => setName(e.target.value)}
                           sx={{
                             width: '100%',
-                            '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                            '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                            {
-                              border: 0,
-                            },
-                            '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                            {
-                              border: 0,
-                            },
                             background: '#fff',
                             height: '100%',
+                            minHeight: 42,
                             borderRadius: '10px',
                             fontSize: '12px',
-                            color: '#C64091',
+                            fontFamily: 'Inter, sans-serif',
+                            color: formColors.text,
+                            ...outlinedSelectFieldSx(false),
                           }}
                           key={traits}
                         >
@@ -2820,7 +2955,7 @@ const MediaProductInfo = () => {
                         </Select>
                         {items?.length > 0 && items.length < 5 && (
                           <Typography
-                            sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                            sx={FieldErrorTextStyle}
                           >
                             Select{' '}
                             {5 - items?.length} more feature
@@ -2842,8 +2977,10 @@ const MediaProductInfo = () => {
                           placeholder="Eg. Larger then Life Ads Across the Large Screens"
                           sx={{
                             ...TextFieldStyle,
-                            height: '100%',
-                            color: '#C64091',
+                            width: '100%',
+                            minHeight: 120,
+                            height: 'auto',
+                            py: 0.5,
                           }}
                           onKeyDown={(e) => {
                             if (
@@ -2860,35 +2997,21 @@ const MediaProductInfo = () => {
                           minRows={3}
                           InputProps={{
                             disableUnderline: true,
-                            endAdornment: (
-                              <Typography
-                                variant="body1"
-                                style={{
-                                  fontFamily: 'Inter, sans-serif',
-                                  fontSize: '12px',
-                                  color: '#C64091',
-                                }}
-                              ></Typography>
-                            ),
-                            style: {
-                              fontFamily: 'Inter, sans-serif',
-                              fontSize: '12px',
-                              padding: '10px',
-                              color: '#C64091',
-                            },
+                            sx: { py: 1, px: 0.5 },
                           }}
                         />
                         {items?.length > 0 && items.length < 5 && (
                           <Typography
-                            sx={{ color: 'red', fontFamily: 'Inter, sans-serif', mt: 1 }}
+                            sx={{ ...FieldErrorTextStyle, mt: 1 }}
                           >
                             Enter{' '}
-                            {5 - items?.length}more feature description
+                            {5 - items?.length} more feature description
                           </Typography>
                         )}
                       </Box>
 
                       <Button
+                        type="button"
                         variant="contained"
                         onClick={handleItemAdd}
                         sx={{
@@ -2903,8 +3026,13 @@ const MediaProductInfo = () => {
                           lineHeight: '21px',
                           color: '#FFFFFF',
                           textTransform: 'none',
+                          boxShadow: 'none',
                           '&:hover': {
-                            background: '#C64091',
+                            background: '#b0387d',
+                            boxShadow: 'none',
+                          },
+                          '&:active': {
+                            background: '#9c316f',
                           },
                           my: 3,
                         }}
@@ -2914,11 +3042,11 @@ const MediaProductInfo = () => {
 
                       <Typography
                         sx={{
-                          color: '#6B7A99',
                           fontFamily: 'Inter, sans-serif',
-                          fonmtSize: '20px',
-                          marginRight: '75%',
-                          marginTop: '1rem',
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          color: '#5c6b8a',
+                          mt: 2,
                         }}
                       >
                         Key Features({items.length})
@@ -2933,7 +3061,7 @@ const MediaProductInfo = () => {
                               mx: 'auto',
                               height: 'auto',
                               width: '99%',
-                              display: ' flex',
+                              display: 'flex',
                               flexDirection: 'column',
                               placeItems: 'center',
                               borderRadius: '10px',
@@ -2967,10 +3095,13 @@ const MediaProductInfo = () => {
                               </Typography>
 
                               <Button
+                                type="button"
+                                variant="text"
                                 onClick={() => handleDelete(index)}
-                                sx={{ textTransform: 'none', fontSize: '15px' }}
+                                aria-label="Remove feature"
+                                sx={featureRemoveButtonSx}
                               >
-                                X
+                                ×
                               </Button>
                             </Box>
                           </Box>
@@ -3001,8 +3132,11 @@ const MediaProductInfo = () => {
                       <Box
                         sx={{
                           display: 'flex',
+                          alignItems: 'stretch',
                           background: '#fff',
                           borderRadius: '10px',
+                          overflow: 'hidden',
+                          ...borderedWrapperSx(false),
                         }}
                       >
                         <TextField
@@ -3011,40 +3145,40 @@ const MediaProductInfo = () => {
                           id="standard-basic"
                           variant="standard"
                           InputProps={{
-                            disableUnderline: 'true',
-                            style: {
+                            disableUnderline: true,
+                            sx: {
                               fontSize: '14px',
-                              padding: '7px',
-                              color: '#C64091',
-                            },
-                          }}
-                          InputLabelProps={{
-                            style: {
-                              color: 'red',
+                              px: 1,
+                              py: 0.5,
+                              fontFamily: 'Inter, sans-serif',
+                              color: formColors.text,
+                              '& .MuiInputBase-input::placeholder': {
+                                color: formColors.label,
+                                opacity: 0.5,
+                              },
                             },
                           }}
                           sx={{
-                            width: '100%',
-                            height: '42px',
-                            background: '#FFFFFF',
-                            borderRadius: '10px',
+                            flex: 1,
+                            minHeight: '42px',
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: 0,
+                            '& fieldset': { border: 'none' },
+                            '&:hover': { border: 'none' },
+                            '&.Mui-focused': { border: 'none' },
                           }}
                           onKeyDown={otherenter}
                         />
                         <Button
+                          type="button"
                           variant="outlined"
-                          sx={{
-                            borderColor: '#c64091',
-                            color: '#6B7A99',
-                            right: 1,
-                            textTransform: 'none',
-                            fontSize: '12px',
-                            alignSelf: 'center',
-                            '&:hover': {
-                              border: 'none',
-                            },
-                          }}
                           onClick={OtherInformationSubmit}
+                          sx={{
+                            ...formInlineOutlineButtonSx,
+                            right: 1,
+                            alignSelf: 'center',
+                          }}
                         >
                           Add
                         </Button>
@@ -3118,47 +3252,52 @@ const MediaProductInfo = () => {
                     <Box
                       sx={{
                         display: 'flex',
+                        alignItems: 'stretch',
                         background: '#fff',
                         borderRadius: '10px',
+                        overflow: 'hidden',
+                        ...borderedWrapperSx(false),
                       }}
                     >
                       <TextField
                         placeholder="Add Tags"
                         inputRef={tagInputRef}
                         sx={{
-                          width: '100%',
-                          background: '#fff',
-                          borderRadius: '10px',
-                          height: '41px',
+                          flex: 1,
+                          minHeight: '41px',
+                          background: 'transparent',
+                          border: 'none',
+                          borderRadius: 0,
+                          '&:hover': { border: 'none' },
+                          '&.Mui-focused': { border: 'none' },
                         }}
                         variant="standard"
                         InputProps={{
                           disableUnderline: true,
-                          style: {
-                            color: 'rgba(107, 122, 153)',
+                          sx: {
                             fontSize: '14px',
-                            marginTop: '5px',
-                            marginLeft: '1%',
-                            color: '#C64091',
+                            mt: 0.5,
+                            ml: 0.5,
+                            fontFamily: 'Inter, sans-serif',
+                            color: formColors.text,
+                            '& .MuiInputBase-input::placeholder': {
+                              color: formColors.label,
+                              opacity: 0.5,
+                            },
                           },
                         }}
                         inputProps={{ maxLength: 15 }}
                         onKeyDown={handleAddTag}
                       />
                       <Button
+                        type="button"
                         variant="outlined"
-                        sx={{
-                          borderColor: '#c64091',
-                          color: '#6B7A99',
-                          right: 1,
-                          textTransform: 'none',
-                          fontSize: '12px',
-                          alignSelf: 'center',
-                          '&:hover': {
-                            border: 'none',
-                          },
-                        }}
                         onClick={handleAddButtonClick}
+                        sx={{
+                          ...formInlineOutlineButtonSx,
+                          right: 1,
+                          alignSelf: 'center',
+                        }}
                       >
                         Add
                       </Button>
@@ -3232,38 +3371,17 @@ const MediaProductInfo = () => {
             >
               <Box sx={{ display: 'flex', gap: '10px', p: 1, width: '50%' }}>
                 <Button
-                  sx={{
-                    width: '100%',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: '#fff',
-                    color: '#636161',
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    '&:hover': {
-                      background: '#EEF1F6',
-                      color: '#000',
-                    },
-                  }}
-                  variant="contained"
+                  type="button"
+                  variant="outlined"
                   onClick={() => CancelJourney()}
+                  sx={formFooterCancelButtonSx}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  sx={{
-                    width: '100%',
-                    height: '32px',
-                    borderRadius: '10px',
-                    background: '#C64091',
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    '&:hover': {
-                      background: '#C64091',
-                    },
-                  }}
                   variant="contained"
+                  sx={formFooterPrimaryButtonSx}
                 >
                   Next
                 </Button>
@@ -3274,18 +3392,218 @@ const MediaProductInfo = () => {
       </form>
       </div>
     </div>
+          </main>
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default MediaProductInfo;
 
+const formColors = {
+  border: '#E2E8F0',
+  borderHover: '#CBD5E1',
+  borderFocus: '#C64091',
+  borderError: '#d32f2f',
+  text: '#334155',
+  label: '#6B7A99',
+  brand: '#C64091',
+};
+
+const borderedControlSx = (hasError) => ({
+  border: '1px solid',
+  borderColor: hasError ? formColors.borderError : formColors.border,
+  transition: 'border-color 0.15s ease',
+  boxSizing: 'border-box',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:focus': { outline: 'none' },
+  '&:focus-visible': { outline: 'none' },
+  '& .MuiInputBase-input:focus': { outline: 'none' },
+  '&:hover': {
+    borderColor: hasError ? formColors.borderError : formColors.borderHover,
+  },
+  '&.Mui-focused': {
+    borderColor: hasError ? formColors.borderError : formColors.borderFocus,
+    boxShadow: 'none',
+  },
+});
+
+const borderedWrapperSx = (hasError) => ({
+  border: '1px solid',
+  borderColor: hasError ? formColors.borderError : formColors.border,
+  borderRadius: '10px',
+  background: '#fff',
+  display: 'flex',
+  transition: 'border-color 0.15s ease',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:hover': {
+    borderColor: hasError ? formColors.borderError : formColors.borderHover,
+  },
+  '&:focus-within': {
+    borderColor: hasError ? formColors.borderError : formColors.borderFocus,
+    outline: 'none',
+    boxShadow: 'none',
+  },
+});
+
+const inputPlaceholderSx = {
+  '& .MuiInputBase-input::placeholder': {
+    color: formColors.label,
+    opacity: 0.55,
+    WebkitTextFillColor: formColors.label,
+  },
+  '& input::placeholder': {
+    color: formColors.label,
+    opacity: 0.55,
+  },
+  '& textarea::placeholder': {
+    color: formColors.label,
+    opacity: 0.55,
+  },
+};
+
+const standardMultilineFieldSx = (hasError) => ({
+  fontFamily: 'Inter, sans-serif',
+  background: '#fff',
+  borderRadius: '10px',
+  padding: '0px 10px',
+  minHeight: '47px',
+  height: 'auto',
+  fontSize: '12px',
+  ...borderedControlSx(hasError),
+  '& .MuiInputBase-input': {
+    color: formColors.text,
+    fontFamily: 'Inter, sans-serif',
+    fontSize: '12px',
+    lineHeight: '20px',
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: formColors.label,
+    opacity: 0.55,
+    WebkitTextFillColor: formColors.label,
+  },
+});
+
+const outlinedSelectFieldSx = (hasError) => ({
+  outline: 'none',
+  boxShadow: 'none',
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderWidth: '1px',
+    borderColor: hasError ? formColors.borderError : formColors.border,
+    transition: 'border-color 0.15s ease',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: hasError ? formColors.borderError : formColors.borderHover,
+  },
+  '&.Mui-focused': {
+    boxShadow: 'none',
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderWidth: '1px',
+    borderColor: `${hasError ? formColors.borderError : formColors.borderFocus} !important`,
+  },
+});
+
 const CommonTextStyle = {
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
-  fontWeight: 400,
+  fontWeight: 500,
   fontSize: '14px',
   lineHeight: '21px',
-  color: '#6B7A99',
+  color: '#5c6b8a',
+};
+
+const FieldErrorTextStyle = {
+  fontFamily: 'Inter, sans-serif',
+  fontSize: '12px',
+  lineHeight: '18px',
+  color: 'red',
+};
+
+const tableIconButtonSx = {
+  minWidth: 40,
+  width: 40,
+  height: 40,
+  p: 0,
+  borderRadius: '8px',
+  color: '#64748b',
+  '&:hover': {
+    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+    color: '#C64091',
+  },
+};
+
+const formInlineOutlineButtonSx = {
+  borderColor: '#C64091',
+  color: '#5c6b8a',
+  textTransform: 'none',
+  fontSize: '13px',
+  fontWeight: 500,
+  fontFamily: 'Inter, sans-serif',
+  borderRadius: '10px',
+  px: 2,
+  minHeight: 36,
+  flexShrink: 0,
+  boxShadow: 'none',
+  '&:hover': {
+    borderColor: '#b0387d',
+    backgroundColor: 'rgba(198, 64, 145, 0.06)',
+    color: '#334155',
+  },
+};
+
+const featureRemoveButtonSx = {
+  minWidth: 36,
+  px: 1,
+  fontSize: '18px',
+  lineHeight: 1,
+  fontWeight: 500,
+  color: '#94a3b8',
+  textTransform: 'none',
+  borderRadius: '8px',
+  '&:hover': {
+    color: '#d32f2f',
+    backgroundColor: 'rgba(211, 47, 47, 0.06)',
+  },
+};
+
+const formFooterCancelButtonSx = {
+  width: '100%',
+  height: '40px',
+  borderRadius: '10px',
+  textTransform: 'none',
+  fontSize: '14px',
+  fontFamily: 'Inter, sans-serif',
+  fontWeight: 500,
+  borderColor: '#E2E8F0',
+  color: '#475569',
+  backgroundColor: '#fff',
+  boxShadow: 'none',
+  '&:hover': {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#CBD5E1',
+    boxShadow: 'none',
+  },
+};
+
+const formFooterPrimaryButtonSx = {
+  width: '100%',
+  height: '40px',
+  borderRadius: '10px',
+  textTransform: 'none',
+  fontSize: '14px',
+  fontFamily: 'Inter, sans-serif',
+  fontWeight: 500,
+  background: '#C64091',
+  color: '#fff',
+  boxShadow: 'none',
+  '&:hover': {
+    background: '#b0387d',
+    boxShadow: 'none',
+  },
 };
 
 const InputsInsideText = {
@@ -3294,23 +3612,45 @@ const InputsInsideText = {
   fontWeight: 400,
   fontSize: '12px',
   lineHeight: '18px',
-  color: '#C64091',
+  color: formColors.brand,
 };
 const TextFieldStyle = {
   width: '100%',
-  height: '48px',
+  minHeight: '48px',
   background: '#fff',
-  borderRadius: '9px',
-  border: 'none',
+  borderRadius: '10px',
+  border: '1px solid',
+  borderColor: formColors.border,
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
   fontSize: '14px',
-  color: '#6B7A99',
+  color: formColors.text,
   overflow: 'auto',
   paddingLeft: '0px',
+  transition: 'border-color 0.15s ease',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:hover': {
+    borderColor: formColors.borderHover,
+  },
+  '&.Mui-focused': {
+    borderColor: formColors.borderFocus,
+    boxShadow: 'none',
+  },
   '&:focus': {
     outline: 'none',
+  },
+  '& .MuiInputBase-input': {
+    color: formColors.text,
+  },
+  '& .MuiInputBase-input:focus': {
+    outline: 'none',
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: formColors.label,
+    opacity: 0.55,
+    WebkitTextFillColor: formColors.label,
   },
 };
 const mapdata = {
@@ -3341,20 +3681,6 @@ const TableCellStyle = {
   whiteSpace: 'nowrap',
 };
 
-const lablechange = {
-  fontFamily: 'Inter, sans-serif',
-  color: '#6B7A99',
-  fontSize: '16px',
-  display: 'grid',
-  textAlign: 'left',
-  marginTop: '2rem',
-  fontWeight: 'bold',
-  background: 'red',
-  '&:focus': {
-    border: '1px solid #E8E8E8',
-  },
-};
-
 const inputStyles = {
   width: '110px',
   height: '42px',
@@ -3362,19 +3688,48 @@ const inputStyles = {
   borderRadius: '10px',
   padding: '0px 10px',
   fontSize: '12px',
-  color: '#C64091',
+  fontFamily: 'Inter, sans-serif',
+  color: formColors.text,
+  ...borderedControlSx(false),
+  ...inputPlaceholderSx,
+};
+
+/** Inputs nested inside `borderedWrapperSx` — outer box owns the border */
+const inputInsideGroupedFieldSx = {
+  height: '42px',
+  background: 'transparent',
+  borderRadius: 0,
+  padding: '0px 8px',
+  fontSize: '12px',
+  fontFamily: 'Inter, sans-serif',
+  color: formColors.text,
+  border: 'none',
+  boxSizing: 'border-box',
+  outline: 'none',
+  boxShadow: 'none',
+  '&:hover': {
+    border: 'none',
+    borderColor: 'transparent',
+  },
+  '&.Mui-focused': {
+    border: 'none',
+    borderColor: 'transparent',
+    boxShadow: 'none',
+  },
+  '& .MuiInputBase-input:focus': { outline: 'none' },
+  ...inputPlaceholderSx,
 };
 const TypographyStyle = {
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
-  fontWeight: 400,
+  fontWeight: 500,
   fontSize: '14px',
-  color: '#6B7A99',
+  color: '#5c6b8a',
 };
 
 const MenuItems = {
   fontSize: '12px',
-  color: '#C64091',
+  color: formColors.text,
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
