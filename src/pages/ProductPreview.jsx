@@ -149,11 +149,11 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage }) {
           {formatPrice(disc)}
         </Typography>
         <Stack direction="row" alignItems="center" spacing={0.5}>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="h6" color="text.secondary">
             ({formatPrice(gstPrice)}
           </Typography>
           <img src={BXIIcon} alt="GST" style={{ height: 16, width: 16 }} />
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="h6" color="text.secondary">
             + {formatPrice(gstAmount)}₹ GST)
           </Typography>
         </Stack>
@@ -491,7 +491,8 @@ export default function ProductPreview() {
     >
       <Box sx={{ maxWidth: '100vw', mx: 'auto', width: '100%' }}>
         {/* Header */}
-        <Box
+        <Paper
+          elevation={0}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -500,6 +501,8 @@ export default function ProductPreview() {
             py: 3,
             borderBottom: '1px solid',
             borderColor: 'grey.100',
+            p: 3,
+            borderRadius: 2,
           }}
         >
           <IconButton
@@ -513,18 +516,20 @@ export default function ProductPreview() {
           >
             <ArrowLeft size={24} />
           </IconButton>
-          <Typography variant="h6" fontWeight="600" color="text.primary">
+          <Typography variant="h5" fontWeight="600" color="text.primary">
             Preview Page
           </Typography>
-        </Box>
+        </Paper>
 
         {/* Main content */}
         <Grid container spacing={4} sx={{ mt: 3 }}>
           {/* Image carousel */}
           <Grid item xs={12} lg={6}>
+          <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
             <Stack alignItems="center">
               {images?.length === 0 ? (
-                <Box
+                <Paper
+                  elevation={0}
                   sx={{
                     width: '100%',
                     maxWidth: 450,
@@ -541,9 +546,9 @@ export default function ProductPreview() {
                   <Typography color="text.secondary" fontWeight="medium">
                     No Image Uploaded
                   </Typography>
-                </Box>
+                </Paper>
               ) : (
-                <Box sx={{ width: '100%', maxWidth: 450, position: 'relative' }}>
+                <Paper elevation={0} sx={{ width: '100%', maxWidth: 450, position: 'relative' }}>
                   <Box
                     sx={{
                       aspectRatio: '1',
@@ -584,13 +589,15 @@ export default function ProductPreview() {
                       </IconButton>
                     </>
                   )}
-                </Box>
+                </Paper>
               )}
             </Stack>
+            </Paper>
           </Grid>
 
           {/* Product info */}
           <Grid item xs={12} lg={6}>
+            <Paper elevation={0} sx={{ p: 4, backgroundImage: 'linear-gradient(to bottom, #ffffff, #F3F6F9)', border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
             <Stack spacing={2}>
               <Box>
                 <Chip
@@ -599,10 +606,12 @@ export default function ProductPreview() {
                   sx={{
                     mb: 1,
                     bgcolor: product?.ProductUploadStatus === 'Approved' ? 'success.light' : 'warning.light',
-                    color: product?.ProductUploadStatus === 'Approved' ? 'success.dark' : 'warning.dark',
+                    color: '#ffffff',
+                    fontWeight: 500,
+                    p: 1,
                   }}
                 />
-                <Typography variant="h5" fontWeight="600" color="text.primary" data-testid="product-name" sx={{ mt: 1 }}>
+                <Typography variant="h4" fontWeight="600" color="text.primary" data-testid="product-name" sx={{ mt: 1 }}>
                   {product?.ProductName}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -824,22 +833,23 @@ export default function ProductPreview() {
                 </Box>
               )}
             </Stack>
+            </Paper>
           </Grid>
         </Grid>
 
         {/* Tabs */}
-        <Paper elevation={0} sx={{ mt: 5, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ mt: 5, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden', p: 1 }}>
           <Tabs
             value={tabValue}
             onChange={(_, v) => setTabValue(v)}
             sx={{
               borderBottom: '1px solid',
               borderColor: 'divider',
-              bgcolor: 'grey.50',
+              bgcolor: '#ffffff',
               px: 2,
               minHeight: 56,
-              '& .MuiTab-root': { fontWeight: 500, textTransform: 'none' },
-              '& .Mui-selected': { color: '#1E40AF', fontWeight: 600 },
+              '& .MuiTab-root': { fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' },
+              '& .Mui-selected': { color: '#1E40AF', fontWeight: 700 },
               '& .MuiTabs-indicator': { backgroundColor: '#1E40AF', height: 3 },
             }}
           >
