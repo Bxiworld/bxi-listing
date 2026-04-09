@@ -881,7 +881,7 @@ export default function ProductPreview() {
                           Sample Details
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                          Sample Available : <Typography component="span" fontWeight="medium">{variants.some((v) => v.SampleAvailability) ? 'Yes' : 'No'}</Typography>
+                          Sample Available : <Typography component="span" fontWeight="medium">{variants.some((v) => v.SampleQty > 0) ? 'Yes' : 'No'}</Typography>
                         </Typography>
                       </Box>
                     )}

@@ -1636,7 +1636,7 @@ export const ProductInfo = ({ category }) => {
       width: '',
       height: '',
       weight: '',
-      isSample: false,
+      isSample: '',
       gender: 'Unisex',
       shoeSize: '',
       shoeMeasurementUnit: 'US',
@@ -1798,14 +1798,16 @@ export const ProductInfo = ({ category }) => {
     setIsSubmitting(true);
     try {
       const variants = productsVariations;
+      const sampleVariant = variants.find(v => v.SampleQty || v.SamplePrice);
+      const anySample = !!sampleVariant;
       const payload = {
         _id: id,
         ProductUploadStatus: isVoucherCategory ? 'technicalinformation' : 'productinformation',
         ProductsVariantions: variants,
-        IsSample: !!data.isSample,
-        ...(data.isSample && {
-          SampleAvailability: parseInt(data.sampleAvailability, 10) || 0,
-          PriceOfSample: parseFloat(String(data.priceOfSample || 0).replace(/,/g, '')) || 0,
+        IsSample: anySample,
+        ...(anySample && {
+          SampleAvailability: sampleVariant.SampleQty || 0,
+          PriceOfSample: sampleVariant.SamplePrice || 0,
         }),
         ...(hasGenderInProductInfo && { Gender: data.gender, gender: data.gender }),
         ...(hasFeatures && { ProductFeatures: featureList }),
