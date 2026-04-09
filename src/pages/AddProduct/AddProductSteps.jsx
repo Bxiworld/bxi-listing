@@ -1650,6 +1650,58 @@ export const ProductInfo = ({ category }) => {
     if (activeVoucherConfig?.extraVariantColumn === 'dateOfEvent') setValue('dateOfEvent', row.DateOfTheEvent ?? '');
   };
 
+  const handleCancelEdit = () => {
+    setEditVariationIndex(null);
+    setValue('price', '');
+    setValue('discountedPrice', '');
+    setValue('productIdType', '');
+    setValue('length', '');
+    setValue('width', '');
+    setValue('height', '');
+    setValue('weight', '');
+    setValue('sizeValue', '');
+    setValue('volume', '');
+    setValue('shoeSize', '');
+    setValue('minOrderQty', '1');
+    if (isVoucherCategory) {
+      setValue('maxOrderQty', '1');
+      setValue('totalAvailableQty', '1');
+      clearErrors(['maxOrderQty', 'totalAvailableQty']);
+    } else {
+      setValue('maxOrderQty', '100');
+      setValue('totalAvailableQty', '1');
+    }
+    setValue('gst', '');
+    setValue('hsn', '');
+    setValue('productSize', '');
+    setValue('measurementUnit', '');
+    setValue('flavor', '');
+    setValue('offeringType', '');
+    setValue('dateOfEvent', '');
+    const lockedSize = (getValues('selectedSize') || '').toLowerCase();
+    if (lockedSize.includes('weight') || lockedSize === 'gsm') {
+      setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
+    } else if (lockedSize.includes('battery') || lockedSize.includes('power')) {
+      setValue('sizeUnit', lockedSize.includes('battery') ? 'mAh' : 'W');
+    } else if (lockedSize.includes('volume') || lockedSize.includes('capacity')) {
+      setValue('sizeUnit', 'ml');
+    } else if (lockedSize.includes('calorie')) {
+      setValue('sizeUnit', 'kcal');
+    } else if (lockedSize.includes('nutritional')) {
+      setValue('sizeUnit', 'g');
+    } else if (lockedSize.includes('shelf life') || lockedSize.includes('shelflife')) {
+      setValue('sizeUnit', 'Months');
+    } else if (lockedSize.includes('temprature') || lockedSize.includes('temperature') || lockedSize.includes('temp')) {
+      setValue('sizeUnit', '°C');
+    } else {
+      setValue('sizeUnit', 'cm');
+    }
+    setValue('shoeMeasurementUnit', 'US');
+    setValue('isSample', false);
+    setValue('sampleAvailability', '');
+    setValue('priceOfSample', '');
+  };
+
   const handleRemoveVariation = (idx) => {
     setProductsVariations((prev) => prev.filter((_, i) => i !== idx));
   };
@@ -2577,14 +2629,26 @@ export const ProductInfo = ({ category }) => {
 
             {/* Add Variation */}
             <div className="space-y-4 pt-4">
-              <Button
-                type="button"
-                onClick={handleAddVariation}
-                className="w-full"
-                data-testid="btn-add-variation"
-              >
-                {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleAddVariation}
+                  className="w-full"
+                  data-testid="btn-add-variation"
+                >
+                  {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
+                </Button>
+                {editVariationIndex !== null && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="shrink-0"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
               {productsVariations.length === 0 && (
                 <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
               )}
