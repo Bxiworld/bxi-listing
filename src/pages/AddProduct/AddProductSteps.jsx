@@ -1126,7 +1126,7 @@ export const ProductInfo = ({ category }) => {
   };
 
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
-  const showProductColor = !isVoucherCategory && piConfig.hasColorPicker && category !== 'restaurant';
+
   const hasSampleCheckbox = !isVoucherCategory;
   const hasGenderInProductInfo = isVoucherCategory
     ? (voucherPiConfig?.hasGender || false)
@@ -1498,7 +1498,7 @@ export const ProductInfo = ({ category }) => {
       GST: String(d.gst || '18'),
       HSN: d.hsn || '',
       ProductSize: productSize,
-      ProductColor: extraCol === 'color' ? (d.productColor || '#ffffff') : (d.productColor || '#ffffff'),
+
       ProductIdType: d.productIdType || `SKU-${Date.now()}`,
       Length: ['Length', 'Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.length || '') : '',
       Width: d.selectedSize === 'Length x Height x Width' ? (d.width || '') : '',
@@ -1594,7 +1594,7 @@ export const ProductInfo = ({ category }) => {
     setValue('maxOrderQty', String(row.MaxOrderQuantity ?? '100'));
     setValue('totalAvailableQty', String(row.TotalAvailableQty ?? '1'));
     setValue('productIdType', row.ProductIdType ?? '');
-    setValue('productColor', row.ProductColor ?? '#ffffff');
+
     setValue('isSample', !!(row.SampleQty || row.SamplePrice));
     setValue('sampleAvailability', row.SampleQty ? String(row.SampleQty) : '');
     setValue('priceOfSample', row.SamplePrice ? String(row.SamplePrice) : '');
@@ -1676,7 +1676,7 @@ export const ProductInfo = ({ category }) => {
       sizeValue: '',
       sizeUnit: 'cm',
       productForm: 'Dry',
-      productColor: '#ffffff',
+
       productIdType: '',
       length: '',
       width: '',
@@ -2202,37 +2202,17 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Product Id + Color (same row) */}
-            {(piConfig.hasProductId && !isVoucherCategory) || (isVoucherCategory ? activeVoucherConfig?.extraVariantColumn === 'color' : showProductColor) ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
-                {piConfig.hasProductId && !isVoucherCategory && (
-                  <div className="space-y-2">
-                    <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="productIdType"
-                      placeholder="e.g. 1910WH23"
-                      {...register('productIdType')}
-                    />
-                  </div>
-                )}
-
-                {/* Color picker – when config hasColorPicker (or voucher with color extra column) */}
-                {(isVoucherCategory ? activeVoucherConfig?.extraVariantColumn === 'color' : showProductColor) && (
-                  <div className={cn('space-y-2', !(piConfig.hasProductId && !isVoucherCategory) && 'md:col-span-2')}>
-                    <Label>Color <span className="text-red-500">*</span></Label>
-                    <div className="flex gap-3 items-center">
-                      <input
-                        type="color"
-                        {...register('productColor')}
-                        className="w-12 h-12 rounded cursor-pointer border border-gray-300"
-                      />
-                      <span className="text-sm text-gray-600 font-mono">{watch('productColor') || '#ffffff'}</span>
-                    </div>
-                  </div>
-                )}
+            {/* Product ID */}
+            {piConfig.hasProductId && !isVoucherCategory && (
+              <div className="space-y-2">
+                <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
+                <Input
+                  id="productIdType"
+                  placeholder="e.g. 1910WH23"
+                  {...register('productIdType')}
+                />
               </div>
-            ) : null}
+            )}
 
             {/* HSN + GST (same row) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2618,7 +2598,7 @@ export const ProductInfo = ({ category }) => {
                         {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
                         {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
-                        {showProductColor && <th className="px-3 py-2 text-center font-medium">Color</th>}
+
                         <th className="px-3 py-2 text-center font-medium">HSN</th>
                         <th className="px-3 py-2 text-center font-medium">GST</th>
                         <th className="px-3 py-2 text-center font-medium">{isVoucherCategory ? 'Price / Voucher' : 'MRP'}</th>
@@ -2664,16 +2644,7 @@ export const ProductInfo = ({ category }) => {
                           {showDateOfEvent && (
                             <td className="px-3 py-2">{v.DateOfTheEvent || '—'}</td>
                           )}
-                          {showProductColor && (
-                            <td className="px-3 py-2">
-                              {v.ProductColor ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
-                                  <span>{v.ProductColor}</span>
-                                </div>
-                              ) : '—'}
-                            </td>
-                          )}
+
                           <td className="px-3 py-2">{v.HSN || '—'}</td>
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
                           <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString('en-IN')}` : '—'}</td>
