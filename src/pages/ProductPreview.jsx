@@ -880,9 +880,24 @@ export default function ProductPreview() {
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                           Sample Details
                         </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                          Sample Available : <Typography component="span" fontWeight="medium">{variants.some((v) => v.SampleQty > 0) ? 'Yes' : 'No'}</Typography>
-                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={6} md={4}>
+                            <Typography variant="caption" color="text.secondary">Sample Available</Typography>
+                            <Typography variant="body2" display="block">{variants.some((v) => v.SampleQty > 0) ? 'Yes' : 'No'}</Typography>
+                          </Grid>
+                          {variants.some((v) => v.SampleQty > 0) && (
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">Sample Quantity</Typography>
+                              <Typography variant="body2" display="block">{variants.at(0).SampleQty}</Typography>
+                            </Grid>
+                          )}
+                          {variants.some((v) => v.SamplePrice > 0) && (
+                            <Grid item xs={6} md={4}>
+                              <Typography variant="caption" color="text.secondary">Sample Price</Typography>
+                              <Typography variant="body2" display="block">{variants.at(0).SamplePrice}</Typography>
+                            </Grid>
+                          )}
+                        </Grid>
                       </Box>
                     )}
                     {hasLoc && (
