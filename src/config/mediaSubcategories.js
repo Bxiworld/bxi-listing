@@ -83,6 +83,37 @@ export const MEDIA_SUBCATEGORIES_BY_CATEGORY = {
 };
 
 /**
+ * MongoDB ProductSubCategory values for Media Offline — Print Media static labels.
+ * Used when Get_media_offline rows do not match label text; keys must match `print` list above.
+ * IDs align with BXI listing logic (OneUnit / newspaper flows).
+ */
+export const MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL = {
+  Newspaper: '647713dcb530d22fce1f6c36',
+  Magazines: '643cdf01779bc024c189cf95',
+  Flyers: '643ce635e424a0b8fcbba6d6',
+  'Electricity bills': '643ce648e424a0b8fcbba710',
+  'Boarding Pass': '643ce6fce424a0b8fcbbad42',
+};
+
+const OID_HEX = /^[a-f0-9]{24}$/i;
+
+/**
+ * Ensure ProductSubCategory is a 24-char hex id for print offline; fix legacy rows that stored the label.
+ */
+export function resolveMediaOfflinePrintSubcategoryId(raw, nameHint) {
+  const r = raw != null ? String(raw).trim() : '';
+  if (OID_HEX.test(r)) return r;
+  if (MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL[r]) {
+    return MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL[r];
+  }
+  const n = nameHint != null ? String(nameHint).trim() : '';
+  if (n && MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL[n]) {
+    return MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL[n];
+  }
+  return r;
+}
+
+/**
  * Get subcategory options for a media category key.
  * @param {string} mediaCategory - e.g. 'television', 'hoarding', 'dooh'
  * @returns {string[]} List of subcategory display names

@@ -1,14 +1,12 @@
 import {
   Typography,
   Box,
-  Button,
+  Button as MuiButton,
   Select,
   MenuItem,
   Input,
   TextField,
   Chip,
-  BottomNavigation,
-  Divider,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
@@ -32,13 +30,58 @@ import { useFieldArray } from 'react-hook-form';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import Bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { toast } from 'sonner';
+import { Info } from 'lucide-react';
 import api from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
-import ToolTip from '../../components/ToolTip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../components/ui/tooltip';
+import { Button as UiButton } from '../../components/ui/button';
 import StateData from '../../utils/StateCityArray.json';
+import { resolveMediaOfflinePrintSubcategoryId } from '../../config/mediaSubcategories';
 
 const NEWSPAPER_SUBCATEGORY_ID = '647713dcb530d22fce1f6c36';
 const PRINT_SUBCATEGORY_NAMES = ['Newspaper', 'Magazines', 'Flyers', 'Electricity bills', 'Boarding Pass'];
+
+/** Single “%” in UI — API/menu values may already include % */
+const formatGstPercentLabel = (raw) => {
+  if (raw === null || raw === undefined || raw === '') return '';
+  const s = String(raw).trim().replace(/%+\s*$/g, '').trim();
+  return s === '' ? '' : `${s}%`;
+};
+
+const newspaperPricingGridSx = {
+  display: 'grid',
+  gap: { xs: 2, sm: 2 },
+  width: '100%',
+  mt: { xs: 2, sm: 2.5 },
+  gridTemplateColumns: {
+    xs: 'minmax(0, 1fr)',
+    sm: 'repeat(2, minmax(0, 1fr))',
+    md: 'repeat(3, minmax(0, 1fr))',
+    lg: 'repeat(5, minmax(0, 1fr))',
+  },
+};
+
+const newspaperGridCellSx = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 1,
+  minWidth: 0,
+  width: '100%',
+};
+
+const newspaperGridLabelSx = {
+  fontFamily: 'Inter, sans-serif',
+  fontWeight: 500,
+  fontSize: '12px',
+  lineHeight: 1.35,
+  color: '#5c6b8a',
+  minHeight: '2.7em',
+};
 
 const MediaProductInfo = () => {
   const ProductId = useParams().id;
@@ -58,8 +101,6 @@ const MediaProductInfo = () => {
     }
   }, []);
 
-  const GSTOptions = [0, 5, 12, 18, 28];
-  const [modelName, setModelName] = useState();
   const [HSNStore, setHSNStore] = useState();
   const [ProductData, setProductData] = useState();
   const [hsnCode, setHsnCode] = useState();
@@ -68,10 +109,6 @@ const MediaProductInfo = () => {
   const [OneUnitProduct, setOneUnitProduct] = useState(false);
   const [IsDisabled, setIsDisabled] = useState();
   const [storeDataOfLocation, setStoreDataOfLocation] = useState({});
-  const [paythru, setPaythru] = useState({
-    bxitokens: '',
-    inr: '',
-  });
   const [OthercostEditId, SetOthercostEditId] = useState(null);
   const [GSTData, setGSTData] = useState();
 
@@ -79,7 +116,12 @@ const MediaProductInfo = () => {
     isNewspaperFromStorage ||
     FetchedproductData?.ProductSubCategory === NEWSPAPER_SUBCATEGORY_ID ||
     FetchedproductData?.ProductSubCategoryName === 'News Papers / Magazines' ||
-    (FetchedproductData?.ProductSubCategory && PRINT_SUBCATEGORY_NAMES.includes(FetchedproductData.ProductSubCategory));
+    FetchedproductData?.ProductSubCategoryName === 'Newspaper' ||
+    (FetchedproductData?.ProductSubCategoryName &&
+      PRINT_SUBCATEGORY_NAMES.includes(FetchedproductData.ProductSubCategoryName)) ||
+    // Legacy: ProductSubCategory mistakenly stored as display name
+    (FetchedproductData?.ProductSubCategory &&
+      PRINT_SUBCATEGORY_NAMES.includes(FetchedproductData.ProductSubCategory));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -183,12 +225,7 @@ const MediaProductInfo = () => {
       },
     },
   });
-  const { fields, append, prepend, remove, swap, move, insert, update } =
-    useFieldArray({
-      control,
-      name: 'ProductsVariantions',
-    });
-
+  
   const FetchProduct = async () => {
     // Don't fetch if ProductId is not available
     if (!ProductId) {
@@ -311,7 +348,6 @@ const MediaProductInfo = () => {
     name: 'Othercost',
   });
 
-  const [data, setData] = useState([]);
   const { id } = useParams();
 
   //Additional feature states and functions
@@ -521,6 +557,13 @@ const MediaProductInfo = () => {
     const datatobesent = {
       ...data,
       id: ProductId,
+      ...(FetchedproductData && {
+        ProductSubCategory: resolveMediaOfflinePrintSubcategoryId(
+          FetchedproductData.ProductSubCategory,
+          FetchedproductData.ProductSubCategoryName,
+        ),
+        ProductSubCategoryName: FetchedproductData.ProductSubCategoryName,
+      }),
       OtherCost: OthercostFields,
       GeographicalData: {
         region: getValues()?.GeographicalData?.region,
@@ -646,102 +689,50 @@ const MediaProductInfo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-8">
+    <div className="min-h-screen bg-[#F8F9FA] py-6 sm:py-8">
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
             <Stepper currentStep={2} category="mediaoffline" completedSteps={[1]} />
           </aside>
-          <main className="stepper-content">
-    <div className="listing-journey">
-      <div className="listing-journey-container">
-        <form
-          onSubmit={updateProductTotextilestatus}
-          className="listing-journey-form"
-        >
-        <Box
-          sx={{
-            width: '100%',
-            height: 'auto',
-            maxHeight: '100%',
-            overflowY: 'hidden',
-            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
-            mx: 'auto',
-            maxWidth: '980px',
-            bgcolor: '#fff',
-            overflowX: 'hidden',
-            px: 4,
-            py: 3,
-            border: '1px solid #E2E8F0',
-            borderRadius: '16px',
-          }}
-        >
-          <Box>
-            <Box
-              sx={{
-                width: '100%',
-                mx: 'auto',
-                display: 'flex',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                gap: '10px',
-                height: '100%',
-              }}
-            >
-              <Typography
-                sx={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontStyle: 'normal',
-                  fontWeight: 600,
-                  fontSize: { xs: '18px', sm: '20px', md: '24px' },
-                  color: '#5c6b8a',
-                  letterSpacing: '0.01em',
-                }}
+          <main className="stepper-content min-w-0">
+            <div className="form-section">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h2 className="form-section-title">Media Information</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-[#6B7A99] hover:text-[#C64091] transition-colors shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C64091]/30"
+                        aria-label="About media information"
+                      >
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-left">
+                      <p>
+                        Media Information encompasses essential details and specifications about a specific media, including its name, description, features, pricing, and other relevant data, facilitating informed purchasing decisions for potential buyers.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <form
+                onSubmit={updateProductTotextilestatus}
+                className="space-y-6 mt-1"
               >
-                Media Information
-              </Typography>
-              <ToolTip
-                info={
-                  'Media Information encompasses essential details and specifications about a specific media, including its name, description, features, pricing, and other relevant data, facilitating informed purchasing decisions for potential buyers.'
-                }
-              />
-            </Box>
-            <Box
-              sx={{
-                width: '100%',
-                mt: 2,
-                height: '100%',
-                maxHeight: '100%',
-                overflowY: 'hidden',
-              }}
-            >
-              <Box
-                sx={{
-                  overflow: 'hidden',
-                  '::-webkit-scrollbar': {
-                    display: 'flex',
-                  },
-                  '::-webkit-scrollbar-thumb': {
-                    dynamic: '#8d8e90',
-                    minHeight: '10px',
-                    borderRadius: '8px',
-                  },
-                  '::-webkit-scrollbar-thumb:vertical': {
-                    maxHeight: '30px',
-                  },
-                  maxHeight: '100%',
-                  height: '100%',
-                  p: 1,
-                }}
-              >
-                <Stack>
+                <Box sx={{ width: '100%', overflowX: 'auto' }}>
+                  <Stack spacing={2.5} sx={{ width: '100%' }}>
                   <Box
                     sx={{
                       display: 'flex',
                       flexDirection: 'column',
+                      gap: 0.75,
                     }}
                   >
-                    <Typography sx={{ ...CommonTextStyle, pt: '20px' }}>
+                    <Typography sx={CommonTextStyle}>
                       Media Name <span style={{ color: 'red' }}> *</span>
                     </Typography>
 
@@ -776,9 +767,10 @@ const MediaProductInfo = () => {
                         sx={{
                           display: 'flex',
                           flexDirection: 'column',
+                          gap: 0.75,
                         }}
                       >
-                        <Typography sx={{ ...CommonTextStyle, pt: '20px' }}>
+                        <Typography sx={CommonTextStyle}>
                         Position of the Ad ?{' '}
                           <span style={{ color: 'red' }}> *</span>
                         </Typography>
@@ -811,9 +803,10 @@ const MediaProductInfo = () => {
                           sx={{
                             display: 'flex',
                             flexDirection: 'column',
+                            gap: 0.75,
                           }}
                         >
-                          <Typography sx={{ ...CommonTextStyle, pt: '20px' }}>
+                          <Typography sx={CommonTextStyle}>
                           Offering this branding at ?{' '}
                             <span style={{ color: 'red' }}> *</span>
                           </Typography>
@@ -849,60 +842,30 @@ const MediaProductInfo = () => {
                     )}
                   {isNewspaperJourney ? (
                       <>
-                        <Box
-                          sx={{
-                            mt: 3,
-                            height: 'auto',
-                            minHeight: '100px',
-                            position: 'relative',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'space-between',
-                            flexDirection: 'row',
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Edition (Language){' '}
+                        <Box sx={newspaperPricingGridSx}>
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>
+                              Edition (Language){' '}
                               <span style={{ color: 'red' }}> *</span>
                             </Typography>
                             <Input
                               disableUnderline
                               placeholder="Mumbai English"
                               {...register('mediaVariation.edition')}
-                              sx={inputStyles}
+                              sx={{
+                                ...inputStyles,
+                                width: '100%',
+                                maxWidth: 'none',
+                                minWidth: 0,
+                              }}
                             />
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.edition?.message}
                             </Typography>
                           </Box>
 
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Type
-                            </Typography>
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>Type</Typography>
                             <Select
                               displayEmpty
                               renderValue={(selected) => {
@@ -933,34 +896,26 @@ const MediaProductInfo = () => {
                                   setUnit(e.target.value);
                                 },
                               })}
-                              sx={inputStyles}
+                              sx={{
+                                ...inputStyles,
+                                width: '100%',
+                                maxWidth: 'none',
+                                minWidth: 0,
+                              }}
                             >
                               <MenuItem value="Full Page">Full Page</MenuItem>
                               <MenuItem value="Half Page">Half Page</MenuItem>
-                              <MenuItem value="Quarter Page">
-                              Quarter Page
-                              </MenuItem>
+                              <MenuItem value="Quarter Page">Quarter Page</MenuItem>
                               <MenuItem value="Custom Size">Custom Size</MenuItem>
                             </Select>
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.Type?.message}
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Release Details
+
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>
+                              Release Details
                             </Typography>
                             <Select
                               displayEmpty
@@ -987,40 +942,32 @@ const MediaProductInfo = () => {
                               }}
                               disableUnderline
                               {...register('mediaVariation.releasedetails', {
-                                onChange: (e) => {
+                                onChange: () => {
                                   setOnlyState(!onlyState);
                                 },
                               })}
-                              sx={inputStyles}
+                              sx={{
+                                ...inputStyles,
+                                width: '100%',
+                                maxWidth: 'none',
+                                minWidth: 0,
+                              }}
                             >
-                              <MenuItem value="Per Insertion">
-                              Per Insertion
-                              </MenuItem>
+                              <MenuItem value="Per Insertion">Per Insertion</MenuItem>
                             </Select>
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.releasedetails?.message}
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            No of Insertions Available
+
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>
+                              No. of insertions available
                             </Typography>
                             <Input
                               disableUnderline
                               placeholder="28"
-                              disabled={true}
+                              disabled
                               value={1}
                               {...register('mediaVariation.availableInsertions', {
                                 onChange: (e) => {
@@ -1034,66 +981,43 @@ const MediaProductInfo = () => {
                                   );
                                 },
                               })}
-                              sx={inputStyles}
+                              sx={{
+                                ...inputStyles,
+                                width: '100%',
+                                maxWidth: 'none',
+                                minWidth: 0,
+                              }}
                             />
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {
                                 errors?.mediaVariation?.availableInsertions
                                   ?.message
                               }
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Dimension Size
+
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>
+                              Dimension size
                             </Typography>
                             <Input
                               disableUnderline
                               placeholder="2048 X 998"
                               {...register('mediaVariation.dimensionSize')}
-                              sx={{ ...inputStyles, width: '100px' }}
+                              sx={{
+                                ...inputStyles,
+                                width: '100%',
+                                maxWidth: 'none',
+                                minWidth: 0,
+                              }}
                             />
                           </Box>
-                        </Box>
-                        <Box
-                          sx={{
-                            height: 'auto',
-                            minHeight: '100px',
-                            position: 'relative',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'space-between',
-                            flexDirection: 'row',
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Price Per Unit
-                            </Typography>
 
-                            <Box sx={{ position: 'relative' }}>
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>
+                              Price per unit
+                            </Typography>
+                            <Box sx={{ position: 'relative', width: '100%' }}>
                               <Input
                                 disableUnderline
                                 placeholder="3000"
@@ -1108,54 +1032,49 @@ const MediaProductInfo = () => {
                                   },
                                 })}
                                 sx={{
-                                  width: '139px',
+                                  width: '100%',
                                   height: '42px',
                                   background: '#FFFFFF',
                                   borderRadius: '10px',
                                   fontSize: '12px',
                                   px: 1,
+                                  pr: '36px',
+                                  boxSizing: 'border-box',
                                   color: '#C64091',
+                                  ...borderedControlSx(
+                                    !!errors?.mediaVariation?.PricePerUnit?.message,
+                                  ),
+                                  ...inputPlaceholderSx,
                                 }}
                               />
-
-                              <img
+                              <Box
+                                component="img"
                                 src={Bxitoken}
-                                style={{
+                                alt=""
+                                title="BXI token"
+                                sx={{
                                   position: 'absolute',
-                                  width: '20px',
-                                  right: '7%',
-                                  bottom: '20%',
+                                  right: 10,
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  width: 20,
+                                  height: 20,
+                                  pointerEvents: 'none',
                                 }}
-                                alt="element"
-                                title="BXI token icon"
                               />
                             </Box>
-
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.PricePerUnit?.message}
                             </Typography>
                           </Box>
 
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Discounted Price
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>
+                              Discounted price
                             </Typography>
-                            <Box sx={{ position: 'relative' }}>
+                            <Box sx={{ position: 'relative', width: '100%' }}>
                               <Input
                                 disableUnderline
-                                // value={data.discount}
                                 placeholder="2000"
                                 {...register('mediaVariation.DiscountedPrice', {
                                   onChange: (event) => {
@@ -1168,192 +1087,183 @@ const MediaProductInfo = () => {
                                   },
                                 })}
                                 sx={{
-                                  width: '139px',
+                                  width: '100%',
                                   height: '42px',
                                   background: '#FFFFFF',
                                   borderRadius: '10px',
                                   fontSize: '12px',
                                   color: '#C64091',
                                   px: 1,
+                                  pr: '36px',
+                                  boxSizing: 'border-box',
+                                  ...borderedControlSx(
+                                    !!errors?.mediaVariation?.DiscountedPrice?.message,
+                                  ),
+                                  ...inputPlaceholderSx,
                                 }}
                               />
-                              <img
+                              <Box
+                                component="img"
                                 src={Bxitoken}
-                                style={{
+                                alt=""
+                                title="BXI token"
+                                sx={{
                                   position: 'absolute',
-                                  width: '20px',
-                                  right: '7%',
-                                  bottom: '20%',
+                                  right: 10,
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  width: 20,
+                                  height: 20,
+                                  pointerEvents: 'none',
                                 }}
-                                alt="BXi token"
-                                title="BXI token icon"
                               />
                             </Box>
-
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.DiscountedPrice?.message}
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Ad Type
-                            </Typography>
+
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>Ad type</Typography>
                             <Select
                               disableUnderline
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === ''
+                                ) {
+                                  return (
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select ad type
+                                    </Box>
+                                  );
+                                }
+                                return selected;
+                              }}
                               {...register('mediaVariation.adType', {
                                 onChange: (e) => {
                                   setOnlyState(!onlyState);
                                   setUnit(e.target.value);
                                 },
                               })}
-                              sx={inputStyles}
+                              sx={{
+                                ...inputStyles,
+                                width: '100%',
+                                maxWidth: 'none',
+                                minWidth: 0,
+                              }}
                             >
-                              <MenuItem value="color">
-                              Color <span style={{ color: 'red' }}> *</span>
-                              </MenuItem>
-                              <MenuItem value="Black & White">
-                              Black & White
-                              </MenuItem>
+                              <MenuItem value="color">Color *</MenuItem>
+                              <MenuItem value="Black & White">Black & White</MenuItem>
                             </Select>
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.adType?.message}
                             </Typography>
                           </Box>
 
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            HSN
-                            </Typography>
-
-                            <Box sx={{ position: 'relative' }}>
-                              <Input
-                                disableUnderline
-                                // required={true}
-                                placeholder="998346"
-                                {...register('mediaVariation.HSN', {
-                                  onChange: (event) => {
-                                    const inputValue = event.target.value;
-
-                                    if (inputValue.match(/\D/g)) {
-                                      const filteredValue = inputValue.replace(
-                                        /\D/g,
-                                        '',
-                                      );
-                                      event.target.value = filteredValue;
-                                    }
-                                  },
-                                })}
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key === ' ' &&
-                                  e.target.selectionStart === 0
-                                  ) {
-                                    e.preventDefault();
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>HSN</Typography>
+                            <Input
+                              disableUnderline
+                              placeholder="998346"
+                              {...register('mediaVariation.HSN', {
+                                onChange: (event) => {
+                                  const inputValue = event.target.value;
+                                  if (inputValue.match(/\D/g)) {
+                                    const filteredValue = inputValue.replace(
+                                      /\D/g,
+                                      '',
+                                    );
+                                    event.target.value = filteredValue;
                                   }
-                                }}
-                                inputProps={{ maxLength: 8 }}
-                                sx={{
-                                  width: '100px',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  px: 1,
-                                  fontSize: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  color: formColors.text,
-                                  ...borderedControlSx(
-                                    !!errors?.mediaVariation?.HSN?.message,
-                                  ),
-                                  ...inputPlaceholderSx,
-                                }}
-                              />
-                            </Box>
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
+                                },
+                              })}
+                              onKeyDown={(e) => {
+                                if (
+                                  e.key === ' ' &&
+                                  e.target.selectionStart === 0
+                                ) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              inputProps={{ maxLength: 8 }}
+                              sx={{
+                                width: '100%',
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                px: 1,
+                                fontSize: '12px',
+                                fontFamily: 'Inter, sans-serif',
+                                color: formColors.text,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.HSN?.message,
+                                ),
+                                ...inputPlaceholderSx,
+                              }}
+                            />
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.HSN?.message}
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            GST
-                            </Typography>
 
-                            <Box sx={{ position: 'relative' }}>
-                              <Select
-                                sx={{
-                                  width: '70px',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  fontSize: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  color: formColors.text,
-                                  ...outlinedSelectFieldSx(
-                                    !!errors?.mediaVariation?.GST?.message,
-                                  ),
-                                }}
-                                defaultValue="0"
-                                {...register('mediaVariation.GST')}
-                              >
-                                {GSTData?.map((gst, idx) => {
+                          <Box sx={newspaperGridCellSx}>
+                            <Typography sx={newspaperGridLabelSx}>GST</Typography>
+                            <Select
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === '' ||
+                                  selected === '0'
+                                ) {
                                   return (
-                                    <MenuItem sx={MenuItems} value={gst?.GST}>
-                                      {gst?.GST}
-                                    </MenuItem>
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select GST
+                                    </Box>
                                   );
-                                })}
-                              </Select>
-
-                              <Typography
-                                sx={{
-                                  position: 'absolute',
-                                  right: '32%',
-                                  bottom: '25%',
-                                  color: '#979797',
-                                  fontSize: '15px',
-                                }}
-                              >
-                              %
-                              </Typography>
-                            </Box>
-                            <Typography
-                              sx={FieldErrorTextStyle}
+                                }
+                                return formatGstPercentLabel(selected);
+                              }}
+                              sx={{
+                                width: '100%',
+                                minWidth: 0,
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                fontFamily: 'Inter, sans-serif',
+                                color: formColors.text,
+                                ...outlinedSelectFieldSx(
+                                  !!errors?.mediaVariation?.GST?.message,
+                                ),
+                              }}
+                              {...register('mediaVariation.GST')}
                             >
+                              {GSTData?.map((gst, idx) => (
+                                <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
+                                  {formatGstPercentLabel(gst?.GST)}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                            <Typography sx={FieldErrorTextStyle}>
                               {errors?.mediaVariation?.GST?.message}
                             </Typography>
                           </Box>
@@ -1980,7 +1890,9 @@ const MediaProductInfo = () => {
                               flexDirection: 'column',
                               gap: '10px',
                               mt: 1,
-                              maxWidth: '140px',
+                              minWidth: 0,
+                              width: { xs: '100%', sm: 'auto' },
+                              maxWidth: { sm: '160px' },
                             }}
                           >
                             <Typography
@@ -1989,44 +1901,51 @@ const MediaProductInfo = () => {
                             GST <span style={{ color: 'red' }}> *</span>
                             </Typography>
 
-                            <Box sx={{ position: 'relative' }}>
-                              <Select
-                                sx={{
-                                  width: '70px',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  fontSize: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  color: formColors.text,
-                                  ...outlinedSelectFieldSx(
-                                    !!errors?.mediaVariation?.GST?.message,
-                                  ),
-                                }}
-                                defaultValue="0"
-                                {...register('mediaVariation.GST')}
-                              >
-                                {GSTData?.map((gst, idx) => {
+                            <Select
+                              displayEmpty
+                              renderValue={(selected) => {
+                                if (
+                                  selected === undefined ||
+                                  selected === null ||
+                                  selected === '' ||
+                                  selected === '0'
+                                ) {
                                   return (
-                                    <MenuItem sx={MenuItems} value={gst?.GST}>
-                                      {gst?.GST}
-                                    </MenuItem>
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        color: '#6B7A99',
+                                        opacity: 0.55,
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      Select GST
+                                    </Box>
                                   );
-                                })}
-                              </Select>
-
-                              <Typography
-                                sx={{
-                                  position: 'absolute',
-                                  right: '32%',
-                                  bottom: '25%',
-                                  color: '#979797',
-                                  fontSize: '15px',
-                                }}
-                              >
-                              %
-                              </Typography>
-                            </Box>
+                                }
+                                return formatGstPercentLabel(selected);
+                              }}
+                              sx={{
+                                width: '100%',
+                                minWidth: 88,
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                fontFamily: 'Inter, sans-serif',
+                                color: formColors.text,
+                                ...outlinedSelectFieldSx(
+                                  !!errors?.mediaVariation?.GST?.message,
+                                ),
+                              }}
+                              {...register('mediaVariation.GST')}
+                            >
+                              {GSTData?.map((gst, idx) => (
+                                <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
+                                  {formatGstPercentLabel(gst?.GST)}
+                                </MenuItem>
+                              ))}
+                            </Select>
                             <Typography
                               sx={FieldErrorTextStyle}
                             >
@@ -2520,7 +2439,7 @@ const MediaProductInfo = () => {
                                     {item.AdCostHSN}
                                   </TableCell>
                                   <TableCell align="left" sx={TableCellStyle}>
-                                    {item.AdCostGST} %
+                                    {formatGstPercentLabel(item.AdCostGST)}
                                   </TableCell>
                                   <TableCell align="left" sx={TableCellStyle}>
                                     {item.ReasonOfCost}
@@ -2533,7 +2452,7 @@ const MediaProductInfo = () => {
                                       justifyContent: 'center',
                                     }}
                                   >
-                                    <Button
+                                    <MuiButton
                                       type="button"
                                       variant="text"
                                       aria-label="Edit additional cost"
@@ -2548,8 +2467,8 @@ const MediaProductInfo = () => {
                                         alt=""
                                         sx={{ width: 18, height: 18 }}
                                       />
-                                    </Button>
-                                    <Button
+                                    </MuiButton>
+                                    <MuiButton
                                       type="button"
                                       variant="text"
                                       aria-label="Remove additional cost"
@@ -2564,7 +2483,7 @@ const MediaProductInfo = () => {
                                         alt=""
                                         sx={{ width: 18, height: 18 }}
                                       />
-                                    </Button>
+                                    </MuiButton>
                                   </Box>
                                 </TableRow>
                               </TableBody>
@@ -2575,7 +2494,7 @@ const MediaProductInfo = () => {
                     </TableContainer>
                   </Box>
 
-                  <Divider sx={{ my: 3, borderColor: '#E2E8F0' }} />
+                  <div className="my-8 border-t border-[#E5E7EB]" role="presentation" />
 
                   <Box
                     sx={{
@@ -2882,7 +2801,7 @@ const MediaProductInfo = () => {
                     </Box>
                   </Box>
 
-                  <Divider sx={{ my: 3, borderColor: '#E2E8F0' }} />
+                  <div className="my-8 border-t border-[#E5E7EB]" role="presentation" />
 
                   <Box
                     sx={{
@@ -3010,7 +2929,7 @@ const MediaProductInfo = () => {
                         )}
                       </Box>
 
-                      <Button
+                      <MuiButton
                         type="button"
                         variant="contained"
                         onClick={handleItemAdd}
@@ -3038,7 +2957,7 @@ const MediaProductInfo = () => {
                         }}
                       >
                         Proceed to Add
-                      </Button>
+                      </MuiButton>
 
                       <Typography
                         sx={{
@@ -3094,7 +3013,7 @@ const MediaProductInfo = () => {
                                 {item.description}
                               </Typography>
 
-                              <Button
+                              <MuiButton
                                 type="button"
                                 variant="text"
                                 onClick={() => handleDelete(index)}
@@ -3102,7 +3021,7 @@ const MediaProductInfo = () => {
                                 sx={featureRemoveButtonSx}
                               >
                                 ×
-                              </Button>
+                              </MuiButton>
                             </Box>
                           </Box>
                         ))}
@@ -3170,7 +3089,7 @@ const MediaProductInfo = () => {
                           }}
                           onKeyDown={otherenter}
                         />
-                        <Button
+                        <MuiButton
                           type="button"
                           variant="outlined"
                           onClick={OtherInformationSubmit}
@@ -3181,7 +3100,7 @@ const MediaProductInfo = () => {
                           }}
                         >
                           Add
-                        </Button>
+                        </MuiButton>
                       </Box>
                     </Box>
                   </Box>
@@ -3289,7 +3208,7 @@ const MediaProductInfo = () => {
                         inputProps={{ maxLength: 15 }}
                         onKeyDown={handleAddTag}
                       />
-                      <Button
+                      <MuiButton
                         type="button"
                         variant="outlined"
                         onClick={handleAddButtonClick}
@@ -3300,7 +3219,7 @@ const MediaProductInfo = () => {
                         }}
                       >
                         Add
-                      </Button>
+                      </MuiButton>
                     </Box>
 
                     <Box
@@ -3349,49 +3268,26 @@ const MediaProductInfo = () => {
                     </Box>
                   </Box>
                 </Stack>
-              </Box>
-            </Box>
-          </Box>
-          <Box
-            sx={{
-              width: '100%',
-              mx: 'auto',
-              height: '20%',
-              bgcolor: 'transparent',
-            }}
-          >
-            <BottomNavigation
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                bgcolor: 'transparent',
-                p: '10px',
-              }}
-              showLabels
-            >
-              <Box sx={{ display: 'flex', gap: '10px', p: 1, width: '50%' }}>
-                <Button
-                  type="button"
-                  variant="outlined"
-                  onClick={() => CancelJourney()}
-                  sx={formFooterCancelButtonSx}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  sx={formFooterPrimaryButtonSx}
-                >
-                  Next
-                </Button>
-              </Box>
-            </BottomNavigation>
-          </Box>
-        </Box>
-      </form>
-      </div>
-    </div>
+                </Box>
+
+                <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:items-center border-t border-[#E5E7EB] pt-6">
+                  <UiButton
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto min-w-[120px] border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]"
+                    onClick={() => CancelJourney()}
+                  >
+                    Cancel
+                  </UiButton>
+                  <UiButton
+                    type="submit"
+                    className="w-full sm:w-auto min-w-[120px] bg-[#C64091] hover:bg-[#A03375] text-white"
+                  >
+                    Next
+                  </UiButton>
+                </div>
+              </form>
+            </div>
           </main>
         </div>
       </div>
@@ -3570,50 +3466,6 @@ const featureRemoveButtonSx = {
   },
 };
 
-const formFooterCancelButtonSx = {
-  width: '100%',
-  height: '40px',
-  borderRadius: '10px',
-  textTransform: 'none',
-  fontSize: '14px',
-  fontFamily: 'Inter, sans-serif',
-  fontWeight: 500,
-  borderColor: '#E2E8F0',
-  color: '#475569',
-  backgroundColor: '#fff',
-  boxShadow: 'none',
-  '&:hover': {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#CBD5E1',
-    boxShadow: 'none',
-  },
-};
-
-const formFooterPrimaryButtonSx = {
-  width: '100%',
-  height: '40px',
-  borderRadius: '10px',
-  textTransform: 'none',
-  fontSize: '14px',
-  fontFamily: 'Inter, sans-serif',
-  fontWeight: 500,
-  background: '#C64091',
-  color: '#fff',
-  boxShadow: 'none',
-  '&:hover': {
-    background: '#b0387d',
-    boxShadow: 'none',
-  },
-};
-
-const InputsInsideText = {
-  fontFamily: 'Inter, sans-serif',
-  fontStyle: 'normal',
-  fontWeight: 400,
-  fontSize: '12px',
-  lineHeight: '18px',
-  color: formColors.brand,
-};
 const TextFieldStyle = {
   width: '100%',
   minHeight: '48px',

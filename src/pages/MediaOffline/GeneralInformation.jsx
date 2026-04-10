@@ -23,7 +23,16 @@ import {
 } from '../../components/ui/tooltip';
 import { toast } from 'sonner';
 import api from '../../utils/api';
-import { getMediaSubcategories } from '../../config/mediaSubcategories';
+import {
+  getMediaSubcategories,
+  MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL,
+  resolveMediaOfflinePrintSubcategoryId,
+} from '../../config/mediaSubcategories';
+import {
+  normalizeListingPayload,
+  buildOfflineResolvedOptionsFromListing,
+  filterFlatRowsForOfflineMediaCategory,
+} from '../../utils/mediaSubcategoryListing';
 import { Stepper } from '../AddProduct/AddProductSteps';
 
 /**
@@ -50,6 +59,8 @@ const schema = z.object({
   productdescription: z.string().min(20, 'Minimum 20 characters').max(1000, 'Maximum 1000 characters'),
 });
 
+const OID_HEX = /^[a-f0-9]{24}$/i;
+
 export default function MediaOfflineGeneralInfo() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,6 +70,8 @@ export default function MediaOfflineGeneralInfo() {
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
+  /** Static UI labels resolved to Mongo _id from /mediasubcategory/for_listing */
+  const [resolvedStaticOptions, setResolvedStaticOptions] = useState([]);
 
   // Get journey and media category from URL params or storage
   const journey = useMemo(() => {
@@ -100,17 +113,22 @@ export default function MediaOfflineGeneralInfo() {
 
   const selectedSubcategory = watch('subcategory');
 
-  // Fetch subcategories from API only when not using static list
+  // Non-static: load subcategories from /mediasubcategory/for_listing (scoped by offline media key)
   useEffect(() => {
     if (useStaticSubcategories) {
-      setLoading(false);
       return;
     }
     const fetchSubcategories = async () => {
       try {
-        const res = await api.get('/mediaofflinesub/Get_media_offline');
-        const data = res?.data || [];
-        setSubcategories(data);
+        const res = await api.get('/mediasubcategory/for_listing');
+        const flat = normalizeListingPayload(res?.data);
+        const scoped = filterFlatRowsForOfflineMediaCategory(flat, mediaCategory);
+        setSubcategories(
+          scoped.map((r) => ({
+            _id: r._id,
+            Mediaofflinecategory: r.subCategoryName,
+          })),
+        );
       } catch (error) {
         toast.error('Failed to load subcategories');
       } finally {
@@ -118,7 +136,50 @@ export default function MediaOfflineGeneralInfo() {
       }
     };
     fetchSubcategories();
-  }, [useStaticSubcategories]);
+  }, [useStaticSubcategories, mediaCategory]);
+
+  // Static list: map each label to subcategory _id from /mediasubcategory/for_listing
+  useEffect(() => {
+    if (!useStaticSubcategories) {
+      setResolvedStaticOptions([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/mediasubcategory/for_listing');
+        const flat = filterFlatRowsForOfflineMediaCategory(
+          normalizeListingPayload(res?.data),
+          mediaCategory,
+        );
+        const opts = buildOfflineResolvedOptionsFromListing(
+          staticSubcategories,
+          flat,
+          mediaCategory,
+          MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL,
+        );
+        if (!cancelled) setResolvedStaticOptions(opts);
+      } catch {
+        if (!cancelled) {
+          const isPrint = mediaCategory.toLowerCase().trim() === 'print';
+          setResolvedStaticOptions(
+            staticSubcategories.map((name) => ({
+              label: name,
+              value:
+                isPrint && MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL[name]
+                  ? MEDIA_OFFLINE_PRINT_PRODUCT_SUBCATEGORY_ID_BY_LABEL[name]
+                  : name,
+            })),
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [useStaticSubcategories, staticSubcategories, mediaCategory]);
 
   // Fetch existing product data if editing
   useEffect(() => {
@@ -131,35 +192,70 @@ export default function MediaOfflineGeneralInfo() {
         const data = res?.data;
         setProductData(data);
         if (data) {
-          let subToSet = data.ProductSubCategory || '';
-          if (useStaticSubcategories) {
-            if (data.ProductSubCategoryName && staticSubcategories.includes(data.ProductSubCategoryName))
-              subToSet = data.ProductSubCategoryName;
-            else if (staticSubcategories.includes(subToSet))
-              subToSet = subToSet;
-            else
-              subToSet = '';
-          }
-          setValue('subcategory', subToSet);
           setValue('productname', data.ProductName || '');
           setValue('productsubtitle', data.ProductSubtitle || '');
           setValue('productdescription', data.ProductDescription || '');
+          if (!useStaticSubcategories) {
+            setValue('subcategory', data.ProductSubCategory || '');
+          }
         }
       } catch (error) {
         console.error('Error fetching product:', error);
       }
     };
     fetchProduct();
-  }, [id, location?.state?.id, setValue, useStaticSubcategories, staticSubcategories]);
+  }, [id, location?.state?.id, setValue, useStaticSubcategories]);
 
-  const getSubcategoryName = (subcategoryId) => {
-    if (!subcategoryId) return '';
-    if (useStaticSubcategories && staticSubcategories.includes(subcategoryId))
-      return subcategoryId;
-    if (productData?.ProductSubCategory === subcategoryId && productData?.ProductSubCategoryName)
+  // Static path: after options + product load, set subcategory to Mongo id (or legacy name → id)
+  useEffect(() => {
+    if (!useStaticSubcategories || !productData) return;
+    if (resolvedStaticOptions.length === 0) return;
+
+    const raw = productData.ProductSubCategory;
+    const rawStr = raw != null ? String(raw) : '';
+
+    if (OID_HEX.test(rawStr)) {
+      setValue('subcategory', rawStr);
+      return;
+    }
+
+    const byNameFromDb =
+      productData.ProductSubCategoryName &&
+      resolvedStaticOptions.find((o) => o.label === productData.ProductSubCategoryName);
+    if (byNameFromDb) {
+      setValue('subcategory', byNameFromDb.value);
+      return;
+    }
+
+    const legacyName = rawStr && staticSubcategories.includes(rawStr);
+    if (legacyName) {
+      const opt = resolvedStaticOptions.find((o) => o.label === rawStr);
+      setValue('subcategory', opt ? opt.value : rawStr);
+      return;
+    }
+
+    setValue('subcategory', '');
+  }, [
+    useStaticSubcategories,
+    productData,
+    resolvedStaticOptions,
+    staticSubcategories,
+    setValue,
+  ]);
+
+  const getSubcategoryName = (subcategoryValue) => {
+    if (!subcategoryValue) return '';
+    const v = String(subcategoryValue);
+    if (useStaticSubcategories) {
+      const fromResolved = resolvedStaticOptions.find((o) => String(o.value) === v);
+      if (fromResolved) return fromResolved.label;
+      if (staticSubcategories.includes(v)) return v;
+    }
+    if (productData?.ProductSubCategory === v && productData?.ProductSubCategoryName) {
       return productData.ProductSubCategoryName;
-    const found = subcategories.find((item) => item._id === subcategoryId);
-    return found?.Mediaofflinecategory || subcategoryId;
+    }
+    const found = subcategories.find((item) => String(item._id) === v);
+    return found?.Mediaofflinecategory || v;
   };
 
   const onSubmit = async (data) => {
@@ -170,14 +266,18 @@ export default function MediaOfflineGeneralInfo() {
 
     setIsSubmitting(true);
     try {
-      const subcategoryName = getSubcategoryName(data.subcategory);
+      const subcategoryId =
+        mediaCategory.toLowerCase().trim() === 'print'
+          ? resolveMediaOfflinePrintSubcategoryId(data.subcategory)
+          : data.subcategory;
+      const subcategoryName = getSubcategoryName(subcategoryId);
       const productId = id || location?.state?.id;
 
       const payload = {
         ProductName: data.productname,
         ProductSubtitle: data.productsubtitle,
         ProductDescription: data.productdescription,
-        ProductSubCategory: data.subcategory,
+        ProductSubCategory: subcategoryId,
         ProductType: 'MediaOffline',
         id: productId,
         ProductUploadStatus: 'productinformation',
@@ -185,7 +285,9 @@ export default function MediaOfflineGeneralInfo() {
         ProductCategoryName:
           journey === 'hoarding'
             ? 'MediaOffline'
-            : journey === 'newspaper' || subcategoryName === 'News Papers / Magazines'
+            : journey === 'newspaper' ||
+                subcategoryName === 'News Papers / Magazines' ||
+                subcategoryName === 'Newspaper'
               ? 'News Papers / Magazines'
               : subcategoryName === 'Hoardings'
                 ? 'MediaOffline'
@@ -289,12 +391,14 @@ export default function MediaOfflineGeneralInfo() {
                 </SelectTrigger>
                 <SelectContent>
                   {useStaticSubcategories
-                    ? staticSubcategories
+                    ? resolvedStaticOptions
                         .slice()
-                        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-                        .map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
+                        .sort((a, b) =>
+                          a.label.toLowerCase().localeCompare(b.label.toLowerCase()),
+                        )
+                        .map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
                           </SelectItem>
                         ))
                     : subcategories

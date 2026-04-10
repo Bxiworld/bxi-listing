@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useListingEntryContext from "../hooks/useListingEntryContext";
 import api from "../utils/api";
+import { normalizeLabel, normalizeListingPayload } from "../utils/mediaSubcategoryListing";
 
 import Cinema from "../assets/AddMediaCategoryPageIcons/Cinema.svg";
 import Airport from "../assets/AddMediaCategoryPageIcons/Airport.svg";
@@ -101,54 +102,6 @@ const MEDIA_CATEGORIES = [
     journey: "display-video",
   },
 ];
-
-function normalizeLabel(s) {
-  return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-/**
- * Supports:
- * - Nested: { subcategory: [{ categoryName, subCategories: [{ _id, subCategoryName }] }] }
- * - Flat rows: { subcategory: [{ _id, subCategoryName, categoryName, DisplayName?, iconurl? }] }
- */
-function normalizeListingPayload(payload) {
-  const docs = payload?.subcategory ?? payload?.data ?? [];
-  if (!Array.isArray(docs) || docs.length === 0) return [];
-
-  const first = docs[0];
-  const looksFlat =
-    first &&
-    (first.subCategoryName || first.DisplayName) &&
-    !Array.isArray(first.subCategories);
-
-  if (looksFlat) {
-    return docs
-      .filter((d) => d?._id && (d.subCategoryName || d.DisplayName))
-      .map((d) => ({
-        _id: String(d._id),
-        subCategoryName: d.subCategoryName || d.DisplayName,
-        categoryName: d.categoryName || "",
-        displayName: d.DisplayName || d.displayName || d.subCategoryName,
-        iconUrl: d.iconurl || d.iconUrl || null,
-      }));
-  }
-
-  const rows = [];
-  for (const doc of docs) {
-    for (const sub of doc.subCategories || []) {
-      if (!sub?._id || !sub.subCategoryName) continue;
-      rows.push({
-        _id: String(sub._id),
-        subCategoryName: sub.subCategoryName,
-        categoryName: doc.categoryName || "",
-        displayName:
-          sub.DisplayName || sub.displayName || sub.subCategoryName,
-        iconUrl: sub.iconurl || sub.iconUrl || null,
-      });
-    }
-  }
-  return rows;
-}
 
 const LABEL_ALIASES = {
   [normalizeLabel("Digital Out-of-Home")]: normalizeLabel("DOOH"),

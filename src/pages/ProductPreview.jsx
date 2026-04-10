@@ -60,7 +60,13 @@ function isMediaListing(p) {
   const pt = String(p.ProductType ?? '').trim().toLowerCase();
   if (pt === 'mediaonline' || pt === 'mediaoffline') return true;
   const cat = String(p.ProductCategoryName ?? '').trim();
-  if (cat === 'MediaOnline' || cat === 'MediaOffline' || cat === 'Multiplex ADs' || cat === 'Media') {
+  if (
+    cat === 'MediaOnline' ||
+    cat === 'MediaOffline' ||
+    cat === 'Multiplex ADs' ||
+    cat === 'Media' ||
+    cat === 'News Papers / Magazines'
+  ) {
     return true;
   }
   return false;
@@ -128,14 +134,48 @@ function FeatureItem({ name, description }) {
   );
 }
 
-function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage }) {
+function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, priceBasis = 'inclusive' }) {
   const reg = Number(regularPrice) || 0;
   const disc = Number(discountPrice) || 0;
   const pct = Number(percentage) || 0;
   const discount = reg - disc;
   const discountPercent = reg > 0 ? (discount / reg) * 100 : 0;
   const gstPrice = pct > 0 ? disc / (1 + pct / 100) : disc;
-  const gstAmount = disc - gstPrice;
+  const gstAmountInclusive = disc - gstPrice;
+  const gstOnTopExclusive = pct > 0 ? (disc * pct) / 100 : 0;
+
+  if (priceBasis === 'exclusive') {
+    return (
+      <Stack spacing={0.5}>
+        <Stack direction="row" flexWrap="wrap" alignItems="baseline" spacing={1}>
+          {discountPercent > 0 && (
+            <Typography variant="body1" fontWeight="bold" color="error.main">
+              -{discountPercent.toFixed(2)}%
+            </Typography>
+          )}
+          <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ fontSize: { md: '1.75rem' } }}>
+            {formatPrice(disc)}
+          </Typography>
+          {pct > 0 && (
+            <Typography variant="h6" color="text.secondary" component="span">
+              (+ {formatPrice(gstOnTopExclusive)}₹ GST @ {pct}%)
+            </Typography>
+          )}
+        </Stack>
+        {discountPercent > 0 && (
+          <Typography variant="body2" color="text.disabled">
+            MRP:{' '}
+            <Typography component="span" sx={{ textDecoration: 'line-through' }}>
+              {formatPrice(reg)}
+            </Typography>
+          </Typography>
+        )}
+        <Typography variant="caption" color="text.secondary">
+          Media listing prices are exclusive of GST. GST is charged additionally as applicable.
+        </Typography>
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={0.5}>
@@ -152,9 +192,9 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage }) {
           <Typography variant="h6" color="text.secondary">
             ({formatPrice(gstPrice)}
           </Typography>
-          <img src={BXIIcon} alt="GST" style={{ height: 16, width: 16 }} />
+          <img src={BXIIcon} alt="" style={{ height: 16, width: 16 }} />
           <Typography variant="h6" color="text.secondary">
-            + {formatPrice(gstAmount)}₹ GST)
+            + {formatPrice(gstAmountInclusive)}₹ GST)
           </Typography>
         </Stack>
       </Stack>
@@ -374,12 +414,12 @@ export default function ProductPreview() {
 
   const rawVariantsList = product?.ProductsVariantions;
   const variants = Array.isArray(rawVariantsList) ? rawVariantsList : [];
-  const selectedVariantData = variants.find(
-    (v) => (v._id ?? v.id) === selectedVariant
-  );
-
   const isVoucherListing = product?.ListingType === 'Voucher';
   const isMediaProduct = isMediaListing(product);
+  const selectedVariantData =
+    variants.find((v) => (v._id ?? v.id) === selectedVariant) ||
+    variants[0] ||
+    (isMediaProduct && product?.mediaVariation ? { ...product.mediaVariation } : undefined);
   const rawImages =
     product?.ListingType === 'Product' || isMediaProduct
       ? product?.ProductImages
@@ -640,6 +680,7 @@ export default function ProductPreview() {
                 regularPrice={selectedVariantData?.PricePerUnit}
                 discountPrice={selectedVariantData?.DiscountedPrice}
                 percentage={selectedVariantData?.GST}
+                priceBasis={isMediaProduct ? 'exclusive' : 'inclusive'}
               />
 
               {!isVoucherListing &&
@@ -860,7 +901,11 @@ export default function ProductPreview() {
           <Box sx={{ p: 3 }}>
             <TabPanel value={tabValue} index={0}>
               {(() => {
-                const loc = product?.LocationDetails || product?.locationDetails || {};
+                const loc =
+                  product?.LocationDetails ||
+                  product?.locationDetails ||
+                  product?.GeographicalData ||
+                  {};
                 const hasLoc = loc.region || loc.state || loc.city || loc.landmark || loc.pincode;
                 return (
                   <Stack spacing={3}>
@@ -869,10 +914,16 @@ export default function ProductPreview() {
                         Product Description
                       </Typography>
                       <Typography variant="body1" color="text.secondary">
-                        {product?.ProductSubtittle ||
-                          product?.ProductSubtitle ||
-                          product?.ProductDescription ||
-                          'No description available.'}
+                        {isMediaProduct
+                          ? product?.ProductDescription ||
+                            product?.productDescription ||
+                            product?.ProductSubtitle ||
+                            product?.ProductSubtittle ||
+                            'No description available.'
+                          : product?.ProductSubtittle ||
+                            product?.ProductSubtitle ||
+                            product?.ProductDescription ||
+                            'No description available.'}
                       </Typography>
                     </Box>
                     {product?.ModelName && (
@@ -964,68 +1015,57 @@ export default function ProductPreview() {
                         Additional Cost
                       </Typography>
                       {product?.OtherCost?.length > 0 ? (
-                        <Stack spacing={3}>
-                          {product.OtherCost.map((cost, i) => (
-                            <Grid container spacing={2} key={i}>
-                              {cost.AdCostApplicableOn != null && String(cost.AdCostApplicableOn).trim() !== '' && (
-                                <Grid item xs={6} md={4}>
-                                  <Typography variant="caption" color="text.secondary">Applicable on:</Typography>
-                                  <Typography variant="body2" display="block">
-                                    {cost.AdCostApplicableOn}
-                                  </Typography>
-                                </Grid>
-                              )}
-                              {cost.ReasonOfCost != null && String(cost.ReasonOfCost).trim() !== '' && (
-                                <Grid item xs={6} md={4}>
-                                  <Typography variant="caption" color="text.secondary">Reason:</Typography>
-                                  <Typography variant="body2" display="block">
-                                    {cost.ReasonOfCost}
-                                  </Typography>
-                                </Grid>
-                              )}
-                              {cost.AdCostHSN != null && String(cost.AdCostHSN).trim() !== '' && (
-                                <Grid item xs={6} md={4}>
-                                  <Typography variant="caption" color="text.secondary">HSN:</Typography>
-                                  <Typography variant="body2" display="block">
-                                    {cost.AdCostHSN}
-                                  </Typography>
-                                </Grid>
-                              )}
-                              {cost.AdCostGST != null && cost.AdCostGST !== '' && (
-                                <Grid item xs={6} md={4}>
-                                  <Typography variant="caption" color="text.secondary">GST:</Typography>
-                                  <Typography variant="body2" display="block">
-                                    {cost.AdCostGST}%
-                                  </Typography>
-                                </Grid>
-                              )}
-                              {cost.CostPrice != null && cost.CostPrice !== '' && (
-                                <Grid item xs={6} md={4}>
-                                  <Typography variant="caption" color="text.secondary">Cost:</Typography>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 0.5,
-                                      mt: 0.25,
-                                    }}
-                                  >
-                                    <Typography variant="body2" component="span" fontWeight="medium">
-                                      {formatPrice(cost.CostPrice)}
-                                    </Typography>
-                                    {cost.currencyType === 'BXITokens' ? (
-                                      <Box component="img" src={BXITokenIcon} alt="BXI Token" sx={{ width: 16, height: 16 }} />
+                        <TableContainer
+                          component={Paper}
+                          elevation={0}
+                          sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 1, maxWidth: 720 }}
+                        >
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow sx={{ bgcolor: 'grey.50' }}>
+                                <TableCell sx={{ fontWeight: 600 }}>Applicable on</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>HSN</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>GST</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }} align="right">
+                                  Cost
+                                </TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {product.OtherCost.map((cost, i) => (
+                                <TableRow key={cost._id ?? cost.id ?? i}>
+                                  <TableCell>{cost.AdCostApplicableOn ?? '—'}</TableCell>
+                                  <TableCell>{cost.ReasonOfCost ?? '—'}</TableCell>
+                                  <TableCell>{cost.AdCostHSN ?? '—'}</TableCell>
+                                  <TableCell>
+                                    {cost.AdCostGST != null && cost.AdCostGST !== ''
+                                      ? `${cost.AdCostGST}%`
+                                      : '—'}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {cost.CostPrice != null && cost.CostPrice !== '' ? (
+                                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
+                                        <Typography variant="body2" component="span" fontWeight="medium">
+                                          {formatPrice(cost.CostPrice)}
+                                        </Typography>
+                                        {cost.currencyType === 'BXITokens' ? (
+                                          <Box component="img" src={BXITokenIcon} alt="" sx={{ width: 16, height: 16 }} />
+                                        ) : (
+                                          <Typography variant="body2" component="span">
+                                            ₹
+                                          </Typography>
+                                        )}
+                                      </Box>
                                     ) : (
-                                      <Typography variant="body2" component="span">
-                                        ₹
-                                      </Typography>
+                                      '—'
                                     )}
-                                  </Box>
-                                </Grid>
-                              )}
-                            </Grid>
-                          ))}
-                        </Stack>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       ) : (
                         <Typography variant="body1" color="text.secondary">No</Typography>
                       )}
@@ -1166,6 +1206,112 @@ export default function ProductPreview() {
                               <Chip key={index} label={String(tag)} size="small" />
                             ))}
                           </Box>
+                        </Box>
+                      )}
+                    </Stack>
+                  );
+                }
+
+                if (isMediaProduct) {
+                  const mv = product?.mediaVariation || {};
+                  const v0 =
+                    selectedVariantData ||
+                    (Array.isArray(product?.ProductsVariantions) && product.ProductsVariantions[0]) ||
+                    {};
+                  const pick = (a, b) => {
+                    const isFilled = (x) => x != null && String(x).trim() !== '';
+                    if (isFilled(a)) return a;
+                    if (isFilled(b)) return b;
+                    return null;
+                  };
+                  const geo = product?.GeographicalData || {};
+                  const techRows = [
+                    ['Media name', product?.medianame || product?.ProductName],
+                    ['Media category', product?.mediaCategory],
+                    ['Media journey', product?.mediaJourney],
+                    ['Ad position', product?.adPosition],
+                    ['Edition', pick(mv.edition, v0.edition)],
+                    ['Type', pick(mv.Type, v0.Type)],
+                    ['Release details', pick(mv.releasedetails, v0.releasedetails)],
+                    ['Available insertions', pick(mv.availableInsertions, v0.availableInsertions)],
+                    ['Dimension (creative)', pick(mv.dimensionSize, v0.dimensionSize)],
+                    ['Ad type', pick(mv.adType, v0.adType)],
+                    ['Timeline', pick(mv.Timeline, v0.Timeline)],
+                    ['Min order quantity', pick(mv.MinOrderQuantity, v0.MinOrderQuantity)],
+                    ['Max order quantity', pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit)],
+                    ['Max order (timeline)', pick(mv.maxOrderQuantitytimeline, v0.maxOrderQuantitytimeline)],
+                    ['Other dimensions', product?.Dimensions],
+                  ];
+                  const hasGeo =
+                    (geo.region && String(geo.region).trim()) ||
+                    (geo.state && String(geo.state).trim()) ||
+                    (geo.city && String(geo.city).trim()) ||
+                    (geo.landmark && String(geo.landmark).trim());
+                  const filledRows = techRows.filter(
+                    ([, val]) => val != null && String(val).trim() !== ''
+                  );
+                  if (!filledRows.length && !hasGeo) {
+                    return (
+                      <Typography color="text.secondary">
+                        No technical information available.
+                      </Typography>
+                    );
+                  }
+                  return (
+                    <Stack spacing={3}>
+                      {filledRows.length > 0 && (
+                        <Grid container spacing={2}>
+                          {filledRows.map(([label, val]) => (
+                            <Grid item xs={12} sm={6} md={4} key={label}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {label}
+                              </Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {String(val)}
+                              </Typography>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
+                      {hasGeo && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Geographic coverage
+                          </Typography>
+                          <Grid container spacing={2}>
+                            {geo.region && String(geo.region).trim() && (
+                              <Grid item xs={6} md={4}>
+                                <Typography variant="caption" color="text.secondary">Region</Typography>
+                                <Typography variant="body2" display="block" fontWeight={500}>
+                                  {geo.region}
+                                </Typography>
+                              </Grid>
+                            )}
+                            {geo.state && String(geo.state).trim() && (
+                              <Grid item xs={6} md={4}>
+                                <Typography variant="caption" color="text.secondary">State</Typography>
+                                <Typography variant="body2" display="block" fontWeight={500}>
+                                  {geo.state}
+                                </Typography>
+                              </Grid>
+                            )}
+                            {geo.city && String(geo.city).trim() && (
+                              <Grid item xs={6} md={4}>
+                                <Typography variant="caption" color="text.secondary">City</Typography>
+                                <Typography variant="body2" display="block" fontWeight={500}>
+                                  {geo.city}
+                                </Typography>
+                              </Grid>
+                            )}
+                            {geo.landmark && String(geo.landmark).trim() && (
+                              <Grid item xs={12} sm={6} md={4}>
+                                <Typography variant="caption" color="text.secondary">Landmark</Typography>
+                                <Typography variant="body2" display="block" fontWeight={500}>
+                                  {geo.landmark}
+                                </Typography>
+                              </Grid>
+                            )}
+                          </Grid>
                         </Box>
                       )}
                     </Stack>

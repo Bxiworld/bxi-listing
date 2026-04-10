@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus, Package, Loader2 } from 'lucide-react';
+import { Plus, Package, Loader2, Search, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import {
   Select,
   SelectContent,
@@ -57,6 +58,28 @@ const CATEGORY_FILTER_ALIASES = {
 const normalizeCategory = (value = '') =>
   String(value).toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
 
+const productMatchesHubSearch = (product, rawQuery) => {
+  const q = String(rawQuery || '').trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    product?.ProductName,
+    product?.ProductDescription,
+    product?.ProductSubCategoryName,
+    product?.ProductCategoryName,
+    product?.BrandName,
+    product?._id,
+    product?.SKU,
+    product?.ListingType,
+    product?.Type,
+    Array.isArray(product?.tags) ? product.tags.join(' ') : product?.tags,
+  ]
+    .filter((v) => v != null && v !== '')
+    .map((v) => String(v).toLowerCase())
+    .join(' ');
+  const words = q.split(/\s+/).filter(Boolean);
+  return words.every((w) => haystack.includes(w));
+};
+
 export default function SellerHub() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -74,6 +97,7 @@ export default function SellerHub() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedType, setSelectedType] = useState('');
   const [selectedListingType, setSelectedListingType] = useState('');
+  const [hubSearch, setHubSearch] = useState('');
 
   // Redux state
   const {
@@ -230,6 +254,12 @@ export default function SellerHub() {
     });
   }, [filteredProducts, selectedListingType]);
 
+  const searchFilteredProducts = useMemo(
+    () =>
+      (fullyFilteredProducts || []).filter((p) => productMatchesHubSearch(p, hubSearch)),
+    [fullyFilteredProducts, hubSearch]
+  );
+
   // Tab counts
   const tabCounts = useMemo(() => ({
     'Live': liveProducts.totalProducts || liveProducts.data?.length || 0,
@@ -244,6 +274,7 @@ export default function SellerHub() {
   const handleTabChange = (tab) => {
     dispatch(setActiveTab(tab));
     setCurrentPage(1);
+    setHubSearch('');
   };
 
   // Handle page change
@@ -450,15 +481,48 @@ export default function SellerHub() {
         )}
       </div>
 
+      <div className="w-full max-w-xl mx-auto px-4 mb-6">
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
+            aria-hidden
+          />
+          <Input
+            value={hubSearch}
+            onChange={(e) => setHubSearch(e.target.value)}
+            placeholder="Search by name, category, ID…"
+            className="pl-9 pr-9 h-10 bg-white border-[#E5E8EB]"
+            data-testid="sellerhub-search"
+            aria-label="Search listings on this page"
+          />
+          {hubSearch ? (
+            <button
+              type="button"
+              onClick={() => setHubSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              aria-label="Clear search"
+              data-testid="sellerhub-search-clear"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        {hubSearch.trim() ? (
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Filtering listings on the current page only.
+          </p>
+        ) : null}
+      </div>
+
       {/* Product Grid */}
       {loading ? (
         <div className="loading-container">
           <Loader2 className="w-10 h-10 animate-spin text-[#C64091]" />
         </div>
-      ) : fullyFilteredProducts && fullyFilteredProducts.length > 0 ? (
+      ) : searchFilteredProducts && searchFilteredProducts.length > 0 ? (
         <>
           <div className="product-grid" data-testid="product-grid">
-            {fullyFilteredProducts.map((product) => (
+            {searchFilteredProducts.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}
@@ -472,7 +536,7 @@ export default function SellerHub() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {totalPages > 1 && !hubSearch.trim() && (
             <div className="pagination-container">
               <Pagination>
                 <PaginationContent>
@@ -512,6 +576,25 @@ export default function SellerHub() {
             </div>
           )}
         </>
+      ) : fullyFilteredProducts?.length > 0 && hubSearch.trim() ? (
+        <div className="empty-state" data-testid="sellerhub-search-empty">
+          <Package className="empty-state-icon" />
+          <p className="empty-state-text">No listings match your search.</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setHubSearch('')}
+            className="mt-4"
+            data-testid="sellerhub-search-clear-btn"
+          >
+            Clear search
+          </Button>
+        </div>
+      ) : (products || []).length > 0 && fullyFilteredProducts?.length === 0 ? (
+        <div className="empty-state" data-testid="sellerhub-filter-empty">
+          <Package className="empty-state-icon" />
+          <p className="empty-state-text">No listings match your filters.</p>
+        </div>
       ) : (
         <div className="empty-state" data-testid="empty-state">
           <Package className="empty-state-icon" />

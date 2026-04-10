@@ -16,6 +16,12 @@ import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { useLocation } from 'react-router-dom';
 import api from '../../utils/api';
 
+const formatGstPercentLabel = (raw) => {
+  if (raw === null || raw === undefined || raw === '') return '';
+  const s = String(raw).trim().replace(/%+\s*$/g, '').trim();
+  return s === '' ? '' : `${s}%`;
+};
+
 export default function TextileProductInform(props) {
   const location = useLocation();
 
@@ -106,28 +112,33 @@ export default function TextileProductInform(props) {
       </Typography>
       <Box
         sx={{
-          display: 'flex',
-          gap: '10px',
+          display: 'grid',
           width: '100%',
-          justifyContent: 'space-between',
+          gap: { xs: 2, sm: 2.5 },
+          gridTemplateColumns: {
+            xs: 'minmax(0, 1fr)',
+            sm: 'repeat(2, minmax(0, 1fr))',
+            md: 'minmax(0, 1.35fr) minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(0, 0.85fr)',
+          },
         }}
       >
         <Box
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
-            maxWidth: '200px',
+            gap: 1,
+            minWidth: 0,
+            width: '100%',
           }}
         >
-          <Typography sx={{ ...CommonTextStyle, whiteSpace: 'nowrap' }}>
-            Applicable On
+          <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
+            Applicable on
           </Typography>
           <Select
             defaultValue={'All'}
             {...register('AdCostApplicableOn')}
             sx={{
-              width: '199px',
+              width: '100%',
               height: '48px',
               background: '#FFFFFF',
               borderRadius: '10px',
@@ -138,28 +149,22 @@ export default function TextileProductInform(props) {
             <MenuItem value='All'>One Time Cost</MenuItem>
             <MenuItem value='PerUnit'>Per Unit</MenuItem>
           </Select>
-          <Typography
-            sx={{ ...FieldErrorTextStyle, height: 'auto', width: '103%' }}
-          >
+          <Typography sx={{ ...FieldErrorTextStyle, height: 'auto' }}>
             {errors['AdCostApplicableOn']?.message}
           </Typography>
         </Box>
         <Box
           sx={{
-            width: '180px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
+            gap: 1,
+            minWidth: 0,
+            width: '100%',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Typography
-              sx={{
-                ...CommonTextStyle,
-                position: 'relative',
-              }}
-            >
-              Cost(Exc of GST)
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+            <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
+              Cost (excl. GST)
             </Typography>
             <ToolTip info="Do you wish to collect this as Trade Credits OR INR?" />
           </Box>
@@ -215,15 +220,16 @@ export default function TextileProductInform(props) {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
-            maxWidth: '100px',
+            gap: 1,
+            minWidth: 0,
+            width: '100%',
           }}
         >
-          <Typography sx={CommonTextStyle}>
+          <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
             HSN <span style={{ color: 'red' }}> *</span>
           </Typography>
 
-          <Box sx={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative', width: '100%' }}>
             <Input
               disableUnderline
               placeholder='998346'
@@ -266,67 +272,55 @@ export default function TextileProductInform(props) {
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: '10px',
-            maxWidth: '100px',
+            gap: 1,
+            minWidth: 0,
+            width: '100%',
           }}
         >
-          <Typography sx={CommonTextStyle}>
+          <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
             GST <span style={{ color: 'red' }}> *</span>
           </Typography>
 
-          <Box sx={{ position: 'relative' }}>
-            <Select
-              defaultValue=''
-              displayEmpty
-              renderValue={(selected) => {
-                if (
-                  selected === undefined ||
-                  selected === null ||
-                  selected === ''
-                ) {
-                  return (
-                    <Box
-                      component='span'
-                      sx={{
-                        color: ocColors.label,
-                        opacity: 0.55,
-                        fontSize: '12px',
-                      }}
-                    >
-                      GST %
-                    </Box>
-                  );
-                }
-                return selected;
-              }}
-              {...register('AdCostGST')}
-              sx={{
-                width: '100px',
-                height: '48px',
-                background: '#FFFFFF',
-                borderRadius: '10px',
-                ...ocOutlinedSelectSx(!!errors?.AdCostGST),
-              }}
-            >
-              {GSTData?.map((gst, idx) => (
-                <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
-                  {gst?.GST}
-                </MenuItem>
-              ))}
-            </Select>
-
-            <Typography
-              sx={{
-                position: 'absolute',
-                right: '32%',
-                bottom: '25%',
-                color: '#979797',
-                fontSize: '12px',
-              }}
-            >
-              %
-            </Typography>
-          </Box>
+          <Select
+            defaultValue=''
+            displayEmpty
+            renderValue={(selected) => {
+              if (
+                selected === undefined ||
+                selected === null ||
+                selected === ''
+              ) {
+                return (
+                  <Box
+                    component='span'
+                    sx={{
+                      color: ocColors.label,
+                      opacity: 0.55,
+                      fontSize: '12px',
+                    }}
+                  >
+                    Select GST rate
+                  </Box>
+                );
+              }
+              return formatGstPercentLabel(selected);
+            }}
+            {...register('AdCostGST')}
+            sx={{
+              width: '100%',
+              minWidth: 0,
+              height: '48px',
+              background: '#FFFFFF',
+              borderRadius: '10px',
+              ...ocOutlinedSelectSx(!!errors?.AdCostGST),
+            }}
+          >
+            {GSTData?.map((gst, idx) => (
+              <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
+                {formatGstPercentLabel(gst?.GST)}
+              </MenuItem>
+            ))}
+          </Select>
 
           {errors?.AdCostGST && (
             <Typography sx={FieldErrorTextStyle}>
@@ -355,10 +349,13 @@ export default function TextileProductInform(props) {
           </Typography>
 
           <TextField
+            multiline
+            minRows={2}
+            maxRows={5}
             {...register('ReasonOfCost')}
             placeholder={
               location.pathname?.includes('media')
-                ? 'Content Management Charges, Printing Mounting Charges, Conversion Charges, Log Report Charges etc'
+                ? 'e.g. content management, printing & mounting, conversion charges'
                 : 'Customized Packaging'
             }
             variant='standard'
@@ -367,8 +364,8 @@ export default function TextileProductInform(props) {
               sx: {
                 fontSize: '14px',
                 px: 1.25,
-                py: 1,
-                minHeight: '48px',
+                py: 1.25,
+                alignItems: 'flex-start',
                 fontFamily: 'Inter, sans-serif',
                 color: ocColors.text,
                 boxSizing: 'border-box',
