@@ -607,6 +607,7 @@
       "Prakasam",
       "Sri Potti Sriramulu Nellore",
       "Srikakulam",
+      "Tirupati",
       "Visakhapatnam",
       "Vizianagaram",
       "West Godavari",
@@ -895,6 +896,12 @@
     "data": [
       "Daman",
       "Diu"
+    ]
+  },
+  {
+    "name": "Chandigarh",
+    "data": [
+      "Chandigarh"
     ]
   }
 ]

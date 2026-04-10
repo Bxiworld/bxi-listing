@@ -1668,7 +1668,7 @@ export default function HoardingTechInfo() {
                         </Box>
                     </Box>
 
-                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <UiButton
                             type="button"
                             variant="outline"
