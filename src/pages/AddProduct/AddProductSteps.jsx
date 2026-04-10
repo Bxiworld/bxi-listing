@@ -1249,19 +1249,6 @@ export const ProductInfo = ({ category }) => {
           const nextCity = matchedCity || fallbackCity || cities?.[0] || '';
           const nextCityStr = String(nextCity || '').trim();
 
-          // Debug: Helps validate city auto-fill when API returns multiple PostOffice records.
-          // (Keep this lightweight; remove after validation if desired.)
-          console.log('[pincodeLookup]', {
-            pincode,
-            apiStateName,
-            apiDistrict,
-            apiLandmark,
-            candidateStrings,
-            matchedCity,
-            fallbackCity,
-            nextCity: nextCityStr,
-            citiesFirst: Array.isArray(cities) ? cities.slice(0, 5) : cities,
-          });
 
           // Ensure the selected `nextCity` is present in the dropdown options.
           const nextCityArray = (() => {
@@ -1537,15 +1524,15 @@ export const ProductInfo = ({ category }) => {
     setValue('sizeValue', '');
     setValue('volume', '');
     setValue('shoeSize', '');
-    setValue('minOrderQty', '1');
+    setValue('minOrderQty', '');
     // Voucher: max must not exceed total (form still validates on Save & Next); keep defaults consistent.
     if (isVoucherCategory) {
-      setValue('maxOrderQty', '1');
-      setValue('totalAvailableQty', '1');
+      setValue('maxOrderQty', '');
+      setValue('totalAvailableQty', '');
       clearErrors(['maxOrderQty', 'totalAvailableQty']);
     } else {
-      setValue('maxOrderQty', '100');
-      setValue('totalAvailableQty', '1');
+      setValue('maxOrderQty', '');
+      setValue('totalAvailableQty', '');
     }
     setValue('gst', '');
     setValue('hsn', '');
@@ -1714,6 +1701,7 @@ export const ProductInfo = ({ category }) => {
     mobility: { manufacturing: 'optional', expiry: 'optional' },
     restaurant: { manufacturing: 'optional', expiry: 'optional' },
     others: { manufacturing: 'mandatory', expiry: 'optional' },
+    lifestyle: { manufacturing: 'mandatory', expiry: 'optional' },
   };
   const currentDateReqs = dateRequirements[category] || { manufacturing: 'optional', expiry: 'optional' };
 
@@ -1721,7 +1709,7 @@ export const ProductInfo = ({ category }) => {
     defaultValues: {
       price: '',
       discountedPrice: '',
-      minOrderQty: '1',
+      minOrderQty: '',
       gst: '18',
       hsn: '',
       selectedSize: '',
@@ -2007,7 +1995,11 @@ export const ProductInfo = ({ category }) => {
             </div>
           )}
           
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form noValidate onSubmit={handleSubmit(onSubmit, (formErrors) => {
+            const firstKey = Object.keys(formErrors)[0];
+            const firstError = formErrors[firstKey];
+            toast.error(firstError?.message || `Please fix the "${firstKey}" field before submitting.`);
+          })} className="space-y-6">
             {/* Gender selection – for textile */}
             {hasGenderInProductInfo && (
               <div className="space-y-2">
@@ -2433,6 +2425,7 @@ export const ProductInfo = ({ category }) => {
                   placeholder="1"
                   min={1}
                   {...register('minOrderQty', { min: 1 })}
+                  onWheel={(e) => e.target.blur()}
                   data-testid="input-min-qty"
                 />
               </div>
@@ -2458,6 +2451,7 @@ export const ProductInfo = ({ category }) => {
                         : 'Maximum Order Quantity cannot be greater than Total Available Quantity';
                     },
                   })}
+                  onWheel={(e) => e.target.blur()}
                   data-testid="input-max-qty"
                 />
                 {errors.maxOrderQty && (
