@@ -967,16 +967,26 @@ const EU_SHOE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
 const inferSelectedSizeFromVariation = (row, options = []) => {
   if (!row) return '';
   if (row.ShoeSize) return 'Shoes Size';
+
+  const rawSize = String(row.ProductSize || '').trim();
+  const normalized = rawSize.toLowerCase();
+
+  // Priority 1: direct match of ProductSize against known options (e.g. "GSM", "Weight")
+  if (rawSize) {
+    const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
+    if (directMatch) return directMatch;
+  }
+
+  // Priority 2: infer from L/W/H/Weight fields only when no ProductSize option matched,
+  // so stale dimension fields from legacy variants don't override the actual dimension.
   if (row.Length && row.Height && row.Width) return 'Length x Height x Width';
   if (row.Length && row.Height) return 'Length x Height';
   if (row.Length) return 'Length';
   if (row.Weight) return 'Weight';
 
-  const rawSize = String(row.ProductSize || '').trim();
   if (!rawSize) return '';
-  const normalized = rawSize.toLowerCase();
-  const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
-  if (directMatch) return directMatch;
+
+  // Priority 3: heuristic inference from ProductSize string
   if (options.includes('Custom Size') && !row.ShoeSize && !(row.Length || row.Height || row.Width || row.Weight)) {
     const mu = String(row.MeasurementUnit || '').trim();
     const parts = rawSize.split(/\s+/).filter(Boolean);
@@ -1116,7 +1126,7 @@ export const ProductInfo = ({ category }) => {
   };
 
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
-  const showProductColor = !isVoucherCategory && piConfig.hasColorPicker && category !== 'restaurant';
+
   const hasSampleCheckbox = !isVoucherCategory;
   const hasGenderInProductInfo = isVoucherCategory
     ? (voucherPiConfig?.hasGender || false)
@@ -1488,12 +1498,12 @@ export const ProductInfo = ({ category }) => {
       GST: String(d.gst || '18'),
       HSN: d.hsn || '',
       ProductSize: productSize,
-      ProductColor: extraCol === 'color' ? (d.productColor || '#ffffff') : (d.productColor || '#ffffff'),
+
       ProductIdType: d.productIdType || `SKU-${Date.now()}`,
-      Length: d.selectedSize === 'Custom Size' ? '' : (d.length || ''),
-      Width: d.selectedSize === 'Custom Size' ? '' : (d.width || ''),
-      Height: d.selectedSize === 'Custom Size' ? '' : (d.height || ''),
-      Weight: d.selectedSize === 'Custom Size' ? '' : (d.weight || ''),
+      Length: ['Length', 'Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.length || '') : '',
+      Width: d.selectedSize === 'Length x Height x Width' ? (d.width || '') : '',
+      Height: ['Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.height || '') : '',
+      Weight: d.selectedSize === 'Weight' ? (d.weight || '') : '',
       MeasurementUnit: measurementUnit,
       TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
       ...(wantsSample && {
@@ -1544,8 +1554,27 @@ export const ProductInfo = ({ category }) => {
     setValue('flavor', '');
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
-    // Keep size selection fixed once variants exist (BXI Frontend parity).
-    setValue('sizeUnit', 'cm');
+    // Keep size selection & unit fixed once variants exist (BXI Frontend parity).
+    // Don't reset sizeUnit to 'cm' unconditionally — re-derive from the locked dimension
+    // so subsequent variants keep the correct unit (e.g. 'gsm' for GSM, 'kg' for Weight).
+    const lockedSize = (getValues('selectedSize') || '').toLowerCase();
+    if (lockedSize.includes('weight') || lockedSize === 'gsm') {
+      setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
+    } else if (lockedSize.includes('battery') || lockedSize.includes('power')) {
+      setValue('sizeUnit', lockedSize.includes('battery') ? 'mAh' : 'W');
+    } else if (lockedSize.includes('volume') || lockedSize.includes('capacity')) {
+      setValue('sizeUnit', 'ml');
+    } else if (lockedSize.includes('calorie')) {
+      setValue('sizeUnit', 'kcal');
+    } else if (lockedSize.includes('nutritional')) {
+      setValue('sizeUnit', 'g');
+    } else if (lockedSize.includes('shelf life') || lockedSize.includes('shelflife')) {
+      setValue('sizeUnit', 'Months');
+    } else if (lockedSize.includes('temprature') || lockedSize.includes('temperature') || lockedSize.includes('temp')) {
+      setValue('sizeUnit', '°C');
+    } else {
+      setValue('sizeUnit', 'cm');
+    }
     setValue('shoeMeasurementUnit', 'US');
     setValue('isSample', false);
     setValue('sampleAvailability', '');
@@ -1565,18 +1594,24 @@ export const ProductInfo = ({ category }) => {
     setValue('maxOrderQty', String(row.MaxOrderQuantity ?? '100'));
     setValue('totalAvailableQty', String(row.TotalAvailableQty ?? '1'));
     setValue('productIdType', row.ProductIdType ?? '');
-    setValue('productColor', row.ProductColor ?? '#ffffff');
+
     setValue('isSample', !!(row.SampleQty || row.SamplePrice));
     setValue('sampleAvailability', row.SampleQty ? String(row.SampleQty) : '');
     setValue('priceOfSample', row.SamplePrice ? String(row.SamplePrice) : '');
 
-    // Size/dimensions
+    // Size/dimensions — use the currently locked dimension if variants exist,
+    // so editing doesn't flip the dimension to a wrong type from stale L/W/H/Weight fields.
+    const currentLockedSize = getValues('selectedSize');
+    const derivedSelectedSize = (isDimensionSelectionLocked && currentLockedSize)
+      ? currentLockedSize
+      : (inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '');
+    setValue('selectedSize', derivedSelectedSize);
+
     setValue('length', row.Length ?? '');
     setValue('width', row.Width ?? '');
     setValue('height', row.Height ?? '');
     setValue('weight', row.Weight ?? '');
-    const derivedSelectedSize = inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '';
-    setValue('selectedSize', derivedSelectedSize);
+
     if (derivedSelectedSize === 'Custom Size') {
       const rawPs = String(row.ProductSize || '').trim();
       const mu = String(row.MeasurementUnit || '').trim();
@@ -1588,6 +1623,17 @@ export const ProductInfo = ({ category }) => {
         setValue('sizeValue', rawPs);
         setValue('sizeUnit', mu || 'cm');
       }
+    } else if (!['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Shoes Size'].includes(derivedSelectedSize)) {
+      // For non-L/W/H/Weight dimensions (e.g. GSM, Battery Capacity), populate sizeValue
+      // from ProductSize by stripping the unit suffix if present.
+      const rawPs = String(row.ProductSize || '').trim();
+      const mu = String(row.MeasurementUnit || '').trim();
+      if (mu && rawPs.endsWith(mu)) {
+        setValue('sizeValue', rawPs.slice(0, -mu.length).trim());
+      } else {
+        setValue('sizeValue', rawPs);
+      }
+      setValue('sizeUnit', mu || 'cm');
     }
     if (row.ShoeSize) {
       setValue('shoeSize', String(row.ShoeSize));
@@ -1602,6 +1648,58 @@ export const ProductInfo = ({ category }) => {
     if (activeVoucherConfig?.extraVariantColumn === 'flavor') setValue('flavor', row.Flavor ?? '');
     if (activeVoucherConfig?.extraVariantColumn === 'offeringType') setValue('offeringType', row.OfferingType ?? '');
     if (activeVoucherConfig?.extraVariantColumn === 'dateOfEvent') setValue('dateOfEvent', row.DateOfTheEvent ?? '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditVariationIndex(null);
+    setValue('price', '');
+    setValue('discountedPrice', '');
+    setValue('productIdType', '');
+    setValue('length', '');
+    setValue('width', '');
+    setValue('height', '');
+    setValue('weight', '');
+    setValue('sizeValue', '');
+    setValue('volume', '');
+    setValue('shoeSize', '');
+    setValue('minOrderQty', '1');
+    if (isVoucherCategory) {
+      setValue('maxOrderQty', '1');
+      setValue('totalAvailableQty', '1');
+      clearErrors(['maxOrderQty', 'totalAvailableQty']);
+    } else {
+      setValue('maxOrderQty', '100');
+      setValue('totalAvailableQty', '1');
+    }
+    setValue('gst', '');
+    setValue('hsn', '');
+    setValue('productSize', '');
+    setValue('measurementUnit', '');
+    setValue('flavor', '');
+    setValue('offeringType', '');
+    setValue('dateOfEvent', '');
+    const lockedSize = (getValues('selectedSize') || '').toLowerCase();
+    if (lockedSize.includes('weight') || lockedSize === 'gsm') {
+      setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
+    } else if (lockedSize.includes('battery') || lockedSize.includes('power')) {
+      setValue('sizeUnit', lockedSize.includes('battery') ? 'mAh' : 'W');
+    } else if (lockedSize.includes('volume') || lockedSize.includes('capacity')) {
+      setValue('sizeUnit', 'ml');
+    } else if (lockedSize.includes('calorie')) {
+      setValue('sizeUnit', 'kcal');
+    } else if (lockedSize.includes('nutritional')) {
+      setValue('sizeUnit', 'g');
+    } else if (lockedSize.includes('shelf life') || lockedSize.includes('shelflife')) {
+      setValue('sizeUnit', 'Months');
+    } else if (lockedSize.includes('temprature') || lockedSize.includes('temperature') || lockedSize.includes('temp')) {
+      setValue('sizeUnit', '°C');
+    } else {
+      setValue('sizeUnit', 'cm');
+    }
+    setValue('shoeMeasurementUnit', 'US');
+    setValue('isSample', false);
+    setValue('sampleAvailability', '');
+    setValue('priceOfSample', '');
   };
 
   const handleRemoveVariation = (idx) => {
@@ -1630,13 +1728,13 @@ export const ProductInfo = ({ category }) => {
       sizeValue: '',
       sizeUnit: 'cm',
       productForm: 'Dry',
-      productColor: '#ffffff',
+
       productIdType: '',
       length: '',
       width: '',
       height: '',
       weight: '',
-      isSample: false,
+      isSample: '',
       gender: 'Unisex',
       shoeSize: '',
       shoeMeasurementUnit: 'US',
@@ -1798,14 +1896,16 @@ export const ProductInfo = ({ category }) => {
     setIsSubmitting(true);
     try {
       const variants = productsVariations;
+      const sampleVariant = variants.find(v => v.SampleQty || v.SamplePrice);
+      const anySample = !!sampleVariant;
       const payload = {
         _id: id,
         ProductUploadStatus: isVoucherCategory ? 'technicalinformation' : 'productinformation',
         ProductsVariantions: variants,
-        IsSample: !!data.isSample,
-        ...(data.isSample && {
-          SampleAvailability: parseInt(data.sampleAvailability, 10) || 0,
-          PriceOfSample: parseFloat(String(data.priceOfSample || 0).replace(/,/g, '')) || 0,
+        IsSample: anySample,
+        ...(anySample && {
+          SampleAvailability: sampleVariant.SampleQty || 0,
+          PriceOfSample: sampleVariant.SamplePrice || 0,
         }),
         ...(hasGenderInProductInfo && { Gender: data.gender, gender: data.gender }),
         ...(hasFeatures && { ProductFeatures: featureList }),
@@ -1948,6 +2048,13 @@ export const ProductInfo = ({ category }) => {
                       onClick={() => {
                         if (isDimensionSelectionLocked) return;
                         setValue('selectedSize', opt);
+                        setValue('length', '');
+                        setValue('width', '');
+                        setValue('height', '');
+                        setValue('weight', '');
+                        setValue('sizeValue', '');
+                        setValue('volume', '');
+                        setValue('shoeSize', '');
                         if (errors.selectedSize) {
                           setError('selectedSize', { type: 'manual', message: '' });
                         }
@@ -2147,37 +2254,17 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Product Id + Color (same row) */}
-            {(piConfig.hasProductId && !isVoucherCategory) || (isVoucherCategory ? activeVoucherConfig?.extraVariantColumn === 'color' : showProductColor) ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Product ID / SKU – when config hasProductId (not for vouchers) */}
-                {piConfig.hasProductId && !isVoucherCategory && (
-                  <div className="space-y-2">
-                    <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="productIdType"
-                      placeholder="e.g. 1910WH23"
-                      {...register('productIdType')}
-                    />
-                  </div>
-                )}
-
-                {/* Color picker – when config hasColorPicker (or voucher with color extra column) */}
-                {(isVoucherCategory ? activeVoucherConfig?.extraVariantColumn === 'color' : showProductColor) && (
-                  <div className={cn('space-y-2', !(piConfig.hasProductId && !isVoucherCategory) && 'md:col-span-2')}>
-                    <Label>Color <span className="text-red-500">*</span></Label>
-                    <div className="flex gap-3 items-center">
-                      <input
-                        type="color"
-                        {...register('productColor')}
-                        className="w-12 h-12 rounded cursor-pointer border border-gray-300"
-                      />
-                      <span className="text-sm text-gray-600 font-mono">{watch('productColor') || '#ffffff'}</span>
-                    </div>
-                  </div>
-                )}
+            {/* Product ID */}
+            {piConfig.hasProductId && !isVoucherCategory && (
+              <div className="space-y-2">
+                <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
+                <Input
+                  id="productIdType"
+                  placeholder="e.g. 1910WH23"
+                  {...register('productIdType')}
+                />
               </div>
-            ) : null}
+            )}
 
             {/* HSN + GST (same row) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2542,14 +2629,26 @@ export const ProductInfo = ({ category }) => {
 
             {/* Add Variation */}
             <div className="space-y-4 pt-4">
-              <Button
-                type="button"
-                onClick={handleAddVariation}
-                className="w-full"
-                data-testid="btn-add-variation"
-              >
-                {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleAddVariation}
+                  className="w-full"
+                  data-testid="btn-add-variation"
+                >
+                  {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
+                </Button>
+                {editVariationIndex !== null && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    className="shrink-0"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
               {productsVariations.length === 0 && (
                 <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
               )}
@@ -2563,7 +2662,7 @@ export const ProductInfo = ({ category }) => {
                         {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
                         {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
-                        {showProductColor && <th className="px-3 py-2 text-center font-medium">Color</th>}
+
                         <th className="px-3 py-2 text-center font-medium">HSN</th>
                         <th className="px-3 py-2 text-center font-medium">GST</th>
                         <th className="px-3 py-2 text-center font-medium">{isVoucherCategory ? 'Price / Voucher' : 'MRP'}</th>
@@ -2609,16 +2708,7 @@ export const ProductInfo = ({ category }) => {
                           {showDateOfEvent && (
                             <td className="px-3 py-2">{v.DateOfTheEvent || '—'}</td>
                           )}
-                          {showProductColor && (
-                            <td className="px-3 py-2">
-                              {v.ProductColor ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
-                                  <span>{v.ProductColor}</span>
-                                </div>
-                              ) : '—'}
-                            </td>
-                          )}
+
                           <td className="px-3 py-2">{v.HSN || '—'}</td>
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
                           <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString('en-IN')}` : '—'}</td>

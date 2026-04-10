@@ -53,6 +53,7 @@ export default function DigitalScreensTechInfo() {
     setIsSubmitting(true);
     try {
       const payload = {
+        id,
         ProductId: id,
         _id: id,
         ProductUploadStatus: 'technicalinformation',
@@ -66,6 +67,7 @@ export default function DigitalScreensTechInfo() {
       navigate(`/mediaonline/digitalscreensgolive/${id}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to save');
+      console.log("err==========>",err.response)
     } finally {
       setIsSubmitting(false);
     }
