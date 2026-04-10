@@ -171,6 +171,35 @@ export default function MediaMultiplexProductInfo() {
       toast.dismiss();
       toast.success('Excel processed successfully!');
 
+      const listingPrices = res?.data?.listingPriceFromScreens;
+      if (listingPrices && (listingPrices.PricePerUnit != null || listingPrices.DiscountedPrice != null)) {
+        setProductData((prev) => {
+          const prevMv =
+            prev?.mediaVariation && typeof prev.mediaVariation === 'object'
+              ? { ...prev.mediaVariation }
+              : {};
+          return {
+            ...prev,
+            mediaVariation: {
+              ...prevMv,
+              ...(listingPrices.PricePerUnit != null && {
+                PricePerUnit: listingPrices.PricePerUnit,
+              }),
+              ...(listingPrices.DiscountedPrice != null && {
+                DiscountedPrice: listingPrices.DiscountedPrice,
+              }),
+            },
+          };
+        });
+      }
+
+      try {
+        const fresh = await api.get(`/product/get_product_byId/${id}`);
+        if (fresh?.data) setProductData(fresh.data);
+      } catch (e) {
+        console.warn('Refetch product after Excel failed', e);
+      }
+
       let mappedRows = mapMultiplexDocToGridRows(res?.data?.data);
       if (mappedRows.length === 0 && id) {
         try {
@@ -236,18 +265,50 @@ export default function MediaMultiplexProductInfo() {
 
     setIsSubmitting(true);
     try {
+      const variationList =
+        mediaVariations.length > 0
+          ? mediaVariations
+          : [
+              {
+                location: data.location,
+                repetition: data.repetition,
+                dimensionSize: data.dimensionSize,
+                minOrderQuantity: data.minOrderQuantity,
+                maxOrderQuantity: data.maxOrderQuantity,
+              },
+            ];
+      const primary = variationList[0];
+
+      const existingMv =
+        productData?.mediaVariation &&
+        typeof productData.mediaVariation === 'object' &&
+        !Array.isArray(productData.mediaVariation)
+          ? { ...productData.mediaVariation }
+          : {};
+
       const payload = {
         _id: id,
         ProductUploadStatus: 'technicalinformation',
         GST: data.GST,
-        tags: tags,
-        MediaVariation: mediaVariations.length > 0 ? mediaVariations : [{
-          location: data.location,
-          repetition: data.repetition,
-          dimensionSize: data.dimensionSize,
-          minOrderQuantity: data.minOrderQuantity,
-          maxOrderQuantity: data.maxOrderQuantity,
-        }],
+        tags,
+        MediaVariation: variationList,
+        // Tech step + APIs read these from the product root / mediaVariation — not only inside MediaVariation[]
+        dimensionSize: primary?.dimensionSize ?? '',
+        repetition: primary?.repetition ?? '',
+        mediaVariation: {
+          ...existingMv,
+          dimensionSize: primary?.dimensionSize ?? existingMv.dimensionSize ?? '',
+          repetition: primary?.repetition ?? existingMv.repetition ?? '',
+          minOrderQuantityunit:
+            primary?.minOrderQuantity ??
+            existingMv.minOrderQuantityunit ??
+            1,
+          maxOrderQuantityunit:
+            primary?.maxOrderQuantity ??
+            existingMv.maxOrderQuantityunit ??
+            1,
+          GST: String(data.GST ?? existingMv.GST ?? '18'),
+        },
       };
 
       await api.post('/product/product_mutation', payload);

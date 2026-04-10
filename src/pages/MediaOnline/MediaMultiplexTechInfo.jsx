@@ -5,7 +5,6 @@ import {
   Typography,
   TextField,
   Button,
-  BottomNavigation,
   Select,
   MenuItem,
   Input,
@@ -24,6 +23,8 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import EditIcon from '../../assets/Images/CommonImages/EditIcon.svg';
 import { toast } from 'sonner';
+import { ArrowLeft } from 'lucide-react';
+import { Button as UiButton } from '../../components/ui/button';
 import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
 import React, { useEffect, useRef, useState } from 'react';
@@ -50,8 +51,6 @@ import dayjs from 'dayjs';
 
 import ToolTip from '../../components/ToolTip';
 import { Stepper } from '../AddProduct/AddProductSteps';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 
 const CustomPickersDay = styled(PickersDay, {
   shouldForwardProp: prop =>
@@ -445,10 +444,7 @@ export default function MediaMultiplexTechInfo() {
       return toast.error('Features cannot be more than 20');
     }
     if (description === '') {
-      return GlobalToast(
-        'Please fill the proper features and discription',
-        'error'
-      );
+      toast.error('Please fill the proper features and description');
     } else if (description.length > 75) {
       return toast.error('feature discription less than 75 letters');
     } else if (name === '') {
@@ -528,12 +524,6 @@ export default function MediaMultiplexTechInfo() {
       offerningbrandat: storeMediaAllData?.offerningbrandat,
     };
 
-    // Dimension validation
-    if (!storeMediaAllData?.dimensionSize) {
-      toast.error('Dimension Size is required');
-      return;
-    }
-
     // Supporting Documents validation
     if (
       Object.values(storeMediaAllData?.supportingDocs || {}).every(val => !val)
@@ -568,30 +558,21 @@ export default function MediaMultiplexTechInfo() {
         type: 'custom',
         message: 'Max Order Quantity cannot be less than Min Order Quantity',
       });
-      return GlobalToast(
-        'Max Order Quantity cannot be less than Min Order Quantity',
-        'error'
-      );
+      toast.error('Max Order Quantity cannot be less than Min Order Quantity');
     }
 
     // Min/Max Timeline validation
     const minTimeline = Number(storeMediaAllData?.minOrderQtyTimeline);
     const maxTimeline = Number(storeMediaAllData?.maxOrderQtyTimeline);
     if (minTimeline > maxTimeline) {
-      return GlobalToast(
-        'Max Order Timeline cannot be less than Min Order Timeline',
-        'error'
-      );
+      toast.error('Max Order Timeline cannot be less than Min Order Timeline');
     }
 
     // Min/Max Timeslot validation
     const minSlot = Number(storeMediaAllData?.minOrderTimeslot);
     const maxSlot = Number(storeMediaAllData?.maxOrderTimeslot);
     if (minSlot > maxSlot) {
-      return GlobalToast(
-        'Max Timeslot cannot be less than Min Timeslot',
-        'error'
-      );
+      toast.error('Max Timeslot cannot be less than Min Timeslot');
     }
 
     // Product Features validation
@@ -637,10 +618,7 @@ export default function MediaMultiplexTechInfo() {
         type: 'custom',
         message: 'Max Order Quantity can not be less than Min Order Quantity',
       });
-      return GlobalToast(
-        'Max Order Quantity can not be less than Min Order Quantity',
-        'error'
-      );
+      toast.error('Max Order Quantity cannot be less than Min Order Quantity');
     }
 
     if (
@@ -651,10 +629,7 @@ export default function MediaMultiplexTechInfo() {
         type: 'custom',
         message: 'Max Order Quantity can not be less than Min Order Quantity',
       });
-      return GlobalToast(
-        'Max Order Quantity can not be less than Min Order Quantity',
-        'error'
-      );
+      toast.error('Max Order Quantity cannot be less than Min Order Quantity');
     }
     if (items?.length < 5) {
       return toast.error('Please Select Best Features ( Min 5 )');
@@ -726,112 +701,27 @@ export default function MediaMultiplexTechInfo() {
             <Stepper currentStep={3} category="mediaonline" completedSteps={[1, 2]} />
           </aside>
           <main className="stepper-content">
-    <>
-      <form onSubmit={updateProductTechinfostatus}>
-        <Card
-          sx={{
-            width: '100%',
-            maxWidth: '960px',
-            mx: 'auto',
-            height: '100%',
-            borderRadius: 2,
-            boxShadow: '0 2px 12px rgba(0,0,0,.08)',
-            marginTop: '20px',
-          }}
-        >
-          <CardContent
-            sx={{
-              width: '100%',
-              maxWidth: '960px',
-              mx: 'auto',
-              height: '100%',
-              borderRadius: 2,
-            }}
-          >
-            <Box
-              sx={{
-                width: '100%',
-                maxWidth: '960px',
-                mx: 'auto',
-                height: '100%',
-                borderRadius: 2,
-              }}
-            >
-              <Box>
-                <Box
-                  sx={{
-                    px: '10px',
-                    height: 'auto',
-                    maxHeight: '100%',
-                    background: '#ffffff',
-                    overflow: 'hidden',
-                    boxShadow: '0px 10px 20px rgba(220, 220, 220, 0.5)',
-                  }}
-                >
-                  <Box
+            <div className="form-section">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="form-section-title !mb-0">Technical information</h2>
+                <ToolTip
+                  info={
+                    "Technical information covers specs, supporting documents, timeslots, timelines, and features buyers need before your multiplex listing goes live."
+                  }
+                />
+              </div>
+              <p className="text-sm text-[#6B7A99] mt-2 mb-6 max-w-2xl">
+                Add operational details, documents, key features, and search tags. Fields marked with * are required.
+              </p>
+              <form onSubmit={updateProductTechinfostatus} className="space-y-6">
+                <div className="rounded-xl border border-[#E5E8EB] bg-white p-5 sm:p-6 shadow-sm">
+                  <Stack
                     sx={{
-                      backgroundColor: '#ffffff',
-                      width: '100%',
-                      mx: 'auto',
-                      display: 'flex',
-                      justifyContent: 'flex-start',
-                      alignItems: 'center',
-                      gap: '10px',
-                      py: '10px',
+                      overflow: 'visible',
+                      p: 0,
+                      gap: 0,
                     }}
                   >
-                    <Typography
-                      sx={{
-                        fontFamily: 'Inter, sans-serif',
-                        fontStyle: 'normal',
-                        fontWeight: 600,
-                        fontSize: {
-                          xs: '18px',
-                          sm: '16px',
-                          md: '16px',
-                          lg: '14px',
-                          xl: '14px',
-                        },
-                        color: '#6B7A99',
-                      }}
-                    >
-                      Technical Information
-                    </Typography>
-                    <ToolTip
-                      info={
-                        "Technical Information refers to specific details and specifications about a product's technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product, This is Critical Information from Logistic & Buying Perspective for Making Informed Decisions"
-                      }
-                    />
-                  </Box>
-
-                  <Box
-                    sx={{
-                      width: '100%',
-                      mt: 1,
-                      height: '100%',
-                      maxHeight: '100%',
-                      overflowY: 'hidden',
-                    }}
-                  >
-                    <Stack
-                      sx={{
-                        overflow: 'auto',
-                        '::-webkit-scrollbar': {
-                          display: 'flex',
-                        },
-                        '::-webkit-scrollbar-thumb': {
-                          dynamic: '#8d8e90',
-                          minHeight: '10px',
-                          borderRadius: '8px',
-                        },
-                        '::-webkit-scrollbar-thumb:vertical': {
-                          maxHeight: '30px',
-                        },
-                        maxHeight: '100%',
-                        height: '100%',
-                        p: 1,
-                      }}
-                    >
                       <Box
                         sx={{
                           height: 'auto',
@@ -953,17 +843,21 @@ export default function MediaMultiplexTechInfo() {
                             width: '100%',
                           }}
                         >
-                          <Box sx={{ border: '1px solid #E0E0E0', width: '49%' }}>
+                          <Box
+                            className="rounded-xl border border-[#E5E8EB] bg-[#fff] sm:w-[49%] w-full"
+                            sx={{ width: { xs: '100%', sm: '49%' } }}
+                          >
                             <Box
                               sx={{
                                 width: '100%',
                                 bgcolor: 'transparent',
                                 textAlign: 'center',
                                 mt: 1,
+                                px: 1,
                               }}
                             >
                               <Typography
-                                sx={{ ...CommonTextStyle, fontWeight: 600 }}
+                                sx={{ ...CommonTextStyle, fontWeight: 600, color: '#111827' }}
                               >
                                 Timeslot
                               </Typography>
@@ -985,6 +879,8 @@ export default function MediaMultiplexTechInfo() {
                                   flexDirection: 'column',
                                   gap: '10px',
                                   mt: 1,
+                                  width: '100%',
+                                  maxWidth:"240px"
                                 }}
                               >
                                 <Typography
@@ -1016,7 +912,7 @@ export default function MediaMultiplexTechInfo() {
                                         onChange={handleInputChange}
                                         sx={{
                                           ...inputStyles,
-                                          width: '60px',
+                                          width: '80px',
                                           padding: '0px',
                                           ml: 1,
                                           border: errors?.mediaVariation
@@ -1059,7 +955,7 @@ export default function MediaMultiplexTechInfo() {
                                         disabled
                                         sx={{
                                           ...inputStyles,
-                                          width: '60px',
+                                          width: '120px',
                                           paddingY: '0.5px',
                                         }}
                                       />
@@ -1094,6 +990,8 @@ export default function MediaMultiplexTechInfo() {
                                   flexDirection: 'column',
                                   gap: '10px',
                                   mt: 1,
+                                  width: '100%',
+                                  maxWidth:"240px"
                                 }}
                               >
                                 <Typography
@@ -1128,7 +1026,7 @@ export default function MediaMultiplexTechInfo() {
                                         onChange={handleInputChange}
                                         sx={{
                                           ...inputStyles,
-                                          width: '60px',
+                                          width: '80px',
                                           padding: '0px',
                                           ml: 1,
                                           border: errors?.mediaVariation
@@ -1159,7 +1057,7 @@ export default function MediaMultiplexTechInfo() {
                                         disabled
                                         sx={{
                                           ...inputStyles,
-                                          width: '60px',
+                                          width: '120px',
                                           paddingY: '0.5px',
                                         }}
                                       />
@@ -1192,19 +1090,23 @@ export default function MediaMultiplexTechInfo() {
                             </Box>
                           </Box>
 
-                          <Box sx={{ border: '1px solid #E0E0E0', width: '49%' }}>
+                          <Box
+                            className="rounded-xl border border-[#E5E8EB] bg-[#FFFFFF] sm:w-[49%] w-full"
+                            sx={{ width: { xs: '100%', sm: '49%' } }}
+                          >
                             <Box
                               sx={{
                                 width: '100%',
                                 bgcolor: 'transparent',
                                 textAlign: 'center',
                                 mt: 1,
+                                px: 1,
                               }}
                             >
                               <Typography
-                                sx={{ ...CommonTextStyle, fontWeight: 600 }}
+                                sx={{ ...CommonTextStyle, fontWeight: 600, color: '#111827' }}
                               >
-                                Order QTY Timeline
+                                Order QTY timeline
                               </Typography>
                             </Box>
                             <Box
@@ -1213,7 +1115,7 @@ export default function MediaMultiplexTechInfo() {
                                 flexDirection: 'row',
                                 gap: '10px',
                                 mt: 1,
-                                justifyContent: 'space-evenly',
+                                justifyContent: 'space-between',
                                 p: 1,
                               }}
                             >
@@ -1223,6 +1125,8 @@ export default function MediaMultiplexTechInfo() {
                                   flexDirection: 'column',
                                   gap: '10px',
                                   mt: 1,
+                                  width: '100%',
+                                  maxWidth:"240px"
                                 }}
                               >
                                 <Typography
@@ -1249,6 +1153,7 @@ export default function MediaMultiplexTechInfo() {
                                           ?.minOrderQuantitytimeline?.message
                                           ? '1px solid red'
                                           : null,
+                                        gap: '5px',
                                       }}
                                     >
                                       <Input
@@ -1260,7 +1165,7 @@ export default function MediaMultiplexTechInfo() {
                                         onChange={handleInputChange}
                                         sx={{
                                           ...inputStyles,
-                                          width: '64px',
+                                          width: '80px',
                                           padding: '5px',
                                         }}
                                         onKeyDown={e => {
@@ -1279,7 +1184,7 @@ export default function MediaMultiplexTechInfo() {
                                         disabled
                                         sx={{
                                           ...inputStyles,
-                                          width: '65px',
+                                          width: '120px',
                                           padding: '0px',
                                         }}
                                       />
@@ -1301,6 +1206,8 @@ export default function MediaMultiplexTechInfo() {
                                   flexDirection: 'column',
                                   gap: '10px',
                                   mt: 1,
+                                  width: '100%',
+                                  maxWidth:"240px"
                                 }}
                               >
                                 <Typography
@@ -1326,6 +1233,7 @@ export default function MediaMultiplexTechInfo() {
                                           ?.maxOrderQuantitytimeline?.message
                                           ? '1px solid red'
                                           : null,
+                                        gap: '5px',
                                       }}
                                     >
                                       <Input
@@ -1345,8 +1253,8 @@ export default function MediaMultiplexTechInfo() {
                                         }}
                                         sx={{
                                           ...inputStyles,
-                                          width: '64px',
-                                          padding: '0px',
+                                          width: '80px',
+                                          padding: '05px',
                                           ml: 1,
                                         }}
                                         placeholder={'Timeline'}
@@ -1357,7 +1265,7 @@ export default function MediaMultiplexTechInfo() {
                                         disabled
                                         sx={{
                                           ...inputStyles,
-                                          width: '50px',
+                                          width: '120px',
                                           padding: '0px',
                                         }}
                                       />
@@ -1633,14 +1541,15 @@ export default function MediaMultiplexTechInfo() {
                               onChange={e => setName(e.target.value)}
                               sx={{
                                 width: '100%',
+                                border: '1px solid rgb(51, 51, 51)',
                                 '.MuiOutlinedInput-notchedOutline': { border: 0 },
                                 '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
                                 {
-                                  border: 0,
+                                  border: 1,
                                 },
                                 '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
                                 {
-                                  border: 0,
+                                  border: 1,
                                 },
                                 background: '#fff',
                                 height: '100%',
@@ -1685,7 +1594,7 @@ export default function MediaMultiplexTechInfo() {
                             </Select>
                             {items?.length > 0 && items.length < 5 && (
                               <Typography
-                                sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                sx={{ color: 'red', fontFamily: 'Inter, sans-serif', fontSize: '12px' }}
                               >
                                 Select {5 - items?.length} more feature
                               </Typography>
@@ -1717,6 +1626,7 @@ export default function MediaMultiplexTechInfo() {
                               }}
                               sx={{
                                 ...TextFieldStyle,
+                                border: '1px solid rgb(51, 51, 51)',
                                 height: '100%',
                                 color: '#c64091',
                                 background: '#FFFFFF',
@@ -1883,6 +1793,7 @@ export default function MediaMultiplexTechInfo() {
                                 height: '42px',
                                 background: '#FFFFFF',
                                 borderRadius: '10px',
+                                border: '1px solid rgb(51, 51, 51)',
                               }}
                               onKeyDown={otherenter}
                             />
@@ -1985,6 +1896,7 @@ export default function MediaMultiplexTechInfo() {
                               background: '#fff',
                               borderRadius: '10px',
                               height: '41px',
+                              border: '1px solid rgb(51, 51, 51)',
                             }}
                             variant='standard'
                             InputProps={{
@@ -2031,74 +1943,39 @@ export default function MediaMultiplexTechInfo() {
                         </Box>
                       </Box>
                     </Stack>
-                  </Box>
-                </Box>
-              </Box>
+                </div>
 
-              <Box
-                sx={{
-                  width: '100%',
-                  mx: 'auto',
-                  height: '100%',
-                  bgcolor: 'transparent',
-                }}
-              >
-                <BottomNavigation
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    bgcolor: '#EEF1F6',
-                    p: '10px',
-                    boxShadow: '0px 10px 20px rgba(220, 220, 220, 0.5)',
-                  }}
-                  showLabels
-                >
-                  <Box sx={{ display: 'flex', gap: '10px', p: 1, width: '50%' }}>
-                    <Button
-                      sx={{
-                        width: '100%',
-                        height: '32px',
-                        borderRadius: '10px',
-                        background: '#fff',
-                        color: '#636161',
-                        fontSize: '14px',
-                        textTransform: 'none',
-                        '&:hover': {
-                          background: '#EEF1F6',
-                          color: '#000',
-                        },
-                      }}
-                      variant='contained'
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                  <UiButton
+                    type="button"
+                    variant="outline"
+                    className="border-[#E5E8EB] text-[#374151]"
+                    onClick={() =>
+                      navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${ProductId}`)
+                    }
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </UiButton>
+                  <div className="flex flex-wrap gap-2 sm:gap-3 justify-end w-full sm:w-auto">
+                    <UiButton
+                      type="button"
+                      variant="ghost"
+                      className="text-[#6B7A99]"
                       onClick={() => CancelJourney()}
                     >
-                      Cancel
-                    </Button>
-                    <Button
-                      type='submit'
-                      sx={{
-                        width: '100%',
-                        height: '32px',
-                        borderRadius: '10px',
-                        background: '#C64091',
-                        fontSize: '14px',
-                        textTransform: 'none',
-                        '&:hover': {
-                          background: '#C64091',
-                        },
-                      }}
-                      variant='contained'
+                      Exit to hub
+                    </UiButton>
+                    <UiButton
+                      type="submit"
+                      className="bg-[#C64091] hover:bg-[#a9367a] text-white"
                     >
-                      Next
-                    </Button>
-                  </Box>
-                </BottomNavigation>
-              </Box>
-            </Box>
-            {/* </CardContent> */}
-          </CardContent>
-        </Card>
-      </form>
-    </>
+                      Continue to go live
+                    </UiButton>
+                  </div>
+                </div>
+              </form>
+            </div>
           </main>
         </div>
       </div>
@@ -2109,10 +1986,10 @@ export default function MediaMultiplexTechInfo() {
 const CommonTextStyle = {
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
-  fontWeight: 400,
-  fontSize: '14px',
-  lineHeight: '21px',
-  color: '#6B7A99',
+  fontWeight: 500,
+  fontSize: '13px',
+  lineHeight: '20px',
+  color: '#374151',
 };
 
 const lablechange = {
@@ -2157,11 +2034,11 @@ const inputStyles = {
   width: '110px',
   height: '42px',
   background: '#FFFFFF',
-  borderRadius: '10px',
+  borderRadius: '8px',
   padding: '0px 10px',
-  fontSize: '12px',
-  color: '#c64091',
-  border: '1px solid #E3E3E3',
+  fontSize: '13px',
+  color: '#374151',
+  border: '1px solid #E5E8EB',
 };
 
 const TextFieldStyle = {
@@ -2258,18 +2135,20 @@ const FilterTitle = {
 
 const ProceedToAddButtonStyle = {
   width: '100%',
-  height: '41px',
+  height: '42px',
   background: '#C64091',
-  borderRadius: '10px',
+  borderRadius: '8px',
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
-  fontWeight: 500,
+  fontWeight: 600,
   fontSize: '14px',
   lineHeight: '21px',
   color: '#FFFFFF',
   textTransform: 'none',
+  boxShadow: 'none',
   '&:hover': {
-    background: '#C64091',
+    background: '#a9367a',
+    boxShadow: 'none',
   },
   my: 3,
 };
