@@ -653,7 +653,18 @@ export const GeneralInformation = ({ category }) => {
 
       let targetPath;
       if (isMediaOnline) {
-        if (subcategoryName === 'Digital ADs') {
+        const storedJourney =
+          (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaJourney')) ||
+          (typeof localStorage !== 'undefined' && localStorage.getItem('mediaJourney')) ||
+          '';
+        const storedMediaCategory =
+          (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaCategory')) ||
+          (typeof localStorage !== 'undefined' && localStorage.getItem('mediaCategory')) ||
+          '';
+        const isTelevisionListing =
+          storedJourney === 'television-ads' ||
+          (storedMediaCategory === 'television' && storedJourney === 'digital-ads');
+        if (subcategoryName === 'Digital ADs' && !isTelevisionListing) {
           targetPath = `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
         } else if (subcategoryName === 'Multiplex ADs') {
           targetPath = `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;

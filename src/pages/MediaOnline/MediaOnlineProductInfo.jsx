@@ -39,6 +39,7 @@ import {
 } from '../../components/ui/tooltip';
 import StateData from '../../utils/StateCityArray.json';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import { buildMediaOnlineGeneralInfoPath } from '../../utils/mediaOnlineListingPaths';
 
 const LocationArr = [
   'Specific',
@@ -121,6 +122,18 @@ const MediaProductInfo = () => {
     if (FetchedproductData?.tags?.length > 0 && tags.length === 0) {
       setTags(FetchedproductData.tags);
       setValue('tags', FetchedproductData.tags); // Set initial form value
+    }
+  }, [FetchedproductData]);
+
+  useEffect(() => {
+    if (!FetchedproductData || typeof sessionStorage === 'undefined') return;
+    if (FetchedproductData.mediaJourney) {
+      sessionStorage.setItem('mediaJourney', FetchedproductData.mediaJourney);
+      localStorage.setItem('mediaJourney', FetchedproductData.mediaJourney);
+    }
+    if (FetchedproductData.mediaCategory) {
+      sessionStorage.setItem('mediaCategory', FetchedproductData.mediaCategory);
+      localStorage.setItem('mediaCategory', FetchedproductData.mediaCategory);
     }
   }, [FetchedproductData]);
 
@@ -3852,11 +3865,20 @@ const MediaProductInfo = () => {
                 </Stack>
             </Box>
 
-            <div className="flex justify-between pt-6">
-              <Button type="button" variant="outline" onClick={CancelJourney}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
+            <div className="flex justify-between pt-6 gap-2 flex-wrap">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(buildMediaOnlineGeneralInfoPath(id, FetchedproductData))}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <Button type="button" variant="outline" onClick={CancelJourney}>
+                  Cancel
+                </Button>
+              </div>
               <Button type="submit" disabled={isSubmitting} className="bg-[#C64091] hover:bg-[#A03375]">
                 {isSubmitting ? 'Saving...' : 'Next'}
                 <ArrowRight className="w-4 h-4 ml-2" />

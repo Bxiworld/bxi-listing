@@ -17,6 +17,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DataGrid } from '@mui/x-data-grid';
 import BXITokenIcon from '../../assets/bxi-token.svg';
 import api, { productApi, keyFeatureApi } from '../../utils/api';
+import { getSupportingDocsDisplayLabels } from '../../utils/supportingBuyerDocs';
 
 
 const fontFamily =
@@ -1072,37 +1073,23 @@ export default function HoardingMediaProductPreview() {
                         <Typography sx={inclusiveheader}>
                           Supporting you would give to buyer
                         </Typography>
-                        {GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer
-                          ? Object?.keys(
-                            GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
-                          ).map((el, idx) => {
-                            if (
-                              GetProductByIdData
-                                ?.WhatSupportingYouWouldGiveToBuyer[el] ===
-                              'on'
-                            ) {
-                              return (
-                                <Typography
-                                  key={`support-${el}-${idx}`}
-                                  sx={{
-                                    ...packHead,
-                                    color: '#6B7A99',
-                                    fontWeight: 400,
-                                    fontSize: '16px',
-                                    display: 'flex',
-                                    gap: '10px',
-                                  }}
-                                >
-                                  {el === 'ExhibitionCertificate'
-                                    ? 'Exhibition Certificate'
-                                    : el}
-                                </Typography>
-                              );
-                            } else {
-                              return null;
-                            }
-                          })
-                          : null}{' '}
+                        {getSupportingDocsDisplayLabels(
+                          GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
+                        ).map((label, idx) => (
+                          <Typography
+                            key={`support-${label}-${idx}`}
+                            sx={{
+                              ...packHead,
+                              color: '#6B7A99',
+                              fontWeight: 400,
+                              fontSize: '16px',
+                              display: 'flex',
+                              gap: '10px',
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                        ))}
                       </Box>
 
                       <Box>
@@ -1666,36 +1653,23 @@ export default function HoardingMediaProductPreview() {
                   <Typography sx={inclusiveheader}>
                     Supporting you would give to buyer
                   </Typography>
-                  {GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer
-                    ? Object?.keys(
-                      GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
-                    ).map((el, idx) => {
-                      if (
-                        GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer[
-                          el
-                        ] === 'on'
-                      ) {
-                        return (
-                          <Typography
-                            key={`support-tab-${el}-${idx}`}
-                            sx={{
-                              ...packHead,
-                              color: '#6B7A99',
-                              fontWeight: 400,
-                              fontSize: '16px',
-                              display: 'flex',
-                              gap: '10px',
-                            }}
-                          >
-                            {' '}
-                            {el}
-                          </Typography>
-                        );
-                      } else {
-                        return null;
-                      }
-                    })
-                    : null}{' '}
+                  {getSupportingDocsDisplayLabels(
+                    GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
+                  ).map((label, idx) => (
+                    <Typography
+                      key={`support-tab-${label}-${idx}`}
+                      sx={{
+                        ...packHead,
+                        color: '#6B7A99',
+                        fontWeight: 400,
+                        fontSize: '16px',
+                        display: 'flex',
+                        gap: '10px',
+                      }}
+                    >
+                      {label}
+                    </Typography>
+                  ))}
                 </Box>
 
                 <Box>

@@ -29,6 +29,13 @@ import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import api from '../../utils/api';
+import {
+  supportingDocsToCheckboxState,
+  checkboxStateToSupportingArray,
+  emptySupportingCheckboxState,
+  SUPPORTING_DOC_KEYS_FORM_ORDER,
+  SUPPORTING_DOC_LABELS,
+} from '../../utils/supportingBuyerDocs';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -167,14 +174,7 @@ export default function MediaMultiplexTechInfo() {
     offerningbrandat: '',
     minOrderTimeslot: '',
     maxOrderTimeslot: '',
-    supportingDocs: {
-      inspectionPass: false,
-      LogReport: false,
-      Videos: false,
-      Pictures: false,
-      ExhibitionCertificate: false,
-      Other: false,
-    },
+    supportingDocs: emptySupportingCheckboxState(),
     repetition: '',
     dimensionSize: '',
     minOrderQtyTimeline: '',
@@ -182,15 +182,6 @@ export default function MediaMultiplexTechInfo() {
     UploadLink: '',
     HSN: '',
   });
-
-  const docs = [
-    'Inspection pass',
-    'Pictures',
-    'Log Report',
-    'Exhibition Certificate',
-    'Videos',
-    'Other',
-  ];
 
   const handleInputChange = e => {
     const { name, value } = e.target;
@@ -207,15 +198,6 @@ export default function MediaMultiplexTechInfo() {
       return { ...prev, supportingDocs: updatedSupportingDocs };
     });
   };
-
-  const [checkBoxes, setCheckBoxes] = useState({
-    inspectionPass: false,
-    LogReport: false,
-    Videos: false,
-    Pictures: false,
-    ExhibitionCertificate: false,
-    Other: false,
-  });
 
   const otherenter = e => {
     if (e.key === 'Enter') {
@@ -342,14 +324,9 @@ export default function MediaMultiplexTechInfo() {
             data?.mediaVariation?.HSN ??
             data?.ProductsVariantions?.[0]?.HSN ??
             '',
-          supportingDocs: data?.WhatSupportingYouWouldGiveToBuyer || {
-            inspectionPass: false,
-            LogReport: false,
-            Videos: false,
-            Pictures: false,
-            ExhibitionCertificate: false,
-            Other: false,
-          },
+          supportingDocs: supportingDocsToCheckboxState(
+            data?.WhatSupportingYouWouldGiveToBuyer,
+          ),
           UploadLink: data?.UploadLink ?? '',
         }));
 
@@ -492,7 +469,9 @@ export default function MediaMultiplexTechInfo() {
       ...data,
       id: ProductId,
       ProductQuantity: 0,
-      WhatSupportingYouWouldGiveToBuyer: storeMediaAllData?.supportingDocs,
+      WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(
+        storeMediaAllData?.supportingDocs,
+      ),
       OtherCost: OthercostFields,
       ProductFeatures: items,
       GST: 18,
@@ -526,7 +505,8 @@ export default function MediaMultiplexTechInfo() {
 
     // Supporting Documents validation
     if (
-      Object.values(storeMediaAllData?.supportingDocs || {}).every(val => !val)
+      checkboxStateToSupportingArray(storeMediaAllData?.supportingDocs || {}).length ===
+      0
     ) {
       toast.error('Select at least one Supporting Document');
       return;
@@ -1287,12 +1267,7 @@ export default function MediaMultiplexTechInfo() {
                       </Box>
 
 
-                      <Box
-                        onChange={e => {
-                          setCheckBoxes(e?.target?.checked);
-                        }}
-                        sx={{ display: 'grid', gap: '5px', py: '5px', mt: 2 }}
-                      >
+                      <Box sx={{ display: 'grid', gap: '5px', py: '5px', mt: 2 }}>
                         <Typography sx={{ ...CommonTextStyle }}>
                           What supporting document would you give to the Buyer?{' '}
                           <span style={{ color: 'red' }}> *</span>
@@ -1311,22 +1286,21 @@ export default function MediaMultiplexTechInfo() {
                               flexWrap: 'wrap ',
                             }}
                           >
-                            {docs.map((doc, index) => (
+                            {SUPPORTING_DOC_KEYS_FORM_ORDER.map((docKey) => (
                               <Box
-                                key={index}
+                                key={docKey}
                                 sx={{ display: 'flex', gap: '10px' }}
                               >
                                 <input
                                   type='checkbox'
-                                  value={doc}
+                                  value={docKey}
                                   checked={
-                                    storeMediaAllData?.supportingDocs?.[doc] ||
-                                    false
+                                    !!storeMediaAllData?.supportingDocs?.[docKey]
                                   }
                                   onChange={handleCheckboxChange}
                                 />
                                 <Typography sx={{ ...CommonTextStyle }}>
-                                  {doc}
+                                  {SUPPORTING_DOC_LABELS[docKey]}
                                 </Typography>
                               </Box>
                             ))}

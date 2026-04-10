@@ -16,6 +16,23 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 const HOARDING_EXCEL_TEMPLATE_URL =
   'https://bxidevelopment1.s3.ap-south-1.amazonaws.com/Excels/Hoarding%2BTemplate.xlsx';
 
+/** Min positive MRP and min positive discounted price across Excel rows (same rule as multiplex screens). */
+function computeMinListingPricesFromHoardingRows(rows) {
+  const parsePositive = (v) => {
+    if (v === undefined || v === null || v === '') return NaN;
+    const n = Number(String(v).replace(/,/g, '').trim());
+    return Number.isFinite(n) && n > 0 ? n : NaN;
+  };
+  const mrps = rows.map((r) => parsePositive(r.mrp)).filter(Number.isFinite);
+  const discs = rows
+    .map((r) => parsePositive(r.discountedPrice))
+    .filter(Number.isFinite);
+  return {
+    PricePerUnit: mrps.length ? Math.min(...mrps) : undefined,
+    DiscountedPrice: discs.length ? Math.min(...discs) : undefined,
+  };
+}
+
 // 29 States for visual selector
 const INDIAN_STATES = [
   'Andaman and Nicobar', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
@@ -181,7 +198,18 @@ export default function HoardingProductInfo() {
       
       if (listId) {
         setHoardingListId(listId);
-        toast.success('Hoarding data uploaded successfully!');
+        const listingPrices = response?.data?.listingPriceFromScreens;
+        if (
+          listingPrices &&
+          (listingPrices.PricePerUnit != null ||
+            listingPrices.DiscountedPrice != null)
+        ) {
+          toast.success(
+            'Hoarding data uploaded. Listing price set from minimum row values.',
+          );
+        } else {
+          toast.success('Hoarding data uploaded successfully!');
+        }
       } else {
         toast.error('Failed to get Hoarding List ID from response');
       }
@@ -220,6 +248,7 @@ export default function HoardingProductInfo() {
 
     setIsSubmitting(true);
     try {
+      const listing = computeMinListingPricesFromHoardingRows(hoardingData);
       // HoardingsController uses req.body.id (not _id) to choose update vs create.
       const payload = {
         id,
@@ -238,6 +267,12 @@ export default function HoardingProductInfo() {
           Timeline: 'Week',
           MinOrderQuantity: '1',
           MaxOrderQuantity: '1',
+          ...(listing.PricePerUnit != null && {
+            PricePerUnit: listing.PricePerUnit,
+          }),
+          ...(listing.DiscountedPrice != null && {
+            DiscountedPrice: listing.DiscountedPrice,
+          }),
         },
         tags,
       };

@@ -33,6 +33,11 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import {
+  supportingDocsToCheckboxState,
+  checkboxStateToSupportingArray,
+  emptySupportingCheckboxState,
+} from '../../utils/supportingBuyerDocs';
 const options = { day: '2-digit', month: 'short', year: 'numeric' };
 
 export default function TechInfo() {
@@ -59,14 +64,7 @@ export default function TechInfo() {
   const handleClose = () => {
     setOpen(false);
   };
-  const [checkBoxes, setCheckBoxes] = useState({
-    inspectionPass: false,
-    LogReport: false,
-    Videos: false,
-    Pictures: false,
-    ExhibitionCertificate: false,
-    Other: false,
-  });
+  const [checkBoxes, setCheckBoxes] = useState(emptySupportingCheckboxState);
 
   const toggle = () => setOpen(!open);
   const countDaysfromTimeline = (value, timeline) => {
@@ -85,6 +83,10 @@ export default function TechInfo() {
     }
   };
   const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
+  const isRadioMediaListing =
+    fetchproductData?.ProductSubCategoryName === 'Radio' ||
+    fetchproductData?.ProductSubCategory === '65029534eaa5251874e8c6c1';
+
   const {
     register,
     handleSubmit,
@@ -104,7 +106,9 @@ export default function TechInfo() {
     },
     resolver: zodResolver(
       z.object({
-        Dimensions: z.string().min(1).max(500),
+        Dimensions: isRadioMediaListing
+          ? z.string().max(500)
+          : z.string().min(1).max(500),
         UploadLink: BXISpace === true ? z.any() : z.string().min(1),
         BXISpace: z.boolean(),
       }),
@@ -132,16 +136,9 @@ export default function TechInfo() {
         setfetchProductData(data);
         setValue('Dimensions', data?.Dimensions);
         setValue('UploadLink', data?.UploadLink);
-        setCheckBoxes({
-          inspectionPass:
-            data?.WhatSupportingYouWouldGiveToBuyer?.inspectionPass,
-          LogReport: data?.WhatSupportingYouWouldGiveToBuyer?.LogReport,
-          Videos: data?.WhatSupportingYouWouldGiveToBuyer?.Videos,
-          Pictures: data?.WhatSupportingYouWouldGiveToBuyer?.Pictures,
-          ExhibitionCertificate:
-            data?.WhatSupportingYouWouldGiveToBuyer?.ExhibitionCertificate,
-          Other: data?.WhatSupportingYouWouldGiveToBuyer?.Other,
-        });
+        setCheckBoxes(
+          supportingDocsToCheckboxState(data?.WhatSupportingYouWouldGiveToBuyer),
+        );
         setDateArr(data?.calender ?? []);
         setValue('BXISpace', data?.BXISpace);
         setBXISpace(data?.BXISpace);
@@ -152,6 +149,18 @@ export default function TechInfo() {
   useEffect(() => {
     FetchProduct();
   }, []);
+
+  useEffect(() => {
+    if (!fetchproductData || typeof sessionStorage === 'undefined') return;
+    if (fetchproductData.mediaJourney) {
+      sessionStorage.setItem('mediaJourney', fetchproductData.mediaJourney);
+      localStorage.setItem('mediaJourney', fetchproductData.mediaJourney);
+    }
+    if (fetchproductData.mediaCategory) {
+      sessionStorage.setItem('mediaCategory', fetchproductData.mediaCategory);
+      localStorage.setItem('mediaCategory', fetchproductData.mediaCategory);
+    }
+  }, [fetchproductData]);
 
   function getDaysBetweenDates(startDate, endDate) {
     const start = new Date(startDate);
@@ -189,7 +198,7 @@ export default function TechInfo() {
       const datatobesent = {
         ...data,
         id: ProductId,
-        WhatSupportingYouWouldGiveToBuyer: checkBoxes,
+        WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
         BXISpace: BXISpace,
@@ -531,7 +540,9 @@ export default function TechInfo() {
                 <Box sx={{ display: 'grid', gap: '5px', py: '5px' }}>
                   <Typography sx={{ ...CommonTextStyle }}>
                     Dimensions of Ad / Content Needed{' '}
-                    <span style={{ color: 'red' }}> *</span>
+                    {!isRadioMediaListing && (
+                      <span style={{ color: 'red' }}> *</span>
+                    )}
                   </Typography>
 
                   <TextField
@@ -694,15 +705,20 @@ export default function TechInfo() {
             </Box>
 
             {/* Actions - same as General Information page */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={CancelJourney}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
+            <div className="flex justify-between pt-6 gap-2 flex-wrap">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(`/mediaonline/product-info/${ProductId}`)}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <Button type="button" variant="outline" onClick={CancelJourney}>
+                  Cancel
+                </Button>
+              </div>
               <Button
                 type="submit"
                 disabled={isLoading}

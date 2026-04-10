@@ -28,7 +28,8 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 
 /**
  * Journey type determines the flow after general info:
- * - digital-ads / digital-screens → Digital Screens flow
+ * - digital-ads / digital-screens → Digital Screens flow (DOOH / Excel)
+ * - television-ads → Generic media online product-info (Television; not digital screens)
  * - multiplex → Multiplex flow
  * - display-video / airport / other → Generic product info flow
  */
@@ -39,6 +40,7 @@ const getJourneyRoute = (journey, productId) => {
       return `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
     case 'multiplex':
       return `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
+    case 'television-ads':
     case 'display-video':
     case 'airport':
     default:
@@ -63,12 +65,13 @@ export default function MediaGeneralInfo() {
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
 
-    const mediaCategory = useMemo(() => {
+  const mediaCategory = useMemo(() => {
     return searchParams.get('mediaCategory') ||
       sessionStorage.getItem('mediaCategory') ||
       localStorage.getItem('mediaCategory') ||
+      productData?.mediaCategory ||
       '';
-  }, [searchParams]);
+  }, [searchParams, productData?.mediaCategory]);
 
   /** Parent document `categoryName` from /mediasubcategory/for_listing (tile click). */
   const listingParent = useMemo(() => {
@@ -95,13 +98,28 @@ export default function MediaGeneralInfo() {
     return selectedCategory?.subCategories || [];
   }, [subcategories, mediaCategory, listingParent]);
 
-  // Get journey and media category from URL params or storage
-  const journey = useMemo(() => {
+  const journeyRaw = useMemo(() => {
     return searchParams.get('journey') ||
       sessionStorage.getItem('mediaJourney') ||
       localStorage.getItem('mediaJourney') ||
+      productData?.mediaJourney ||
       '';
-  }, [searchParams]);
+  }, [searchParams, productData?.mediaJourney]);
+
+  /** Television must not follow the DOOH digital-screens journey; normalize legacy links. */
+  const journey = useMemo(() => {
+    if (mediaCategory === 'television' && journeyRaw === 'digital-ads') {
+      return 'television-ads';
+    }
+    return journeyRaw;
+  }, [mediaCategory, journeyRaw]);
+
+  useEffect(() => {
+    if (mediaCategory === 'television' && journeyRaw === 'digital-ads') {
+      sessionStorage.setItem('mediaJourney', 'television-ads');
+      localStorage.setItem('mediaJourney', 'television-ads');
+    }
+  }, [mediaCategory, journeyRaw]);
 
   // Static subcategories (used instead of API when available for this category)
   const staticSubcategories = useMemo(
@@ -288,7 +306,11 @@ export default function MediaGeneralInfo() {
         const nextRoute = getJourneyRoute(journey, savedProductId);
         navigate(nextRoute);
       } else if (responseData?.ProductSubCategoryName === 'Digital ADs') {
-        navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${savedProductId}`);
+        if (mediaCategory === 'television' || journey === 'television-ads') {
+          navigate(`/mediaonline/product-info/${savedProductId}`);
+        } else {
+          navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${savedProductId}`);
+        }
       } else if (responseData?.ProductCategoryName === 'Multiplex ADs') {
         navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${savedProductId}`);
       } else {

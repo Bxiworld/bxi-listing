@@ -24,6 +24,13 @@ import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import React, { useEffect, useRef, useState } from 'react';
 import api from '../../utils/api';
+import {
+    supportingDocsToCheckboxState,
+    checkboxStateToSupportingArray,
+    emptySupportingCheckboxState,
+    SUPPORTING_DOC_KEYS_FORM_ORDER,
+    SUPPORTING_DOC_LABELS,
+} from '../../utils/supportingBuyerDocs';
 import { useFieldArray, useForm } from 'react-hook-form';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import OthercostPortion from './OthercostPortion.jsx';
@@ -75,14 +82,7 @@ export default function HoardingTechInfo() {
         offeringbrandat: '',
         minOrderTimeslot: '',
         maxOrderTimeslot: '',
-        supportingDocs: {
-            inspectionPass: false,
-            LogReport: false,
-            Videos: false,
-            Pictures: false,
-            ExhibitionCertificate: false,
-            Other: false,
-        },
+        supportingDocs: emptySupportingCheckboxState(),
         repetition: '',
         dimensionSize: '',
         minOrderQtyTimeline: '',
@@ -93,40 +93,10 @@ export default function HoardingTechInfo() {
         timeline: '',
     });
 
-    const docs = [
-        'Inspection pass',
-        'Pictures',
-        'Log Report',
-        'Exhibition Certificate',
-        'Videos',
-        'Other',
-    ];
-
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setStoreMediaAllData(prev => ({ ...prev, [name]: value }));
     };
-
-    const handleCheckboxChange = (e) => {
-        const { value, checked } = e.target;
-        setStoreMediaAllData(prev => {
-            const updatedSupportingDocs = {
-                ...prev.supportingDocs,
-                [value]: checked,
-            };
-            return { ...prev, supportingDocs: updatedSupportingDocs };
-        });
-    };
-
-
-    const [checkBoxes, setCheckBoxes] = useState({
-        inspectionPass: false,
-        LogReport: false,
-        Videos: false,
-        Pictures: false,
-        ExhibitionCertificate: false,
-        Other: false,
-    });
 
     const otherenter = (e) => {
         if (e.key === 'Enter') {
@@ -242,7 +212,9 @@ export default function HoardingTechInfo() {
                     maxOrderQtyTimeline: data.mediaVariation?.maxOrderQtyTimeline ?? "",
                     HSN: data.mediaVariation?.hsn ?? "",
                     // For GST, timeline, adType: these are in react-hook-form, so use setValue (below)
-                    supportingDocs: data.WhatSupportingYouWouldGiveToBuyer || {},
+                    supportingDocs: supportingDocsToCheckboxState(
+                        data.WhatSupportingYouWouldGiveToBuyer,
+                    ),
                     UploadLink: data.UploadLink ?? "",
                     timeline: data.mediaVariation?.timeline ?? "",
                     HSN: data.mediaVariation?.HSN ?? "",
@@ -336,7 +308,9 @@ export default function HoardingTechInfo() {
             offeringbrandat: storeMediaAllData.offeringbrandat,
             adType: storeMediaAllData.adType,
             ProductQuantity: 0,
-            WhatSupportingYouWouldGiveToBuyer: storeMediaAllData?.supportingDocs,
+            WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(
+                storeMediaAllData?.supportingDocs,
+            ),
             OtherCost: OthercostFields,
             ProductFeatures: items,
             GST: data?.mediaVariation?.GST,
@@ -364,7 +338,7 @@ export default function HoardingTechInfo() {
         };
 
         // Supporting Documents validation
-        if (Object.values(storeMediaAllData?.supportingDocs || {}).every(val => !val)) {
+        if (checkboxStateToSupportingArray(storeMediaAllData?.supportingDocs || []).length === 0) {
             toast.error('Select at least one Supporting Document');
             return;
         }
@@ -981,12 +955,7 @@ export default function HoardingTechInfo() {
 
 
 
-                                    <Box
-                                        onChange={(e) => {
-                                            setCheckBoxes(e?.target?.checked);
-                                        }}
-                                        sx={{ display: 'grid', gap: '10px', py: 0, mt: 0, mb: 0 }}
-                                    >
+                                    <Box sx={{ display: 'grid', gap: '10px', py: 0, mt: 0, mb: 0 }}>
                                         <Typography sx={{ ...CommonTextStyle, mb: 1.5 }}>
                                             What supporting document would you give to the Buyer?{' '}
                                             <span style={{ color: 'red' }}> *</span>
@@ -1001,12 +970,19 @@ export default function HoardingTechInfo() {
                                                 sx={{ display: 'flex', flexDirection: 'row', gap: '10px', flexWrap: 'wrap', mt: 1 }}
                                             >
 
-                                                {docs.map((doc, index) => (
-                                                    <Box key={index} sx={{ display: 'flex', gap: '8px', alignItems: 'center', mb: 1 }}>
+                                                {SUPPORTING_DOC_KEYS_FORM_ORDER.map((docKey) => (
+                                                    <Box key={docKey} sx={{ display: 'flex', gap: '8px', alignItems: 'center', mb: 1 }}>
                                                         <Checkbox
-                                                            value={doc}
-                                                            checked={!!storeMediaAllData?.supportingDocs?.[doc]}
-                                                            onChange={handleCheckboxChange}
+                                                            checked={!!storeMediaAllData?.supportingDocs?.[docKey]}
+                                                            onChange={(_, checked) => {
+                                                                setStoreMediaAllData((prev) => ({
+                                                                    ...prev,
+                                                                    supportingDocs: {
+                                                                        ...prev.supportingDocs,
+                                                                        [docKey]: checked,
+                                                                    },
+                                                                }));
+                                                            }}
                                                             sx={{
                                                                 color: '#CBD5E0',
                                                                 '&.Mui-checked': {
@@ -1020,7 +996,7 @@ export default function HoardingTechInfo() {
                                                                 },
                                                             }}
                                                         />
-                                                        <Typography sx={{ ...CommonTextStyle, fontSize: '13px' }}>{doc}</Typography>
+                                                        <Typography sx={{ ...CommonTextStyle, fontSize: '13px' }}>{SUPPORTING_DOC_LABELS[docKey]}</Typography>
                                                     </Box>
                                                 ))}
 

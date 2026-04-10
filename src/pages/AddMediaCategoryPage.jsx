@@ -18,7 +18,8 @@ import Other from "../assets/AddMediaCategoryPageIcons/Other.svg";
  * Offline listing flows use /mediaoffline/general-info; online use /mediaonline/general-info.
  * After general info, MediaGeneralInfo / GeneralInformation route by `journey`:
  * - multiplex → Excel/screens step (mediaonlinemultiplexproductinfo)
- * - digital-ads → digital screens Excel flow
+ * - digital-ads → digital screens Excel flow (DOOH)
+ * - television-ads → generic media online product-info / tech-info (Television)
  * - hoarding → hoarding Excel flow (mediaofflinehoardinginfo)
  * - newspaper / btl → offline product-info style flows
  */
@@ -35,7 +36,7 @@ const MEDIA_CATEGORIES = [
     label: "Television",
     icon: Television,
     subcategoryHint: "Digital ADs",
-    journey: "digital-ads",
+    journey: "television-ads",
   },
   {
     id: 2,

@@ -267,6 +267,17 @@ const resolveEditRoute = ({
   // Handle Media company type (multiplex, digital, hoarding have specific step routes)
   if (companyType === 'Media') {
     const reviewKey = listingStepKey;
+    const mediaJourney = product?.mediaJourney;
+    if (mediaJourney === 'television-ads') {
+      const televisionSteps = {
+        generalinformation: 'general-info',
+        productinformation: 'product-info',
+        technicalinformation: 'tech-info',
+        golive: 'go-live',
+      };
+      const televisionStep = televisionSteps[reviewKey] || 'product-info';
+      return `/mediaonline/${televisionStep}/${productId}`;
+    }
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
         const digitalSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };

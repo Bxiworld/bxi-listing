@@ -18,22 +18,25 @@ import api from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
 
 const schema = z.object({
-  location: z.string().min(1, 'Location is required'),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  propertyName: z.string().min(1, 'Property Name is required'),
-  mediaSiteCode: z.string().min(1, 'Media/Site Code is required'),
-  numberOfScreens: z.coerce.number().min(1, 'Number of screens required'),
-  remarks: z.string().optional(),
-  mrp: z.coerce.number().min(1, 'MRP is required'),
-  discountedPrice: z.coerce.number().min(0, 'Discounted price required'),
   repetition: z.string().min(1, 'Repetition is required'),
-  dimensionSize: z.string().min(1, 'Dimension size is required'),
-  minOrderQuantity: z.coerce.number().min(1),
-  maxOrderQuantity: z.coerce.number().min(1),
-  GST: z.string().min(1),
-  HSN: z.string().optional(),
 });
+
+/** Min positive MRP and min discounted price across Excel rows (same rule as multiplex / hoarding). */
+function computeMinDigitalScreenListingPrices(rows) {
+  const parsePositive = (v) => {
+    if (v === undefined || v === null || v === '') return NaN;
+    const n = Number(String(v).replace(/,/g, '').trim());
+    return Number.isFinite(n) && n > 0 ? n : NaN;
+  };
+  const mrps = rows.map((r) => parsePositive(r.mrp)).filter(Number.isFinite);
+  const discs = rows
+    .map((r) => parsePositive(r.discountedPrice))
+    .filter(Number.isFinite);
+  return {
+    minMRP: mrps.length ? Math.min(...mrps) : null,
+    minDiscounted: discs.length ? Math.min(...discs) : null,
+  };
+}
 
 const DIGITAL_SCREENS_COLUMNS = [
   { field: 'srNo', headerName: 'Sr No', width: 80 },
@@ -68,21 +71,7 @@ export default function DigitalScreensProductInfo() {
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      location: '',
-      city: '',
-      state: '',
-      propertyName: '',
-      mediaSiteCode: '',
-      numberOfScreens: 1,
-      remarks: '',
-      mrp: '',
-      discountedPrice: '',
       repetition: '',
-      dimensionSize: '',
-      minOrderQuantity: 1,
-      maxOrderQuantity: 1,
-      GST: '18',
-      HSN: '',
     },
   });
 
@@ -95,21 +84,7 @@ export default function DigitalScreensProductInfo() {
         setProductData(data);
         if (data?.tags?.length) setTags(data.tags);
         if (data?.mediaVariation) {
-          setValue('location', data.mediaVariation.location || '');
-          setValue('city', data.mediaVariation.city || '');
-          setValue('state', data.mediaVariation.state || '');
-          setValue('propertyName', data.mediaVariation.propertyName || '');
-          setValue('mediaSiteCode', data.mediaVariation.mediaSiteCode || '');
-          setValue('numberOfScreens', data.mediaVariation.numberOfScreens ?? 1);
-          setValue('remarks', data.mediaVariation.remarks || '');
-          setValue('mrp', data.mediaVariation.mrp ?? '');
-          setValue('discountedPrice', data.mediaVariation.discountedPrice ?? '');
           setValue('repetition', data.mediaVariation.repetition || '');
-          setValue('dimensionSize', data.mediaVariation.dimensionSize || '');
-          setValue('minOrderQuantity', data.mediaVariation.minOrderQuantityunit ?? 1);
-          setValue('maxOrderQuantity', data.mediaVariation.maxOrderQuantityunit ?? 1);
-          setValue('GST', data.mediaVariation.GST ?? '18');
-          setValue('HSN', data.mediaVariation.HSN || '');
         }
         if (data?.DigitalAds_screen_id) {
           const screensRes = await api.get(`/product/DigitalAdsScreenGetById/${data.DigitalAds_screen_id}`);
@@ -157,8 +132,20 @@ export default function DigitalScreensProductInfo() {
     formData.append('ProductUploadStatus', 'productinformation');
     formData.append('ListingType', 'Media');
     try {
-      await api.post('/product/DigitalAds_Excel_Process', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast.success('File uploaded successfully');
+      const uploadRes = await api.post('/product/DigitalAds_Excel_Process', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const listingPrices = uploadRes?.data?.listingPriceFromScreens;
+      if (
+        listingPrices &&
+        (listingPrices.PricePerUnit != null || listingPrices.DiscountedPrice != null)
+      ) {
+        toast.success(
+          'Excel uploaded. Listing price set from minimum MRP / discounted values in the sheet.',
+        );
+      } else {
+        toast.success('File uploaded successfully');
+      }
       setExcelFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       const res = await api.get(`/product/get_product_byId/${id}`);
@@ -178,35 +165,45 @@ export default function DigitalScreensProductInfo() {
       toast.error('Add at least one tag');
       return;
     }
-    if (dataGridRows.length === 0 && !data.location) {
-      toast.error('Add screen data manually or upload Excel');
+    if (dataGridRows.length === 0) {
+      toast.error('Upload the Digital Screens Excel file to add screen rows');
       return;
     }
 
+    const { minMRP, minDiscounted } = computeMinDigitalScreenListingPrices(dataGridRows);
+    if (minMRP == null || minDiscounted == null) {
+      toast.error(
+        'Each Excel row needs valid MRP and discounted price so we can set listing prices (minimums across rows).',
+      );
+      return;
+    }
+
+    const first = dataGridRows[0] || {};
+    const prevMv = productData?.mediaVariation || {};
+    const mediaVariation = {
+      location: first.location ?? '',
+      city: first.city ?? '',
+      state: first.state ?? '',
+      propertyName: first.propertyName ?? '',
+      mediaSiteCode: first.mediaSiteCode != null ? String(first.mediaSiteCode) : '',
+      numberOfScreens: Number(first.numberOfScreens) || 1,
+      remarks: first.remarks ?? '',
+      mrp: minMRP,
+      discountedPrice: minDiscounted,
+      repetition: data.repetition,
+      dimensionSize: prevMv.dimensionSize || '',
+      minOrderQuantityunit: Number(prevMv.minOrderQuantityunit) || 1,
+      maxOrderQuantityunit: Number(prevMv.maxOrderQuantityunit) || 1,
+      GST: prevMv.GST != null && prevMv.GST !== '' ? String(prevMv.GST) : '18',
+      HSN: prevMv.HSN || '',
+      PricePerUnit: minMRP,
+      DiscountedPrice: minDiscounted,
+      Timeline: 'Day',
+      unit: 'Screen',
+    };
+
     setIsSubmitting(true);
     try {
-      const mediaVariation = {
-        location: data.location,
-        city: data.city,
-        state: data.state,
-        propertyName: data.propertyName,
-        mediaSiteCode: data.mediaSiteCode,
-        numberOfScreens: Number(data.numberOfScreens),
-        remarks: data.remarks || '',
-        mrp: Number(data.mrp),
-        discountedPrice: Number(data.discountedPrice),
-        repetition: data.repetition,
-        dimensionSize: data.dimensionSize,
-        minOrderQuantityunit: Number(data.minOrderQuantity),
-        maxOrderQuantityunit: Number(data.maxOrderQuantity),
-        GST: data.GST,
-        HSN: data.HSN || '',
-        PricePerUnit: Number(data.mrp),
-        DiscountedPrice: Number(data.discountedPrice),
-        Timeline: 'Day',
-        unit: 'Screen',
-      };
-
       const payload = {
         id,
         ProductId: id,
@@ -216,8 +213,8 @@ export default function DigitalScreensProductInfo() {
         mediaVariation,
         ProductsVariantions: [mediaVariation],
         ProductQuantity: mediaVariation.maxOrderQuantityunit,
-        PricePerUnit: mediaVariation.mrp,
-        DiscountedPrice: mediaVariation.discountedPrice,
+        PricePerUnit: minMRP,
+        DiscountedPrice: minDiscounted,
         GST: mediaVariation.GST,
       };
 
@@ -292,76 +289,18 @@ export default function DigitalScreensProductInfo() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {dataGridRows.length > 0 && (
+              <p className="text-sm text-[#6B7A99] rounded-md border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2">
+                MRP and discounted listing prices are taken as the{' '}
+                <strong>lowest</strong> value in each column across all Excel rows. Full detail stays in the table
+                above.
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Location *</Label>
-                <Input {...register('location')} className={errors.location ? 'border-red-500' : ''} />
-                {errors.location && <p className="text-sm text-red-500">{errors.location.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>City *</Label>
-                <Input {...register('city')} className={errors.city ? 'border-red-500' : ''} />
-                {errors.city && <p className="text-sm text-red-500">{errors.city.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>State *</Label>
-                <Input {...register('state')} className={errors.state ? 'border-red-500' : ''} />
-                {errors.state && <p className="text-sm text-red-500">{errors.state.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Property Name *</Label>
-                <Input {...register('propertyName')} className={errors.propertyName ? 'border-red-500' : ''} />
-                {errors.propertyName && <p className="text-sm text-red-500">{errors.propertyName.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Media/Site Code *</Label>
-                <Input {...register('mediaSiteCode')} className={errors.mediaSiteCode ? 'border-red-500' : ''} />
-                {errors.mediaSiteCode && <p className="text-sm text-red-500">{errors.mediaSiteCode.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Number Of Screens *</Label>
-                <Input type="number" {...register('numberOfScreens')} className={errors.numberOfScreens ? 'border-red-500' : ''} />
-                {errors.numberOfScreens && <p className="text-sm text-red-500">{errors.numberOfScreens.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Remarks</Label>
-                <Input {...register('remarks')} />
-              </div>
-              <div className="space-y-2">
-                <Label>MRP *</Label>
-                <Input type="number" {...register('mrp')} className={errors.mrp ? 'border-red-500' : ''} />
-                {errors.mrp && <p className="text-sm text-red-500">{errors.mrp.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Discounted Price *</Label>
-                <Input type="number" {...register('discountedPrice')} className={errors.discountedPrice ? 'border-red-500' : ''} />
-                {errors.discountedPrice && <p className="text-sm text-red-500">{errors.discountedPrice.message}</p>}
-              </div>
               <div className="space-y-2">
                 <Label>Repetition *</Label>
                 <Input {...register('repetition')} className={errors.repetition ? 'border-red-500' : ''} />
                 {errors.repetition && <p className="text-sm text-red-500">{errors.repetition.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Dimension Size *</Label>
-                <Input {...register('dimensionSize')} className={errors.dimensionSize ? 'border-red-500' : ''} />
-                {errors.dimensionSize && <p className="text-sm text-red-500">{errors.dimensionSize.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Min Order Qty</Label>
-                <Input type="number" {...register('minOrderQuantity')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Max Order Qty</Label>
-                <Input type="number" {...register('maxOrderQuantity')} />
-              </div>
-              <div className="space-y-2">
-                <Label>GST *</Label>
-                <Input {...register('GST')} />
-              </div>
-              <div className="space-y-2">
-                <Label>HSN</Label>
-                <Input {...register('HSN')} />
               </div>
             </div>
 

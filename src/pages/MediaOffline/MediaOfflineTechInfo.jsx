@@ -20,6 +20,10 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import {
+  supportingDocsToCheckboxState,
+  checkboxStateToSupportingArray,
+} from '../../utils/supportingBuyerDocs';
 
 const SUPPORTING_DOC_OPTIONS = [
   { key: 'inspectionPass', label: 'Inspection pass' },
@@ -29,8 +33,6 @@ const SUPPORTING_DOC_OPTIONS = [
   { key: 'ExhibitionCertificate', label: 'Exhibition Certificate' },
   { key: 'Other', label: 'Other' },
 ];
-
-const toSupportBool = (v) => v === true || v === 'on';
 
 const brandControlClass =
   'border-[#C64091] text-[#C64091] data-[state=checked]:bg-[#C64091] data-[state=checked]:text-white';
@@ -125,15 +127,9 @@ export default function TechInfo() {
       const data = res?.data ?? res;
       setValue('Dimensions', data?.Dimensions);
       setValue('UploadLink', data?.UploadLink);
-      const w = data?.WhatSupportingYouWouldGiveToBuyer;
-      setCheckBoxes({
-        inspectionPass: toSupportBool(w?.inspectionPass),
-        LogReport: toSupportBool(w?.LogReport),
-        Videos: toSupportBool(w?.Videos),
-        Pictures: toSupportBool(w?.Pictures),
-        ExhibitionCertificate: toSupportBool(w?.ExhibitionCertificate),
-        Other: toSupportBool(w?.Other),
-      });
+      setCheckBoxes(
+        supportingDocsToCheckboxState(data?.WhatSupportingYouWouldGiveToBuyer),
+      );
       setDateArr(data?.calender ?? []);
       setBXISpace(Boolean(data?.BXISpace));
     } catch {
@@ -154,7 +150,7 @@ export default function TechInfo() {
       const datatobesent = {
         ...data,
         id: ProductId,
-        WhatSupportingYouWouldGiveToBuyer: checkBoxes,
+        WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
         BXISpace,

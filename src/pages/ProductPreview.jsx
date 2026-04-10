@@ -907,19 +907,38 @@ export default function ProductPreview() {
                   product?.GeographicalData ||
                   {};
                 const hasLoc = loc.region || loc.state || loc.city || loc.landmark || loc.pincode;
+                const mediaSubtitle =
+                  product?.ProductSubtitle ||
+                  product?.ProductSubtittle ||
+                  product?.productSubtitle ||
+                  '';
+                const mediaDescriptionBody =
+                  product?.ProductDescription ||
+                  product?.productDescription ||
+                  '';
                 return (
                   <Stack spacing={3}>
+                    {isMediaProduct && String(mediaSubtitle).trim() !== '' && (
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                          Subtitle
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          {String(mediaSubtitle).trim()}
+                        </Typography>
+                      </Box>
+                    )}
                     <Box>
                       <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
                         Product Description
                       </Typography>
                       <Typography variant="body1" color="text.secondary">
                         {isMediaProduct
-                          ? product?.ProductDescription ||
-                            product?.productDescription ||
-                            product?.ProductSubtitle ||
-                            product?.ProductSubtittle ||
-                            'No description available.'
+                          ? (() => {
+                              const body = String(mediaDescriptionBody || '').trim();
+                              if (body !== '') return body;
+                              return 'No description available.';
+                            })()
                           : product?.ProductSubtittle ||
                             product?.ProductSubtitle ||
                             product?.ProductDescription ||
@@ -964,7 +983,7 @@ export default function ProductPreview() {
                     {hasLoc && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
-                          Product Pickup Location & Pincode
+                          {isMediaProduct ? 'Geographic coverage' : 'Product Pickup Location & Pincode'}
                         </Typography>
                         <Grid container spacing={2}>
                           {loc.region && (
@@ -1000,7 +1019,7 @@ export default function ProductPreview() {
                         </Grid>
                       </Box>
                     )}
-                    {product?.listperiod && (
+                    {product?.listperiod && !isMediaProduct && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
                           This product is listed for
