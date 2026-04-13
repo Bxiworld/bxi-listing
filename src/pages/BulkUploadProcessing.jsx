@@ -193,12 +193,21 @@ export default function BulkUploadProcessing() {
   const hasTracking = Boolean(webhookId || jobId);
 
   useEffect(() => {
-    if (!storeResponse?._id || createSentRef.current) return;
+    if (!storeResponse?._id) return;
+    // Ref alone is not enough under React Strict Mode (remount resets ref) — dedupe per file row id.
+    const dedupeKey =
+      typeof sessionStorage !== 'undefined'
+        ? `bxi_bulk_create_company_${storeResponse._id}`
+        : null;
+    if (dedupeKey && sessionStorage.getItem(dedupeKey)) return;
+    if (createSentRef.current) return;
     createSentRef.current = true;
+    if (dedupeKey) sessionStorage.setItem(dedupeKey, '1');
     bulkUploadApi
       .createCompanyUpload(storeResponse)
       .catch((err) => {
         createSentRef.current = false;
+        if (dedupeKey) sessionStorage.removeItem(dedupeKey);
         const msg =
           err?.response?.data?.message ||
           err?.message ||

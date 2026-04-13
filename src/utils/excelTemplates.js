@@ -4,15 +4,15 @@ import { saveAs } from 'file-saver';
 /** Hosted bulk-upload templates (CDN). Keys match category slugs (lowercase). */
 export const REMOTE_BULK_TEMPLATE_URLS = {
   electronics:
-    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/electronics.xlsx',
-  fmcg: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/FMCG.xlsx',
+    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/Electronics%20Output%20Template.xlsx',
+  fmcg: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/FMCG%20Output%20Template.xlsx',
   officesupply:
-    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/office-supply.xlsx',
-  lifestyle: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/Lifestyle.xlsx',
+    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/OfficeSupply%20Output%20Template.xlsx',
+  lifestyle: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/Lifestyle%20Output%20Template.xlsx',
   mobility: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/mobility.xlsx',
   restaurant:
-    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/qsr.xlsx',
-  textile: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/textile.xlsx',
+    'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/QSR%20Output%20Template.xlsx',
+  textile: 'https://bulk-upload.tor1.cdn.digitaloceanspaces.com/Textile%20Output%20Template.xlsx',
 };
 
 /**
