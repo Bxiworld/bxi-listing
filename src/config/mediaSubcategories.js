@@ -24,7 +24,7 @@ export const MEDIA_SUBCATEGORIES_BY_CATEGORY = {
     'Scala TV',
     'LED Pillar',
     'Easel Standee',
-    'CCD ads',
+    'CCD Ads',
     'Residential Screen',
     'Corporate Park Screens',
     'Gym digital Screens',

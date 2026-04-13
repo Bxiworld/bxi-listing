@@ -36,6 +36,7 @@ import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
+import { resolveMediaOnlineFormProfile } from '../config/mediaListingProfiles';
 
 const defaultImage =
   'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
@@ -916,8 +917,25 @@ export default function ProductPreview() {
                   product?.ProductDescription ||
                   product?.productDescription ||
                   '';
+                const onlineProfile = isMediaProduct
+                  ? resolveMediaOnlineFormProfile(product || {})
+                  : null;
+                const mediaNameForDescription =
+                  product?.medianame || product?.ProductName || '';
                 return (
                   <Stack spacing={3}>
+                    {isMediaProduct &&
+                      onlineProfile?.previewHideMediaNameFromTech &&
+                      String(mediaNameForDescription).trim() !== '' && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                            Media name
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {String(mediaNameForDescription).trim()}
+                          </Typography>
+                        </Box>
+                      )}
                     {isMediaProduct && String(mediaSubtitle).trim() !== '' && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
@@ -1244,19 +1262,35 @@ export default function ProductPreview() {
                     return null;
                   };
                   const geo = product?.GeographicalData || {};
+                  const prevProfile = resolveMediaOnlineFormProfile(product || {});
+                  const dimLabel =
+                    prevProfile.dimensionLabel === 'AD Duration'
+                      ? 'AD Duration'
+                      : 'Dimension (creative)';
                   const techRows = [
-                    ['Media name', product?.medianame || product?.ProductName],
-                    ['Media category', product?.mediaCategory],
-                    ['Media journey', product?.mediaJourney],
+                    ...(prevProfile.previewHideMediaNameFromTech
+                      ? []
+                      : [['Media name', product?.medianame || product?.ProductName]]),
+                    ...(prevProfile.previewHideMediaMetaFromTech
+                      ? []
+                      : [
+                          ['Media category', product?.mediaCategory],
+                          ['Media journey', product?.mediaJourney],
+                        ]),
                     ['Ad position', product?.adPosition],
                     ['Edition', pick(mv.edition, v0.edition)],
                     ['Type', pick(mv.Type, v0.Type)],
                     ['Release details', pick(mv.releasedetails, v0.releasedetails)],
                     ['Available insertions', pick(mv.availableInsertions, v0.availableInsertions)],
-                    ['Dimension (creative)', pick(mv.dimensionSize, v0.dimensionSize)],
+                    [dimLabel, pick(mv.dimensionSize, v0.dimensionSize)],
                     ['Ad type', pick(mv.adType, v0.adType)],
+                    ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', pick(mv.Timeline, v0.Timeline)],
                     ['Min order quantity', pick(mv.MinOrderQuantity, v0.MinOrderQuantity)],
+                    [
+                      'Min order (timeline)',
+                      pick(mv.minOrderQuantitytimeline, v0.minOrderQuantitytimeline),
+                    ],
                     ['Max order quantity', pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit)],
                     ['Max order (timeline)', pick(mv.maxOrderQuantitytimeline, v0.maxOrderQuantitytimeline)],
                     ['Other dimensions', product?.Dimensions],

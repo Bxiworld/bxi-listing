@@ -28,7 +28,6 @@ import {
   supportingDocsToCheckboxState,
   checkboxStateToSupportingArray,
   emptySupportingCheckboxState,
-  SUPPORTING_DOC_KEYS_FORM_ORDER,
   SUPPORTING_DOC_LABELS,
 } from '../../utils/supportingBuyerDocs';
 import OthercostPortion from '../MediaOffline/OthercostPortion.jsx';
@@ -36,6 +35,12 @@ import EditIcon from '../../assets/Images/CommonImages/EditIcon.svg';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import {
+  DOOH_AD_TYPE_OPTIONS_FILTERED,
+  DOOH_SUPPORTING_DOC_KEYS,
+  FEATURE_ALLOWLIST_BY_KEY,
+  filterFeatureDropdownRows,
+} from '../../config/mediaListingProfiles';
 
 /** Listing duration; API still receives min/max timeline as day counts. */
 const TIMELINE_DURATION_OPTIONS = [
@@ -113,29 +118,6 @@ function resolveTimelineQuantityForFetch(mv, data, timelineDuration) {
   );
   return resolveTimelineQuantityFromTotalDays(totalDays, timelineDuration);
 }
-
-const AD_TYPE_OPTIONS = [
-  'All Locations',
-  'Arrival',
-  'Café Wall Branding',
-  'Coffee Tables',
-  'Concession Counter',
-  'Conveyor Belt',
-  'Departure',
-  'Entry Gate',
-  'Exit Gate',
-  'Handles of the Bus',
-  'Highway',
-  'Lobby',
-  'Mall Atrium',
-  'Near Parking Area',
-  'Out Side Airport',
-  'Parking Area',
-  'Tent Cards',
-  'Waiting Area',
-  'main road',
-  'others',
-];
 
 const GST_OPTIONS = ['5', '10', '12', '18', '28'];
 
@@ -529,11 +511,7 @@ export default function DigitalScreensTechInfo() {
           <main className="stepper-content">
             <div className="max-w-4xl mx-auto px-4 pb-16">
               <div className="form-section bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-6">
-                <h2 className="form-section-title mb-2">Digital Screens – Technical Information</h2>
-                <p className="text-sm text-[#6B7A99] mb-6">
-                  Logistics, compliance, and buyer-facing technical details (aligned with the classic seller
-                  journey).
-                </p>
+                <h2 className="form-section-title mb-6">Digital Screens – Technical Information</h2>
 
                 <form onSubmit={onValidSubmit} className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -616,15 +594,7 @@ export default function DigitalScreensTechInfo() {
                       </select>
                     </div>
                     <div className="space-y-2 md:col-span-2 lg:col-span-1">
-                      <Label>
-                        {storeMediaAllData.timeline === 'Week'
-                          ? 'Number of weeks *'
-                          : storeMediaAllData.timeline === 'Month'
-                            ? 'Number of months *'
-                            : storeMediaAllData.timeline === 'Day'
-                              ? 'Number of days *'
-                              : 'Quantity *'}
-                      </Label>
+                      <Label>Duration quantity *</Label>
                       <Input
                         type="number"
                         min={1}
@@ -644,7 +614,7 @@ export default function DigitalScreensTechInfo() {
                       />
                       <p className="text-xs text-[#6B7A99]">
                         {storeMediaAllData.timeline
-                          ? 'Total length is converted to days for the listing (month = 30 days).'
+                          ? 'Total length is sent to the listing API using the unit you selected (month = 30 days).'
                           : 'Choose Day, Week, or Month first.'}
                       </p>
                     </div>
@@ -661,7 +631,7 @@ export default function DigitalScreensTechInfo() {
                         }
                       >
                         <option value="">Select placement</option>
-                        {AD_TYPE_OPTIONS.map((opt) => (
+                        {DOOH_AD_TYPE_OPTIONS_FILTERED.map((opt) => (
                           <option key={opt} value={opt}>
                             {opt}
                           </option>
@@ -709,7 +679,7 @@ export default function DigitalScreensTechInfo() {
                   <div className="space-y-3">
                     <Label>What supporting document would you give to the buyer? *</Label>
                     <div className="flex flex-wrap gap-4">
-                      {SUPPORTING_DOC_KEYS_FORM_ORDER.map((docKey) => (
+                      {DOOH_SUPPORTING_DOC_KEYS.map((docKey) => (
                         <label key={docKey} className="flex items-center gap-2 text-sm text-[#6B7A99]">
                           <input
                             type="checkbox"
@@ -820,7 +790,11 @@ export default function DigitalScreensTechInfo() {
                           onChange={(e) => setName(e.target.value)}
                         >
                           <option value="">Select feature</option>
-                          {MediaOnlineFeaturesData.map((el, idx) =>
+                          {filterFeatureDropdownRows(
+                            MediaOnlineFeaturesData,
+                            FEATURE_ALLOWLIST_BY_KEY.dooh,
+                            items.map((i) => i.name),
+                          ).map((el, idx) =>
                             el?.IsHead ? (
                               <option key={idx} disabled value={`_section_${idx}`}>
                                 — {el.MediaonlineFeaturesingle} —

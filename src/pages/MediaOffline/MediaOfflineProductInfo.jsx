@@ -42,6 +42,10 @@ import {
 import { Button as UiButton } from '../../components/ui/button';
 import StateData from '../../utils/StateCityArray.json';
 import { resolveMediaOfflinePrintSubcategoryId } from '../../config/mediaSubcategories';
+import {
+  FEATURE_ALLOWLIST_BY_KEY,
+  filterOfflineFeatureOptions,
+} from '../../config/mediaListingProfiles';
 
 const NEWSPAPER_SUBCATEGORY_ID = '647713dcb530d22fce1f6c36';
 const PRINT_SUBCATEGORY_NAMES = ['Newspaper', 'Magazines', 'Flyers', 'Electricity bills', 'Boarding Pass'];
@@ -82,6 +86,58 @@ const newspaperGridLabelSx = {
   color: '#5c6b8a',
   minHeight: '2.7em',
 };
+
+const ALL_OFFLINE_FEATURE_OPTIONS = [
+  { name: 'AD Type' },
+  { name: 'Audio' },
+  { name: 'Average Like' },
+  { name: 'Branding' },
+  { name: 'Category' },
+  { name: 'Cinematic' },
+  { name: 'Circulation' },
+  { name: 'Content Creation' },
+  { name: 'Contest' },
+  { name: 'CPM' },
+  { name: 'CPCV' },
+  { name: 'Creative' },
+  { name: 'CTR' },
+  { name: 'Duration' },
+  { name: 'Editions' },
+  { name: 'Engagement Rate' },
+  { name: 'Event Sponsoring Brand' },
+  { name: 'Eyeball Reach' },
+  { name: 'Eyeballs' },
+  { name: 'Footfall' },
+  { name: 'Frequency' },
+  { name: 'Gender Reach' },
+  { name: 'Gold' },
+  { name: 'Landmark' },
+  { name: 'Lead Time' },
+  { name: 'Like Time' },
+  { name: 'Media Location' },
+  { name: 'Near by' },
+  { name: 'No of Seats' },
+  { name: 'Occasion' },
+  { name: 'Other' },
+  { name: 'Platform' },
+  { name: 'Placement' },
+  { name: 'Platinum' },
+  { name: 'Position' },
+  { name: 'Prime Time' },
+  { name: 'Property Name' },
+  { name: 'Quality' },
+  { name: 'Reach' },
+  { name: 'Readership' },
+  { name: 'Roadblock' },
+  { name: 'Screen Type' },
+  { name: 'Silver' },
+  { name: 'Sponsor Tags' },
+  { name: 'Studio Shift' },
+  { name: 'Time Check' },
+  { name: 'Time slot' },
+  { name: 'Used for' },
+  { name: 'Video' },
+];
 
 const MediaProductInfo = () => {
   const ProductId = useParams().id;
@@ -471,57 +527,13 @@ const MediaProductInfo = () => {
   useEffect(() => {
     FetchAddedProduct();
   }, []);
-  const Feature = [
-    { name: 'AD Type' },
-    { name: 'Audio' },
-    { name: 'Average Like' },
-    { name: 'Branding' },
-    { name: 'Category' },
-    { name: 'Cinematic' },
-    { name: 'Circulation' },
-    { name: 'Content Creation' },
-    { name: 'Contest' },
-    { name: 'CPM' },
-    { name: 'CPCV' },
-    { name: 'Creative' },
-    { name: 'CTR' },
-    { name: 'Duration' },
-    { name: 'Editions' },
-    { name: 'Engagement Rate' },
-    { name: 'Event Sponsoring Brand' },
-    { name: 'Eyeball Reach' },
-    { name: 'Eyeballs' },
-    { name: 'Footfall' },
-    { name: 'Frequency' },
-    { name: 'Gender Reach' },
-    { name: 'Gold' },
-    { name: 'Landmark' },
-    { name: 'Lead Time' },
-    { name: 'Like Time' },
-    { name: 'Media Location' },
-    { name: 'Near by' },
-    { name: 'No of Seats' },
-    { name: 'Occasion' },
-    { name: 'Other' },
-    { name: 'Platform' },
-    { name: 'Placement' },
-    { name: 'Platinum' },
-    { name: 'Position' },
-    { name: 'Prime Time' },
-    { name: 'Property Name' },
-    { name: 'Quality' },
-    { name: 'Reach' },
-    { name: 'Readership' },
-    { name: 'Roadblock' },
-    { name: 'Screen Type' },
-    { name: 'Silver' },
-    { name: 'Sponsor Tags' },
-    { name: 'Studio Shift' },
-    { name: 'Time Check' },
-    { name: 'Time slot' },
-    { name: 'Used for' },
-    { name: 'Video' },
-  ];
+  const featureChoices = useMemo(() => {
+    if (isNewspaperJourney) {
+      return FEATURE_ALLOWLIST_BY_KEY.print.map((n) => ({ name: n }));
+    }
+    return ALL_OFFLINE_FEATURE_OPTIONS;
+  }, [isNewspaperJourney]);
+
   const ConvertPriceToperDay = (price, timeline) => {
     if (timeline === 'Day') {
       return price;
@@ -779,7 +791,7 @@ const MediaProductInfo = () => {
                           focused
                           multiline
                           variant="standard"
-                          placeholder="Eg. On Screen "
+                          placeholder="Cover Page, Left Side, Right Side"
                           {...register('adPosition')}
                           onKeyDown={(e) => {
                             if (e.key === ' ' && e.target.selectionStart === 0) {
@@ -2860,7 +2872,11 @@ const MediaProductInfo = () => {
                           }}
                           key={traits}
                         >
-                          {Feature?.map((el, idx) => {
+                          {filterOfflineFeatureOptions(
+                            featureChoices,
+                            isNewspaperJourney ? FEATURE_ALLOWLIST_BY_KEY.print : null,
+                            items.map((i) => i.name),
+                          )?.map((el, idx) => {
                             return (
                               <MenuItem
                                 key={idx}

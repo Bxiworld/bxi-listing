@@ -9,7 +9,7 @@ import {
   Chip,
 } from '@mui/material';
 import { Stack } from '@mui/system';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
@@ -40,6 +40,11 @@ import {
 import StateData from '../../utils/StateCityArray.json';
 import { Stepper } from '../AddProduct/AddProductSteps';
 import { buildMediaOnlineGeneralInfoPath } from '../../utils/mediaOnlineListingPaths';
+import {
+  resolveMediaOnlineFormProfile,
+  filterFeatureDropdownRows,
+  isTirupatiAirportSubcategory,
+} from '../../config/mediaListingProfiles';
 
 const LocationArr = [
   'Specific',
@@ -193,6 +198,7 @@ const MediaProductInfo = () => {
     handleSubmit,
     setValue,
     getValues,
+    watch,
     control,
     setError,
     reset,
@@ -217,14 +223,8 @@ const MediaProductInfo = () => {
           location: z.string().min(1, 'Location is required'),
           unit: z.string().min(1, 'Unit is required'),
           Timeline: z.string().min(1, 'Timeline is required'),
-          repetition: z.string().min(1, 'Repetition is required')
-          .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
-            message: 'Price cannot be zero',
-          }),
-          dimensionSize: z.string().min(1)
-          .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
-            message: 'Price cannot be zero',
-          }),
+          repetition: z.string().optional().or(z.literal('')),
+          dimensionSize: z.string().optional().or(z.literal('')),
           PricePerUnit: z.coerce.string().min(1, { message: 'Price is required' })
           .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
             message: 'Price cannot be zero',
@@ -233,7 +233,6 @@ const MediaProductInfo = () => {
           .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
             message: 'Discounted price cannot be zero',
           }),
-          GST: z.coerce.number().gte(5).lte(28),
           GST: z.coerce.number().gte(5).lte(28),
           HSN: z
             .string()
@@ -413,6 +412,28 @@ const MediaProductInfo = () => {
   const [description, setDescription] = useState('');
   const [traits, setTraits] = useState([]);
   const [MaxtimeslotArr, setMaxtimeslotArr] = useState([]);
+
+  const listingProfile = useMemo(
+    () => resolveMediaOnlineFormProfile(FetchedproductData || {}),
+    [FetchedproductData],
+  );
+  const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
+  const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
+
+  useEffect(() => {
+    if (!listingProfile.syncTimeslots) return;
+    if (minTimeslotWatch == null || minTimeslotWatch === '') return;
+    const n = Number(minTimeslotWatch);
+    if (!Number.isFinite(n)) return;
+    setValue('mediaVariation.maxTimeslotSeconds', n);
+    setMaxtimeslotArr([n]);
+  }, [minTimeslotWatch, listingProfile.syncTimeslots, setValue]);
+
+  useEffect(() => {
+    if (!FetchedproductData || !isTirupatiAirportSubcategory(FetchedproductData)) return;
+    setValue('mediaVariation.minOrderQuantityunit', 1);
+    setValue('mediaVariation.maxOrderQuantityunit', 1);
+  }, [FetchedproductData, setValue]);
   const handleItemAdd = (e) => {
     if (items.length >= 20) {
       return toast.error('Features cannot be more than 20');
@@ -487,6 +508,7 @@ const MediaProductInfo = () => {
 
 
   const updateProductTotextilestatus = handleSubmit((data) => {
+    const submitProfile = resolveMediaOnlineFormProfile(FetchedproductData || {});
     const DiscountedPrice = data?.mediaVariation.DiscountedPrice?.replace(
       /,/g,
       '',
@@ -514,6 +536,18 @@ const MediaProductInfo = () => {
         getValues()?.mediaVariation.minOrderQuantityunit,
       );
     }
+    const mergedMediaVariation = {
+      ...getValues()?.mediaVariation,
+      GST: getValues()?.mediaVariation?.GST
+        ? getValues()?.mediaVariation?.GST
+        : FetchedproductData?.mediaVariation?.GST,
+      ...(submitProfile.syncTimeslots
+        ? {
+            maxTimeslotSeconds: Number(getValues()?.mediaVariation?.minTimeslotSeconds) || 0,
+            minTimeslotSeconds: Number(getValues()?.mediaVariation?.minTimeslotSeconds) || 0,
+          }
+        : {}),
+    };
     const datatobesent = {
       ...data,
       id: ProductId,
@@ -525,14 +559,9 @@ const MediaProductInfo = () => {
         city: getValues()?.GeographicalData?.city,
         landmark: getValues()?.GeographicalData?.landmark,
       },
-      ProductsVariantions: [getValues()?.mediaVariation],
+      ProductsVariantions: [mergedMediaVariation],
       OtherInformationBuyerMustKnowOrRemarks: OtherInfoArray,
-      mediaVariation: {
-        ...getValues()?.mediaVariation,
-        GST: getValues()?.mediaVariation?.GST
-          ? getValues()?.mediaVariation?.GST
-          : FetchedproductData?.mediaVariation?.GST,
-      },
+      mediaVariation: mergedMediaVariation,
       ProductUploadStatus: 'productinformation',
       ListingType: 'Media',
       tags: tags,
@@ -569,12 +598,26 @@ const MediaProductInfo = () => {
       toast.error('Please select a timeline');
       return;
     }
-    if (!data.mediaVariation.repetition) {
+    if (
+      submitProfile.repetitionRequired &&
+      (!data.mediaVariation.repetition || !String(data.mediaVariation.repetition).trim())
+    ) {
       setError('mediaVariation.repetition', {
         type: 'custom',
         message: 'Please select a repetition',
       });
       toast.error('Please select a repetition');
+      return;
+    }
+    if (
+      submitProfile.dimensionRequired &&
+      (!data.mediaVariation.dimensionSize || !String(data.mediaVariation.dimensionSize).trim())
+    ) {
+      setError('mediaVariation.dimensionSize', {
+        type: 'custom',
+        message: `${submitProfile.dimensionLabel} is required`,
+      });
+      toast.error(`${submitProfile.dimensionLabel} is required`);
       return;
     }
 
@@ -698,13 +741,12 @@ const MediaProductInfo = () => {
   };
   // 1. Add useEffect to set GST value when FetchedproductData changes
   useEffect(() => {
-    // Check if FetchedproductData.mediaVariation.GST exists and is a valid value
-    if (
-      FetchedproductData?.mediaVariation?.GST !== null &&
-      FetchedproductData?.mediaVariation?.GST !== undefined &&
-      FetchedproductData?.mediaVariation?.GST !== 0
-    ) {
-      setValue('mediaVariation.GST', FetchedproductData.mediaVariation.GST);
+    if (!FetchedproductData) return;
+    const g = FetchedproductData?.mediaVariation?.GST;
+    if (g !== null && g !== undefined && g !== 0 && g !== '') {
+      setValue('mediaVariation.GST', g);
+    } else {
+      setValue('mediaVariation.GST', 18);
     }
   }, [FetchedproductData, setValue]);
 
@@ -1116,8 +1158,10 @@ const MediaProductInfo = () => {
                             <Typography
                               sx={{ ...CommonTextStyle, fontSize: '12px' }}
                             >
-                            Dimension Size{' '}
-                              <span style={{ color: 'red' }}> *</span>
+                            {listingProfile.dimensionLabel}{' '}
+                              {listingProfile.dimensionRequired ? (
+                                <span style={{ color: 'red' }}> *</span>
+                              ) : null}
                             </Typography>
                             <Input
                               placeholder="2048 X 998"
@@ -1603,7 +1647,9 @@ const MediaProductInfo = () => {
                               flexDirection: 'column',
                               gap: '10px',
                               mt: 1,
-                              maxWidth: '140px',
+                              maxWidth: listingProfile.gstSelectWidthPx
+                                ? `${listingProfile.gstSelectWidthPx + 24}px`
+                                : '140px',
                             }}
                           >
                             <Typography
@@ -1626,7 +1672,9 @@ const MediaProductInfo = () => {
                                 {
                                   border: 0,
                                 },
-                                  width: '70px',
+                                  width: listingProfile.gstSelectWidthPx
+                                    ? `${listingProfile.gstSelectWidthPx}px`
+                                    : '70px',
                                   height: '42px',
                                   background: '#FFFFFF',
                                   borderRadius: '10px',
@@ -1749,7 +1797,7 @@ const MediaProductInfo = () => {
                             focused
                             multiline
                             variant="standard"
-                            placeholder="Eg. Near Concession area"
+                            placeholder={listingProfile.offeringPlaceholder}
                             {...register('offerningbrandat')}
                             onKeyDown={(e) => {
                               if (
@@ -1853,13 +1901,14 @@ const MediaProductInfo = () => {
                               }}
 
                             >
-                              {LocationArr.sort((a, b) => a.localeCompare(b)).map(
-                                (item) => (
+                              {adTypeOptions
+                                .slice()
+                                .sort((a, b) => a.localeCompare(b))
+                                .map((item) => (
                                   <MenuItem key={item} value={item}>
                                     {item}
                                   </MenuItem>
-                                ),
-                              )}
+                                ))}
                             </Select>
                             <Typography
                               sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
@@ -1910,23 +1959,33 @@ const MediaProductInfo = () => {
                                   : null,
                               }}
                             >
-                              <MenuItem value="Screen">Per Screen</MenuItem>
-                              <MenuItem value="Unit"> Per Unit </MenuItem>
-                              {FetchedproductData?.ProductSubCategoryName ===
-                              'Radio' ||
-                              FetchedproductData?.ProductSubCategory ===
-                              '65029534eaa5251874e8c6c1' ? null : (
-                                  <MenuItem value="Spot"> Per Spot </MenuItem>
-                                )}
-                              <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
-                              <MenuItem value="Display"> Per Display </MenuItem>
-                              <MenuItem value="Location"> Per Location </MenuItem>
-                              <MenuItem value="Release"> Per Release </MenuItem>
-                              <MenuItem value="Annoucment">
-                                {' '}
-                              Per Annoucment{' '}
-                              </MenuItem>
-                              <MenuItem value="Video"> Per Video</MenuItem>
+                              {listingProfile.unitOptions
+                                ? listingProfile.unitOptions.map((u) => (
+                                    <MenuItem key={u.value} value={u.value}>
+                                      {u.label}
+                                    </MenuItem>
+                                  ))
+                                : (
+                                    <>
+                                      <MenuItem value="Screen">Per Screen</MenuItem>
+                                      <MenuItem value="Unit"> Per Unit </MenuItem>
+                                      {FetchedproductData?.ProductSubCategoryName ===
+                                      'Radio' ||
+                                      FetchedproductData?.ProductSubCategory ===
+                                      '65029534eaa5251874e8c6c1' ? null : (
+                                          <MenuItem value="Spot"> Per Spot </MenuItem>
+                                        )}
+                                      <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
+                                      <MenuItem value="Display"> Per Display </MenuItem>
+                                      <MenuItem value="Location"> Per Location </MenuItem>
+                                      <MenuItem value="Release"> Per Release </MenuItem>
+                                      <MenuItem value="Annoucment">
+                                        {' '}
+                                      Per Annoucment{' '}
+                                      </MenuItem>
+                                      <MenuItem value="Video"> Per Video</MenuItem>
+                                    </>
+                                  )}
                             </Select>
                             <Typography
                               sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
@@ -2008,15 +2067,17 @@ const MediaProductInfo = () => {
                                     {' '}
                                 Per Month{' '}
                                   </MenuItem>
-                                  <MenuItem
-                                    value="One Time"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
-                                  >
-                                    {' '}
-                                Per One Time{' '}
-                                  </MenuItem>
+                                  {!listingProfile.timelineHideOneTime ? (
+                                    <MenuItem
+                                      value="One Time"
+                                      onClick={() => {
+                                        setOnlyState(!onlyState);
+                                      }}
+                                    >
+                                      {' '}
+                                  Per One Time{' '}
+                                    </MenuItem>
+                                  ) : null}
                                   <MenuItem
                                     value="Year"
                                     onClick={() => {
@@ -2046,7 +2107,10 @@ const MediaProductInfo = () => {
                             <Typography
                               sx={{ ...CommonTextStyle, fontSize: '12px' }}
                             >
-                            Repetition <span style={{ color: 'red' }}> *</span>
+                            Repetition{' '}
+                              {listingProfile.repetitionRequired ? (
+                                <span style={{ color: 'red' }}> *</span>
+                              ) : null}
                             </Typography>
                             <Input
                               disableUnderline
@@ -2100,8 +2164,10 @@ const MediaProductInfo = () => {
                             <Typography
                               sx={{ ...CommonTextStyle, fontSize: '12px' }}
                             >
-                            Dimension Size{' '}
-                              <span style={{ color: 'red' }}> *</span>
+                            {listingProfile.dimensionLabel}{' '}
+                              {listingProfile.dimensionRequired ? (
+                                <span style={{ color: 'red' }}> *</span>
+                              ) : null}
                             </Typography>
                             <Input
                               placeholder="2048 X 998"
@@ -3468,7 +3534,11 @@ const MediaProductInfo = () => {
                           }}
                           key={traits}
                         >
-                          {MediaOnlineFeaturesData?.map((el, idx) => {
+                          {filterFeatureDropdownRows(
+                            MediaOnlineFeaturesData,
+                            listingProfile.featureAllowlist,
+                            items.map((i) => i.name),
+                          )?.map((el, idx) => {
                             if (el?.IsHead) {
                               return (
                                 <MenuItem

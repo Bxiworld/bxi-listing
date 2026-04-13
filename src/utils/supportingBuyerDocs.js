@@ -5,6 +5,8 @@ export const SUPPORTING_DOC_KEYS = [
   'Videos',
   'Pictures',
   'ExhibitionCertificate',
+  'estimatedFleets',
+  'broadcastCertificate',
   'Other',
 ];
 
@@ -12,8 +14,10 @@ export const SUPPORTING_DOC_LABELS = {
   inspectionPass: 'Inspection pass',
   LogReport: 'Log Report',
   Videos: 'Videos',
-  Pictures: 'Pictures',
+  Pictures: 'Photos',
   ExhibitionCertificate: 'Exhibition Certificate',
+  estimatedFleets: 'Estimated Fleets',
+  broadcastCertificate: 'Broadcast Certificate',
   Other: 'Other',
 };
 
@@ -48,6 +52,8 @@ function normalizeDocKey(input) {
     videos: 'Videos',
     pictures: 'Pictures',
     exhibitioncertificate: 'ExhibitionCertificate',
+    estimatedfleets: 'estimatedFleets',
+    broadcastcertificate: 'broadcastCertificate',
     other: 'Other',
   }[compact];
   return byCompact || null;

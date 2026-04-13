@@ -403,7 +403,8 @@ export default function MediaGeneralInfo() {
                         const formattedName =
                           item.subCategoryName
                             ?.toLowerCase()
-                            .replace(/\b\w/g, (char) => char.toUpperCase()) || '';
+                            .replace(/\b\w/g, (char) => char.toUpperCase())
+                            .replace(/\bFm\b/g, 'FM') || '';
 
                         return (
                           <SelectItem key={item._id} value={item._id}>

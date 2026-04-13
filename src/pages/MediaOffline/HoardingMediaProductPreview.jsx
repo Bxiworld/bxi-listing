@@ -8,12 +8,14 @@ import {
   Typography,
   Tab,
   Tabs,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
 import { Stack } from '@mui/system';
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { DataGrid } from '@mui/x-data-grid';
 import BXITokenIcon from '../../assets/bxi-token.svg';
 import api, { productApi, keyFeatureApi } from '../../utils/api';
@@ -276,6 +278,7 @@ export default function HoardingMediaProductPreview() {
   const [ProductFeatures, setProfuctFeatures] = useState([]);
   const [storeVariationData, setStoreVariationData] = useState();
   const [dataGridrows, setDataGridRows] = useState([]);
+  const [rowImagePreview, setRowImagePreview] = useState(null);
 
   const ImageDataArray = GetProductByIdData?.ProductImages;
 
@@ -377,6 +380,32 @@ export default function HoardingMediaProductPreview() {
     },
     { field: 'mrp', headerName: 'MRP', width: 90 },
     { field: 'DiscountedPrice', headerName: 'Discounted', width: 110 },
+    {
+      field: 'rowImages',
+      headerName: 'Images',
+      width: 72,
+      sortable: false,
+      renderCell: (params) => {
+        const raw = params?.row?.images;
+        const arr = Array.isArray(raw) ? raw : [];
+        const urls = arr
+          .map((img) =>
+            typeof img === 'string' ? img : img?.url || img?.URL || '',
+          )
+          .filter(Boolean);
+        if (!urls.length) return null;
+        return (
+          <IconButton
+            size="small"
+            aria-label="View row images"
+            onClick={() => setRowImagePreview(urls)}
+            sx={{ color: accent }}
+          >
+            <Eye size={18} />
+          </IconButton>
+        );
+      },
+    },
   ];
 
   useEffect(() => {
@@ -1864,6 +1893,25 @@ export default function HoardingMediaProductPreview() {
             )}
         </Paper>
       </Box>
+
+      <Dialog
+        open={Boolean(rowImagePreview?.length)}
+        onClose={() => setRowImagePreview(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+          {(rowImagePreview || []).map((url) => (
+            <Box
+              key={url}
+              component="img"
+              src={url}
+              alt=""
+              sx={{ maxWidth: '100%', borderRadius: 1, border: `1px solid ${borderSubtle}` }}
+            />
+          ))}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

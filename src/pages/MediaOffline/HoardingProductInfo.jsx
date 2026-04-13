@@ -16,7 +16,13 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 const HOARDING_EXCEL_TEMPLATE_URL =
   'https://bxidevelopment1.s3.ap-south-1.amazonaws.com/Excels/Hoarding%2BTemplate.xlsx';
 
-/** Min positive MRP and min positive discounted price across Excel rows (same rule as multiplex screens). */
+/**
+ * Min positive MRP and min positive discounted price across Excel rows (same rule as multiplex screens).
+ *
+ * TODO (business rule pending): **10-day hoarding cost** — product wants a dedicated calculation for
+ * short-window (e.g. 10-day) pricing vs calendar-month rules. When finance confirms the formula,
+ * implement it here and/or in the backend `Hoarding_Excel_Process` pipeline without changing row keys.
+ */
 function computeMinListingPricesFromHoardingRows(rows) {
   const parsePositive = (v) => {
     if (v === undefined || v === null || v === '') return NaN;

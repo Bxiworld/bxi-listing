@@ -40,6 +40,7 @@ export default function MultiplexGoLive() {
   const [productData, setProductData] = useState(null);
   const [selectedScreens, setSelectedScreens] = useState([]);
   const [screenImages, setScreenImages] = useState({});
+  const [goLiveTab, setGoLiveTab] = useState('bulk');
   const bulkUploadRef = useRef(null);
   const individualUploadRefs = useRef({});
 
@@ -236,22 +237,22 @@ export default function MultiplexGoLive() {
   };
 
   const handlePublish = async () => {
-    const withoutImages = screensList.filter((s) => !(screenImages[screenKey(s)]?.length > 0));
-
-    if (withoutImages.length > 0) {
-      toast.error(
-        `${withoutImages.length} screen(s) have no images. Please upload images for all screens.`
-      );
-      return;
-    }
-
     const uniqueFiles = collectUniqueFiles();
-    if (uniqueFiles.length < 3) {
-      toast.error(
-        'At least 3 unique listing images are required. Reuse the same images across multiple screens where appropriate.'
-      );
-      return;
+
+    if (goLiveTab === 'individual') {
+      const withoutImages = screensList.filter((s) => !(screenImages[screenKey(s)]?.length > 0));
+      if (withoutImages.length > 0) {
+        toast.error(
+          `${withoutImages.length} screen(s) have no images. Upload up to 3 standard images per screen.`
+        );
+        return;
+      }
+      if (uniqueFiles.length < 3) {
+        toast.error('Individual upload: add at least 3 standard listing images in total across screens.');
+        return;
+      }
     }
+
     if (uniqueFiles.length > 10) {
       toast.error(
         'Too many unique images (max 10). Use bulk upload to reuse the same images across screens where possible.'
@@ -304,7 +305,7 @@ export default function MultiplexGoLive() {
           </p>
         </div>
 
-        <Tabs defaultValue="bulk" className="space-y-6">
+        <Tabs value={goLiveTab} onValueChange={setGoLiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
             <TabsTrigger value="individual">Individual Upload</TabsTrigger>
