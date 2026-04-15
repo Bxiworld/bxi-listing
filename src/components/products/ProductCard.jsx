@@ -143,9 +143,11 @@ export const ProductCard = ({
           </p>
         )}
 
-        <Badge className={cn('product-card-status', status.color)}>
-          {status.label}
-        </Badge>
+        {tabType === 'All' && (
+          <Badge className={cn('product-card-status', status.color)}>
+            {status.label}
+          </Badge>
+        )}
 
         {/* Actions */}
         {showActions && (
