@@ -431,8 +431,7 @@ export default function ProductPreview() {
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
     images?.length > 0;
-  const uploadCtaLabel =
-    isVoucherListing ? 'Upload Voucher' : 'Upload Products';
+  const uploadCtaLabel = isMediaProduct ? 'Upload Media' : isVoucherListing ? 'Upload Voucher' : 'Upload Products';
 
   const primaryColor = '#C64091';
   const primaryDark = '#A03375';
@@ -1287,11 +1286,11 @@ export default function ProductPreview() {
                     ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', pick(mv.Timeline, v0.Timeline)],
                     ['Min order quantity', pick(mv.MinOrderQuantity, v0.MinOrderQuantity)],
+                    ['Max order quantity', pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit)],
                     [
                       'Min order (timeline)',
                       pick(mv.minOrderQuantitytimeline, v0.minOrderQuantitytimeline),
                     ],
-                    ['Max order quantity', pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit)],
                     ['Max order (timeline)', pick(mv.maxOrderQuantitytimeline, v0.maxOrderQuantitytimeline)],
                     ['Other dimensions', product?.Dimensions],
                   ];

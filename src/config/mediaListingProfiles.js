@@ -249,7 +249,7 @@ export function resolveMediaOnlineFormProfile(product) {
     dimensionLabel: 'Dimension Size',
     dimensionRequired: true,
     repetitionRequired: true,
-    offeringPlaceholder: 'Eg. Near Concession area',
+    offeringPlaceholder: 'Eg. station number',
     syncTimeslots: true,
     defaultGstIfEmpty: 18,
     previewHideMediaNameFromTech: false,

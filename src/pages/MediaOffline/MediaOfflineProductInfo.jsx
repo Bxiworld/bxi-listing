@@ -213,60 +213,90 @@ const MediaProductInfo = () => {
           isNewspaperJourney
             ? z.string().min(1)
             : z.any(),
-        mediaVariation: z.object({
-          location: z.any(),
-          unit: z.any(),
-          Timeline: z.any(),
-          repetition:
-            isNewspaperJourney
-              ? z.any()
-              : z.string().min(0),
-          dimensionSize: z.string().min(1),
-          PricePerUnit: z.coerce.string().min(1),
-          DiscountedPrice: z.coerce.string().min(1),
-          GST: z.coerce.number().gte(5).lte(28),
-          HSN: z
-            .string()
-            .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
-              message: 'HSN must be 4, 6, or 8 digits',
-            })
-            .transform((value) => value?.trim()),
-          minOrderQuantityunit:
-            OneUnitProduct ||
+        mediaVariation: z
+          .object({
+            location: z.any(),
+            unit: z.any(),
+            Timeline: z.any(),
+            repetition:
               isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          minOrderQuantitytimeline:
-            isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          maxOrderQuantityunit:
-            OneUnitProduct ||
+                ? z.any()
+                : z.string().min(0),
+            dimensionSize: z.string().min(1),
+            PricePerUnit: z.preprocess(
+              (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
+              z
+                .number({
+                  required_error: 'Price per unit is required',
+                  invalid_type_error: 'Price per unit is required',
+                })
+                .gt(0, 'Price per unit must be greater than 0'),
+            ),
+            DiscountedPrice: z.preprocess(
+              (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
+              z
+                .number({
+                  required_error: 'Discounted price is required',
+                  invalid_type_error: 'Discounted price is required',
+                })
+                .gt(0, 'Discounted price must be greater than 0'),
+            ),
+            GST: z
+              .coerce
+              .number()
+              .gte(5, 'GST must be between 5% and 28%')
+              .lte(28, 'GST must be between 5% and 28%'),
+            HSN: z.preprocess(
+              (value) => String(value ?? '').trim(),
+              z
+                .string()
+                .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
+                  message: 'HSN must be 4, 6, or 8 digits',
+                })
+                .transform((value) => value?.trim()),
+            ),
+            minOrderQuantityunit:
+              OneUnitProduct ||
+                isNewspaperJourney
+                ? z.any()
+                : z.coerce.string().min(1),
+            minOrderQuantitytimeline:
               isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          maxOrderQuantitytimeline:
-            isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          edition:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-          Type:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-          releasedetails:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-          availableInsertions: z.any(),
-          adType:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-        }),
+                ? z.any()
+                : z.coerce.string().min(1),
+            maxOrderQuantityunit:
+              OneUnitProduct ||
+                isNewspaperJourney
+                ? z.any()
+                : z.coerce.string().min(1),
+            maxOrderQuantitytimeline:
+              isNewspaperJourney
+                ? z.any()
+                : z.coerce.string().min(1),
+            edition:
+              isNewspaperJourney
+                ? z.string().min(1)
+                : z.any(),
+            Type:
+              isNewspaperJourney
+                ? z.string().min(1)
+                : z.any(),
+            releasedetails:
+              isNewspaperJourney
+                ? z.string().min(1)
+                : z.any(),
+            availableInsertions: z.any(),
+            adType: z.string().min(1, 'Ad type is required'),
+          })
+          .superRefine((value, ctx) => {
+            if (Number(value?.DiscountedPrice) > Number(value?.PricePerUnit)) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['DiscountedPrice'],
+                message: 'Discounted Price can not be greater than Price Per Unit',
+              });
+            }
+          }),
         GeographicalData: z.object({
           region: z.string().min(1),
           state: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
@@ -549,11 +579,18 @@ const MediaProductInfo = () => {
   };
 
   const updateProductTotextilestatus = handleSubmit((data) => {
-    const DiscountedPrice = data?.mediaVariation.DiscountedPrice?.replace(
-      /,/g,
-      '',
+    const DiscountedPrice = Number(data?.mediaVariation?.DiscountedPrice);
+    const PricePerUnit = Number(data?.mediaVariation?.PricePerUnit);
+    const existingTags = Array.isArray(FetchedproductData?.tags)
+      ? FetchedproductData.tags
+      : [];
+    const resolvedTags = Array.from(
+      new Set(
+        [...existingTags, ...(Array.isArray(tags) ? tags : [])]
+          .map((tag) => String(tag ?? '').trim())
+          .filter(Boolean),
+      ),
     );
-    const PricePerUnit = data?.mediaVariation.PricePerUnit?.replace(/,/g, '');
 
     if (isNewspaperJourney) {
       setValue('mediaVariation.Timeline', 'Day');
@@ -589,7 +626,7 @@ const MediaProductInfo = () => {
       mediaVariation: getValues()?.mediaVariation,
       ProductUploadStatus: 'productinformation',
       ListingType: 'Media',
-      tags: tags,
+      tags: resolvedTags,
 
       DiscountePricePerDay: Math.round(
         Number(
@@ -653,7 +690,7 @@ const MediaProductInfo = () => {
     }
     if (items?.length < 5) {
       return toast.error('Please Select Best Features ( Min 5 )');
-    } else if (Number(DiscountedPrice) > Number(PricePerUnit)) {
+    } else if (DiscountedPrice > PricePerUnit) {
       setError('mediaVariation.DiscountedPrice', {
         type: 'custom',
         message: 'Discounted Price can not be greater than Price Per Unit',
@@ -661,7 +698,7 @@ const MediaProductInfo = () => {
       return toast.error('Discounted Price can not be greater than Price Per Unit');
     } else if (items?.length > 20) {
       return toast.error('Please Select Best Features ( max 20 )');
-    } else if (tags?.length === 0 && FetchedproductData?.tags?.length === 0) {
+    } else if (resolvedTags.length === 0) {
       return toast.error('Please add atleast one Tag');
     } else {
       updateProduct(datatobesent, {
@@ -1010,7 +1047,7 @@ const MediaProductInfo = () => {
 
                           <Box sx={newspaperGridCellSx}>
                             <Typography sx={newspaperGridLabelSx}>
-                              Dimension size
+                              Dimension size <span style={{ color: 'red' }}> *</span>
                             </Typography>
                             <Input
                               disableUnderline
@@ -1027,7 +1064,7 @@ const MediaProductInfo = () => {
 
                           <Box sx={newspaperGridCellSx}>
                             <Typography sx={newspaperGridLabelSx}>
-                              Price per unit
+                              Price per unit <span style={{ color: 'red' }}> *</span>
                             </Typography>
                             <Box sx={{ position: 'relative', width: '100%' }}>
                               <Input
@@ -1082,7 +1119,7 @@ const MediaProductInfo = () => {
 
                           <Box sx={newspaperGridCellSx}>
                             <Typography sx={newspaperGridLabelSx}>
-                              Discounted price
+                              Discounted price <span style={{ color: 'red' }}> *</span>
                             </Typography>
                             <Box sx={{ position: 'relative', width: '100%' }}>
                               <Input
@@ -1136,7 +1173,7 @@ const MediaProductInfo = () => {
                           </Box>
 
                           <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>Ad type</Typography>
+                            <Typography sx={newspaperGridLabelSx}>Ad type <span style={{ color: 'red' }}> *</span></Typography>
                             <Select
                               disableUnderline
                               displayEmpty
@@ -1174,7 +1211,7 @@ const MediaProductInfo = () => {
                                 minWidth: 0,
                               }}
                             >
-                              <MenuItem value="color">Color *</MenuItem>
+                              <MenuItem value="Color">Color</MenuItem>
                               <MenuItem value="Black & White">Black & White</MenuItem>
                             </Select>
                             <Typography sx={FieldErrorTextStyle}>
@@ -1183,7 +1220,7 @@ const MediaProductInfo = () => {
                           </Box>
 
                           <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>HSN</Typography>
+                            <Typography sx={newspaperGridLabelSx}>HSN <span style={{ color: 'red' }}> *</span></Typography>
                             <Input
                               disableUnderline
                               placeholder="998346"
@@ -1229,7 +1266,7 @@ const MediaProductInfo = () => {
                           </Box>
 
                           <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>GST</Typography>
+                            <Typography sx={newspaperGridLabelSx}>GST <span style={{ color: 'red' }}> *</span></Typography>
                             <Select
                               displayEmpty
                               renderValue={(selected) => {
