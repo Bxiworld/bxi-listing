@@ -512,13 +512,14 @@ export default function DigitalScreensTechInfo() {
             <div className="max-w-4xl mx-auto px-4 pb-16">
               <div className="form-section bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-6">
                 <h2 className="form-section-title mb-6">Digital Screens – Technical Information</h2>
-
+                {console.log("storeMediaAllData",productData)}
                 <form onSubmit={onValidSubmit} className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Media name *</Label>
                       <Input
                         value={storeMediaAllData.mediaName}
+                        defaultValue={productData?.ProductName}
                         onChange={(e) =>
                           setStoreMediaAllData((p) => ({ ...p, mediaName: e.target.value }))
                         }
@@ -561,10 +562,10 @@ export default function DigitalScreensTechInfo() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Loop time (minutes) *</Label>
+                      <Label>Loop time (seconds) *</Label>
                       <Input
                         type="number"
-                        min={0.0167}
+                        min={10}
                         step="any"
                         value={storeMediaAllData.loopTimeMinutes}
                         onChange={(e) =>
@@ -594,7 +595,7 @@ export default function DigitalScreensTechInfo() {
                       </select>
                     </div>
                     <div className="space-y-2 md:col-span-2 lg:col-span-1">
-                      <Label>Duration quantity *</Label>
+                      <Label>Campaign duration *</Label>
                       <Input
                         type="number"
                         min={1}

@@ -349,7 +349,42 @@ export default function HoardingMediaProductPreview() {
     }
   };
 
-  const columns = [
+  const getDigitalAdsScreensForPreview = async (screenDocId) => {
+    if (!screenDocId) {
+      setDataGridRows([]);
+      return;
+    }
+    try {
+      const response = await api.get(
+        `product/DigitalAdsScreenGetById/${screenDocId}`,
+      );
+      const screens = response?.data?.data?.digitalAdsScreens || [];
+      if (!Array.isArray(screens)) {
+        setDataGridRows([]);
+        return;
+      }
+      const sorted = [...screens].sort(
+        (a, b) =>
+          (Number(a.discountedPrice ?? a.DiscountedPrice) || 0) -
+          (Number(b.discountedPrice ?? b.DiscountedPrice) || 0),
+      );
+      const rows = sorted.map((s, index) => ({
+        id: s._id?.toString?.() || `dooh-row-${index}`,
+        ...s,
+      }));
+      setDataGridRows(rows);
+    } catch {
+      setDataGridRows([]);
+    }
+  };
+
+  const isDoohListing = useMemo(
+    () =>
+      String(GetProductByIdData?.mediaCategory || '').toLowerCase() === 'dooh',
+    [GetProductByIdData?.mediaCategory],
+  );
+
+  const hoardingColumns = [
     { field: 'srNo', headerName: 'Sr No', width: 75 },
     { field: 'name', headerName: 'Name', width: 160 },
     { field: 'area', headerName: 'Area', width: 120 },
@@ -408,11 +443,119 @@ export default function HoardingMediaProductPreview() {
     },
   ];
 
+  const doohDigitalColumns = [
+    { field: 'srNo', headerName: 'Sr No', width: 75 },
+    {
+      field: 'location',
+      headerName: 'Location',
+      width: 130,
+      valueGetter: (v, row) => row?.location ?? row?.Location ?? v ?? '',
+    },
+    {
+      field: 'city',
+      headerName: 'City',
+      width: 120,
+      valueGetter: (v, row) => row?.city ?? row?.City ?? v ?? '',
+    },
+    {
+      field: 'state',
+      headerName: 'State',
+      width: 100,
+      valueGetter: (v, row) => row?.state ?? row?.State ?? v ?? '',
+    },
+    {
+      field: 'propertyName',
+      headerName: 'Property',
+      width: 140,
+      valueGetter: (v, row) =>
+        row?.propertyName ?? row?.PropertyName ?? v ?? '',
+    },
+    {
+      field: 'mediaSiteCode',
+      headerName: 'Media / Site code',
+      width: 130,
+      valueGetter: (v, row) =>
+        row?.mediaSiteCode ?? row?.MediaSiteCode ?? v ?? '',
+    },
+    {
+      field: 'numberOfScreens',
+      headerName: 'Screens',
+      width: 100,
+      valueGetter: (v, row) =>
+        row?.numberOfScreens ?? row?.NumberOfScreens ?? v ?? '',
+    },
+    {
+      field: 'remarks',
+      headerName: 'Remarks',
+      width: 140,
+      valueGetter: (v, row) => row?.remarks ?? row?.Remarks ?? v ?? '',
+    },
+    {
+      field: 'mrp',
+      headerName: 'MRP',
+      width: 90,
+      valueGetter: (v, row) => row?.mrp ?? row?.MRP ?? v ?? '',
+    },
+    {
+      field: 'discountedPrice',
+      headerName: 'Discounted',
+      width: 110,
+      valueGetter: (v, row) =>
+        row?.discountedPrice ?? row?.DiscountedPrice ?? v ?? '',
+    },
+    {
+      field: 'rowImages',
+      headerName: 'Images',
+      width: 72,
+      sortable: false,
+      renderCell: (params) => {
+        const raw = params?.row?.images;
+        const arr = Array.isArray(raw) ? raw : [];
+        const urls = arr
+          .map((img) =>
+            typeof img === 'string' ? img : img?.url || img?.URL || '',
+          )
+          .filter(Boolean);
+        if (!urls.length) return null;
+        return (
+          <IconButton
+            size="small"
+            aria-label="View screen images"
+            onClick={() => setRowImagePreview(urls)}
+            sx={{ color: accent }}
+          >
+            <Eye size={18} />
+          </IconButton>
+        );
+      },
+    },
+  ];
+
+  const gridColumns = isDoohListing ? doohDigitalColumns : hoardingColumns;
+
   useEffect(() => {
-    if (GetProductByIdData?.Hoarding_list_id) {
-      getHoardingListForPreview();
+    if (!GetProductByIdData) return;
+    if (isDoohListing) {
+      const docId = GetProductByIdData.DigitalAds_screen_id;
+      if (docId) {
+        getDigitalAdsScreensForPreview(docId);
+      } else {
+        setDataGridRows([]);
+      }
+      return;
     }
-  }, [GetProductByIdData?.Hoarding_list_id]);
+    if (GetProductByIdData.Hoarding_list_id) {
+      getHoardingListForPreview();
+    } else {
+      setDataGridRows([]);
+    }
+  }, [
+    isDoohListing,
+    GetProductByIdData,
+    GetProductByIdData?.Hoarding_list_id,
+    GetProductByIdData?.DigitalAds_screen_id,
+    GetProductByIdData?.mediaCategory,
+  ]);
 
   const handleBack = () => {
     if (bulkuploadnavigate) {
@@ -474,13 +617,15 @@ export default function HoardingMediaProductPreview() {
                 lineHeight: 1.25,
               }}
             >
-              Hoarding preview
+              {isDoohListing ? 'DOOH preview' : 'Hoarding preview'}
             </Typography>
             <Typography
               variant="body2"
               sx={{ color: textMuted, mt: 0.5, fontSize: { xs: '0.8125rem', sm: '0.875rem' } }}
             >
-              Review your listing before you submit for approval
+              {isDoohListing
+                ? 'Review your digital screens, row images, and listing details before you submit for approval'
+                : 'Review your listing before you submit for approval'}
             </Typography>
           </Box>
         </Box>
@@ -588,7 +733,7 @@ export default function HoardingMediaProductPreview() {
                   ]
                     .filter(Boolean)
                     .join(' · ') ||
-                  'Media · Hoardings'}
+                  (isDoohListing ? 'Media · DOOH' : 'Media · Hoardings')}
               </Typography>
               <DiscountedPrice
                 regularPrice={
@@ -743,7 +888,7 @@ export default function HoardingMediaProductPreview() {
                         >
                           <DataGrid
                             rows={dataGridrows}
-                            columns={columns}
+                            columns={gridColumns}
                             disableSelectionOnClick
                             hideFooterSelectedRowCount
                             disableColumnMenu

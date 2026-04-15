@@ -525,8 +525,13 @@ export default function MediaMultiplexTechInfo() {
       return;
     }
 
-    if (!storeMediaAllData?.HSN) {
+    const hsnStr = String(storeMediaAllData?.HSN ?? '').trim();
+    if (!hsnStr) {
       toast.error('Please enter HSN');
+      return;
+    }
+    if (!/^\d{4}$|^\d{6}$|^\d{8}$/.test(hsnStr) || /^0+$/.test(hsnStr)) {
+      toast.error('HSN must be 4, 6, or 8 digits and cannot be all zeros');
       return;
     }
 
@@ -781,12 +786,10 @@ export default function MediaMultiplexTechInfo() {
                             <Typography
                               sx={{
                                 ...CommonTextStyle,
-                                fontSize: '16px',
-                                fontWeight: 500,
-                                color: '#6B7A99',
+                              
                               }}
                             >
-                              HSN
+                              HSN <span style={{ color: 'red' }}> *</span>
                             </Typography>
                             <Input
                               disableUnderline

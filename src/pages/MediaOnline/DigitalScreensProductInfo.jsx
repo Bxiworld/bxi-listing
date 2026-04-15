@@ -296,50 +296,6 @@ export default function DigitalScreensProductInfo() {
                 above.
               </p>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Repetition *</Label>
-                <Input {...register('repetition')} className={errors.repetition ? 'border-red-500' : ''} />
-                {errors.repetition && <p className="text-sm text-red-500">{errors.repetition.message}</p>}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tags *</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type tag and press Enter or click Add"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleAddTag}
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (tagInput.trim()) {
-                      if (!tags.includes(tagInput.trim())) {
-                        setTags([...tags, tagInput.trim()]);
-                      }
-                      setTagInput('');
-                    }
-                  }}
-                  disabled={!tagInput.trim()}
-                >
-                  Add Tag
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => handleRemoveTag(tag)}>
-                    {tag} <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
-              {tags.length === 0 && <p className="text-sm text-red-500">Add at least one tag</p>}
-            </div>
 
             <div className="flex justify-between pt-6">
               <Button type="button" variant="outline" onClick={() => navigate(`/mediaonline/general-info/${id}`)}>
