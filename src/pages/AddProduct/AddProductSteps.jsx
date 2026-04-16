@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Tag, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Tag } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -37,12 +37,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../../components/ui/tooltip';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '../../components/ui/popover';
-import { Calendar } from '../../components/ui/calendar';
 import { Checkbox } from '../../components/ui/checkbox';
 import StateData from '../../utils/StateCityArray.json';
 import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
@@ -55,6 +49,7 @@ import {
   VOUCHER_JOURNEY_TYPE,
 } from '../../utils/voucherType';
 import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
+import CommaSeparator from '../../components/CommaSeprator';
 
 /** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
 function formatSizeOptionButtonLabel(opt) {
@@ -1715,6 +1710,15 @@ export const ProductInfo = ({ category }) => {
     lifestyle: { manufacturing: 'mandatory', expiry: 'optional' },
   };
   const currentDateReqs = dateRequirements[category] || { manufacturing: 'optional', expiry: 'optional' };
+  const toInputDateValue = (dateValue) =>
+    dateValue instanceof Date && !Number.isNaN(dateValue.getTime()) ? format(dateValue, 'yyyy-MM-dd') : '';
+  const parseInputDate = (value) => {
+    if (!value) return null;
+    const [year, month, day] = String(value).split('-').map(Number);
+    if (!year || !month || !day) return null;
+    const parsed = new Date(year, month - 1, day);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError, clearErrors } = useForm({
     defaultValues: {
@@ -2956,32 +2960,15 @@ export const ProductInfo = ({ category }) => {
                       {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
                     </Label>
                   </div>
-                  {/* Row 2 / mobile: manufacturing picker */}
+                  {/* Row 2 / mobile: manufacturing date */}
                   <div className="md:col-start-1 md:row-start-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal',
-                            !manufacturingDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {manufacturingDate ? format(manufacturingDate, 'PPP') : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={manufacturingDate}
-                          onSelect={setManufacturingDate}
-                          disabled={(date) => date > new Date()}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      type="date"
+                      className="w-full"
+                      max={format(new Date(), 'yyyy-MM-dd')}
+                      value={toInputDateValue(manufacturingDate)}
+                      onChange={(e) => setManufacturingDate(parseInputDate(e.target.value))}
+                    />
                   </div>
 
                   {/* Row 1 col 2 / mobile: expiry label or checkbox */}
@@ -3003,37 +2990,16 @@ export const ProductInfo = ({ category }) => {
                       </div>
                     )}
                   </div>
-                  {/* Row 2 col 2 / mobile: expiry picker */}
+                  {/* Row 2 col 2 / mobile: expiry date */}
                   <div className="md:col-start-2 md:row-start-2">
                     {(category === 'fmcg' || hasExpiryDate) && (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className={cn(
-                              'w-full justify-start text-left font-normal',
-                              !expiryDate && 'text-muted-foreground'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {expiryDate ? format(expiryDate, 'PPP') : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={expiryDate}
-                            onSelect={setExpiryDate}
-                            disabled={(date) => {
-                              if (date < new Date()) return true;
-                              if (manufacturingDate && date <= manufacturingDate) return true;
-                              return false;
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Input
+                        type="date"
+                        className="w-full"
+                        min={manufacturingDate ? format(manufacturingDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')}
+                        value={toInputDateValue(expiryDate)}
+                        onChange={(e) => setExpiryDate(parseInputDate(e.target.value))}
+                      />
                     )}
                   </div>
                 </div>
@@ -4228,7 +4194,7 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                 </div>
                 <div className="p-4">
                   <p className="font-semibold text-[#111827] truncate">{productData?.ProductName || 'Product Name'}</p>
-                  <p className="text-[#C64091] font-bold mt-1"><img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /> {previewPrice || 0}</p>
+                  <p className="text-[#C64091] font-bold mt-1"><img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /> {CommaSeparator(previewPrice || 0)}</p>
                 </div>
               </div>
               <div className="mt-4 p-4 rounded-lg bg-[#F8F9FA]">
