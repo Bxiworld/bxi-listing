@@ -1,6 +1,5 @@
 import {
   Box,
-  Grid,
   Typography,
   TextField,
   Button as MuiButton,
@@ -31,7 +30,6 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import defaultIcon from '../../assets/CartPage/defaultCheckBoxIcon.svg';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import { Stepper } from '../AddProduct/AddProductSteps';
 import {
   supportingDocsToCheckboxState,
@@ -40,6 +38,29 @@ import {
 } from '../../utils/supportingBuyerDocs';
 import { resolveMediaOnlineFormProfile } from '../../config/mediaListingProfiles';
 const options = { day: '2-digit', month: 'short', year: 'numeric' };
+
+/** Row-major pairs for a stable 2-column grid (left | right). */
+const SUPPORTING_DOC_PAIR_ROWS = [
+  ['inspectionPass', 'Pictures'],
+  ['LogReport', 'ExhibitionCertificate'],
+  ['Videos', 'Other'],
+  ['broadcastCertificate', null],
+];
+
+const SUPPORTING_DOC_UI_LABELS = {
+  inspectionPass: 'Inspection pass',
+  LogReport: 'Log Report',
+  Videos: 'Videos',
+  Pictures: 'Pictures',
+  ExhibitionCertificate: 'Exhibition Certificate',
+  estimatedFleets: 'Estimated Fleets',
+  broadcastCertificate: 'Broadcast Certificate',
+  Other: 'Other',
+};
+
+function isSupportingDocChecked(v) {
+  return v === true || v === 'on';
+}
 
 export default function TechInfo() {
   const ProductId = useParams().id;
@@ -221,7 +242,6 @@ export default function TechInfo() {
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
         BXISpace: BXISpace,
-        ...(techFormProfile.loopTimeField ? { loopTimeMinutes: loopTimeMinutes.trim() } : {}),
       };
       const selectedKeys = checkboxStateToSupportingArray(checkBoxes);
       const supportingOk =
@@ -238,17 +258,26 @@ export default function TechInfo() {
       if (!supportingOk) {
         toast.error('Please select at least one supporting document');
         return;
-      } else {
-        updateProduct(datatobesent, {
-          onSuccess: (response) => {
-            if (response.status === 200) {
-              // Use new dynamic route
-              navigate(`/mediaonline/go-live/${ProductId}`);
-            }
-          },
-          onError: (error) => { },
-        });
       }
+      let loopPayload = {};
+      if (techFormProfile.loopTimeField && techFormProfile.key !== 'airport') {
+        const sec = Math.round(Number(String(loopTimeMinutes).replace(/,/g, '').trim()));
+        if (!Number.isFinite(sec) || sec < 10) {
+          toast.error('Loop time must be a whole number of at least 10 seconds');
+          return;
+        }
+        loopPayload = { loopTimeSeconds: sec, loopTimeMinutes: sec };
+      }
+      const datatobesentFinal = { ...datatobesent, ...loopPayload };
+      updateProduct(datatobesentFinal, {
+        onSuccess: (response) => {
+          if (response.status === 200) {
+            // Use new dynamic route
+            navigate(`/mediaonline/go-live/${ProductId}`);
+          }
+        },
+        onError: (error) => { },
+      });
     } catch (error) {
       return error;
     }
@@ -263,6 +292,57 @@ export default function TechInfo() {
     }
   };
 
+  const renderSupportingToggle = (docKey) => {
+    const label = SUPPORTING_DOC_UI_LABELS[docKey];
+    const checked = isSupportingDocChecked(checkBoxes[docKey]);
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.25,
+          minHeight: 40,
+        }}
+      >
+        {checked ? (
+          <>
+            <Box
+              component="img"
+              src={addItemCartIcon}
+              onClick={() => {
+                setCheckBoxes({
+                  ...checkBoxes,
+                  [docKey]: false,
+                });
+              }}
+              alt=""
+              sx={{ width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}
+            />
+            <Typography sx={{ ...CommonTextStyle, color: '#445fd2' }}>
+              {label}
+            </Typography>
+          </>
+        ) : (
+          <>
+            <Box
+              component="img"
+              src={defaultIcon}
+              onClick={() => {
+                setCheckBoxes({
+                  ...checkBoxes,
+                  [docKey]: 'on',
+                });
+              }}
+              alt=""
+              sx={{ width: 30, height: 30, cursor: 'pointer', flexShrink: 0 }}
+            />
+            <Typography sx={{ ...CommonTextStyle }}>{label}</Typography>
+          </>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-8">
       <div className="form-container">
@@ -272,386 +352,87 @@ export default function TechInfo() {
           </aside>
           <main className="stepper-content">
         <div className="form-section">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="form-section-title">
-              Technical Information
-            </h2>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                    <Info className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Technical Information refers to specific details and specifications about a product&apos;s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product. This is Critical Information from Logistic &amp; Buying Perspective for Making Informed Decisions.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          <div className="mb-6 w-full border-b border-[#E5E7EB] pb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="m-0 border-0 p-0 text-[18px] font-semibold leading-snug text-[#111827] [font-family:Manrope,ui-sans-serif,sans-serif]">
+                Technical Information
+              </h2>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-[#6B7A99] hover:text-[#C64091] shrink-0">
+                      <Info className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Technical Information refers to specific details and specifications about a product&apos;s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product. This is Critical Information from Logistic &amp; Buying Perspective for Making Informed Decisions.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
 
           <form onSubmit={updateProductTechinfostatus} className="space-y-6 mt-6">
             <Box sx={{ width: '100%', overflow: 'auto' }}>
               <Stack>
-                <Box
-                  onChange={(e) => {
-                    setCheckBoxes(e?.target?.checked);
-                  }}
-                  sx={{ display: 'grid', gap: '5px', py: '5px' }}
-                >
-                  <Typography sx={{ ...CommonTextStyle }}>
+                <Box sx={{ display: 'grid', gap: 1.5, py: 0.5, width: '100%' }}>
+                  <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
                     What supporting document would you like to give to the
                     Buyer? <span style={{ color: 'red' }}> *</span>
                   </Typography>
-                  <Grid container>
-                    <Grid
-                      xl={6}
-                      lg={6}
-                      md={6}
-                      sm={12}
-                      xs={12}
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '20px',
-                      }}
-                    >
-                      {showSupportingDocKey('inspectionPass') ? (
-                        checkBoxes.inspectionPass === 'on' ? (
-                          <Box sx={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              src={addItemCartIcon}
-                              size={30}
-                              onClick={() => {
-                                setCheckBoxes({
-                                  ...checkBoxes,
-                                  inspectionPass: false,
-                                });
-                              }}
-                              alt="Checkbox"
-                              title="Checkbox icon"
-                            />
-                            <Typography
-                              sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                            >
-                              Inspection pass
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              alt="checkBox"
-                              title="Checkbox icon"
-                              src={defaultIcon}
-                              onClick={() => {
-                                setCheckBoxes({
-                                  ...checkBoxes,
-                                  inspectionPass: 'on',
-                                });
-                              }}
-                            />
-                            <Typography sx={{ ...CommonTextStyle }}>
-                              Inspection pass
-                            </Typography>
-                          </Box>
-                        )
-                      ) : null}
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'minmax(0, 1fr) minmax(0, 1fr)',
+                      },
+                      columnGap: { xs: 0, sm: 4 },
+                      rowGap: 1.5,
+                      alignItems: 'center',
+                      width: '100%',
+                    }}
+                  >
+                    {SUPPORTING_DOC_PAIR_ROWS.map(([leftKey, rightKey], rowIdx) => {
+                      const leftShow = leftKey && showSupportingDocKey(leftKey);
+                      const rightShow = rightKey && showSupportingDocKey(rightKey);
+                      if (!leftShow && !rightShow) return null;
 
-                      {showSupportingDocKey('LogReport') ? (
-                        checkBoxes.LogReport === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                LogReport: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Log Report
-                          </Typography>
+                      if (leftShow && rightShow) {
+                        return (
+                          <React.Fragment key={`support-row-${rowIdx}`}>
+                            {renderSupportingToggle(leftKey)}
+                            {renderSupportingToggle(rightKey)}
+                          </React.Fragment>
+                        );
+                      }
+
+                      const soloKey = leftShow ? leftKey : rightKey;
+                      return (
+                        <Box
+                          key={`support-row-${rowIdx}-solo`}
+                          sx={{
+                            gridColumn: { xs: 'auto', sm: '1 / -1' },
+                            width: '100%',
+                          }}
+                        >
+                          {renderSupportingToggle(soloKey)}
                         </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                LogReport: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Log Report
-                          </Typography>
-                        </Box>
-                        )
-                      ) : null}
-                      {showSupportingDocKey('Videos') ? (
-                        checkBoxes.Videos === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Videos: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Videos
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Videos: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Videos
-                          </Typography>
-                        </Box>
-                        )
-                      ) : null}
-                      {showSupportingDocKey('broadcastCertificate') ? (
-                        checkBoxes.broadcastCertificate === 'on' ? (
-                          <Box sx={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              src={addItemCartIcon}
-                              size={30}
-                              onClick={() => {
-                                setCheckBoxes({
-                                  ...checkBoxes,
-                                  broadcastCertificate: false,
-                                });
-                              }}
-                              alt="Checkbox"
-                              title="Checkbox icon"
-                            />
-                            <Typography sx={{ ...CommonTextStyle, color: '#445fd2' }}>
-                              Broadcast Certificate
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              alt="checkBox"
-                              title="Checkbox icon"
-                              src={defaultIcon}
-                              onClick={() => {
-                                setCheckBoxes({
-                                  ...checkBoxes,
-                                  broadcastCertificate: 'on',
-                                });
-                              }}
-                            />
-                            <Typography sx={{ ...CommonTextStyle }}>
-                              Broadcast Certificate
-                            </Typography>
-                          </Box>
-                        )
-                      ) : null}
-                      {showSupportingDocKey('estimatedFleets') ? (
-                        checkBoxes.estimatedFleets === 'on' ? (
-                          <Box sx={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              src={addItemCartIcon}
-                              size={30}
-                              onClick={() => {
-                                setCheckBoxes({
-                                  ...checkBoxes,
-                                  estimatedFleets: false,
-                                });
-                              }}
-                              alt="Checkbox"
-                              title="Checkbox icon"
-                            />
-                            <Typography sx={{ ...CommonTextStyle, color: '#445fd2' }}>
-                              Estimated Fleets
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Box sx={{ display: 'flex', gap: '10px' }}>
-                            <img
-                              alt="checkBox"
-                              title="Checkbox icon"
-                              src={defaultIcon}
-                              onClick={() => {
-                                setCheckBoxes({
-                                  ...checkBoxes,
-                                  estimatedFleets: 'on',
-                                });
-                              }}
-                            />
-                            <Typography sx={{ ...CommonTextStyle }}>
-                              Estimated Fleets
-                            </Typography>
-                          </Box>
-                        )
-                      ) : null}
-                    </Grid>
-                    <Grid
-                      xl={6}
-                      lg={6}
-                      md={6}
-                      sm={12}
-                      xs={12}
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '20px',
-                      }}
-                    >
-                      {showSupportingDocKey('Pictures') ? (
-                        checkBoxes.Pictures === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Pictures: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Pictures
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Pictures: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Pictures
-                          </Typography>
-                        </Box>
-                      )
-                      ) : null}
-                      {showSupportingDocKey('ExhibitionCertificate') ? (
-                        checkBoxes.ExhibitionCertificate === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                ExhibitionCertificate: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Exhibition Certificate
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                ExhibitionCertificate: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Exhibition Certificate
-                          </Typography>
-                        </Box>
-                      )
-                      ) : null}
-                      {showSupportingDocKey('Other') ? (
-                        checkBoxes.Other === 'on' ? (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            src={addItemCartIcon}
-                            size={30}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Other: false,
-                              });
-                            }}
-                            alt="Checkbox"
-                            title="Checkbox icon"
-                          />
-                          <Typography
-                            sx={{ ...CommonTextStyle, color: '#445fd2' }}
-                          >
-                            Other
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', gap: '10px' }}>
-                          <img
-                            alt="checkBox"
-                            title="Checkbox icon"
-                            src={defaultIcon}
-                            onClick={() => {
-                              setCheckBoxes({
-                                ...checkBoxes,
-                                Other: 'on',
-                              });
-                            }}
-                          />
-                          <Typography sx={{ ...CommonTextStyle }}>
-                            Other
-                          </Typography>
-                        </Box>
-                      )
-                      ) : null}
-                    </Grid>
-                  </Grid>
+                      );
+                    })}
+                  </Box>
                 </Box>
 
-                <Box sx={{ display: 'grid', gap: '5px', py: '5px' }}>
-                  <Typography sx={{ ...CommonTextStyle }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 1,
+                    py: 0.5,
+                    width: '100%',
+                    maxWidth: '100%',
+                  }}
+                >
+                  <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
                     {isRadioMediaListing
                       ? 'AD Duration'
                       : 'Dimensions of Ad / Content Needed'}{' '}
@@ -661,59 +442,46 @@ export default function TechInfo() {
                   </Typography>
 
                   <TextField
-                    focused
                     multiline
                     variant="standard"
                     placeholder="Eg. 30 Sec"
                     {...register('Dimensions')}
                     sx={{
-                      ...lablechange,
-                      background: '#fff',
-                      borderRadius: '10px',
-                      height: '47px',
-                      border: errors['Dimensions']?.message
-                        ? '1px solid red'
-                        : null,
+                      ...borderlessTextFieldSx,
+                      minHeight: 47,
+                      bgcolor: errors['Dimensions']?.message
+                        ? 'rgba(254, 226, 226, 0.35)'
+                        : 'transparent',
                     }}
                     InputProps={{
                       disableUnderline: true,
-                      endAdornment: (
-                        <Typography
-                          variant="body1"
-                          style={{
-                            fontFamily: 'Inter, sans-serif',
-                            color: '#C64091',
-                          }}
-                        ></Typography>
-                      ),
-                      style: {
-                        fontFamily: 'Inter, sans-serif',
-                        color: ' #6B7A99',
-                        fontSize: '12px',
-                        color: '#C64091',
-                      },
                     }}
                   />
                 </Box>
                 <Typography sx={ErrorStyle}>
                   {errors['Dimensions']?.message}
                 </Typography>
-                {techFormProfile.loopTimeField ? (
-                  <Box sx={{ display: 'grid', gap: '5px', py: '5px' }}>
-                    <Typography sx={{ ...CommonTextStyle }}>
-                      Loop Time (Minutes)
+                {techFormProfile.loopTimeField && techFormProfile.key !== 'airport' ? (
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gap: 1,
+                      py: 0.5,
+                      width: '100%',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
+                      Loop time (seconds)
                     </Typography>
                     <TextField
-                      focused
                       variant="standard"
                       placeholder="e.g. 5"
                       value={loopTimeMinutes}
                       onChange={(e) => setLoopTimeMinutes(e.target.value)}
                       sx={{
-                        ...lablechange,
-                        background: '#fff',
-                        borderRadius: '10px',
-                        height: '47px',
+                        ...borderlessTextFieldSx,
+                        minHeight: 47,
                       }}
                       InputProps={{ disableUnderline: true }}
                     />
@@ -725,90 +493,83 @@ export default function TechInfo() {
                   name="row-radio-buttons-group"
                   value={content}
                   onChange={ContentChange}
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    columnGap: 3,
+                    rowGap: 1,
+                    mt: 0.5,
+                  }}
                 >
-                  <Box sx={{ display: 'flex' }}>
-                    <Box
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                    }}
+                  >
+                    <Typography
+                      component="span"
+                      sx={{ fontSize: '12px', color: '#6B7A99', whiteSpace: 'nowrap' }}
+                    >
+                      Upload Link
+                    </Typography>
+                    <Radio value="uploadLinkSet" size="small" sx={{ p: 0.5 }} />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      maxWidth: { xs: '100%', sm: 'none' },
+                    }}
+                  >
+                    <Typography
+                      component="span"
                       sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        alignContent: 'center',
-
-                        gap: '5px',
+                        fontSize: '12px',
                         color: '#6B7A99',
+                        lineHeight: 1.35,
                       }}
                     >
-                      <Typography sx={{ fontSize: '12px' }}>
-                        Upload Link
-                      </Typography>
-                      <FormControlLabel
-                        value="uploadLinkSet"
-                        control={<Radio />}
-                      />
-                    </Box>
-
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        alignContent: 'center',
-                        fontSize: '15px',
-                        gap: '5px',
-                        color: '#6B7A99',
-                      }}
-                    >
-                      <Typography sx={{ fontSize: '12px' }}>
-                        Click here to use BXI Space
-                      </Typography>
-                      <FormControlLabel
-                        value="checkbox"
-                        control={<Radio />}
-                      />
-                    </Box>
+                      Click here to use BXI Space
+                    </Typography>
+                    <Radio value="checkbox" size="small" sx={{ p: 0.5, flexShrink: 0 }} />
                   </Box>
                 </RadioGroup>
                 {content !== 'checkbox' ? (
                   <>
-                    <Box sx={{ display: 'grid', gap: '5px', py: '5px' }}>
-                      <Typography sx={{ ...CommonTextStyle }}>
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gap: 1,
+                        py: 0.5,
+                        width: '100%',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
                         Content Upload Link ( Share a link where buyer can
                         drop a content ){' '}
                         <span style={{ color: 'red' }}> *</span>
                       </Typography>
 
                       <TextField
-                        focused
                         multiline
                         variant="standard"
                         placeholder="Uploaded content has to go to seller with PO & Confirmation"
                         {...register('UploadLink')}
                         sx={{
-                          ...lablechange,
-                          background: '#fff',
-                          borderRadius: '10px',
-                          height: '47px',
-                          border: errors['UploadLink']?.message
-                            ? '1px solid red'
-                            : null,
+                          ...borderlessTextFieldSx,
+                          minHeight: 47,
+                          bgcolor: errors['UploadLink']?.message
+                            ? 'rgba(254, 226, 226, 0.35)'
+                            : 'transparent',
                         }}
                         InputProps={{
                           disableUnderline: true,
-                          endAdornment: (
-                            <Typography
-                              variant="body1"
-                              style={{
-                                fontFamily: 'Inter, sans-serif',
-                                color: '#C64091',
-                              }}
-                            ></Typography>
-                          ),
-                          style: {
-                            fontFamily: 'Inter, sans-serif',
-                            color: ' #6B7A99',
-                            fontSize: '12px',
-                            color: '#C64091',
-                          },
                         }}
                       />
                     </Box>
@@ -818,14 +579,31 @@ export default function TechInfo() {
                   </>
                 ) : (
                   <>
-                    <Box sx={{ display: 'flex', gap: '10px', mt: 2 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 1.5,
+                        mt: 2,
+                        width: '100%',
+                        maxWidth: '100%',
+                      }}
+                    >
                       <Checkbox
                         {...label}
                         {...register('BXISpace')}
                         checked={BXISpace === true ? true : false}
                         onChange={(e) => setBXISpace(e.target.checked)}
+                        sx={{ p: 0, mt: 0.25 }}
                       />
-                      <Typography sx={CommonTextStyle}>
+                      <Typography
+                        sx={{
+                          ...CommonTextStyle,
+                          flex: 1,
+                          minWidth: 0,
+                          lineHeight: 1.5,
+                        }}
+                      >
                         Click here to use BXI Space from you can download ,
                         though BXI does not take responsibility for the
                         content{' '}
@@ -882,16 +660,34 @@ const CommonTextStyle = {
   color: '#6B7A99',
 };
 
-const lablechange = {
+const borderlessTextFieldSx = {
   fontFamily: 'Inter, sans-serif',
-  color: '#6B7A99',
-  fontSize: '16px',
-  display: 'grid',
-  textAlign: 'left',
-  fontWeight: 'bold',
-  paddingLeft: '10px',
-  '&:focus': {
-    border: '1px solid #E8E8E8',
+  fontSize: '14px',
+  fontWeight: 400,
+  width: '100%',
+  maxWidth: '100%',
+  border: 'none',
+  boxShadow: 'none',
+  outline: 'none',
+  '& .MuiInputBase-root': {
+    border: 'none',
+    boxShadow: 'none',
+    borderRadius: 0,
+    borderBottom: '1px solid #E5E7EB',
+    '&:before': { borderBottom: 'none !important' },
+    '&:after': { borderBottom: 'none !important' },
+  },
+  '& .MuiInputBase-input': {
+    color: '#111827',
+    paddingLeft: 0,
+    paddingBottom: '6px',
+    '&::placeholder': {
+      color: '#9CA3AF',
+      opacity: 1,
+    },
+  },
+  '&:focus-within .MuiInputBase-root': {
+    borderBottomColor: '#9CA3AF',
   },
 };
 

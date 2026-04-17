@@ -181,6 +181,10 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
 const resolveViewRoute = ({ product, companyType, productCategory, productSubCategory, productId }) => {
   // Handle Media company type
   if (companyType === 'Media') {
+    const mediaCategoryField = String(product?.mediaCategory || '').toLowerCase();
+    if (mediaCategoryField === 'dooh') {
+      return `/hoardingmediaofflineproductpreview/${productId}`;
+    }
     if (productCategory === 'Multiplex ADs') {
       if (productSubCategory === 'Digital ADs') {
         return `/mediaonlineproductpreview/${productId}`;

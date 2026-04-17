@@ -79,6 +79,8 @@ export const OTHERS_ONLINE_AD_TYPES = [
 export const OTHERS_ONLINE_UNITS = [
   { value: 'Display', label: 'Per Display' },
   { value: 'Unit', label: 'Per Unit' },
+  /** Value matches legacy / generic media unit options for API parity */
+  { value: 'Sq cm', label: 'Per sq cm' },
   { value: 'Release', label: 'Per Release' },
   { value: 'Annoucment', label: 'Per Announcement' },
   { value: 'Video', label: 'Per Video' },
@@ -254,6 +256,7 @@ export function resolveMediaOnlineFormProfile(product) {
     defaultGstIfEmpty: 18,
     previewHideMediaNameFromTech: false,
     previewHideMediaMetaFromTech: false,
+    hideAvailableInsertionsInTechPreview: false,
     buyerUnitLabelOverride: null,
     loopTimeField: false,
     supportingDocKeys: null,
@@ -288,9 +291,37 @@ export function resolveMediaOnlineFormProfile(product) {
         'inspectionPass',
         'Videos',
         'Pictures',
-        'estimatedFleets',
         'Other',
       ],
+    };
+  }
+
+  /** OOH / hoardings — hide media meta & inventory-style rows on technical preview. */
+  if (
+    subName.toLowerCase() === 'hoardings' ||
+    mc === 'ooh' ||
+    journey === 'ooh' ||
+    mc === 'outdoor'
+  ) {
+    return {
+      ...base,
+      key: 'hoarding',
+      featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.hoarding,
+      previewHideMediaMetaFromTech: true,
+      hideAvailableInsertionsInTechPreview: true,
+    };
+  }
+
+  if (mc === 'dooh' || journey === 'dooh') {
+    return {
+      ...base,
+      key: 'dooh',
+      featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.dooh,
+      adTypeOptions: DOOH_AD_TYPE_OPTIONS_FILTERED,
+      previewHideMediaMetaFromTech: true,
+      loopTimeField: true,
+      supportingDocKeys: DOOH_SUPPORTING_DOC_KEYS,
+      repetitionRequired: true,
     };
   }
 
@@ -317,6 +348,8 @@ export function resolveMediaOnlineFormProfile(product) {
       unitOptions: OTHERS_ONLINE_UNITS,
       dimensionRequired: false,
       repetitionRequired: false,
+      /** Min/max timeslot are independent; sync would collapse max options and hide the max dropdown */
+      syncTimeslots: false,
     };
   }
 

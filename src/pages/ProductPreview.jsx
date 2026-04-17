@@ -912,7 +912,7 @@ export default function ProductPreview() {
                 const mediaNameForDescription =
                   product?.medianame || product?.ProductName || '';
                 return (
-                  <Stack spacing={3}>
+                  <Stack spacing={isMediaProduct ? 2 : 3}>
                     {isMediaProduct &&
                       onlineProfile?.previewHideMediaNameFromTech &&
                       String(mediaNameForDescription).trim() !== '' && (
@@ -1250,12 +1250,36 @@ export default function ProductPreview() {
                     if (isFilled(b)) return b;
                     return null;
                   };
+                  /** Prefer mediaVariation then variant (matches listing forms). */
+                  const pickOrderQty = () =>
+                    pick(
+                      mv.minOrderQuantityunit,
+                      v0.minOrderQuantityunit ?? v0.MinOrderQuantity ?? mv.MinOrderQuantity,
+                    );
+                  const pickMaxOrderQty = () =>
+                    pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit ?? v0.MaxOrderQuantity);
+                  const pickUnit = () => pick(mv.unit, v0.unit);
+                  const minTs = pick(mv.minTimeslotSeconds, v0.minTimeslotSeconds);
+                  const maxTs = pick(mv.maxTimeslotSeconds, v0.maxTimeslotSeconds);
+                  const timeslotSummary =
+                    minTs != null || maxTs != null
+                      ? `${minTs != null && String(minTs).trim() !== '' ? String(minTs) : '—'} - ${
+                          maxTs != null && String(maxTs).trim() !== '' ? String(maxTs) : '—'
+                        } seconds`
+                      : null;
+                  const loopSeconds =
+                    product?.loopTimeSeconds != null && String(product.loopTimeSeconds).trim() !== ''
+                      ? String(product.loopTimeSeconds).trim()
+                      : product?.loopTimeMinutes != null && String(product.loopTimeMinutes).trim() !== ''
+                        ? String(product.loopTimeMinutes).trim()
+                        : null;
                   const geo = product?.GeographicalData || {};
                   const prevProfile = resolveMediaOnlineFormProfile(product || {});
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
                       ? 'AD Duration'
                       : 'Dimension (creative)';
+                  const hideInsertions = prevProfile.hideAvailableInsertionsInTechPreview === true;
                   const techRows = [
                     ...(prevProfile.previewHideMediaNameFromTech
                       ? []
@@ -1266,22 +1290,34 @@ export default function ProductPreview() {
                           ['Media category', product?.mediaCategory],
                           ['Media journey', product?.mediaJourney],
                         ]),
+                    ['Offering this media at', pick(mv.offerningbrandat, product?.offerningbrandat)],
                     ['Ad position', product?.adPosition],
                     ['Edition', pick(mv.edition, v0.edition)],
                     ['Type', pick(mv.Type, v0.Type)],
                     ['Release details', pick(mv.releasedetails, v0.releasedetails)],
-                    ['Available insertions', pick(mv.availableInsertions, v0.availableInsertions)],
+                    ...(hideInsertions
+                      ? []
+                      : [['Available insertions', pick(mv.availableInsertions, v0.availableInsertions)]]),
                     [dimLabel, pick(mv.dimensionSize, v0.dimensionSize)],
                     ['Ad type', pick(mv.adType, v0.adType)],
                     ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', pick(mv.Timeline, v0.Timeline)],
-                    ['Min order quantity', pick(mv.MinOrderQuantity, v0.MinOrderQuantity)],
-                    ['Max order quantity', pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit)],
+                    ['Min order quantity', pickOrderQty()],
                     [
                       'Min order (timeline)',
                       pick(mv.minOrderQuantitytimeline, v0.minOrderQuantitytimeline),
                     ],
+                    ['Max order quantity', pickMaxOrderQty()],
                     ['Max order (timeline)', pick(mv.maxOrderQuantitytimeline, v0.maxOrderQuantitytimeline)],
+                    ['Order unit', pickUnit()],
+                    ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
+                    ...(String(product?.estimatedFleets || '').trim()
+                      ? [['Estimated fleets', String(product.estimatedFleets).trim()]]
+                      : []),
+                    ['Min - Max timeslot (seconds)', timeslotSummary],
+                    ...(prevProfile.loopTimeField && loopSeconds
+                      ? [['Loop time (seconds)', loopSeconds]]
+                      : []),
                     ['Other dimensions', product?.Dimensions],
                   ];
                   const hasGeo =

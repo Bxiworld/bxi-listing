@@ -549,6 +549,7 @@ export default function HoardingTechInfo() {
                                                             mediaName: e.target.value,
                                                         }));
                                                     }}
+                                                    defaultValue={FetchedproductData?.ProductName}
                                                     sx={{
                                                         ...inputStyles,
                                                         mt: 1,

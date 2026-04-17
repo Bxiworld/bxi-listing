@@ -400,15 +400,11 @@ export default function MediaGeneralInfo() {
                           .localeCompare((b.subCategoryName || '').toLowerCase())
                       )
                       .map((item) => {
-                        const formattedName =
-                          item.subCategoryName
-                            ?.toLowerCase()
-                            .replace(/\b\w/g, (char) => char.toUpperCase())
-                            .replace(/\bFm\b/g, 'FM') || '';
+                        const displayName = String(item.subCategoryName || '').trim();
 
                         return (
                           <SelectItem key={item._id} value={item._id}>
-                            {formattedName}
+                            {displayName}
                           </SelectItem>
                         );
                       })}

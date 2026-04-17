@@ -311,7 +311,9 @@ function App() {
                 path="/mediaonline/multiplexgolive/:id"
                 element={
                   <ListingAccessGuard kind="product" category="mediaonline">
-                    <MultiplexGoLive />
+                    <ProductStepLayout category="mediaonline">
+                      <MultiplexGoLive />
+                    </ProductStepLayout>
                   </ListingAccessGuard>
                 }
               />

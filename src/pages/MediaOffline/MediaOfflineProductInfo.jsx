@@ -213,12 +213,42 @@ const MediaProductInfo = () => {
           isNewspaperJourney
             ? z.string().min(1)
             : z.any(),
-        mediaVariation: z
-          .object({
-            location: z.any(),
-            unit: z.any(),
-            Timeline: z.any(),
-            repetition:
+        mediaVariation: z.object({
+          location: z.any(),
+          unit: z.any(),
+          Timeline: z.any(),
+          repetition:
+            isNewspaperJourney
+              ? z.any()
+              : z.string().min(0),
+          dimensionSize: z.string().min(1),
+          PricePerUnit: z.coerce
+            .string()
+            .min(1, { message: 'Price is required' })
+            .refine((value) => parseFloat(String(value).replace(/,/g, '')) > 0, {
+              message: 'Price cannot be zero',
+            }),
+          DiscountedPrice: z.coerce
+            .string()
+            .min(1, { message: 'Discounted price is required' })
+            .refine((value) => parseFloat(String(value).replace(/,/g, '')) > 0, {
+              message: 'Discounted price cannot be zero',
+            }),
+          GST: z.coerce
+            .number({ invalid_type_error: 'GST is required' })
+            .gte(5, 'GST must be between 5% and 28%')
+            .lte(28, 'GST must be between 5% and 28%'),
+          HSN: z
+            .string()
+            .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
+              message: 'HSN must be 4, 6, or 8 digits',
+            })
+            .refine((value) => !/^0+$/.test(String(value || '')), {
+              message: 'HSN cannot be all zeros',
+            })
+            .transform((value) => value?.trim()),
+          minOrderQuantityunit:
+            OneUnitProduct ||
               isNewspaperJourney
                 ? z.any()
                 : z.string().min(0),
@@ -311,7 +341,7 @@ const MediaProductInfo = () => {
       },
     },
   });
-  
+
   const FetchProduct = async () => {
     // Don't fetch if ProductId is not available
     if (!ProductId) {
@@ -319,92 +349,92 @@ const MediaProductInfo = () => {
     }
     try {
       const response = await api.get('/product/get_product_byId/' + ProductId);
-        setFetchedpProuctData(response.data);
-        if (
-          response.data?.ProductSubCategory === '643cdf01779bc024c189cf95' ||
-          response.data?.ProductSubCategory === '643ce635e424a0b8fcbba6d6' ||
-          response.data?.ProductSubCategory === '643ce648e424a0b8fcbba710' ||
-          response.data?.ProductSubCategory === '643ce6fce424a0b8fcbbad42' ||
-          response.data?.ProductSubCategory === '643ce707e424a0b8fcbbad4c' ||
-          response.data?.ProductSubCategory === '650296faeaa5251874e8c716'
-        ) {
-          setOneUnitProduct(true);
-          setValue('mediaVariation.minOrderQuantityunit', '1');
-          setValue('mediaVariation.maxOrderQuantityunit', '1');
-        }
-        if (response?.data?.ProductsVariantions?.length > 0) {
-          setItems(response?.data?.ProductFeatures);
-          setValue('medianame', response?.data?.medianame);
-          setValue('offerningbrandat', response?.data?.offerningbrandat);
-          setValue('adPosition', response?.data?.adPosition);
-          setValue(
-            'mediaVariation.PricePerUnit',
-            response?.data?.mediaVariation?.PricePerUnit,
-          );
-          setValue(
-            'mediaVariation.repetition',
-            response?.data?.mediaVariation?.repetition,
-          );
-          setValue(
-            'mediaVariation.dimensionSize',
-            response?.data?.mediaVariation?.dimensionSize,
-          );
-          setValue(
-            'mediaVariation.DiscountedPrice',
-            response?.data?.mediaVariation?.DiscountedPrice,
-          );
-          setValue('mediaVariation.GST', response?.data?.mediaVariation?.GST);
-          setValue('mediaVariation.HSN', response?.data?.mediaVariation?.HSN);
-          setValue(
-            'mediaVariation.minOrderQuantityunit',
-            response?.data?.mediaVariation?.minOrderQuantityunit,
-          );
-          setValue(
-            'mediaVariation.minOrderQuantitytimeline',
-            response?.data?.mediaVariation?.minOrderQuantitytimeline,
-          );
-          setValue(
-            'mediaVariation.maxOrderQuantityunit',
-            response?.data?.mediaVariation?.maxOrderQuantityunit,
-          );
-          setValue(
-            'mediaVariation.maxOrderQuantitytimeline',
-            response?.data?.mediaVariation?.maxOrderQuantitytimeline,
-          );
-          setValue(
-            'mediaVariation.location',
-            response?.data?.mediaVariation?.location,
-          );
-          setValue('mediaVariation.unit', response?.data?.mediaVariation?.unit);
-          setValue(
-            'mediaVariation.Timeline',
-            response?.data?.mediaVariation?.Timeline,
-          );
-          setValue(
-            'mediaVariation.minTimeslotSeconds',
-            response?.data?.mediaVariation?.minTimeslotSeconds,
-          );
-          setValue(
-            'mediaVariation.maxTimeslotSeconds',
-            response?.data?.mediaVariation?.maxTimeslotSeconds,
-          );
-          OthercostAppend(response?.data?.OtherCost);
-          setValue('GeographicalData', response?.data?.GeographicalData);
-          setOtherInfoArray(
-            response?.data?.OtherInformationBuyerMustKnowOrRemarks,
-          );
-          setValue('GeographicalData.region', response?.data?.GeographicalData?.region);
-          setValue('GeographicalData.state', response?.data?.GeographicalData?.state);
-          setValue('GeographicalData.city', response?.data?.GeographicalData?.city);
-          setValue(
-            'GeographicalData.landmark',
-            response?.data?.GeographicalData?.landmark,
-          );
-          setValue('tags', response?.data?.tags);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching product:', error);
+      setFetchedpProuctData(response.data);
+      if (
+        response.data?.ProductSubCategory === '643cdf01779bc024c189cf95' ||
+        response.data?.ProductSubCategory === '643ce635e424a0b8fcbba6d6' ||
+        response.data?.ProductSubCategory === '643ce648e424a0b8fcbba710' ||
+        response.data?.ProductSubCategory === '643ce6fce424a0b8fcbbad42' ||
+        response.data?.ProductSubCategory === '643ce707e424a0b8fcbbad4c' ||
+        response.data?.ProductSubCategory === '650296faeaa5251874e8c716'
+      ) {
+        setOneUnitProduct(true);
+        setValue('mediaVariation.minOrderQuantityunit', '1');
+        setValue('mediaVariation.maxOrderQuantityunit', '1');
       }
+      if (response?.data?.ProductsVariantions?.length > 0) {
+        setItems(response?.data?.ProductFeatures);
+        setValue('medianame', response?.data?.medianame);
+        setValue('offerningbrandat', response?.data?.offerningbrandat);
+        setValue('adPosition', response?.data?.adPosition);
+        setValue(
+          'mediaVariation.PricePerUnit',
+          response?.data?.mediaVariation?.PricePerUnit,
+        );
+        setValue(
+          'mediaVariation.repetition',
+          response?.data?.mediaVariation?.repetition,
+        );
+        setValue(
+          'mediaVariation.dimensionSize',
+          response?.data?.mediaVariation?.dimensionSize,
+        );
+        setValue(
+          'mediaVariation.DiscountedPrice',
+          response?.data?.mediaVariation?.DiscountedPrice,
+        );
+        setValue('mediaVariation.GST', response?.data?.mediaVariation?.GST);
+        setValue('mediaVariation.HSN', response?.data?.mediaVariation?.HSN);
+        setValue(
+          'mediaVariation.minOrderQuantityunit',
+          response?.data?.mediaVariation?.minOrderQuantityunit,
+        );
+        setValue(
+          'mediaVariation.minOrderQuantitytimeline',
+          response?.data?.mediaVariation?.minOrderQuantitytimeline,
+        );
+        setValue(
+          'mediaVariation.maxOrderQuantityunit',
+          response?.data?.mediaVariation?.maxOrderQuantityunit,
+        );
+        setValue(
+          'mediaVariation.maxOrderQuantitytimeline',
+          response?.data?.mediaVariation?.maxOrderQuantitytimeline,
+        );
+        setValue(
+          'mediaVariation.location',
+          response?.data?.mediaVariation?.location,
+        );
+        setValue('mediaVariation.unit', response?.data?.mediaVariation?.unit);
+        setValue(
+          'mediaVariation.Timeline',
+          response?.data?.mediaVariation?.Timeline,
+        );
+        setValue(
+          'mediaVariation.minTimeslotSeconds',
+          response?.data?.mediaVariation?.minTimeslotSeconds,
+        );
+        setValue(
+          'mediaVariation.maxTimeslotSeconds',
+          response?.data?.mediaVariation?.maxTimeslotSeconds,
+        );
+        OthercostAppend(response?.data?.OtherCost);
+        setValue('GeographicalData', response?.data?.GeographicalData);
+        setOtherInfoArray(
+          response?.data?.OtherInformationBuyerMustKnowOrRemarks,
+        );
+        setValue('GeographicalData.region', response?.data?.GeographicalData?.region);
+        setValue('GeographicalData.state', response?.data?.GeographicalData?.state);
+        setValue('GeographicalData.city', response?.data?.GeographicalData?.city);
+        setValue(
+          'GeographicalData.landmark',
+          response?.data?.GeographicalData?.landmark,
+        );
+        setValue('tags', response?.data?.tags);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching product:', error);
+    }
   };
   useEffect(() => {
     FetchProduct();
@@ -536,14 +566,14 @@ const MediaProductInfo = () => {
       const res = await api.get(`/product/get_product_byId/${ProductId}`);
       fetchHsnCode(res.data?.ProductSubCategory);
       return res.data;
-    } catch (err) {}
+    } catch (err) { }
   }
 
   async function fetchHsnCode(props) {
     try {
       const res = await api.post('/hsn/Get_HSNCode', { SubCatId: '63e38b9ccc4c02b8a0c94b6f' });
       setHSNStore(res.data);
-    } catch (err) {}
+    } catch (err) { }
   }
 
   const OthercostFieldsarray = [
@@ -773,45 +803,50 @@ const MediaProductInfo = () => {
                 className="space-y-6 mt-1"
               >
                 <Box sx={{ width: '100%', overflowX: 'auto' }}>
-                  <Stack spacing={2.5} sx={{ width: '100%' }}>
                   <Box
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 0.75,
-                    }}
+                    className="grid grid-cols-2 gap-3 sm:gap-4"
+                    sx={{ alignItems: 'flex-start' }}
                   >
-                    <Typography sx={CommonTextStyle}>
-                      Media Name <span style={{ color: 'red' }}> *</span>
-                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minWidth: 0,
+                        width: '100%',
+                      }}
+                    >
+                      <Typography sx={CommonTextStyle}>
+                        Media Name <span style={{ color: 'red' }}> *</span>
+                      </Typography>
 
-                    <TextField
-                      focused
-                      multiline
-                      variant="standard"
-                      placeholder="Eg. Khushi Advertising"
-                      {...register('medianame', {
-                        onChange: (e) => {
-                          setName(e.target.value);
-                        },
-                      })}
-                      onKeyDown={(e) => {
-                        if (e.key === ' ' && e.target.selectionStart === 0) {
-                          e.preventDefault();
-                        }
-                      }}
-                      sx={standardMultilineFieldSx(
-                        !!errors?.medianame?.message,
-                      )}
-                      InputProps={{
-                        disableUnderline: true,
-                      }}
-                    />
-                    <Typography sx={FieldErrorTextStyle}>
-                      {errors?.medianame?.message}
-                    </Typography>
-                  </Box>
-                  {isNewspaperJourney ? (
+                      <TextField
+                        focused
+                        multiline
+                        variant="standard"
+                        placeholder="Eg. Khushi Advertising"
+                        {...register('medianame', {
+                          onChange: (e) => {
+                            setName(e.target.value);
+                          },
+                        })}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' && e.target.selectionStart === 0) {
+                            e.preventDefault();
+                          }
+                        }}
+                        defaultValue={FetchedproductData?.ProductName}
+                        sx={standardMultilineFieldSx(
+                          !!errors?.medianame?.message,
+                        )}
+                        InputProps={{
+                          disableUnderline: true,
+                        }}
+                      />
+                      <Typography sx={FieldErrorTextStyle}>
+                        {errors?.medianame?.message}
+                      </Typography>
+                    </Box>
+                    {isNewspaperJourney ? (
                       <Box
                         sx={{
                           display: 'flex',
@@ -820,7 +855,7 @@ const MediaProductInfo = () => {
                         }}
                       >
                         <Typography sx={CommonTextStyle}>
-                        Position of the Ad ?{' '}
+                          Position of the Ad ?{' '}
                           <span style={{ color: 'red' }}> *</span>
                         </Typography>
 
@@ -856,7 +891,7 @@ const MediaProductInfo = () => {
                           }}
                         >
                           <Typography sx={CommonTextStyle}>
-                          Offering this branding at ?{' '}
+                            Offering this branding at ?{' '}
                             <span style={{ color: 'red' }}> *</span>
                           </Typography>
 
@@ -868,7 +903,7 @@ const MediaProductInfo = () => {
                             onKeyDown={(e) => {
                               if (
                                 e.key === ' ' &&
-                              e.target.selectionStart === 0
+                                e.target.selectionStart === 0
                               ) {
                                 e.preventDefault();
                               }
@@ -889,32 +924,596 @@ const MediaProductInfo = () => {
                         </Box>
                       </>
                     )}
+                  </Box>
                   {isNewspaperJourney ? (
-                      <>
-                        <Box sx={newspaperPricingGridSx}>
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>
-                              Edition (Language){' '}
-                              <span style={{ color: 'red' }}> *</span>
-                            </Typography>
+                    <>
+                      <Box sx={newspaperPricingGridSx}>
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            Edition (Language){' '}
+                            <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="Mumbai English"
+                            {...register('mediaVariation.edition')}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          />
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.edition?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>Type</Typography>
+                          <Select
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === ''
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select type
+                                  </Box>
+                                );
+                              }
+                              return selected;
+                            }}
+                            disableUnderline
+                            {...register('mediaVariation.Type', {
+                              onChange: (e) => {
+                                setOnlyState(!onlyState);
+                                setUnit(e.target.value);
+                              },
+                            })}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          >
+                            <MenuItem value="Full Page">Full Page</MenuItem>
+                            <MenuItem value="Half Page">Half Page</MenuItem>
+                            <MenuItem value="Quarter Page">Quarter Page</MenuItem>
+                            <MenuItem value="Custom Size">Custom Size</MenuItem>
+                          </Select>
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.Type?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            Release Details
+                          </Typography>
+                          <Select
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === ''
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select release
+                                  </Box>
+                                );
+                              }
+                              return selected;
+                            }}
+                            disableUnderline
+                            {...register('mediaVariation.releasedetails', {
+                              onChange: () => {
+                                setOnlyState(!onlyState);
+                              },
+                            })}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          >
+                            <MenuItem value="Per Insertion">Per Insertion</MenuItem>
+                          </Select>
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.releasedetails?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            No. of insertions available
+                          </Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="28"
+                            disabled
+                            value={1}
+                            {...register('mediaVariation.availableInsertions', {
+                              onChange: (e) => {
+                                setValue(
+                                  'mediaVariation.maxOrderQuantityunit',
+                                  e.target.value,
+                                );
+                                setValue(
+                                  'mediaVariation.maxOrderQuantitytimeline',
+                                  e.target.value,
+                                );
+                              },
+                            })}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          />
+                          <Typography sx={FieldErrorTextStyle}>
+                            {
+                              errors?.mediaVariation?.availableInsertions
+                                ?.message
+                            }
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            Dimension size
+                          </Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="2048 X 998"
+                            {...register('mediaVariation.dimensionSize')}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          />
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            Price per unit <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+                          <Box sx={{ position: 'relative', width: '100%' }}>
                             <Input
                               disableUnderline
-                              placeholder="Mumbai English"
-                              {...register('mediaVariation.edition')}
+                              placeholder="3000"
+                              {...register('mediaVariation.PricePerUnit', {
+                                onChange: (event) => {
+                                  event.target.value = parseInt(
+                                    event.target.value.replace(
+                                      /[^\d]+/gi,
+                                      '',
+                                    ) || 0,
+                                  ).toLocaleString('en-US');
+                                },
+                              })}
                               sx={{
-                                ...inputStyles,
                                 width: '100%',
-                                maxWidth: 'none',
-                                minWidth: 0,
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                px: 1,
+                                pr: '36px',
+                                boxSizing: 'border-box',
+                                color: '#C64091',
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.PricePerUnit?.message,
+                                ),
+                                ...inputPlaceholderSx,
                               }}
                             />
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.edition?.message}
-                            </Typography>
+                            <Box
+                              component="img"
+                              src={Bxitoken}
+                              alt=""
+                              title="BXI token"
+                              sx={{
+                                position: 'absolute',
+                                right: 10,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: 20,
+                                height: 20,
+                                pointerEvents: 'none',
+                              }}
+                            />
                           </Box>
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.PricePerUnit?.message}
+                          </Typography>
+                        </Box>
 
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>Type</Typography>
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            Discounted price <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+                          <Box sx={{ position: 'relative', width: '100%' }}>
+                            <Input
+                              disableUnderline
+                              placeholder="2000"
+                              {...register('mediaVariation.DiscountedPrice', {
+                                onChange: (event) => {
+                                  event.target.value = parseInt(
+                                    event.target.value.replace(
+                                      /[^\d]+/gi,
+                                      '',
+                                    ) || 0,
+                                  ).toLocaleString('en-US');
+                                },
+                              })}
+                              sx={{
+                                width: '100%',
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                color: '#C64091',
+                                px: 1,
+                                pr: '36px',
+                                boxSizing: 'border-box',
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.DiscountedPrice?.message,
+                                ),
+                                ...inputPlaceholderSx,
+                              }}
+                            />
+                            <Box
+                              component="img"
+                              src={Bxitoken}
+                              alt=""
+                              title="BXI token"
+                              sx={{
+                                position: 'absolute',
+                                right: 10,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                width: 20,
+                                height: 20,
+                                pointerEvents: 'none',
+                              }}
+                            />
+                          </Box>
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.DiscountedPrice?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>Ad type</Typography>
+                          <Select
+                            disableUnderline
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === ''
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select ad type
+                                  </Box>
+                                );
+                              }
+                              const adTypeLabels = {
+                                color: 'Color',
+                                'Black & White': 'Black & White',
+                              };
+                              return adTypeLabels[selected] ?? selected;
+                            }}
+                            {...register('mediaVariation.adType', {
+                              onChange: (e) => {
+                                setOnlyState(!onlyState);
+                                setUnit(e.target.value);
+                              },
+                            })}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          >
+                            <MenuItem value="Color">Color</MenuItem>
+                            <MenuItem value="Black & White">Black & White</MenuItem>
+                          </Select>
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.adType?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>HSN <span style={{ color: 'red' }}> *</span></Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="998346"
+                            {...register('mediaVariation.HSN', {
+                              onChange: (event) => {
+                                const inputValue = event.target.value;
+                                if (inputValue.match(/\D/g)) {
+                                  const filteredValue = inputValue.replace(
+                                    /\D/g,
+                                    '',
+                                  );
+                                  event.target.value = filteredValue;
+                                }
+                              },
+                            })}
+                            onKeyDown={(e) => {
+                              if (
+                                e.key === ' ' &&
+                                e.target.selectionStart === 0
+                              ) {
+                                e.preventDefault();
+                              }
+                            }}
+                            inputProps={{ maxLength: 8 }}
+                            sx={{
+                              width: '100%',
+                              height: '42px',
+                              background: '#FFFFFF',
+                              borderRadius: '10px',
+                              px: 1,
+                              fontSize: '12px',
+                              fontFamily: 'Inter, sans-serif',
+                              color: formColors.text,
+                              ...borderedControlSx(
+                                !!errors?.mediaVariation?.HSN?.message,
+                              ),
+                              ...inputPlaceholderSx,
+                            }}
+                          />
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.HSN?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>GST</Typography>
+                          <Select
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === '' ||
+                                selected === '0'
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select GST
+                                  </Box>
+                                );
+                              }
+                              return formatGstPercentLabel(selected);
+                            }}
+                            sx={{
+                              width: '100%',
+                              minWidth: 0,
+                              height: '42px',
+                              background: '#FFFFFF',
+                              borderRadius: '10px',
+                              fontSize: '12px',
+                              fontFamily: 'Inter, sans-serif',
+                              color: formColors.text,
+                              ...outlinedSelectFieldSx(
+                                !!errors?.mediaVariation?.GST?.message,
+                              ),
+                            }}
+                            {...register('mediaVariation.GST')}
+                          >
+                            {GSTData?.map((gst, idx) => (
+                              <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
+                                {formatGstPercentLabel(gst?.GST)}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.GST?.message}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Box
+                        sx={{
+                          mt: 3,
+                          height: 'auto',
+                          minHeight: '100px',
+                          position: 'relative',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'space-between',
+                          flexDirection: 'row',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '140px',
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              ...CommonTextStyle,
+                              fontSize: '12px',
+                              fontWeight: 400,
+                            }}
+                          >
+                            Ad Type <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+                          <Typography
+                            sx={{
+                              ...CommonTextStyle,
+                              fontSize: '12px',
+                              fontWeight: 400,
+                            }}
+                          >
+                            {FetchedproductData?.mediaVariation?.location
+                              ? 'Your Selected Location :' +
+                              FetchedproductData?.mediaVariation?.location
+                              : null}
+                          </Typography>
+                          <Select
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === ''
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select location
+                                  </Box>
+                                );
+                              }
+                              return selected;
+                            }}
+                            disableUnderline
+                            {...register('mediaVariation.location')}
+                            sx={{
+                              ...inputStyles,
+                              width: '140px',
+                              ...borderedControlSx(
+                                !!errors?.mediaVariation?.location?.message,
+                              ),
+                            }}
+                          >
+                            <MenuItem value="All Locations">
+                              All Locations
+                            </MenuItem>
+                            <MenuItem value="Arrival">Arrival</MenuItem>
+                            <MenuItem value="Café Wall Branding">
+                              Café Wall Branding
+                            </MenuItem>
+                            <MenuItem value="Coffee Tables">
+                              Coffee Tables
+                            </MenuItem>
+                            <MenuItem value="Concession Counter">
+                              Concession Counter
+                            </MenuItem>
+                            <MenuItem value="Conveyor Belt">
+                              Conveyor Belt
+                            </MenuItem>
+                            <MenuItem value="Departure">Departure</MenuItem>
+                            <MenuItem value="Entry Gate">Entry Gate</MenuItem>
+                            <MenuItem value="Exit Gate">Exit Gate</MenuItem>
+                            <MenuItem value="Handles of the Bus">
+                              Handles of the Bus
+                            </MenuItem>
+                            <MenuItem value="Highway">Highway</MenuItem>
+                            <MenuItem value="Lobby">Lobby</MenuItem>
+                            <MenuItem value="Mall Atrium">Mall Atrium</MenuItem>
+                            <MenuItem value="Near Parking Area">
+                              Near Parking Area
+                            </MenuItem>
+                            <MenuItem value="Out Side Airport">
+                              Out Side Airport
+                            </MenuItem>
+                            <MenuItem value="Parking Area">
+                              Parking Area
+                            </MenuItem>
+                            <MenuItem value="Tent Cards">Tent Cards</MenuItem>
+                            <MenuItem value="Waiting Area">
+                              Waiting Area
+                            </MenuItem>
+                            <MenuItem value="main road">main road</MenuItem>
+                            <MenuItem value="others">others</MenuItem>
+                          </Select>
+
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.location?.message}
+                          </Typography>
+                        </Box>
+                        {(FetchedproductData?.ProductSubCategory === '643cdf01779bc024c189cf95' ||
+                          FetchedproductData?.ProductSubCategory === '643ce635e424a0b8fcbba6d6' ||
+                          FetchedproductData?.ProductSubCategory === '643ce648e424a0b8fcbba710' ||
+                          FetchedproductData?.ProductSubCategory === '643ce6fce424a0b8fcbbad42' ||
+                          FetchedproductData?.ProductSubCategory === '643ce707e424a0b8fcbbad4c' || FetchedproductData?.ProductSubCategory === '650296faeaa5251874e8c716') ? null : (
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '10px',
+                              mt: 1,
+                              maxWidth: '140px',
+                            }}
+                          >
+                            <Typography
+                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                            >
+                              Unit <span style={{ color: 'red' }}> *</span>
+                            </Typography>
+                            <Typography
+                              sx={{
+                                ...CommonTextStyle,
+                                fontSize: '12px',
+                                fontWeight: 400,
+                              }}
+                            >
+                              {FetchedproductData?.mediaVariation?.unit
+                                ? 'Your Selected Unit :' +
+                                FetchedproductData?.mediaVariation?.unit
+                                : null}
+                            </Typography>
                             <Select
                               displayEmpty
                               renderValue={(selected) => {
@@ -932,14 +1531,14 @@ const MediaProductInfo = () => {
                                         fontSize: '12px',
                                       }}
                                     >
-                                      Select type
+                                      Select unit
                                     </Box>
                                   );
                                 }
                                 return selected;
                               }}
                               disableUnderline
-                              {...register('mediaVariation.Type', {
+                              {...register('mediaVariation.unit', {
                                 onChange: (e) => {
                                   setOnlyState(!onlyState);
                                   setUnit(e.target.value);
@@ -947,286 +1546,393 @@ const MediaProductInfo = () => {
                               })}
                               sx={{
                                 ...inputStyles,
-                                width: '100%',
-                                maxWidth: 'none',
-                                minWidth: 0,
+                                width: '140px',
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.unit?.message,
+                                ),
                               }}
                             >
-                              <MenuItem value="Full Page">Full Page</MenuItem>
-                              <MenuItem value="Half Page">Half Page</MenuItem>
-                              <MenuItem value="Quarter Page">Quarter Page</MenuItem>
-                              <MenuItem value="Custom Size">Custom Size</MenuItem>
-                            </Select>
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.Type?.message}
-                            </Typography>
-                          </Box>
+                              <MenuItem value="Screen">Per Screen</MenuItem>
+                              <MenuItem value="Unit"> Per Unit </MenuItem>
+                              <MenuItem value="Spot"> Per Spot </MenuItem>
+                              <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
+                              <MenuItem value="Display"> Per Display </MenuItem>
+                              <MenuItem value="Location"> Per Location </MenuItem>
+                              <MenuItem value="Release"> Per Release </MenuItem>
 
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>
-                              Release Details
-                            </Typography>
-                            <Select
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (
-                                  selected === undefined ||
-                                  selected === null ||
-                                  selected === ''
-                                ) {
-                                  return (
-                                    <Box
-                                      component="span"
-                                      sx={{
-                                        color: '#6B7A99',
-                                        opacity: 0.55,
-                                        fontSize: '12px',
-                                      }}
-                                    >
-                                      Select release
-                                    </Box>
-                                  );
-                                }
-                                return selected;
-                              }}
-                              disableUnderline
-                              {...register('mediaVariation.releasedetails', {
-                                onChange: () => {
-                                  setOnlyState(!onlyState);
-                                },
-                              })}
-                              sx={{
-                                ...inputStyles,
-                                width: '100%',
-                                maxWidth: 'none',
-                                minWidth: 0,
-                              }}
+                              {FetchedproductData?.ProductCategoryName ===
+                                'MediaOffline' ? null : (
+                                <>
+                                  <MenuItem value="Annoucment">
+                                    {' '}
+                                    Per Annoucment{' '}
+                                  </MenuItem>
+                                  <MenuItem value="Video"> Per Video</MenuItem>
+                                </>
+                              )}
+                            </Select>
+                            <Typography
+                              sx={FieldErrorTextStyle}
                             >
-                              <MenuItem value="Per Insertion">Per Insertion</MenuItem>
-                            </Select>
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.releasedetails?.message}
+                              {errors?.mediaVariation?.unit?.message}
                             </Typography>
-                          </Box>
+                          </Box>)}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '140px',
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                          >
+                            Timeline
+                          </Typography>
+                          <Typography
+                            sx={{
+                              ...CommonTextStyle,
+                              fontSize: '12px',
+                            }}
+                          >
+                            {FetchedproductData?.mediaVariation?.Timeline
+                              ? 'Your Selected Timeline :' +
+                              FetchedproductData?.mediaVariation?.Timeline
+                              : null}
+                          </Typography>
+                          <Select
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === ''
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select timeline
+                                  </Box>
+                                );
+                              }
+                              return selected;
+                            }}
+                            disableUnderline
+                            // {...register("mediaVariation.timeline")}
+                            {...register('mediaVariation.Timeline', {
+                              onChange: (e) => {
+                                setOnlyState(!onlyState);
+                              },
+                            })}
+                            // disabled={unit === "Spot" ? true : false}
+                            sx={{
+                              ...inputStyles,
+                              width: '140px',
+                              ...borderedControlSx(
+                                !!errors?.mediaVariation?.Timeline?.message,
+                              ),
+                            }}
+                          >
+                            <MenuItem value="Day"> Per Day </MenuItem>
+                            <MenuItem value="Week"> Per Week </MenuItem>
+                            <MenuItem value="Month"> Per Month </MenuItem>
+                            <MenuItem value="One Time"> Per One Time </MenuItem>
+                            <MenuItem value="Year"> Per Year </MenuItem>
+                          </Select>
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.Timeline?.message}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '140px',
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px', mb: 1 }}
+                          >
+                            Repetition Of Ads{' '}
+                          </Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="28 Per week"
+                            {...register('mediaVariation.repetition')}
+                            sx={{
+                              ...inputStyles,
+                              width: '140px',
+                              ...borderedControlSx(
+                                !!errors?.mediaVariation?.repetition?.message,
+                              ),
+                            }}
+                            onKeyDown={(e) => {
+                              if (
+                                e.key === ' ' &&
+                                e.target.selectionStart === 0
+                              ) {
+                                e.preventDefault();
+                              }
+                            }}
+                          />
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.repetition?.message}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          height: 'auto',
+                          minHeight: '100px',
+                          position: 'relative',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'space-between',
+                          flexDirection: 'row',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '140px',
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                          >
+                            Dimension Size
+                          </Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="2048 X 998"
+                            {...register('mediaVariation.dimensionSize')}
+                            sx={{
+                              ...inputStyles,
+                              width: '140px',
+                              ...borderedControlSx(
+                                !!errors?.mediaVariation?.dimensionSize
+                                  ?.message,
+                              ),
+                            }}
+                            onKeyDown={(e) => {
+                              if (
+                                e.key === ' ' &&
+                                e.target.selectionStart === 0
+                              ) {
+                                e.preventDefault();
+                              }
+                            }}
+                          />
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.dimensionSize?.message}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '140px',
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                          >
+                            MRP<span style={{ color: 'red' }}> *</span>( Excl of
+                            GST )
+                          </Typography>
 
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>
-                              No. of insertions available
-                            </Typography>
+                          <Box sx={{ position: 'relative' }}>
                             <Input
                               disableUnderline
-                              placeholder="28"
-                              disabled
-                              value={1}
-                              {...register('mediaVariation.availableInsertions', {
-                                onChange: (e) => {
+                              // value={data.mro}
+                              placeholder="3000"
+                              onKeyDown={(e) => {
+                                if (
+                                  e.key === ' ' &&
+                                  e.target.selectionStart === 0
+                                ) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              {...register('mediaVariation.PricePerUnit', {
+                                onChange: (event) => {
+                                  event.target.value = parseInt(
+                                    event.target.value.replace(
+                                      /[^\d]+/gi,
+                                      '',
+                                    ) || 0,
+                                  ).toLocaleString('en-US');
                                   setValue(
                                     'mediaVariation.maxOrderQuantityunit',
-                                    e.target.value,
+                                    '1',
+                                  );
+                                  setValue(
+                                    'mediaVariation.minOrderQuantityunit',
+                                    '1',
+                                  );
+                                  setValue(
+                                    'mediaVariation.minOrderQuantitytimeline',
+                                    '1',
                                   );
                                   setValue(
                                     'mediaVariation.maxOrderQuantitytimeline',
-                                    e.target.value,
+                                    '1',
                                   );
                                 },
                               })}
                               sx={{
-                                ...inputStyles,
-                                width: '100%',
-                                maxWidth: 'none',
-                                minWidth: 0,
+                                width: '139px',
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                px: 1,
+                                fontFamily: 'Inter, sans-serif',
+                                color: formColors.text,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.PricePerUnit
+                                    ?.message,
+                                ),
+                                ...inputPlaceholderSx,
                               }}
                             />
-                            <Typography sx={FieldErrorTextStyle}>
-                              {
-                                errors?.mediaVariation?.availableInsertions
-                                  ?.message
-                              }
-                            </Typography>
+
+                            <img
+                              src={Bxitoken}
+                              style={{
+                                position: 'absolute',
+                                width: '20px',
+                                right: '7%',
+                                bottom: '20%',
+                              }}
+                              alt="element"
+                              title="BXI token icon"
+                            />
                           </Box>
 
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>
-                              Dimension size <span style={{ color: 'red' }}> *</span>
-                            </Typography>
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.PricePerUnit?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '140px',
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                          >
+                            Discounted MRP
+                          </Typography>
+                          <Box sx={{ position: 'relative' }}>
                             <Input
                               disableUnderline
-                              placeholder="2048 X 998"
-                              {...register('mediaVariation.dimensionSize')}
-                              sx={{
-                                ...inputStyles,
-                                width: '100%',
-                                maxWidth: 'none',
-                                minWidth: 0,
-                              }}
-                            />
-                          </Box>
-
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>
-                              Price per unit <span style={{ color: 'red' }}> *</span>
-                            </Typography>
-                            <Box sx={{ position: 'relative', width: '100%' }}>
-                              <Input
-                                disableUnderline
-                                placeholder="3000"
-                                {...register('mediaVariation.PricePerUnit', {
-                                  onChange: (event) => {
-                                    event.target.value = parseInt(
-                                      event.target.value.replace(
-                                        /[^\d]+/gi,
-                                        '',
-                                      ) || 0,
-                                    ).toLocaleString('en-US');
-                                  },
-                                })}
-                                sx={{
-                                  width: '100%',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  fontSize: '12px',
-                                  px: 1,
-                                  pr: '36px',
-                                  boxSizing: 'border-box',
-                                  color: '#C64091',
-                                  ...borderedControlSx(
-                                    !!errors?.mediaVariation?.PricePerUnit?.message,
-                                  ),
-                                  ...inputPlaceholderSx,
-                                }}
-                              />
-                              <Box
-                                component="img"
-                                src={Bxitoken}
-                                alt=""
-                                title="BXI token"
-                                sx={{
-                                  position: 'absolute',
-                                  right: 10,
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  width: 20,
-                                  height: 20,
-                                  pointerEvents: 'none',
-                                }}
-                              />
-                            </Box>
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.PricePerUnit?.message}
-                            </Typography>
-                          </Box>
-
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>
-                              Discounted price <span style={{ color: 'red' }}> *</span>
-                            </Typography>
-                            <Box sx={{ position: 'relative', width: '100%' }}>
-                              <Input
-                                disableUnderline
-                                placeholder="2000"
-                                {...register('mediaVariation.DiscountedPrice', {
-                                  onChange: (event) => {
-                                    event.target.value = parseInt(
-                                      event.target.value.replace(
-                                        /[^\d]+/gi,
-                                        '',
-                                      ) || 0,
-                                    ).toLocaleString('en-US');
-                                  },
-                                })}
-                                sx={{
-                                  width: '100%',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  fontSize: '12px',
-                                  color: '#C64091',
-                                  px: 1,
-                                  pr: '36px',
-                                  boxSizing: 'border-box',
-                                  ...borderedControlSx(
-                                    !!errors?.mediaVariation?.DiscountedPrice?.message,
-                                  ),
-                                  ...inputPlaceholderSx,
-                                }}
-                              />
-                              <Box
-                                component="img"
-                                src={Bxitoken}
-                                alt=""
-                                title="BXI token"
-                                sx={{
-                                  position: 'absolute',
-                                  right: 10,
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  width: 20,
-                                  height: 20,
-                                  pointerEvents: 'none',
-                                }}
-                              />
-                            </Box>
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.DiscountedPrice?.message}
-                            </Typography>
-                          </Box>
-
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>Ad type <span style={{ color: 'red' }}> *</span></Typography>
-                            <Select
-                              disableUnderline
-                              displayEmpty
-                              renderValue={(selected) => {
+                              placeholder="2000"
+                              onKeyDown={(e) => {
                                 if (
-                                  selected === undefined ||
-                                  selected === null ||
-                                  selected === ''
+                                  e.key === ' ' &&
+                                  e.target.selectionStart === 0
                                 ) {
-                                  return (
-                                    <Box
-                                      component="span"
-                                      sx={{
-                                        color: '#6B7A99',
-                                        opacity: 0.55,
-                                        fontSize: '12px',
-                                      }}
-                                    >
-                                      Select ad type
-                                    </Box>
-                                  );
+                                  e.preventDefault();
                                 }
-                                return selected;
                               }}
-                              {...register('mediaVariation.adType', {
-                                onChange: (e) => {
-                                  setOnlyState(!onlyState);
-                                  setUnit(e.target.value);
+                              {...register('mediaVariation.DiscountedPrice', {
+                                onChange: (event) => {
+                                  event.target.value = parseInt(
+                                    event.target.value.replace(
+                                      /[^\d]+/gi,
+                                      '',
+                                    ) || 0,
+                                  ).toLocaleString('en-US');
                                 },
                               })}
                               sx={{
-                                ...inputStyles,
-                                width: '100%',
-                                maxWidth: 'none',
-                                minWidth: 0,
+                                width: '139px',
+                                height: '42px',
+                                background: '#FFFFFF',
+                                borderRadius: '10px',
+                                fontSize: '12px',
+                                fontFamily: 'Inter, sans-serif',
+                                color: formColors.text,
+                                px: 1,
+                                ...borderedControlSx(
+                                  !!errors?.mediaVariation?.DiscountedPrice
+                                    ?.message,
+                                ),
+                                ...inputPlaceholderSx,
                               }}
-                            >
-                              <MenuItem value="Color">Color</MenuItem>
-                              <MenuItem value="Black & White">Black & White</MenuItem>
-                            </Select>
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.adType?.message}
-                            </Typography>
+                            />
+                            <img
+                              src={Bxitoken}
+                              style={{
+                                position: 'absolute',
+                                width: '20px',
+                                right: '7%',
+                                bottom: '20%',
+                              }}
+                              alt="BXI token"
+                              title="BXI token icon"
+                            />
                           </Box>
 
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>HSN <span style={{ color: 'red' }}> *</span></Typography>
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.DiscountedPrice?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            maxWidth: '100px',
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                          >
+                            HSN <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+
+                          <Box sx={{ position: 'relative' }}>
                             <Input
                               disableUnderline
                               placeholder="998346"
                               {...register('mediaVariation.HSN', {
                                 onChange: (event) => {
                                   const inputValue = event.target.value;
+
                                   if (inputValue.match(/\D/g)) {
                                     const filteredValue = inputValue.replace(
                                       /\D/g,
@@ -1246,7 +1952,7 @@ const MediaProductInfo = () => {
                               }}
                               inputProps={{ maxLength: 8 }}
                               sx={{
-                                width: '100%',
+                                width: '100px',
                                 height: '42px',
                                 background: '#FFFFFF',
                                 borderRadius: '10px',
@@ -1260,1108 +1966,442 @@ const MediaProductInfo = () => {
                                 ...inputPlaceholderSx,
                               }}
                             />
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.HSN?.message}
-                            </Typography>
                           </Box>
-
-                          <Box sx={newspaperGridCellSx}>
-                            <Typography sx={newspaperGridLabelSx}>GST <span style={{ color: 'red' }}> *</span></Typography>
-                            <Select
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (
-                                  selected === undefined ||
-                                  selected === null ||
-                                  selected === '' ||
-                                  selected === '0'
-                                ) {
-                                  return (
-                                    <Box
-                                      component="span"
-                                      sx={{
-                                        color: '#6B7A99',
-                                        opacity: 0.55,
-                                        fontSize: '12px',
-                                      }}
-                                    >
-                                      Select GST
-                                    </Box>
-                                  );
-                                }
-                                return formatGstPercentLabel(selected);
-                              }}
-                              sx={{
-                                width: '100%',
-                                minWidth: 0,
-                                height: '42px',
-                                background: '#FFFFFF',
-                                borderRadius: '10px',
-                                fontSize: '12px',
-                                fontFamily: 'Inter, sans-serif',
-                                color: formColors.text,
-                                ...outlinedSelectFieldSx(
-                                  !!errors?.mediaVariation?.GST?.message,
-                                ),
-                              }}
-                              {...register('mediaVariation.GST')}
-                            >
-                              {GSTData?.map((gst, idx) => (
-                                <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
-                                  {formatGstPercentLabel(gst?.GST)}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                            <Typography sx={FieldErrorTextStyle}>
-                              {errors?.mediaVariation?.GST?.message}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </>
-                    ) : (
-                      <>
-                        <Box
-                          sx={{
-                            mt: 3,
-                            height: 'auto',
-                            minHeight: '100px',
-                            position: 'relative',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'space-between',
-                            flexDirection: 'row',
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
+                          <Typography
+                            sx={FieldErrorTextStyle}
                           >
-                            <Typography
-                              sx={{
-                                ...CommonTextStyle,
-                                fontSize: '12px',
-                                fontWeight: 400,
-                              }}
-                            >
-                            Ad Type <span style={{ color: 'red' }}> *</span>
-                            </Typography>
-                            <Typography
-                              sx={{
-                                ...CommonTextStyle,
-                                fontSize: '12px',
-                                fontWeight: 400,
-                              }}
-                            >
-                              {FetchedproductData?.mediaVariation?.location
-                                ? 'Your Selected Location :' +
-                              FetchedproductData?.mediaVariation?.location
-                                : null}
-                            </Typography>
-                            <Select
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (
-                                  selected === undefined ||
-                                  selected === null ||
-                                  selected === ''
-                                ) {
-                                  return (
-                                    <Box
-                                      component="span"
-                                      sx={{
-                                        color: '#6B7A99',
-                                        opacity: 0.55,
-                                        fontSize: '12px',
-                                      }}
-                                    >
-                                      Select location
-                                    </Box>
-                                  );
-                                }
-                                return selected;
-                              }}
-                              disableUnderline
-                              {...register('mediaVariation.location')}
-                              sx={{
-                                ...inputStyles,
-                                width: '140px',
-                                ...borderedControlSx(
-                                  !!errors?.mediaVariation?.location?.message,
-                                ),
-                              }}
-                            >
-                              <MenuItem value="All Locations">
-                              All Locations
-                              </MenuItem>
-                              <MenuItem value="Arrival">Arrival</MenuItem>
-                              <MenuItem value="Café Wall Branding">
-                              Café Wall Branding
-                              </MenuItem>
-                              <MenuItem value="Coffee Tables">
-                              Coffee Tables
-                              </MenuItem>
-                              <MenuItem value="Concession Counter">
-                              Concession Counter
-                              </MenuItem>
-                              <MenuItem value="Conveyor Belt">
-                              Conveyor Belt
-                              </MenuItem>
-                              <MenuItem value="Departure">Departure</MenuItem>
-                              <MenuItem value="Entry Gate">Entry Gate</MenuItem>
-                              <MenuItem value="Exit Gate">Exit Gate</MenuItem>
-                              <MenuItem value="Handles of the Bus">
-                              Handles of the Bus
-                              </MenuItem>
-                              <MenuItem value="Highway">Highway</MenuItem>
-                              <MenuItem value="Lobby">Lobby</MenuItem>
-                              <MenuItem value="Mall Atrium">Mall Atrium</MenuItem>
-                              <MenuItem value="Near Parking Area">
-                              Near Parking Area
-                              </MenuItem>
-                              <MenuItem value="Out Side Airport">
-                              Out Side Airport
-                              </MenuItem>
-                              <MenuItem value="Parking Area">
-                              Parking Area
-                              </MenuItem>
-                              <MenuItem value="Tent Cards">Tent Cards</MenuItem>
-                              <MenuItem value="Waiting Area">
-                              Waiting Area
-                              </MenuItem>
-                              <MenuItem value="main road">main road</MenuItem>
-                              <MenuItem value="others">others</MenuItem>
-                            </Select>
-
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.location?.message}
-                            </Typography>
-                          </Box>
-                          {(FetchedproductData?.ProductSubCategory === '643cdf01779bc024c189cf95' ||
-                          FetchedproductData?.ProductSubCategory === '643ce635e424a0b8fcbba6d6' ||
-                          FetchedproductData?.ProductSubCategory === '643ce648e424a0b8fcbba710' ||
-                          FetchedproductData?.ProductSubCategory === '643ce6fce424a0b8fcbbad42' ||
-                          FetchedproductData?.ProductSubCategory === '643ce707e424a0b8fcbbad4c' || FetchedproductData?.ProductSubCategory === '650296faeaa5251874e8c716') ? null : (
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '10px',
-                                  mt: 1,
-                                  maxWidth: '140px',
-                                }}
-                              >
-                                <Typography
-                                  sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                                >
-                              Unit <span style={{ color: 'red' }}> *</span>
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    ...CommonTextStyle,
-                                    fontSize: '12px',
-                                    fontWeight: 400,
-                                  }}
-                                >
-                                  {FetchedproductData?.mediaVariation?.unit
-                                    ? 'Your Selected Unit :' +
-                                FetchedproductData?.mediaVariation?.unit
-                                    : null}
-                                </Typography>
-                                <Select
-                                  displayEmpty
-                                  renderValue={(selected) => {
-                                    if (
-                                      selected === undefined ||
-                                      selected === null ||
-                                      selected === ''
-                                    ) {
-                                      return (
-                                        <Box
-                                          component="span"
-                                          sx={{
-                                            color: '#6B7A99',
-                                            opacity: 0.55,
-                                            fontSize: '12px',
-                                          }}
-                                        >
-                                          Select unit
-                                        </Box>
-                                      );
-                                    }
-                                    return selected;
-                                  }}
-                                  disableUnderline
-                                  {...register('mediaVariation.unit', {
-                                    onChange: (e) => {
-                                      setOnlyState(!onlyState);
-                                      setUnit(e.target.value);
-                                    },
-                                  })}
-                                  sx={{
-                                    ...inputStyles,
-                                    width: '140px',
-                                    ...borderedControlSx(
-                                      !!errors?.mediaVariation?.unit?.message,
-                                    ),
-                                  }}
-                                >
-                                  <MenuItem value="Screen">Per Screen</MenuItem>
-                                  <MenuItem value="Unit"> Per Unit </MenuItem>
-                                  <MenuItem value="Spot"> Per Spot </MenuItem>
-                                  <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
-                                  <MenuItem value="Display"> Per Display </MenuItem>
-                                  <MenuItem value="Location"> Per Location </MenuItem>
-                                  <MenuItem value="Release"> Per Release </MenuItem>
-
-                                  {FetchedproductData?.ProductCategoryName ===
-                                'MediaOffline' ? null : (
-                                      <>
-                                        <MenuItem value="Annoucment">
-                                          {' '}
-                                    Per Annoucment{' '}
-                                        </MenuItem>
-                                        <MenuItem value="Video"> Per Video</MenuItem>
-                                      </>
-                                    )}
-                                </Select>
-                                <Typography
-                                  sx={FieldErrorTextStyle}
-                                >
-                                  {errors?.mediaVariation?.unit?.message}
-                                </Typography>
-                              </Box>)}
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Timeline
-                            </Typography>
-                            <Typography
-                              sx={{
-                                ...CommonTextStyle,
-                                fontSize: '12px',
-                              }}
-                            >
-                              {FetchedproductData?.mediaVariation?.Timeline
-                                ? 'Your Selected Timeline :' +
-                              FetchedproductData?.mediaVariation?.Timeline
-                                : null}
-                            </Typography>
-                            <Select
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (
-                                  selected === undefined ||
-                                  selected === null ||
-                                  selected === ''
-                                ) {
-                                  return (
-                                    <Box
-                                      component="span"
-                                      sx={{
-                                        color: '#6B7A99',
-                                        opacity: 0.55,
-                                        fontSize: '12px',
-                                      }}
-                                    >
-                                      Select timeline
-                                    </Box>
-                                  );
-                                }
-                                return selected;
-                              }}
-                              disableUnderline
-                              // {...register("mediaVariation.timeline")}
-                              {...register('mediaVariation.Timeline', {
-                                onChange: (e) => {
-                                  setOnlyState(!onlyState);
-                                },
-                              })}
-                              // disabled={unit === "Spot" ? true : false}
-                              sx={{
-                                ...inputStyles,
-                                width: '140px',
-                                ...borderedControlSx(
-                                  !!errors?.mediaVariation?.Timeline?.message,
-                                ),
-                              }}
-                            >
-                              <MenuItem value="Day"> Per Day </MenuItem>
-                              <MenuItem value="Week"> Per Week </MenuItem>
-                              <MenuItem value="Month"> Per Month </MenuItem>
-                              <MenuItem value="One Time"> Per One Time </MenuItem>
-                              <MenuItem value="Year"> Per Year </MenuItem>
-                            </Select>
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.Timeline?.message}
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px', mb: 1 }}
-                            >
-                            Repetition Of Ads{' '}
-                            </Typography>
-                            <Input
-                              disableUnderline
-                              placeholder="28 Per week"
-                              {...register('mediaVariation.repetition')}
-                              sx={{
-                                ...inputStyles,
-                                width: '140px',
-                                ...borderedControlSx(
-                                  !!errors?.mediaVariation?.repetition?.message,
-                                ),
-                              }}
-                              onKeyDown={(e) => {
-                                if (
-                                  e.key === ' ' &&
-                                e.target.selectionStart === 0
-                                ) {
-                                  e.preventDefault();
-                                }
-                              }}
-                            />
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.repetition?.message}
-                            </Typography>
-                          </Box>
+                            {errors?.mediaVariation?.HSN?.message}
+                          </Typography>
                         </Box>
                         <Box
                           sx={{
-                            height: 'auto',
-                            minHeight: '100px',
-                            position: 'relative',
                             display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'space-between',
-                            flexDirection: 'row',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                            minWidth: 0,
+                            width: { xs: '100%', sm: 'auto' },
+                            maxWidth: { sm: '160px' },
                           }}
                         >
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
                           >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Dimension Size
-                            </Typography>
-                            <Input
-                              disableUnderline
-                              placeholder="2048 X 998"
-                              {...register('mediaVariation.dimensionSize')}
-                              sx={{
-                                ...inputStyles,
-                                width: '140px',
-                                ...borderedControlSx(
-                                  !!errors?.mediaVariation?.dimensionSize
-                                    ?.message,
-                                ),
-                              }}
-                              onKeyDown={(e) => {
-                                if (
-                                  e.key === ' ' &&
-                                e.target.selectionStart === 0
-                                ) {
-                                  e.preventDefault();
-                                }
-                              }}
-                            />
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.dimensionSize?.message}
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            MRP<span style={{ color: 'red' }}> *</span>( Excl of
-                            GST )
-                            </Typography>
-
-                            <Box sx={{ position: 'relative' }}>
-                              <Input
-                                disableUnderline
-                                // value={data.mro}
-                                placeholder="3000"
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key === ' ' &&
-                                  e.target.selectionStart === 0
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                {...register('mediaVariation.PricePerUnit', {
-                                  onChange: (event) => {
-                                    event.target.value = parseInt(
-                                      event.target.value.replace(
-                                        /[^\d]+/gi,
-                                        '',
-                                      ) || 0,
-                                    ).toLocaleString('en-US');
-                                    setValue(
-                                      'mediaVariation.maxOrderQuantityunit',
-                                      '1',
-                                    );
-                                    setValue(
-                                      'mediaVariation.minOrderQuantityunit',
-                                      '1',
-                                    );
-                                    setValue(
-                                      'mediaVariation.minOrderQuantitytimeline',
-                                      '1',
-                                    );
-                                    setValue(
-                                      'mediaVariation.maxOrderQuantitytimeline',
-                                      '1',
-                                    );
-                                  },
-                                })}
-                                sx={{
-                                  width: '139px',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  fontSize: '12px',
-                                  px: 1,
-                                  fontFamily: 'Inter, sans-serif',
-                                  color: formColors.text,
-                                  ...borderedControlSx(
-                                    !!errors?.mediaVariation?.PricePerUnit
-                                      ?.message,
-                                  ),
-                                  ...inputPlaceholderSx,
-                                }}
-                              />
-
-                              <img
-                                src={Bxitoken}
-                                style={{
-                                  position: 'absolute',
-                                  width: '20px',
-                                  right: '7%',
-                                  bottom: '20%',
-                                }}
-                                alt="element"
-                                title="BXI token icon"
-                              />
-                            </Box>
-
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.PricePerUnit?.message}
-                            </Typography>
-                          </Box>
-
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '140px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Discounted MRP
-                            </Typography>
-                            <Box sx={{ position: 'relative' }}>
-                              <Input
-                                disableUnderline
-                                placeholder="2000"
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key === ' ' &&
-                                  e.target.selectionStart === 0
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                {...register('mediaVariation.DiscountedPrice', {
-                                  onChange: (event) => {
-                                    event.target.value = parseInt(
-                                      event.target.value.replace(
-                                        /[^\d]+/gi,
-                                        '',
-                                      ) || 0,
-                                    ).toLocaleString('en-US');
-                                  },
-                                })}
-                                sx={{
-                                  width: '139px',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  fontSize: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  color: formColors.text,
-                                  px: 1,
-                                  ...borderedControlSx(
-                                    !!errors?.mediaVariation?.DiscountedPrice
-                                      ?.message,
-                                  ),
-                                  ...inputPlaceholderSx,
-                                }}
-                              />
-                              <img
-                                src={Bxitoken}
-                                style={{
-                                  position: 'absolute',
-                                  width: '20px',
-                                  right: '7%',
-                                  bottom: '20%',
-                                }}
-                                alt="BXI token"
-                                title="BXI token icon"
-                              />
-                            </Box>
-
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.DiscountedPrice?.message}
-                            </Typography>
-                          </Box>
-
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              maxWidth: '100px',
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            HSN <span style={{ color: 'red' }}> *</span>
-                            </Typography>
-
-                            <Box sx={{ position: 'relative' }}>
-                              <Input
-                                disableUnderline
-                                placeholder="998346"
-                                {...register('mediaVariation.HSN', {
-                                  onChange: (event) => {
-                                    const inputValue = event.target.value;
-
-                                    if (inputValue.match(/\D/g)) {
-                                      const filteredValue = inputValue.replace(
-                                        /\D/g,
-                                        '',
-                                      );
-                                      event.target.value = filteredValue;
-                                    }
-                                  },
-                                })}
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key === ' ' &&
-                                  e.target.selectionStart === 0
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                inputProps={{ maxLength: 8 }}
-                                sx={{
-                                  width: '100px',
-                                  height: '42px',
-                                  background: '#FFFFFF',
-                                  borderRadius: '10px',
-                                  px: 1,
-                                  fontSize: '12px',
-                                  fontFamily: 'Inter, sans-serif',
-                                  color: formColors.text,
-                                  ...borderedControlSx(
-                                    !!errors?.mediaVariation?.HSN?.message,
-                                  ),
-                                  ...inputPlaceholderSx,
-                                }}
-                              />
-                            </Box>
-                            <Typography
-                              sx={FieldErrorTextStyle}
-                            >
-                              {errors?.mediaVariation?.HSN?.message}
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                              minWidth: 0,
-                              width: { xs: '100%', sm: 'auto' },
-                              maxWidth: { sm: '160px' },
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
                             GST <span style={{ color: 'red' }}> *</span>
-                            </Typography>
+                          </Typography>
 
-                            <Select
-                              displayEmpty
-                              renderValue={(selected) => {
-                                if (
-                                  selected === undefined ||
-                                  selected === null ||
-                                  selected === '' ||
-                                  selected === '0'
-                                ) {
-                                  return (
-                                    <Box
-                                      component="span"
-                                      sx={{
-                                        color: '#6B7A99',
-                                        opacity: 0.55,
-                                        fontSize: '12px',
-                                      }}
-                                    >
-                                      Select GST
-                                    </Box>
-                                  );
-                                }
-                                return formatGstPercentLabel(selected);
-                              }}
+                          <Select
+                            displayEmpty
+                            renderValue={(selected) => {
+                              if (
+                                selected === undefined ||
+                                selected === null ||
+                                selected === '' ||
+                                selected === '0'
+                              ) {
+                                return (
+                                  <Box
+                                    component="span"
+                                    sx={{
+                                      color: '#6B7A99',
+                                      opacity: 0.55,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    Select GST
+                                  </Box>
+                                );
+                              }
+                              return formatGstPercentLabel(selected);
+                            }}
+                            sx={{
+                              width: '100%',
+                              minWidth: 88,
+                              height: '42px',
+                              background: '#FFFFFF',
+                              borderRadius: '10px',
+                              fontSize: '12px',
+                              fontFamily: 'Inter, sans-serif',
+                              color: formColors.text,
+                              ...outlinedSelectFieldSx(
+                                !!errors?.mediaVariation?.GST?.message,
+                              ),
+                            }}
+                            {...register('mediaVariation.GST')}
+                          >
+                            {GSTData?.map((gst, idx) => (
+                              <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
+                                {formatGstPercentLabel(gst?.GST)}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                          <Typography
+                            sx={FieldErrorTextStyle}
+                          >
+                            {errors?.mediaVariation?.GST?.message}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          height: 'auto',
+                          minHeight: '100px',
+                          position: 'relative',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          justifyContent: 'flex-start',
+                          flexDirection: 'row',
+                          gap: '15px',
+                        }}
+                      >
+                        {OneUnitProduct ? null : (
+                          <React.Fragment>
+                            <Box
                               sx={{
-                                width: '100%',
-                                minWidth: 88,
-                                height: '42px',
-                                background: '#FFFFFF',
-                                borderRadius: '10px',
-                                fontSize: '12px',
-                                fontFamily: 'Inter, sans-serif',
-                                color: formColors.text,
-                                ...outlinedSelectFieldSx(
-                                  !!errors?.mediaVariation?.GST?.message,
-                                ),
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px',
+                                mt: 1,
                               }}
-                              {...register('mediaVariation.GST')}
                             >
-                              {GSTData?.map((gst, idx) => (
-                                <MenuItem key={idx} sx={MenuItems} value={gst?.GST}>
-                                  {formatGstPercentLabel(gst?.GST)}
-                                </MenuItem>
-                              ))}
-                            </Select>
-                            <Typography
-                              sx={FieldErrorTextStyle}
+                              <Typography
+                                sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                              >
+                                Min Order QTY Unit{' '}
+                                <span style={{ color: 'red' }}> *</span>
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: '10px' }}>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    gap: '10px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      ...borderedWrapperSx(
+                                        !!errors?.mediaVariation
+                                          ?.minOrderQuantityunit?.message,
+                                      ),
+                                    }}
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      placeholder="100"
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      {...register(
+                                        'mediaVariation.minOrderQuantityunit',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      sx={{
+                                        ...inputInsideGroupedFieldSx,
+                                        width: '65px',
+                                        padding: '0px',
+                                        ml: 1,
+                                      }}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      disabled
+                                      {...register('mediaVariation.unit')}
+                                      sx={{
+                                        ...inputInsideGroupedFieldSx,
+                                        width: '65px',
+                                        padding: '0px',
+                                        ml: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={FieldErrorTextStyle}
+                                  >
+                                    {
+                                      errors?.mediaVariation
+                                        ?.minOrderQuantityunit?.message
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px',
+                                mt: 1,
+                              }}
                             >
-                              {errors?.mediaVariation?.GST?.message}
-                            </Typography>
+                              <Typography
+                                sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                              >
+                                Max Order QTY Unit{' '}
+                                <span style={{ color: 'red' }}> *</span>
+                              </Typography>
+
+                              <Box sx={{ display: 'flex', gap: '10px' }}>
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    gap: '10px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      ...borderedWrapperSx(
+                                        !!errors?.mediaVariation
+                                          ?.maxOrderQuantityunit?.message,
+                                      ),
+                                    }}
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      placeholder="200"
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      {...register(
+                                        'mediaVariation.maxOrderQuantityunit',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      sx={{
+                                        ...inputInsideGroupedFieldSx,
+                                        width: '64px',
+                                        padding: '0px',
+                                        ml: 1,
+                                      }}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      disabled
+                                      {...register('mediaVariation.unit')}
+                                      sx={{
+                                        ...inputInsideGroupedFieldSx,
+                                        width: '64px',
+                                        padding: '0px',
+                                        ml: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={FieldErrorTextStyle}
+                                  >
+                                    {
+                                      errors?.mediaVariation
+                                        ?.maxOrderQuantityunit?.message
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+                          </React.Fragment>
+                        )}
+
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
+                          }}
+                        >
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
+                          >
+                            Min Order QTY Timeline{' '}
+                            <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+
+                          <Box sx={{ display: 'flex', gap: '10px' }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                gap: '10px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  ...borderedWrapperSx(
+                                    !!errors?.mediaVariation
+                                      ?.minOrderQuantitytimeline?.message,
+                                  ),
+                                }}
+                              >
+                                <Input
+                                  disableUnderline
+                                  {...register(
+                                    'mediaVariation.minOrderQuantitytimeline',
+                                    {
+                                      onChange: (event) => {
+                                        event.target.value = parseInt(
+                                          event.target.value.replace(
+                                            /[^\d]+/gi,
+                                            '',
+                                          ) || 0,
+                                        ).toLocaleString('en-US');
+                                      },
+                                    },
+                                  )}
+                                  sx={{
+                                    ...inputInsideGroupedFieldSx,
+                                    width: '64px',
+                                    padding: '5px',
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (
+                                      e.key === ' ' &&
+                                      e.target.selectionStart === 0
+                                    ) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  placeholder={'Timeline'}
+                                />
+                                <Input
+                                  disableUnderline
+                                  {...register('mediaVariation.Timeline')}
+                                  disabled
+                                  sx={{
+                                    ...inputInsideGroupedFieldSx,
+                                    width: '65px',
+                                    padding: '0px',
+                                  }}
+                                />
+                              </Box>
+                              <Typography
+                                sx={FieldErrorTextStyle}
+                              >
+                                {
+                                  errors?.mediaVariation
+                                    ?.minOrderQuantitytimeline?.message
+                                }
+                              </Typography>
+                            </Box>
                           </Box>
                         </Box>
                         <Box
                           sx={{
-                            height: 'auto',
-                            minHeight: '100px',
-                            position: 'relative',
                             display: 'flex',
-                            flexWrap: 'wrap',
-                            justifyContent: 'flex-start',
-                            flexDirection: 'row',
-                            gap: '15px',
+                            flexDirection: 'column',
+                            gap: '10px',
+                            mt: 1,
                           }}
                         >
-                          {OneUnitProduct ? null : (
-                            <React.Fragment>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '10px',
-                                  mt: 1,
-                                }}
-                              >
-                                <Typography
-                                  sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                                >
-                                Min Order QTY Unit{' '}
-                                  <span style={{ color: 'red' }}> *</span>
-                                </Typography>
-                                <Box sx={{ display: 'flex', gap: '10px' }}>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      gap: '10px',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                    }}
-                                  >
-                                    <Box
-                                      sx={{
-                                        ...borderedWrapperSx(
-                                          !!errors?.mediaVariation
-                                            ?.minOrderQuantityunit?.message,
-                                        ),
-                                      }}
-                                    >
-                                      <Input
-                                        disableUnderline
-                                        placeholder="100"
-                                        onKeyDown={(e) => {
-                                          if (
-                                            e.key === ' ' &&
-                                          e.target.selectionStart === 0
-                                          ) {
-                                            e.preventDefault();
-                                          }
-                                        }}
-                                        {...register(
-                                          'mediaVariation.minOrderQuantityunit',
-                                          {
-                                            onChange: (event) => {
-                                              event.target.value = parseInt(
-                                                event.target.value.replace(
-                                                  /[^\d]+/gi,
-                                                  '',
-                                                ) || 0,
-                                              ).toLocaleString('en-US');
-                                            },
-                                          },
-                                        )}
-                                        sx={{
-                                          ...inputInsideGroupedFieldSx,
-                                          width: '65px',
-                                          padding: '0px',
-                                          ml: 1,
-                                        }}
-                                      />
-                                      <Input
-                                        disableUnderline
-                                        disabled
-                                        {...register('mediaVariation.unit')}
-                                        sx={{
-                                          ...inputInsideGroupedFieldSx,
-                                          width: '65px',
-                                          padding: '0px',
-                                          ml: 1,
-                                        }}
-                                      />
-                                    </Box>
-                                    <Typography
-                                      sx={FieldErrorTextStyle}
-                                    >
-                                      {
-                                        errors?.mediaVariation
-                                          ?.minOrderQuantityunit?.message
-                                      }
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </Box>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '10px',
-                                  mt: 1,
-                                }}
-                              >
-                                <Typography
-                                  sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                                >
-                                Max Order QTY Unit{' '}
-                                  <span style={{ color: 'red' }}> *</span>
-                                </Typography>
-
-                                <Box sx={{ display: 'flex', gap: '10px' }}>
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      gap: '10px',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                    }}
-                                  >
-                                    <Box
-                                      sx={{
-                                        ...borderedWrapperSx(
-                                          !!errors?.mediaVariation
-                                            ?.maxOrderQuantityunit?.message,
-                                        ),
-                                      }}
-                                    >
-                                      <Input
-                                        disableUnderline
-                                        placeholder="200"
-                                        onKeyDown={(e) => {
-                                          if (
-                                            e.key === ' ' &&
-                                          e.target.selectionStart === 0
-                                          ) {
-                                            e.preventDefault();
-                                          }
-                                        }}
-                                        {...register(
-                                          'mediaVariation.maxOrderQuantityunit',
-                                          {
-                                            onChange: (event) => {
-                                              event.target.value = parseInt(
-                                                event.target.value.replace(
-                                                  /[^\d]+/gi,
-                                                  '',
-                                                ) || 0,
-                                              ).toLocaleString('en-US');
-                                            },
-                                          },
-                                        )}
-                                        sx={{
-                                          ...inputInsideGroupedFieldSx,
-                                          width: '64px',
-                                          padding: '0px',
-                                          ml: 1,
-                                        }}
-                                      />
-                                      <Input
-                                        disableUnderline
-                                        disabled
-                                        {...register('mediaVariation.unit')}
-                                        sx={{
-                                          ...inputInsideGroupedFieldSx,
-                                          width: '64px',
-                                          padding: '0px',
-                                          ml: 1,
-                                        }}
-                                      />
-                                    </Box>
-                                    <Typography
-                                      sx={FieldErrorTextStyle}
-                                    >
-                                      {
-                                        errors?.mediaVariation
-                                          ?.maxOrderQuantityunit?.message
-                                      }
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </Box>
-                            </React.Fragment>
-                          )}
-
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                            }}
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '12px' }}
                           >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
-                            Min Order QTY Timeline{' '}
-                              <span style={{ color: 'red' }}> *</span>
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', gap: '10px' }}>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  gap: '10px',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    ...borderedWrapperSx(
-                                      !!errors?.mediaVariation
-                                        ?.minOrderQuantitytimeline?.message,
-                                    ),
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.minOrderQuantitytimeline',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
-                                    )}
-                                    sx={{
-                                      ...inputInsideGroupedFieldSx,
-                                      width: '64px',
-                                      padding: '5px',
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                      e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    placeholder={'Timeline'}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    {...register('mediaVariation.Timeline')}
-                                    disabled
-                                    sx={{
-                                      ...inputInsideGroupedFieldSx,
-                                      width: '65px',
-                                      padding: '0px',
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={FieldErrorTextStyle}
-                                >
-                                  {
-                                    errors?.mediaVariation
-                                      ?.minOrderQuantitytimeline?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </Box>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              mt: 1,
-                            }}
-                          >
-                            <Typography
-                              sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                            >
                             Max Order QTY Timeline{' '}
-                              <span style={{ color: 'red' }}> *</span>
-                            </Typography>
+                            <span style={{ color: 'red' }}> *</span>
+                          </Typography>
 
-                            <Box sx={{ display: 'flex', gap: '10px' }}>
+                          <Box sx={{ display: 'flex', gap: '10px' }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                gap: '10px',
+                                // display: "flex",
+                                flexDirection: 'column',
+                              }}
+                            >
                               <Box
                                 sx={{
-                                  display: 'flex',
-                                  gap: '10px',
-                                  // display: "flex",
-                                  flexDirection: 'column',
+                                  ...borderedWrapperSx(
+                                    !!errors?.mediaVariation
+                                      ?.maxOrderQuantitytimeline?.message,
+                                  ),
                                 }}
                               >
-                                <Box
-                                  sx={{
-                                    ...borderedWrapperSx(
-                                      !!errors?.mediaVariation
-                                        ?.maxOrderQuantitytimeline?.message,
-                                    ),
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.maxOrderQuantitytimeline',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
+                                <Input
+                                  disableUnderline
+                                  {...register(
+                                    'mediaVariation.maxOrderQuantitytimeline',
+                                    {
+                                      onChange: (event) => {
+                                        event.target.value = parseInt(
+                                          event.target.value.replace(
+                                            /[^\d]+/gi,
+                                            '',
+                                          ) || 0,
+                                        ).toLocaleString('en-US');
                                       },
-                                    )}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
+                                    },
+                                  )}
+                                  onKeyDown={(e) => {
+                                    if (
+                                      e.key === ' ' &&
                                       e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    sx={{
-                                      ...inputInsideGroupedFieldSx,
-                                      width: '64px',
-                                      padding: '0px',
-                                      ml: 1,
-                                    }}
-                                    placeholder={'Timeline'}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    {...register('mediaVariation.Timeline')}
-                                    disabled
-                                    sx={{
-                                      ...inputInsideGroupedFieldSx,
-                                      width: '50px',
-                                      padding: '0px',
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={FieldErrorTextStyle}
-                                >
-                                  {
-                                    errors?.mediaVariation
-                                      ?.maxOrderQuantitytimeline?.message
-                                  }
-                                </Typography>
+                                    ) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  sx={{
+                                    ...inputInsideGroupedFieldSx,
+                                    width: '64px',
+                                    padding: '0px',
+                                    ml: 1,
+                                  }}
+                                  placeholder={'Timeline'}
+                                />
+                                <Input
+                                  disableUnderline
+                                  {...register('mediaVariation.Timeline')}
+                                  disabled
+                                  sx={{
+                                    ...inputInsideGroupedFieldSx,
+                                    width: '50px',
+                                    padding: '0px',
+                                  }}
+                                />
                               </Box>
+                              <Typography
+                                sx={FieldErrorTextStyle}
+                              >
+                                {
+                                  errors?.mediaVariation
+                                    ?.maxOrderQuantitytimeline?.message
+                                }
+                              </Typography>
                             </Box>
                           </Box>
                         </Box>
-                      </>
-                    )}
+                      </Box>
+                    </>
+                  )}
 
                   <OthercostPortion
                     append={(data, index) => {
@@ -2577,276 +2617,276 @@ const MediaProductInfo = () => {
                         gap: '10px',
                       }}
                     >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px',
-                        mt: 1,
-                        maxWidth: '100px',
-                      }}
-                    >
-                      <Typography
+                      <Box
                         sx={{
-                          ...CommonTextStyle,
                           display: 'flex',
-                          flexDirection: 'row',
-                          fontSize: '12px',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          mt: 1,
+                          maxWidth: '100px',
                         }}
                       >
-                        Region
-                        <span style={{ color: 'red' }}> *</span>
-                      </Typography>
-                      <Select
-                        displayEmpty
-                        renderValue={(selected) => {
-                          if (
-                            selected === undefined ||
-                            selected === null ||
-                            selected === ''
-                          ) {
-                            return (
-                              <Box
-                                component="span"
-                                sx={{
-                                  color: '#6B7A99',
-                                  opacity: 0.55,
-                                  fontSize: '12px',
-                                }}
-                              >
-                                Select region
-                              </Box>
-                            );
-                          }
-                          return selected;
-                        }}
-                        disableUnderline
-                        {...register('GeographicalData.region')}
-                        sx={{
-                          ...inputStyles,
-                          ...borderedControlSx(
-                            !!errors?.GeographicalData?.region?.message,
-                          ),
-                        }}
-                        onChange={(e) => {
-                          setIsDisabled(e.target.value);
-                          setStoreDataOfLocation({
-                            ...storeDataOfLocation,
-                            region: e.target.value,
-                          });
-                          reset({
-                            'GeographicalData.state': '',
-                            'GeographicalData.city': '',
-                            'GeographicalData.landmark': '',
-                          });
-                        }}
-                      >
-                        <MenuItem value="Central ">Central</MenuItem>
-                        <MenuItem value="East ">East</MenuItem>
-                        <MenuItem value="North">North</MenuItem>
-                        <MenuItem value="PAN India">PAN India</MenuItem>
-                        <MenuItem value="South">South</MenuItem>
-                        <MenuItem value="West">West</MenuItem>
-                      </Select>
-                      {FetchedproductData && FetchedproductData?.GeographicalData && (
-                        <Typography
-                          sx={{ ...CommonTextStyle, fontSize: '10px' }}
-                        >
-                          : {FetchedproductData?.GeographicalData?.region}
-                        </Typography>
-                      )}{' '}
-                      <Typography sx={FieldErrorTextStyle}>
-                        {errors?.GeographicalData?.region?.message}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px',
-                        mt: 1,
-                        maxWidth: '140px',
-                      }}
-                    >
-                      <Typography sx={{ ...CommonTextStyle, fontSize: '12px' }}>
-                        State <span style={{ color: 'red' }}> *</span>
-                      </Typography>
-                      <Select
-                        displayEmpty
-                        renderValue={(selected) => {
-                          if (
-                            selected === undefined ||
-                            selected === null ||
-                            selected === ''
-                          ) {
-                            return (
-                              <Box
-                                component="span"
-                                sx={{
-                                  color: '#6B7A99',
-                                  opacity: 0.55,
-                                  fontSize: '12px',
-                                }}
-                              >
-                                Select state
-                              </Box>
-                            );
-                          }
-                          return selected;
-                        }}
-                        disableUnderline
-                        disabled={IsDisabled === 'PAN India' ? true : false}
-                        {...register('GeographicalData.state')}
-                        sx={{
-                          ...inputStyles,
-                          width: '139px',
-                          ...borderedControlSx(
-                            !!errors?.GeographicalData?.state?.message,
-                          ),
-                        }}
-                        onChange={(e) => {
-                          setStoreDataOfLocation({
-                            ...storeDataOfLocation,
-                            state: e.target.value,
-                          });
-                          setStateArray(e.target.value);
-                          setState(e.target.value);
-                        }}
-                      >
-                        {StateData?.sort((a, b) =>
-                          a.name.localeCompare(b.name),
-                        ).map((res, index) => (
-                          <MenuItem key={index} value={res?.name}>
-                            {res?.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {FetchedproductData?.GeographicalData ? (
                         <Typography
                           sx={{
                             ...CommonTextStyle,
-                            fontSize: '10px',
-                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            flexDirection: 'row',
+                            fontSize: '12px',
                           }}
                         >
-                          : {FetchedproductData?.GeographicalData?.state}
+                          Region
+                          <span style={{ color: 'red' }}> *</span>
                         </Typography>
-                      ) : null}{' '}
-                      <Typography sx={FieldErrorTextStyle}>
-                        {errors?.GeographicalData?.state?.message}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px',
-                        mt: 1,
-                        maxWidth: '140px',
-                      }}
-                    >
-                      <Typography sx={{ ...CommonTextStyle, fontSize: '12px' }}>
-                        City <span style={{ color: 'red' }}> *</span>
-                      </Typography>
-                      <Select
-                        displayEmpty
-                        renderValue={(selected) => {
-                          if (
-                            selected === undefined ||
-                            selected === null ||
-                            selected === ''
-                          ) {
-                            return (
-                              <Box
-                                component="span"
-                                sx={{
-                                  color: '#6B7A99',
-                                  opacity: 0.55,
-                                  fontSize: '12px',
-                                }}
-                              >
-                                Select city
-                              </Box>
-                            );
-                          }
-                          return selected;
-                        }}
-                        disableUnderline
-                        disabled={IsDisabled === 'PAN India' ? true : false}
-                        {...register('GeographicalData.city')}
+                        <Select
+                          displayEmpty
+                          renderValue={(selected) => {
+                            if (
+                              selected === undefined ||
+                              selected === null ||
+                              selected === ''
+                            ) {
+                              return (
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    color: '#6B7A99',
+                                    opacity: 0.55,
+                                    fontSize: '12px',
+                                  }}
+                                >
+                                  Select region
+                                </Box>
+                              );
+                            }
+                            return selected;
+                          }}
+                          disableUnderline
+                          {...register('GeographicalData.region')}
+                          sx={{
+                            ...inputStyles,
+                            ...borderedControlSx(
+                              !!errors?.GeographicalData?.region?.message,
+                            ),
+                          }}
+                          onChange={(e) => {
+                            setIsDisabled(e.target.value);
+                            setStoreDataOfLocation({
+                              ...storeDataOfLocation,
+                              region: e.target.value,
+                            });
+                            reset({
+                              'GeographicalData.state': '',
+                              'GeographicalData.city': '',
+                              'GeographicalData.landmark': '',
+                            });
+                          }}
+                        >
+                          <MenuItem value="Central ">Central</MenuItem>
+                          <MenuItem value="East ">East</MenuItem>
+                          <MenuItem value="North">North</MenuItem>
+                          <MenuItem value="PAN India">PAN India</MenuItem>
+                          <MenuItem value="South">South</MenuItem>
+                          <MenuItem value="West">West</MenuItem>
+                        </Select>
+                        {FetchedproductData && FetchedproductData?.GeographicalData && (
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '10px' }}
+                          >
+                            : {FetchedproductData?.GeographicalData?.region}
+                          </Typography>
+                        )}{' '}
+                        <Typography sx={FieldErrorTextStyle}>
+                          {errors?.GeographicalData?.region?.message}
+                        </Typography>
+                      </Box>
+                      <Box
                         sx={{
-                          ...inputStyles,
-                          width: '139px',
-                          ...borderedControlSx(
-                            !!errors?.GeographicalData?.city?.message,
-                          ),
-                        }}
-                        onChange={(e) => {
-                          setStoreDataOfLocation({
-                            ...storeDataOfLocation,
-                            city: e.target.value,
-                          });
-                          setCity(e.target.value);
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          mt: 1,
+                          maxWidth: '140px',
                         }}
                       >
-                        {CityArray?.map((res, index) => (
-                          <MenuItem key={index} value={res}>
-                            {res}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                      {FetchedproductData?.GeographicalData ? (
-                        <Typography
-                          sx={{ ...CommonTextStyle, fontSize: '10px' }}
-                        >
-                          : {FetchedproductData?.GeographicalData?.city}
+                        <Typography sx={{ ...CommonTextStyle, fontSize: '12px' }}>
+                          State <span style={{ color: 'red' }}> *</span>
                         </Typography>
-                      ) : null}{' '}
-                      <Typography sx={FieldErrorTextStyle}>
-                        {errors?.GeographicalData?.city?.message}
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '10px',
-                        mt: 1,
-                        maxWidth: '140px',
-                      }}
-                    >
-                      <Typography sx={{ ...CommonTextStyle, fontSize: '12px' }}>
-                        Landmark <span style={{ color: 'red' }}> *</span>
-                      </Typography>
-                      <Input
-                        disableUnderline
-                        disabled={IsDisabled === 'PAN India' ? true : false}
-                        placeholder="Eg. Juhu"
-                        onKeyDown={(e) => {
-                          if (e.key === ' ' && e.target.selectionStart === 0) {
-                            e.preventDefault();
-                          }
-                        }}
-                        {...register('GeographicalData.landmark')}
+                        <Select
+                          displayEmpty
+                          renderValue={(selected) => {
+                            if (
+                              selected === undefined ||
+                              selected === null ||
+                              selected === ''
+                            ) {
+                              return (
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    color: '#6B7A99',
+                                    opacity: 0.55,
+                                    fontSize: '12px',
+                                  }}
+                                >
+                                  Select state
+                                </Box>
+                              );
+                            }
+                            return selected;
+                          }}
+                          disableUnderline
+                          disabled={IsDisabled === 'PAN India' ? true : false}
+                          {...register('GeographicalData.state')}
+                          sx={{
+                            ...inputStyles,
+                            width: '139px',
+                            ...borderedControlSx(
+                              !!errors?.GeographicalData?.state?.message,
+                            ),
+                          }}
+                          onChange={(e) => {
+                            setStoreDataOfLocation({
+                              ...storeDataOfLocation,
+                              state: e.target.value,
+                            });
+                            setStateArray(e.target.value);
+                            setState(e.target.value);
+                          }}
+                        >
+                          {StateData?.sort((a, b) =>
+                            a.name.localeCompare(b.name),
+                          ).map((res, index) => (
+                            <MenuItem key={index} value={res?.name}>
+                              {res?.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {FetchedproductData?.GeographicalData ? (
+                          <Typography
+                            sx={{
+                              ...CommonTextStyle,
+                              fontSize: '10px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            : {FetchedproductData?.GeographicalData?.state}
+                          </Typography>
+                        ) : null}{' '}
+                        <Typography sx={FieldErrorTextStyle}>
+                          {errors?.GeographicalData?.state?.message}
+                        </Typography>
+                      </Box>
+                      <Box
                         sx={{
-                          width: '139px',
-                          height: '42px',
-                          background: '#FFFFFF',
-                          borderRadius: '10px',
-                          px: 1,
-                          fontFamily: 'Inter, sans-serif',
-                          color: formColors.text,
-                          fontSize: '12px',
-                          ...borderedControlSx(
-                            !!errors?.GeographicalData?.landmark?.message,
-                          ),
-                          ...inputPlaceholderSx,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          mt: 1,
+                          maxWidth: '140px',
                         }}
-                      />
-                      <Typography sx={FieldErrorTextStyle}>
-                        {errors?.GeographicalData?.landmark?.message}
-                      </Typography>
-                    </Box>
+                      >
+                        <Typography sx={{ ...CommonTextStyle, fontSize: '12px' }}>
+                          City <span style={{ color: 'red' }}> *</span>
+                        </Typography>
+                        <Select
+                          displayEmpty
+                          renderValue={(selected) => {
+                            if (
+                              selected === undefined ||
+                              selected === null ||
+                              selected === ''
+                            ) {
+                              return (
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    color: '#6B7A99',
+                                    opacity: 0.55,
+                                    fontSize: '12px',
+                                  }}
+                                >
+                                  Select city
+                                </Box>
+                              );
+                            }
+                            return selected;
+                          }}
+                          disableUnderline
+                          disabled={IsDisabled === 'PAN India' ? true : false}
+                          {...register('GeographicalData.city')}
+                          sx={{
+                            ...inputStyles,
+                            width: '139px',
+                            ...borderedControlSx(
+                              !!errors?.GeographicalData?.city?.message,
+                            ),
+                          }}
+                          onChange={(e) => {
+                            setStoreDataOfLocation({
+                              ...storeDataOfLocation,
+                              city: e.target.value,
+                            });
+                            setCity(e.target.value);
+                          }}
+                        >
+                          {CityArray?.map((res, index) => (
+                            <MenuItem key={index} value={res}>
+                              {res}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {FetchedproductData?.GeographicalData ? (
+                          <Typography
+                            sx={{ ...CommonTextStyle, fontSize: '10px' }}
+                          >
+                            : {FetchedproductData?.GeographicalData?.city}
+                          </Typography>
+                        ) : null}{' '}
+                        <Typography sx={FieldErrorTextStyle}>
+                          {errors?.GeographicalData?.city?.message}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '10px',
+                          mt: 1,
+                          maxWidth: '140px',
+                        }}
+                      >
+                        <Typography sx={{ ...CommonTextStyle, fontSize: '12px' }}>
+                          Landmark <span style={{ color: 'red' }}> *</span>
+                        </Typography>
+                        <Input
+                          disableUnderline
+                          disabled={IsDisabled === 'PAN India' ? true : false}
+                          placeholder="Eg. Juhu"
+                          onKeyDown={(e) => {
+                            if (e.key === ' ' && e.target.selectionStart === 0) {
+                              e.preventDefault();
+                            }
+                          }}
+                          {...register('GeographicalData.landmark')}
+                          sx={{
+                            width: '139px',
+                            height: '42px',
+                            background: '#FFFFFF',
+                            borderRadius: '10px',
+                            px: 1,
+                            fontFamily: 'Inter, sans-serif',
+                            color: formColors.text,
+                            fontSize: '12px',
+                            ...borderedControlSx(
+                              !!errors?.GeographicalData?.landmark?.message,
+                            ),
+                            ...inputPlaceholderSx,
+                          }}
+                        />
+                        <Typography sx={FieldErrorTextStyle}>
+                          {errors?.GeographicalData?.landmark?.message}
+                        </Typography>
+                      </Box>
                     </Box>
                   </Box>
 
@@ -3320,7 +3360,6 @@ const MediaProductInfo = () => {
                       ))}
                     </Box>
                   </Box>
-                </Stack>
                 </Box>
 
                 <div className="mt-10 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:items-center border-t border-[#E5E7EB] pt-6">
@@ -3415,13 +3454,20 @@ const inputPlaceholderSx = {
 };
 
 const standardMultilineFieldSx = (hasError) => ({
-  fontFamily: 'Inter, sans-serif',
   background: '#fff',
   borderRadius: '10px',
   padding: '0px 10px',
+  color: '#111827',
+  fontSize: '12px',
+  fontWeight: 400,
+  lineHeight: '20px',
   minHeight: '47px',
   height: 'auto',
-  fontSize: '12px',
+  mt: 1,
+  width: '100%',
+  border: hasError
+    ? '1px solid red'
+    : '1px solid #E5E8EB',
   ...borderedControlSx(hasError),
   '& .MuiInputBase-input': {
     color: formColors.text,
