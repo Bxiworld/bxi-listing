@@ -224,7 +224,6 @@ function getVariantSizesDisplay(v) {
   if (v.ShoeSize != null && v.ShoeSize !== '') {
     return `${v.ShoeSize} ${v.MeasurementUnit || ''}`.trim();
   }
-  if (v.ProductSize != null && v.ProductSize !== '') return String(v.ProductSize);
   if (v.NutritionInfo != null && v.NutritionInfo !== '') return String(v.NutritionInfo);
   const lenDim = v?.Length ?? v?.length;
   if (lenDim != null && lenDim !== '' && v?.MeasurementUnit) {
@@ -311,15 +310,6 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
       heading: 'HSN',
       minWidth: 88,
       cell: <Typography variant="body2">{v.HSN}</Typography>,
-    });
-  }
-
-  if (v.ProductSize != null && v.ProductSize !== '') {
-    cols.push({
-      id: 'productSize',
-      heading: 'Product Size',
-      minWidth: 112,
-      cell: <Typography variant="body2">{v.ProductSize}</Typography>,
     });
   }
 
@@ -431,8 +421,7 @@ export default function ProductPreview() {
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
     images?.length > 0;
-  const uploadCtaLabel =
-    isVoucherListing ? 'Upload Voucher' : 'Upload Products';
+  const uploadCtaLabel = isMediaProduct ? 'Upload Media' : isVoucherListing ? 'Upload Voucher' : 'Upload Products';
 
   const primaryColor = '#C64091';
   const primaryDark = '#A03375';

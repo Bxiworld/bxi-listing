@@ -250,39 +250,83 @@ const MediaProductInfo = () => {
           minOrderQuantityunit:
             OneUnitProduct ||
               isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          minOrderQuantitytimeline:
-            isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          maxOrderQuantityunit:
-            OneUnitProduct ||
+                ? z.any()
+                : z.string().min(0),
+            dimensionSize: z.string().min(1),
+            PricePerUnit: z.preprocess(
+              (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
+              z
+                .number({
+                  required_error: 'Price per unit is required',
+                  invalid_type_error: 'Price per unit is required',
+                })
+                .gt(0, 'Price per unit must be greater than 0'),
+            ),
+            DiscountedPrice: z.preprocess(
+              (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
+              z
+                .number({
+                  required_error: 'Discounted price is required',
+                  invalid_type_error: 'Discounted price is required',
+                })
+                .gt(0, 'Discounted price must be greater than 0'),
+            ),
+            GST: z
+              .coerce
+              .number()
+              .gte(5, 'GST must be between 5% and 28%')
+              .lte(28, 'GST must be between 5% and 28%'),
+            HSN: z.preprocess(
+              (value) => String(value ?? '').trim(),
+              z
+                .string()
+                .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
+                  message: 'HSN must be 4, 6, or 8 digits',
+                })
+                .transform((value) => value?.trim()),
+            ),
+            minOrderQuantityunit:
+              OneUnitProduct ||
+                isNewspaperJourney
+                ? z.any()
+                : z.coerce.string().min(1),
+            minOrderQuantitytimeline:
               isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          maxOrderQuantitytimeline:
-            isNewspaperJourney
-              ? z.any()
-              : z.coerce.string().min(1),
-          edition:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-          Type:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-          releasedetails:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-          availableInsertions: z.any(),
-          adType:
-            isNewspaperJourney
-              ? z.string().min(1)
-              : z.any(),
-        }),
+                ? z.any()
+                : z.coerce.string().min(1),
+            maxOrderQuantityunit:
+              OneUnitProduct ||
+                isNewspaperJourney
+                ? z.any()
+                : z.coerce.string().min(1),
+            maxOrderQuantitytimeline:
+              isNewspaperJourney
+                ? z.any()
+                : z.coerce.string().min(1),
+            edition:
+              isNewspaperJourney
+                ? z.string().min(1)
+                : z.any(),
+            Type:
+              isNewspaperJourney
+                ? z.string().min(1)
+                : z.any(),
+            releasedetails:
+              isNewspaperJourney
+                ? z.string().min(1)
+                : z.any(),
+            availableInsertions: z.any(),
+            adType: z.string().min(1, 'Ad type is required'),
+          })
+          .superRefine((value, ctx) => {
+            if (Number(value?.DiscountedPrice) > Number(value?.PricePerUnit)) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['DiscountedPrice'],
+                message: 'Discounted Price can not be greater than Price Per Unit',
+              });
+            }
+          }),
         GeographicalData: z.object({
           region: z.string().min(1),
           state: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
@@ -565,11 +609,18 @@ const MediaProductInfo = () => {
   };
 
   const updateProductTotextilestatus = handleSubmit((data) => {
-    const DiscountedPrice = data?.mediaVariation.DiscountedPrice?.replace(
-      /,/g,
-      '',
+    const DiscountedPrice = Number(data?.mediaVariation?.DiscountedPrice);
+    const PricePerUnit = Number(data?.mediaVariation?.PricePerUnit);
+    const existingTags = Array.isArray(FetchedproductData?.tags)
+      ? FetchedproductData.tags
+      : [];
+    const resolvedTags = Array.from(
+      new Set(
+        [...existingTags, ...(Array.isArray(tags) ? tags : [])]
+          .map((tag) => String(tag ?? '').trim())
+          .filter(Boolean),
+      ),
     );
-    const PricePerUnit = data?.mediaVariation.PricePerUnit?.replace(/,/g, '');
 
     if (isNewspaperJourney) {
       setValue('mediaVariation.Timeline', 'Day');
@@ -605,7 +656,7 @@ const MediaProductInfo = () => {
       mediaVariation: getValues()?.mediaVariation,
       ProductUploadStatus: 'productinformation',
       ListingType: 'Media',
-      tags: tags,
+      tags: resolvedTags,
 
       DiscountePricePerDay: Math.round(
         Number(
@@ -669,7 +720,7 @@ const MediaProductInfo = () => {
     }
     if (items?.length < 5) {
       return toast.error('Please Select Best Features ( Min 5 )');
-    } else if (Number(DiscountedPrice) > Number(PricePerUnit)) {
+    } else if (DiscountedPrice > PricePerUnit) {
       setError('mediaVariation.DiscountedPrice', {
         type: 'custom',
         message: 'Discounted Price can not be greater than Price Per Unit',
@@ -677,7 +728,7 @@ const MediaProductInfo = () => {
       return toast.error('Discounted Price can not be greater than Price Per Unit');
     } else if (items?.length > 20) {
       return toast.error('Please Select Best Features ( max 20 )');
-    } else if (tags?.length === 0 && FetchedproductData?.tags?.length === 0) {
+    } else if (resolvedTags.length === 0) {
       return toast.error('Please add atleast one Tag');
     } else {
       updateProduct(datatobesent, {
