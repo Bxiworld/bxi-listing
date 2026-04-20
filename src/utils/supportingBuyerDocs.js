@@ -7,6 +7,7 @@ export const SUPPORTING_DOC_KEYS = [
   'ExhibitionCertificate',
   'estimatedFleets',
   'broadcastCertificate',
+  'telecastCertificate',
   'Other',
 ];
 
@@ -18,6 +19,7 @@ export const SUPPORTING_DOC_LABELS = {
   ExhibitionCertificate: 'Exhibition Certificate',
   estimatedFleets: 'Estimated Fleets',
   broadcastCertificate: 'Broadcast Certificate',
+  telecastCertificate: 'Telecast Certificate',
   Other: 'Other',
 };
 
@@ -27,6 +29,14 @@ export const SUPPORTING_DOC_KEYS_FORM_ORDER = [
   'Pictures',
   'LogReport',
   'ExhibitionCertificate',
+  'Videos',
+  'Other',
+];
+
+
+/** UI order used on multiplex / hoarding-style forms */
+export const SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING = [
+  'Pictures',
   'Videos',
   'Other',
 ];
@@ -54,6 +64,7 @@ function normalizeDocKey(input) {
     exhibitioncertificate: 'ExhibitionCertificate',
     estimatedfleets: 'estimatedFleets',
     broadcastcertificate: 'broadcastCertificate',
+    telecastcertificate: 'telecastCertificate',
     other: 'Other',
   }[compact];
   return byCompact || null;

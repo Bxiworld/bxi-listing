@@ -3790,6 +3790,7 @@ const MediaProductInfo = () => {
                                   MediaOnlineFeaturesData,
                                   listingProfile.featureAllowlist,
                                   items.map((i) => i.name),
+                                  listingProfile.featureBlocklist,
                                 )?.map((el, idx) => {
                                   if (el?.IsHead) {
                                     return (

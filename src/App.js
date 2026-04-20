@@ -1,11 +1,17 @@
 import React from 'react';
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { store } from './redux/store';
 
 const queryClient = new QueryClient();
+
+/** Legacy hoarding go-live URL → shared media online go-live step. */
+function HoardingGoLiveToMediaOnlineRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/mediaonline/go-live/${id}?from=hoarding`} replace />;
+}
 
 // Layout
 import { Layout } from './components/layout/Layout';
@@ -45,7 +51,6 @@ import MediaOfflineGeneralInfo from './pages/MediaOffline/GeneralInformation';
 import MediaOfflineProductInfo from './pages/MediaOffline/MediaOfflineProductInfo';
 import HoardingProductInfo from './pages/MediaOffline/HoardingProductInfo';
 import HoardingTechInfo from './pages/MediaOffline/HoardingTechInfo';
-import HoardingsGoLive from './pages/MediaOffline/HoardingsGoLive';
 import HoardingMediaProductPreview from './pages/MediaOffline/HoardingMediaProductPreview';
 import MediaOfflineTechInfo from './pages/MediaOffline/MediaOfflineTechInfo';
 
@@ -389,7 +394,14 @@ function App() {
               <Route path="/mediaonline/digitalscreensgolive/:id" element={<ListingAccessGuard kind="product" category="mediaonline"><DigitalScreensGoLive /></ListingAccessGuard>} />
               <Route path="/mediaoffline/mediaofflinehoardinginfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingProductInfo /></ListingAccessGuard>} />
               <Route path="/mediaoffline/mediaofflinehoardingtechinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingTechInfo /></ListingAccessGuard>} />
-              <Route path="/mediaoffline/hoardingsgolive/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><HoardingsGoLive /></ListingAccessGuard>} />
+              <Route
+                path="/mediaoffline/hoardingsgolive/:id"
+                element={
+                  <ListingAccessGuard kind="product" category="mediaoffline">
+                    <HoardingGoLiveToMediaOnlineRedirect />
+                  </ListingAccessGuard>
+                }
+              />
               <Route path="/mediaoffline/mediaofflineproductinfo/:id" element={<ListingAccessGuard kind="product" category="mediaoffline"><MediaOfflineProductInfo /></ListingAccessGuard>} />
 
               {/* Voucher Routes */}

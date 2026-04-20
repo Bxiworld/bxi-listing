@@ -376,6 +376,14 @@ export default function ProductPreview() {
   }, [id]);
 
   const handleBack = () => {
+    if (
+      product &&
+      (product.Hoarding_list_id ||
+        String(product.ProductSubCategoryName || '').toLowerCase().includes('hoard'))
+    ) {
+      navigate(`/mediaonline/go-live/${id}?from=hoarding`);
+      return;
+    }
     const cat = product?.ProductCategoryName;
     const slug = CATEGORY_TO_SLUG[cat];
     if (slug) {

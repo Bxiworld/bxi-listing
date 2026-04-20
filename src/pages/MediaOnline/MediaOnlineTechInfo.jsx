@@ -9,7 +9,7 @@ import {
 import { Stack } from '@mui/system';
 import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../utils/api';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -55,6 +55,7 @@ const SUPPORTING_DOC_UI_LABELS = {
   ExhibitionCertificate: 'Exhibition Certificate',
   estimatedFleets: 'Estimated Fleets',
   broadcastCertificate: 'Broadcast Certificate',
+  telecastCertificate: 'Telecast Certificate',
   Other: 'Other',
 };
 
@@ -110,6 +111,16 @@ export default function TechInfo() {
     fetchproductData?.ProductSubCategory === '65029534eaa5251874e8c6c1';
 
   const techFormProfile = resolveMediaOnlineFormProfile(fetchproductData || {});
+  const supportingDocGridRows = useMemo(() => {
+    if (techFormProfile.key === 'television') {
+      return [
+        ['Videos', 'Pictures'],
+        ['LogReport', 'telecastCertificate'],
+        ['Other', null],
+      ];
+    }
+    return SUPPORTING_DOC_PAIR_ROWS;
+  }, [techFormProfile.key]);
   const [loopTimeMinutes, setLoopTimeMinutes] = useState('');
 
   function showSupportingDocKey(key) {
@@ -393,7 +404,7 @@ export default function TechInfo() {
                       width: '100%',
                     }}
                   >
-                    {SUPPORTING_DOC_PAIR_ROWS.map(([leftKey, rightKey], rowIdx) => {
+                    {supportingDocGridRows.map(([leftKey, rightKey], rowIdx) => {
                       const leftShow = leftKey && showSupportingDocKey(leftKey);
                       const rightShow = rightKey && showSupportingDocKey(rightKey);
                       if (!leftShow && !rightShow) return null;

@@ -665,8 +665,8 @@ const MEDIA_STEP_PATHS = {
   },
   mediaoffline: {
     mediaofflinehoardinginfo: { prev: 'general-info', next: 'mediaofflinehoardingtechinfo' },
-    mediaofflinehoardingtechinfo: { prev: 'mediaofflinehoardinginfo', next: 'hoardingsgolive' },
-    hoardingsgolive: { prev: 'mediaofflinehoardingtechinfo', next: null },
+    /** Forward to Go Live is explicit in HoardingTechInfo (`/mediaonline/go-live/:id?from=hoarding`). */
+    mediaofflinehoardingtechinfo: { prev: 'mediaofflinehoardinginfo', next: null },
     mediaofflineproductinfo: { prev: 'general-info', next: 'tech-info' },
     'product-info': { prev: 'general-info', next: 'tech-info' },
     'tech-info': { prev: 'product-info', next: 'go-live' },

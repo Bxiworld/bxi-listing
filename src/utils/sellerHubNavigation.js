@@ -293,7 +293,14 @@ const resolveEditRoute = ({
       return `/mediaonline/${multiplexStep}/${productId}`;
     }
     if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      const hoardingSteps = { generalinformation: 'general-info', productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo', golive: 'hoardingsgolive' };
+      if (reviewKey === 'golive') {
+        return `/mediaonline/go-live/${productId}?from=hoarding`;
+      }
+      const hoardingSteps = {
+        generalinformation: 'general-info',
+        productinformation: 'mediaofflinehoardinginfo',
+        technicalinformation: 'mediaofflinehoardingtechinfo',
+      };
       const hoardingStep = hoardingSteps[reviewKey] || 'mediaofflinehoardinginfo';
       return `/mediaoffline/${hoardingStep}/${productId}`;
     }

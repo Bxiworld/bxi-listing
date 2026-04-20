@@ -39,6 +39,84 @@ export const AIRPORT_UNITS = [
 
 export const RADIO_AD_TYPES = ['On Air', 'On Screen', 'Others'];
 
+/** Television — Ad Type values (stored in `mediaVariation.location`). */
+export const TELEVISION_AD_TYPES = [
+  'L-Band',
+  'J-Band',
+  'Aston Band',
+  'Video Ads',
+  'Scroller',
+];
+
+/** Television — supporting docs on Media Online technical information (checkbox keys). */
+export const TELEVISION_SUPPORTING_DOC_KEYS = [
+  'Videos',
+  'Pictures',
+  'LogReport',
+  'telecastCertificate',
+  'Other',
+];
+
+/**
+ * Television — feature dropdown labels to hide (matched case-insensitively to
+ * `MediaonlineFeaturesingle`). Include common API spellings / synonyms.
+ */
+export const TELEVISION_FEATURE_BLOCKLIST = [
+  'CAS Code',
+  'Cinema Category ( Eg Platinum, Gold, ICON, Silver)',
+  'Cinema Property name',
+  'Property Name',
+  'CTR',
+  'Hoarding',
+  'Landmark',
+  'Lit',
+  'Engagement',
+  'Near Friday',
+  'Followers',
+  'Main Road',
+  'No of Seats',
+  'Non Lit',
+  'Type',
+  'Page',
+  'No. of seats',
+  'Railway Digital Screen',
+  'Publications',
+  'Screen type',
+  'Screen Number',
+  'screen code',
+  'Screen Code',
+  'readership',
+  'Readership',
+  'seating capacity',
+  'Seating Capacity',
+  'subway',
+  'Subway',
+  'upload code',
+  'Upload Code',
+  'web code',
+  'Web Code',
+  'time check',
+  'Time Check',
+  'user experience',
+  'User Experience',
+  'radio',
+  'Radio',
+  'promotions till date',
+  'Promotions till date',
+  'published',
+  'Published',
+  'quality',
+  'Quality',
+  'services',
+  'Services',
+  'likes',
+  'Likes',
+  'footfall',
+  'Footfall',
+  'estimated fleets',
+  'Estimated Fleets',
+];
+
 export const RADIO_UNITS = [
   { value: 'Annoucment', label: 'Per Announcement' },
   { value: 'Release', label: 'Per Release' },
@@ -124,14 +202,30 @@ export const FEATURE_ALLOWLIST_BY_KEY = {
   hoarding: [
     'Branding',
     'Brand Recognition',
+    'Collaborations',
+    'Contest',
     'Creative',
+    'Endorsement',
+    'Engagement',
     'Eyeballs',
+    'Footfall',
+    'Frequency',
+    'Hoarding',
+    'Landmark',
+    'Lit',
+    'Non Lit',
+    'Languages',
+    'Main Road',
+    'Media Location',
+    'Platform',
     'Location',
     'Reach',
+    'Services',
+    'Size',
     'Visibility',
     'Target Audience',
-    'Hoarding',
     'Others',
+
   ],
   multiplex: [
     'Ad Type',
@@ -245,6 +339,8 @@ export function resolveMediaOnlineFormProfile(product) {
   const base = {
     key: 'default',
     featureAllowlist: null,
+    /** When set, rows whose label matches (case-insensitive) are removed before allowlist. */
+    featureBlocklist: null,
     adTypeOptions: null,
     unitOptions: null,
     timelineHideOneTime: false,
@@ -339,6 +435,18 @@ export function resolveMediaOnlineFormProfile(product) {
     };
   }
 
+  if (mc === 'television' || journey === 'television') {
+    return {
+      ...base,
+      key: 'television',
+      adTypeOptions: TELEVISION_AD_TYPES,
+      featureBlocklist: TELEVISION_FEATURE_BLOCKLIST,
+      supportingDocKeys: TELEVISION_SUPPORTING_DOC_KEYS,
+      offeringPlaceholder:
+        'Eg. Star Plus, Aaj Tak, Star Sports',
+    };
+  }
+
   if (mc === 'other') {
     return {
       ...base,
@@ -413,13 +521,24 @@ export function filterOfflineFeatureOptions(rows, allowlist, selectedNames) {
   return out;
 }
 
-export function filterFeatureDropdownRows(apiRows, allowlist, selectedNames) {
+export function filterFeatureDropdownRows(
+  apiRows,
+  allowlist,
+  selectedNames,
+  featureBlocklist,
+) {
   if (!Array.isArray(apiRows)) return [];
   const selected = new Set((selectedNames || []).map((s) => String(s).trim()));
+  const blocked = new Set(
+    (featureBlocklist || [])
+      .map((s) => String(s).trim().toLowerCase())
+      .filter(Boolean),
+  );
   return apiRows.filter((el) => {
     const label = String(el?.MediaonlineFeaturesingle || '').trim();
     if (!label || el?.IsHead) return true;
     if (selected.has(label)) return false;
+    if (blocked.has(label.toLowerCase())) return false;
     if (!allowlist) return true;
     return allowlist.some(
       (a) => a.toLowerCase() === label.toLowerCase(),

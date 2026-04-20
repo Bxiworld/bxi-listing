@@ -30,12 +30,17 @@ import {
     emptySupportingCheckboxState,
     SUPPORTING_DOC_KEYS_FORM_ORDER,
     SUPPORTING_DOC_LABELS,
+    SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING,
 } from '../../utils/supportingBuyerDocs';
 import { useFieldArray, useForm } from 'react-hook-form';
 import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import OthercostPortion from './OthercostPortion.jsx';
 import ToolTip from '../../components/ToolTip';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import {
+    filterFeatureDropdownRows,
+    FEATURE_ALLOWLIST_BY_KEY,
+} from '../../config/mediaListingProfiles';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button as UiButton } from '../../components/ui/button';
@@ -44,11 +49,19 @@ import { Button as UiButton } from '../../components/ui/button';
 // Constants
 const TIMELINE_OPTIONS = [10, 20, 30];
 const LOCATION_OPTIONS = [
-    'All Locations', 'Arrival', 'Café Wall Branding', 'Coffee Tables',
-    'Concession Counter', 'Conveyor Belt', 'Departure', 'Entry Gate',
-    'Exit Gate', 'Handles of the Bus', 'Highway', 'Lobby', 'Mall Atrium',
-    'Near Parking Area', 'Out Side Airport', 'Parking Area', 'Tent Cards',
-    'Waiting Area', 'main road', 'others'
+    'All Locations',
+    'Concession Counter',
+    'Entry Gate',
+    'Exit Gate',
+    'Highway',
+    'Lobby',
+    'Mall Atrium',
+    'Near Parking Area',
+    'Out Side Airport',
+    'Parking Area',
+    'Waiting Area',
+    'main road',
+    'others',
 ];
 
 
@@ -446,7 +459,7 @@ export default function HoardingTechInfo() {
                     toast.success('Product updated successfully');
                     const id = ProductId;
                     setTimeout(() => {
-                        navigate(`/mediaoffline/hoardingsgolive/${id}`);
+                        navigate(`/mediaonline/go-live/${id}?from=hoarding`);
                     }, 3000);
                 } else {
                     toast.error('Product not updated');
@@ -478,13 +491,13 @@ export default function HoardingTechInfo() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#F8F9FA] py-8">
+        <div className="min-h-screen bg-[#ffffff] py-8">
             <div className="form-container">
                 <div className="stepper-layout">
                     <aside className="stepper-rail">
                         <Stepper currentStep={3} category="mediaoffline" completedSteps={[1, 2]} />
                     </aside>
-                    <main className="stepper-content">
+                    <main className="stepper-content" style={{ border: "1px solid #e2e8f0", padding: "20px" , borderRadius:"10px"}}>
                         <Box className="listing-journey">
                             <form onSubmit={updateProductTechinfostatus}>
                                 <Box className="listing-journey-container">
@@ -543,13 +556,13 @@ export default function HoardingTechInfo() {
                                                                 maxLength: 50,
                                                             }}
                                                             value={storeMediaAllData.mediaName}
-                                                    onChange={(e) => {
-                                                        setStoreMediaAllData(prev => ({
-                                                            ...prev,
-                                                            mediaName: e.target.value,
-                                                        }));
-                                                    }}
-                                                    sx={{
+                                                            onChange={(e) => {
+                                                                setStoreMediaAllData(prev => ({
+                                                                    ...prev,
+                                                                    mediaName: e.target.value,
+                                                                }));
+                                                            }}
+                                                            sx={{
                                                                 ...inputStyles,
                                                                 mt: 1,
                                                                 width: '100%',
@@ -970,7 +983,7 @@ export default function HoardingTechInfo() {
                                                         sx={{ display: 'flex', flexDirection: 'row', gap: '10px', flexWrap: 'wrap', mt: 1 }}
                                                     >
 
-                                                        {SUPPORTING_DOC_KEYS_FORM_ORDER.map((docKey) => (
+                                                        {SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING.map((docKey) => (
                                                             <Box key={docKey} sx={{ display: 'flex', gap: '8px', alignItems: 'center', mb: 1 }}>
                                                                 <Checkbox
                                                                     checked={!!storeMediaAllData?.supportingDocs?.[docKey]}
@@ -1237,7 +1250,11 @@ export default function HoardingTechInfo() {
                                                             }}
                                                             key={traits}
                                                         >
-                                                            {MediaOnlineFeaturesData?.map((el, idx) => {
+                                                            {filterFeatureDropdownRows(
+                                                                MediaOnlineFeaturesData,
+                                                                FEATURE_ALLOWLIST_BY_KEY.hoarding,
+                                                                items.map((i) => i.name),
+                                                            )?.map((el, idx) => {
                                                                 if (el?.IsHead) {
                                                                     return (
                                                                         <MenuItem

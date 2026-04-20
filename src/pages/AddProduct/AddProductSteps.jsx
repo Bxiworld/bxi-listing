@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
 import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Tag } from 'lucide-react';
@@ -3726,11 +3726,22 @@ export const TechInfo = ({ category }) => {
 const MEDIA_CATEGORIES = ['mediaonline', 'mediaoffline'];
 const RESTRICTED_ASPECT_CATEGORIES = ['textile', 'officesupply', 'lifestyle', 'others'];
 
+function isHoardingMediaProduct(data) {
+  if (!data) return false;
+  if (data.Hoarding_list_id) return true;
+  const sub = String(data.ProductSubCategoryName || '').toLowerCase();
+  if (sub.includes('hoard')) return true;
+  const cat = String(data.ProductCategoryName || '').toLowerCase();
+  if (cat.includes('hoard')) return true;
+  return false;
+}
+
 export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [files, setFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [sizechart, setSizechart] = useState(null);
@@ -3759,8 +3770,16 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
 
   const isVoucherDesignStep = location.pathname.includes('voucherdesign');
   const stepKey = isVoucherDesignStep ? 'voucherDesign' : 'goLive';
+  const fromHoarding = searchParams.get('from') === 'hoarding';
+  const treatAsHoardingGoLive =
+    Boolean(id) &&
+    category === 'mediaonline' &&
+    (fromHoarding || isHoardingMediaProduct(productData));
   const { prev: prevStepPath } = getPrevNextStepPaths(category, stepKey, location?.pathname);
-  const goLiveBackPath = prevStepPath || 'tech-info';
+  const goLiveBackPath = treatAsHoardingGoLive
+    ? 'mediaofflinehoardingtechinfo'
+    : prevStepPath || 'tech-info';
+  const goLiveBackCategory = treatAsHoardingGoLive ? 'mediaoffline' : category;
 
   useEffect(() => {
     if (!id) return;
@@ -3916,7 +3935,9 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
       });
       toast.success('Images uploaded! Redirecting to preview.');
       if (isMediaCategory) {
-        const base = (mediaOnlinePreviewPath || '/mediaonlineproductpreview').replace(/\/$/, '');
+        const base = treatAsHoardingGoLive
+          ? '/hoardingmediaofflineproductpreview'
+          : (mediaOnlinePreviewPath || '/mediaonlineproductpreview').replace(/\/$/, '');
         navigate(`${base}/${id}`);
       } else {
         navigate(`/allproductpreview/${id}`);
@@ -4143,7 +4164,11 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => navigate(`/${category}/${goLiveBackPath}${id ? `/${id}` : ''}`)}
+                      onClick={() =>
+                        navigate(
+                          `/${goLiveBackCategory}/${goLiveBackPath}${id ? `/${id}` : ''}`,
+                        )
+                      }
                       data-testid="btn-back"
                     >
                       <ArrowLeft className="w-4 h-4 mr-2" />
