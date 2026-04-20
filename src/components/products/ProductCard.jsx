@@ -9,10 +9,11 @@ import {
   getListingType,
   getProductType,
   getProductCategoryName,
+  getProductSubCategoryName,
   getVoucherVertical,
   isVoucherListing,
 } from '../../utils/listingProductFields';
-import bxitoken from '../../assets/bxi-token.svg'; 
+import bxitoken from '../../assets/bxi-token.svg';
 
 const statusConfig = {
   'Approved': { label: 'Live', className: 'live', color: 'bg-emerald-100 text-emerald-700' },
@@ -28,8 +29,8 @@ const statusConfig = {
 
 const defaultImage = 'https://images.unsplash.com/photo-1612538498488-226257115cc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwcHJvZHVjdCUyMHBhY2thZ2luZyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzA3OTI2MDh8MA&ixlib=rb-4.1.0&q=85';
 
-export const ProductCard = ({ 
-  product, 
+export const ProductCard = ({
+  product,
   companyType = 'Others',
   onDelete,
   onRelist,
@@ -51,10 +52,10 @@ export const ProductCard = ({
 
   // Get image URL
   const imageUrl = ProductImages?.[0]?.url || VoucherImages?.[0]?.url || defaultImage;
-  
+
   // Get price
   const price = ProductsVariantions?.[0]?.DiscountedPrice || ProductsVariantions?.[0]?.PricePerUnit;
-  
+
   // Get status config
   const status = statusConfig[ProductUploadStatus] || statusConfig['Draft'];
 
@@ -62,6 +63,7 @@ export const ProductCard = ({
   const categoryLabel = voucherRow
     ? getVoucherVertical(product)
     : getProductCategoryName(product) || getProductType(product);
+  const subcategoryLabel = getProductSubCategoryName(product);
 
   // Handle View
   const handleView = () => {
@@ -109,8 +111,8 @@ export const ProductCard = ({
     <div className="product-card fade-in" data-testid={`product-card-${_id}`}>
       {/* Image */}
       <div className="relative overflow-hidden group">
-        <img 
-          src={imageUrl} 
+        <img
+          src={imageUrl}
           alt={ProductName || 'Product'}
           className="product-card-image group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
@@ -131,9 +133,9 @@ export const ProductCard = ({
         <h3 className="product-card-name" title={ProductName}>
           {ProductName || 'Untitled Product'}
         </h3>
-        
+
         <p className="product-card-category">
-          {categoryLabel || getListingType(product) || 'Uncategorized'}
+          {subcategoryLabel || categoryLabel || getListingType(product) || 'Uncategorized'}
         </p>
 
         {price && (
@@ -162,7 +164,7 @@ export const ProductCard = ({
               <Eye className="w-3 h-3 mr-1" />
               View
             </Button>
-            
+
             {tabType === 'Live' && onDelist && (
               <Button
                 variant="outline"
@@ -175,7 +177,7 @@ export const ProductCard = ({
                 Delist
               </Button>
             )}
-            
+
             {tabType !== 'Delist' && tabType !== 'Live' && (
               <Button
                 variant="outline"

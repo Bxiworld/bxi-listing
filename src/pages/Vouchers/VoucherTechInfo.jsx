@@ -389,7 +389,7 @@ export default function VoucherTechInfo({ category }) {
                   </Label>
                   <Input
                     id="onlineRedemptionUrl"
-                    type="url"
+                    type="text"
                     placeholder="Add URL"
                     {...register('onlineRedemptionUrl')}
                     className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
