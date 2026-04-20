@@ -1392,7 +1392,7 @@ export default function MultiplexMediaProductPreview() {
                           </>
                         ) : (
                           <>
-                            <Typography sx={tableHeader}>
+                            {/* <Typography sx={tableHeader}>
                               Release Details
                             </Typography>
                             <Typography sx={fetchValue}>
@@ -1400,7 +1400,7 @@ export default function MultiplexMediaProductPreview() {
                                 GetProductByIdData?.ProductsVariantions.at(0)
                                   ?.releasedetails
                               }
-                            </Typography>
+                            </Typography> */}
                           </>
                         )}
                       </Grid>
@@ -1419,13 +1419,13 @@ export default function MultiplexMediaProductPreview() {
                             </>
                           ) : (
                             <>
-                              <Typography sx={tableHeader}> Edition</Typography>
+                              {/* <Typography sx={tableHeader}> Edition</Typography>
                               <Typography sx={fetchValue}>
                                 {
                                   GetProductByIdData?.ProductsVariantions.at(0)
                                     ?.edition
                                 }
-                              </Typography>
+                              </Typography> */}
                             </>
                           )}
                       </Grid>
