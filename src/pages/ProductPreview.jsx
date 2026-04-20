@@ -1292,12 +1292,13 @@ export default function ProductPreview() {
                     ...(prevProfile.previewHideMediaNameFromTech
                       ? []
                       : [['Media name', product?.medianame || product?.ProductName]]),
-                    ...(prevProfile.previewHideMediaMetaFromTech
-                      ? []
-                      : [
-                          ['Media category', product?.mediaCategory],
-                          ['Media journey', product?.mediaJourney],
-                        ]),
+                    // ...(prevProfile.previewHideMediaMetaFromTech
+                    //   ? []
+                    //   : [
+                    //       ['Media category', product?.mediaCategory],
+                    //       ['Media journey', product?.mediaJourney],
+                    //     ]
+                    //   ),
                     ['Offering this media at', pick(mv.offerningbrandat, product?.offerningbrandat)],
                     ['Ad position', product?.adPosition],
                     ['Edition', pick(mv.edition, v0.edition)],
