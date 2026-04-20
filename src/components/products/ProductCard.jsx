@@ -114,7 +114,6 @@ export const ProductCard = ({
         <img
           src={imageUrl}
           alt={ProductName || 'Product'}
-          style={{background: "contain"}}
           className="product-card-image group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             e.target.src = defaultImage;
