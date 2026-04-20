@@ -296,6 +296,10 @@ const MediaProductInfo = () => {
       const data = response?.data ?? response;
 
       setFetchedpProuctData(data);
+      setValue(
+        'medianame',
+        String(data?.medianame ?? data?.ProductName ?? '').trim(),
+      );
 
       if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
         setValue('mediaVariation.Timeline', 'Month');
@@ -303,7 +307,6 @@ const MediaProductInfo = () => {
 
       if (data?.mediaVariation) {
         setItems(data?.ProductFeatures);
-        setValue('medianame', data?.medianame);
         setValue('offerningbrandat', data?.offerningbrandat);
         setValue('estimatedFleets', data?.estimatedFleets ?? '');
         setValue(
@@ -1866,7 +1869,6 @@ const MediaProductInfo = () => {
                                     e.preventDefault();
                                   }
                                 }}
-                                defaultValue={FetchedproductData?.ProductName}
                                 sx={{
                                   ...lablechange,
                                   mt: 1,
