@@ -18,7 +18,7 @@ import api from '../../utils/api';
 import { Stepper } from '../AddProduct/AddProductSteps';
 
 const schema = z.object({
-  repetition: z.string().min(1, 'Repetition is required'),
+  repetition: z.string().optional(),
 });
 
 /** Min positive MRP and min discounted price across Excel rows (same rule as multiplex / hoarding). */
@@ -70,9 +70,6 @@ export default function DigitalScreensProductInfo() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
-    defaultValues: {
-      repetition: '',
-    },
   });
 
   useEffect(() => {
@@ -105,8 +102,6 @@ export default function DigitalScreensProductInfo() {
       setTagInput('');
     }
   };
-
-  const handleRemoveTag = (tag) => setTags(tags.filter((t) => t !== tag));
 
   const onExcelChange = (e) => {
     const file = e.target.files?.[0];
@@ -161,10 +156,6 @@ export default function DigitalScreensProductInfo() {
   };
 
   const onSubmit = async (data) => {
-    if (tags.length === 0) {
-      toast.error('Add at least one tag');
-      return;
-    }
     if (dataGridRows.length === 0) {
       toast.error('Upload the Digital Screens Excel file to add screen rows');
       return;
@@ -289,6 +280,8 @@ export default function DigitalScreensProductInfo() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+
             {dataGridRows.length > 0 && (
               <p className="text-sm text-[#6B7A99] rounded-md border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2">
                 MRP and discounted listing prices are taken as the{' '}
@@ -301,7 +294,7 @@ export default function DigitalScreensProductInfo() {
               <Button type="button" variant="outline" onClick={() => navigate(`/mediaonline/general-info/${id}`)}>
                 <ArrowLeft className="w-4 h-4 mr-2" /> Back
               </Button>
-              <Button type="submit" disabled={isSubmitting || tags.length === 0} className="bg-[#C64091] hover:bg-[#A03375]">
+              <Button type="submit" disabled={isSubmitting} className="bg-[#C64091] hover:bg-[#A03375]">
                 {isSubmitting ? 'Saving...' : 'Save & Next'} <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>

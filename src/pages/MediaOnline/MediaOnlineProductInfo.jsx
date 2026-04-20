@@ -2691,7 +2691,8 @@ const MediaProductInfo = () => {
                                   <Input
                                     disableUnderline
                                     disabled
-                                    {...register('mediaVariation.unit')}
+                                    inputProps={{ readOnly: true }}
+                                    value={String(watch('mediaVariation.unit') ?? '')}
                                     sx={{
                                       ...inputStyles,
                                       flex: '1 1 0',
@@ -2800,7 +2801,8 @@ const MediaProductInfo = () => {
                                   <Input
                                     disableUnderline
                                     disabled
-                                    {...register('mediaVariation.unit')}
+                                    inputProps={{ readOnly: true }}
+                                    value={String(watch('mediaVariation.unit') ?? '')}
                                     sx={{
                                       ...inputStyles,
                                       flex: '1 1 0',
