@@ -20,10 +20,9 @@ import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import EditIcon from '../../assets/Images/CommonImages/EditIcon.svg';
 import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useFieldArray } from 'react-hook-form';
 import { Info, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import OthercostPortion from '../MediaOffline/OthercostPortion.jsx';
@@ -427,6 +426,31 @@ const MediaProductInfo = () => {
     () => resolveMediaOnlineFormProfile(FetchedproductData || {}),
     [FetchedproductData],
   );
+  /** Flat list for Unit dropdown; native <select> avoids MUI MenuItem direct-descendant quirks. */
+  const unitSelectChoices = useMemo(() => {
+    if (listingProfile.unitOptions?.length) {
+      return listingProfile.unitOptions;
+    }
+    const isRadio =
+      FetchedproductData?.ProductSubCategoryName === 'Radio' ||
+      String(FetchedproductData?.ProductSubCategory || '') ===
+        '65029534eaa5251874e8c6c1';
+    return [
+      { value: 'Screen', label: 'Per Screen' },
+      { value: 'Unit', label: 'Per Unit' },
+      ...(isRadio ? [] : [{ value: 'Spot', label: 'Per Spot' }]),
+      { value: 'Sq cm', label: 'Per Sq cm' },
+      { value: 'Display', label: 'Per Display' },
+      { value: 'Location', label: 'Per Location' },
+      { value: 'Release', label: 'Per Release' },
+      { value: 'Annoucment', label: 'Per Announcement' },
+      { value: 'Video', label: 'Per Video' },
+    ];
+  }, [
+    listingProfile.unitOptions,
+    FetchedproductData?.ProductSubCategoryName,
+    FetchedproductData?.ProductSubCategory,
+  ]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
 
@@ -2045,44 +2069,44 @@ const MediaProductInfo = () => {
                                 </span>
                               ) : null}
                               </Typography>
-                              <Select
-                                disableUnderline
-                                {...register('mediaVariation.unit')}
-                                sx={{
-                                  ...inputStyles,
-                                  border: errors?.mediaVariation?.unit?.message
-                                    ? '1px solid red'
-                                    : '1px solid #E5E8EB',
-                                }}
-                              >
-                                {listingProfile.unitOptions
-                                  ? listingProfile.unitOptions.map((u) => (
-                                    <MenuItem key={u.value} value={u.value}>
-                                      {u.label}
-                                    </MenuItem>
-                                  ))
-                                  : (
-                                    <>
-                                      <MenuItem value="Screen">Per Screen</MenuItem>
-                                      <MenuItem value="Unit"> Per Unit </MenuItem>
-                                      {FetchedproductData?.ProductSubCategoryName ===
-                                        'Radio' ||
-                                        FetchedproductData?.ProductSubCategory ===
-                                        '65029534eaa5251874e8c6c1' ? null : (
-                                        <MenuItem value="Spot"> Per Spot </MenuItem>
-                                      )}
-                                      <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
-                                      <MenuItem value="Display"> Per Display </MenuItem>
-                                      <MenuItem value="Location"> Per Location </MenuItem>
-                                      <MenuItem value="Release"> Per Release </MenuItem>
-                                      <MenuItem value="Annoucment">
-                                        {' '}
-                                        Per Annoucment{' '}
-                                      </MenuItem>
-                                      <MenuItem value="Video"> Per Video</MenuItem>
-                                    </>
-                                  )}
-                              </Select>
+                              <Controller
+                                name="mediaVariation.unit"
+                                control={control}
+                                render={({ field }) => (
+                                  <Select
+                                    native
+                                    variant="standard"
+                                    disableUnderline
+                                    fullWidth
+                                    value={field.value ?? ''}
+                                    onChange={(e) =>
+                                      field.onChange(String(e.target.value ?? ''))
+                                    }
+                                    onBlur={field.onBlur}
+                                    name={field.name}
+                                    inputRef={field.ref}
+                                    inputProps={{
+                                      'aria-label': 'Unit',
+                                    }}
+                                    sx={{
+                                      ...inputStyles,
+                                      border: errors?.mediaVariation?.unit?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
+                                      '& .MuiNativeSelect-select': {
+                                        paddingRight: '28px',
+                                      },
+                                    }}
+                                  >
+                                    <option value="">Select unit</option>
+                                    {unitSelectChoices.map((u) => (
+                                      <option key={u.value} value={u.value}>
+                                        {u.label}
+                                      </option>
+                                    ))}
+                                  </Select>
+                                )}
+                              />
                               <Typography
                                 sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
                               >

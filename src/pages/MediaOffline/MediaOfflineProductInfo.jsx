@@ -349,7 +349,12 @@ const MediaProductInfo = () => {
     }
     try {
       const response = await api.get('/product/get_product_byId/' + ProductId);
-      setFetchedpProuctData(response.data);
+      const d = response.data;
+      setFetchedpProuctData(d);
+      setValue(
+        'medianame',
+        String(d?.medianame ?? d?.ProductName ?? '').trim(),
+      );
       if (
         response.data?.ProductSubCategory === '643cdf01779bc024c189cf95' ||
         response.data?.ProductSubCategory === '643ce635e424a0b8fcbba6d6' ||
@@ -364,7 +369,6 @@ const MediaProductInfo = () => {
       }
       if (response?.data?.ProductsVariantions?.length > 0) {
         setItems(response?.data?.ProductFeatures);
-        setValue('medianame', response?.data?.medianame);
         setValue('offerningbrandat', response?.data?.offerningbrandat);
         setValue('adPosition', response?.data?.adPosition);
         setValue(
@@ -834,7 +838,6 @@ const MediaProductInfo = () => {
                             e.preventDefault();
                           }
                         }}
-                        defaultValue={FetchedproductData?.ProductName}
                         sx={standardMultilineFieldSx(
                           !!errors?.medianame?.message,
                         )}

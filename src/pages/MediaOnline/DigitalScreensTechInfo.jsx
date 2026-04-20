@@ -244,7 +244,13 @@ export default function DigitalScreensTechInfo() {
       const timelineQuantity = resolveTimelineQuantityForFetch(mv, data, timelineDuration);
 
       setStoreMediaAllData({
-        mediaName: data?.mediaName ?? '',
+        mediaName:
+          (data?.mediaName ??
+            data?.medianame ??
+            data?.ProductName ??
+            '')
+            .toString()
+            .trim() || '',
         offeringbrandat: data?.offeringbrandat ?? '',
         repetition:
           mv.repetition != null && mv.repetition !== ''
@@ -512,14 +518,12 @@ export default function DigitalScreensTechInfo() {
             <div className="max-w-4xl mx-auto px-4 pb-16">
               <div className="form-section bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-6">
                 <h2 className="form-section-title mb-6">Digital Screens – Technical Information</h2>
-                {console.log("storeMediaAllData",productData)}
                 <form onSubmit={onValidSubmit} className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Media name *</Label>
                       <Input
                         value={storeMediaAllData.mediaName}
-                        defaultValue={productData?.ProductName}
                         onChange={(e) =>
                           setStoreMediaAllData((p) => ({ ...p, mediaName: e.target.value }))
                         }
