@@ -818,10 +818,6 @@ export default function HoardingMediaProductPreview() {
                     <Typography sx={DescriptionAnswerText}>
                       {GetProductByIdData?.ProductDescription}
                     </Typography>
-
-                    <Typography sx={{ ...semi, color: textPrimary }}>
-                      Product Information
-                    </Typography>
                     <Box
                       sx={{
                         width: '100%',
@@ -832,53 +828,20 @@ export default function HoardingMediaProductPreview() {
                         gap: '5px',
                       }}
                     >
-                      <DiscountedPrice
-                        regularPrice={
-                          GetProductByIdData?.ProductsVariantions?.at(0)
-                            ?.PricePerUnit
-                        }
-                        discountPrice={
-                          GetProductByIdData?.ProductsVariantions?.at(0)
-                            ?.DiscountedPrice
-                        }
-                        percentage={
-                          GetProductByIdData?.ProductsVariantions?.at(0)?.GST
-                        }
-                        GetProductByIdData={GetProductByIdData}
-                      />
                     </Box>
 
                     <Box
-                      mt={4}
+                      mt={1}
                       sx={{
                         width: '100%',
                         mx: 'auto',
                       }}
                     >
                       <Grid container sx={{ width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                        {GetProductByIdData?.medianame ? (
-                          <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                            <Typography sx={tableHeader}>Brand Name</Typography>
-                            <Typography
-                              sx={{ ...fetchValue, wordBreak: 'break-all' }}
-                            >
-                              {GetProductByIdData?.medianame}
-                            </Typography>
-                          </Grid>
-                        ) : null}
-                        {GetProductByIdData?.mediaName ? (
-                          <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                            <Typography sx={tableHeader}>Media name</Typography>
-                            <Typography sx={fetchValue}>
-                              {GetProductByIdData?.mediaName}
-                            </Typography>
-                          </Grid>
-                        ) : null}
-
                         <Box
                           sx={{
                             width: '100%',
-                            mt: 2,
+                            mt: 1,
                             borderRadius: `${radiusMd}px`,
                             border: `1px solid ${borderSubtle}`,
                             overflow: 'hidden',
@@ -925,121 +888,9 @@ export default function HoardingMediaProductPreview() {
                             }}
                           />
                         </Box>
-                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                          {GetProductByIdData?.offerningbrandat ? (
-                            <>
-                              <Typography sx={tableHeader}>
-                                {' '}
-                                Offering At
-                              </Typography>
-                              <Typography
-                                sx={{ ...fetchValue, wordBreak: 'break-all' }}
-                              >
-                                {GetProductByIdData?.offerningbrandat}
-                              </Typography>
-                            </>
-                          ) : (
-                            <>
-                              <Typography sx={tableHeader}>
-                                {' '}
-                                Position of the Ad ?
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  ...fetchValue,
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {GetProductByIdData?.adPosition}
-                              </Typography>
-                            </>
-                          )}
-                        </Grid>
                       </Grid>
-                      <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                        {GetProductByIdData?.ProductsVariantions.at(0)
-                          ?.location ? (
-                            <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                              <Typography sx={tableHeader}>Ad Type</Typography>
-                              <Typography sx={fetchValue}>
-                                {GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.location ||
-                                GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.adType}
-                              </Typography>
-                            </Grid>
-                          ) : null}
-                        {GetProductByIdData?.ProductsVariantions.at(0)?.Type ? (
-                          <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                            <Typography sx={tableHeader}>Type</Typography>
-                            <Typography sx={fetchValue}>
-                              {
-                                GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.Type
-                              }
-                            </Typography>
-                          </Grid>
-                        ) : null}
 
-                        {GetProductByIdData?.ProductsVariantions.at(0)
-                          ?.repetition ? (
-                            <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                              <>
-                                <Typography sx={tableHeader}>
-                                  {' '}
-                                Repetition
-                                </Typography>
-                                <Typography sx={fetchValue}>
-                                  {
-                                    GetProductByIdData?.ProductsVariantions.at(0)
-                                      ?.repetition
-                                  }
-                                </Typography>
-                              </>
-                            </Grid>
-                          ) : null}
-                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                          <Typography sx={tableHeader}>
-                            Dimension Size
-                          </Typography>
-                          <Typography sx={fetchValue}>
-                            {
-                              GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.dimensionSize
-                            }
-                          </Typography>
-                        </Grid>
-                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                          <Typography sx={tableHeader}>GST</Typography>
-                          <Typography sx={fetchValue}>
-                            {GetProductByIdData?.mediaVariation?.GST} %
-                          </Typography>
-                        </Grid>
-                      </Grid>
                       <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                        <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
-                          <Typography sx={tableHeader}>
-                            {' '}
-                            Min - Max Order Quantity Timeline
-                          </Typography>
-                          <Typography sx={fetchValue}>
-                            {GetProductByIdData?.ProductsVariantions.at(0)
-                              ?.minOrderQuantitytimeline
-                              ? `${GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.minOrderQuantitytimeline
-                              } - ${GetProductByIdData?.ProductsVariantions?.at(0)
-                                ?.maxOrderQuantitytimeline
-                              }`
-                              : 'N/A'}{' '}
-                            {''} /{' '}
-                            {
-                              GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.Timeline
-                            }
-                          </Typography>
-                        </Grid>
-                        
-
                         {GetProductByIdData?.ProductsVariantions?.at(0)
                           ?.minTimeslotSeconds ? (
                             <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
@@ -1232,159 +1083,6 @@ export default function HoardingMediaProductPreview() {
                           </Box>
                         </>
                       )}
-
-                    <Box mt={4}>
-                      <Typography sx={{ ...pack, color: textPrimary }}>
-                        Technical Information
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px',
-                        }}
-                      >
-                        <Typography sx={inclusiveheader}>
-                          Supporting you would give to buyer
-                        </Typography>
-                        {getSupportingDocsDisplayLabels(
-                          GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
-                        ).map((label, idx) => (
-                          <Typography
-                            key={`support-${label}-${idx}`}
-                            sx={{
-                              ...packHead,
-                              color: '#6B7A99',
-                              fontWeight: 400,
-                              fontSize: '16px',
-                              display: 'flex',
-                              gap: '10px',
-                            }}
-                          >
-                            {label}
-                          </Typography>
-                        ))}
-                      </Box>
-
-                      <Box>
-                        <Typography sx={inclusiveheader}>
-                          Dimensions of Ad / Content Needed
-                        </Typography>
-                        <Box>
-                          <Typography sx={dots}>
-                            {GetProductByIdData?.Dimensions}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography sx={inclusiveheader}>
-                          Content Upload Link
-                        </Typography>
-                        <Box>
-                          <a
-                            style={{
-                              fontFamily: fontFamily,
-                              fontStyle: 'normal',
-                              fontWeight: 400,
-                              fontSize: '16px',
-                              color: '#445FD2',
-                            }}
-                          >
-                            {GetProductByIdData?.UploadLink}
-                          </a>
-                          <br />
-                        </Box>
-                      </Box>
-
-                      {/* Calendar display removed - calendar module no longer used */}
-                    </Box>
-
-                    <Box mt={4}>
-                      <Typography sx={{ ...pack, color: textPrimary }}>
-                        Key Features
-                      </Typography>
-                      <Box
-                        sx={{
-                          width: '100%',
-                          display: 'flex',
-                          flexDirection: 'row',
-                        }}
-                      >
-                        <Grid
-                          container
-                          mt={0.5}
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            justifyContent: 'flex-start',
-                            width: '100%',
-                          }}
-                        >
-                          {ProductFeatures?.map((res, featIdx) => {
-                            return (
-                              <Grid
-                                item
-                                key={res?._id != null ? String(res._id) : `feature-${featIdx}-${res?.name ?? ''}`}
-                                xl={3}
-                                lg={3}
-                                md={4}
-                                sm={6}
-                                xs={6}
-                              >
-                                <Box
-                                  sx={{
-                                    // px: 2,
-                                    display: 'flex',
-                                    // flexWrap: "wrap",
-                                    textAlign: 'start',
-                                    flexDirection: 'row',
-                                    gap: { xs: '12px', sm: '24px', md: '48px', lg: '72px' },
-                                    mt: 1.5,
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      justifyContent: 'flex-start',
-                                      gap: '20px',
-                                      width: '100%',
-                                    }}
-                                  >
-                                    {/* <Box
-                                        component="img"
-                                        src={bxifeature}
-                                        sx={{ height: "80px", width: "30px" }}
-                                      /> */}
-                                    <FeatureName name={res?.name} />
-                                    <Box
-                                      sx={{
-                                        width: '80%',
-                                        maxWidth: '825px',
-                                        height: 'auto',
-                                        wordWrap: 'break-word',
-                                      }}
-                                    >
-                                      <Typography sx={packHead}>
-                                        {res.name}
-                                      </Typography>
-                                      <Typography
-                                        sx={{
-                                          ...packVal,
-                                          fontSize: { xs: '0.9375rem', sm: '1rem' },
-                                        }}
-                                      >
-                                        {res.description}{' '}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Box>
-                              </Grid>
-                            );
-                          })}
-                        </Grid>
-                      </Box>
-                    </Box>
                   </Box>
                 </Grid>
               </Grid>{' '}
@@ -1396,7 +1094,6 @@ export default function HoardingMediaProductPreview() {
               <Grid container>
                 <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
                   <Typography sx={{ ...semi, color: textPrimary }}>
-                    {/* {GetProductByIdData?.ProductName} */}
                     Product Information
                   </Typography>
                   <Box
@@ -1409,26 +1106,10 @@ export default function HoardingMediaProductPreview() {
                       gap: '5px',
                     }}
                   >
-                    <DiscountedPrice
-                      regularPrice={
-                        GetProductByIdData?.ProductsVariantions?.at(0)
-                          ?.PricePerUnit
-                      }
-                      discountPrice={
-                        GetProductByIdData?.ProductsVariantions?.at(0)
-                          ?.DiscountedPrice
-                      }
-                      percentage={
-                        GetProductByIdData?.ProductsVariantions?.at(0)?.GST
-                      }
-                      GetProductByIdData={GetProductByIdData}
-                    // regularPrice={10000}
-                    // discountPrice={5000}
-                    />
                   </Box>
 
                   <Box
-                    mt={4}
+                    mt={1}
                     sx={{
                       width: '100%',
                       mx: 'auto',
@@ -1472,7 +1153,7 @@ export default function HoardingMediaProductPreview() {
                           <>
                             <Typography sx={tableHeader}>
                               {' '}
-                              Position of the Ad ?
+                              Position of the Ad
                             </Typography>
                             <Typography
                               sx={{
@@ -1480,7 +1161,8 @@ export default function HoardingMediaProductPreview() {
                                 whiteSpace: 'nowrap',
                               }}
                             >
-                              {GetProductByIdData?.adPosition}
+                              {GetProductByIdData?.adType || '-'}
+                              {console.log(GetProductByIdData)}
                             </Typography>
                           </>
                         )}
@@ -1528,7 +1210,7 @@ export default function HoardingMediaProductPreview() {
                             </>
                           </Grid>
                         ) : null}
-                      <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                      {GetProductByIdData?.ProductsVariantions.at(0)?.dimensionSize && <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
                         <Typography sx={tableHeader}>Dimension Size</Typography>
                         <Typography sx={fetchValue}>
                           {
@@ -1536,7 +1218,7 @@ export default function HoardingMediaProductPreview() {
                               ?.dimensionSize
                           }
                         </Typography>
-                      </Grid>
+                      </Grid>}
                       <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
                         <Typography sx={tableHeader}>GST</Typography>
                         <Typography sx={fetchValue}>
@@ -1545,7 +1227,7 @@ export default function HoardingMediaProductPreview() {
                       </Grid>
                     </Grid>
                     <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                      <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
+                    {GetProductByIdData?.minOrderQtyTimeline &&  <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
                         <Typography sx={tableHeader}>
                           {' '}
                           Min - Max Order Quantity Timeline
@@ -1565,7 +1247,7 @@ export default function HoardingMediaProductPreview() {
                               ?.Timeline
                           }
                         </Typography>
-                      </Grid>
+                      </Grid>}
 
                       {GetProductByIdData?.ProductSubCategory ===
                         '643cda0c53068696706e3951' ? null : (
@@ -1825,7 +1507,7 @@ export default function HoardingMediaProductPreview() {
                   }}
                 >
                   <Typography sx={inclusiveheader}>
-                    Supporting you would give to buyer
+                    Supporting Media for buyer
                   </Typography>
                   {getSupportingDocsDisplayLabels(
                     GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
@@ -1846,6 +1528,7 @@ export default function HoardingMediaProductPreview() {
                   ))}
                 </Box>
 
+              {GetProductByIdData?.Dimensions &&
                 <Box>
                   <Typography sx={inclusiveheader}>
                     Dimensions of Ad / Content Needed
@@ -1855,13 +1538,15 @@ export default function HoardingMediaProductPreview() {
                       {GetProductByIdData?.Dimensions}
                     </Typography>
                   </Box>
-                </Box>
+                </Box>}
 
+              {GetProductByIdData?.UploadLink &&
                 <Box>
                   <Typography sx={inclusiveheader}>
                     Content Upload Link
                   </Typography>
-                  <Box>
+                  
+                    <Box>
                     <a
                       style={{
                         fontFamily: fontFamily,
@@ -1873,47 +1558,8 @@ export default function HoardingMediaProductPreview() {
                     >
                       {GetProductByIdData?.UploadLink}
                     </a>
-                    <br />
                   </Box>
-                </Box>
-
-                <Box>
-                  <Typography sx={inclusiveheader}>
-                    Inventory Available Dates
-                  </Typography>
-                  <Box sx={{ pt: '0.8%', display: 'flex', gap: '10%' }}>
-                    <Typography sx={dateMonth}>Start Date</Typography>
-                    <Typography sx={dateMonth}>End Date</Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      overflow: 'auto',
-                      marginRight: '900px',
-                      '::-webkit-scrollbar': {
-                        display: 'flex',
-                      },
-                      '::-webkit-scrollbar-thumb': {
-                        dynamic: '#8d8e90',
-                        minHeight: '10px',
-                        borderRadius: '8px',
-                      },
-                      '::-webkit-scrollbar-thumb:vertical': {
-                        maxHeight: '10px',
-                      },
-                      maxHeight: 'auto',
-                      height: 'auto',
-                    }}
-                  >
-                    <Stack>
-                      <Box sx={{ pt: '0.8%', display: 'flex', gap: '10%' }}>
-                        <Typography sx={valDateMonth}>
-                          {/* Calendar display removed - calendar module no longer used */}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </Box>
+                </Box>}
               </Box>
             </Box>
             )}
@@ -2274,7 +1920,7 @@ const semi = {
     sm: 'start',
     xs: 'start',
   },
-  mt: { xs: 2, md: 3 },
+  mt: { xs: 2, md: 1 },
   mb: 1,
 };
 
