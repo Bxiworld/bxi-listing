@@ -1162,7 +1162,6 @@ export default function HoardingMediaProductPreview() {
                               }}
                             >
                               {GetProductByIdData?.adType || '-'}
-                              {console.log(GetProductByIdData)}
                             </Typography>
                           </>
                         )}
