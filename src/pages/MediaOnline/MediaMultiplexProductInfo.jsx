@@ -460,14 +460,6 @@ export default function MediaMultiplexProductInfo() {
                   <Input placeholder="e.g. 1920x1080" {...register('dimensionSize')} />
                   {errors.dimensionSize && <p className="text-sm text-red-500">{errors.dimensionSize.message}</p>}
                 </div>
-                <div className="space-y-2">
-                  <Label>Min Order Qty Timeline</Label>
-                  <Input type="number" {...register('minOrderQuantity')} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Max Order Qty Timeline</Label>
-                  <Input type="number" {...register('maxOrderQuantity')} />
-                </div>
               </div>
 
               {mediaVariations.length > 0 && (
