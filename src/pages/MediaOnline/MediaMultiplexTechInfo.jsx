@@ -653,7 +653,7 @@ export default function MediaMultiplexTechInfo() {
 
   function filterMultiples(array, multiple) {
     return array.filter(function (value) {
-      return value > multiple;
+      return value >= multiple;
     });
   }
 
@@ -1023,7 +1023,7 @@ export default function MediaMultiplexTechInfo() {
                                             Number(
                                               getValues()?.mediaVariation
                                                 ?.minTimeslotSeconds
-                                            ) >= Number(item)
+                                            ) > Number(item)
                                           )
                                             return null;
 

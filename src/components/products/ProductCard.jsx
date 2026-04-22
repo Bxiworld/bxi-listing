@@ -27,7 +27,7 @@ const statusConfig = {
   'Delist': { label: 'Delisted', className: 'delist', color: 'bg-gray-100 text-gray-600' },
 };
 
-const defaultImage = 'https://images.unsplash.com/photo-1612538498488-226257115cc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwcHJvZHVjdCUyMHBhY2thZ2luZyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzA3OTI2MDh8MA&ixlib=rb-4.1.0&q=85';
+const defaultImage = 'https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/brandWorldLogoWithBG.png' || 'https://images.unsplash.com/photo-1612538498488-226257115cc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwcHJvZHVjdCUyMHBhY2thZ2luZyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzA3OTI2MDh8MA&ixlib=rb-4.1.0&q=85';
 
 export const ProductCard = ({
   product,
