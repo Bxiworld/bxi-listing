@@ -2014,6 +2014,8 @@ const MediaProductInfo = () => {
                               </Typography>
                               <Select
                                 disableUnderline
+                                displayEmpty
+                                defaultValue=""
                                 {...register('mediaVariation.location')}
                                 sx={{
                                   ...inputStyles,
@@ -2022,8 +2024,16 @@ const MediaProductInfo = () => {
                                     ? '1px solid red'
                                     : '1px solid #E5E8EB',
                                 }}
-
+                                renderValue={(selected) => {
+                                  if (!selected) {
+                                    return <span style={{ color: '#aaa' }}>Select location</span>;
+                                  }
+                                  return selected;
+                                }}
                               >
+                                <MenuItem value="" disabled>
+                                  Select location
+                                </MenuItem>
                                 {adTypeOptions
                                   .slice()
                                   .sort((a, b) => a.localeCompare(b))
@@ -2075,39 +2085,43 @@ const MediaProductInfo = () => {
                                 name="mediaVariation.unit"
                                 control={control}
                                 render={({ field }) => (
-                                  <Select
-                                    native
-                                    variant="standard"
-                                    disableUnderline
-                                    fullWidth
-                                    value={field.value ?? ''}
-                                    onChange={(e) =>
-                                      field.onChange(String(e.target.value ?? ''))
-                                    }
-                                    onBlur={field.onBlur}
-                                    name={field.name}
-                                    inputRef={field.ref}
-                                    inputProps={{
-                                      'aria-label': 'Unit',
-                                    }}
-                                    sx={{
-                                      ...inputStyles,
-                                      border: errors?.mediaVariation?.unit?.message
-                                        ? '1px solid red'
-                                        : '2px solid #cecece',
-                                      '& .MuiNativeSelect-select': {
-                                        paddingRight: '28px',
-                                      },
-                                    }}
-                                  >
-                                    <option value="">Select unit</option>
-                                    {unitSelectChoices.map((u) => (
-                                      <option key={u.value} value={u.value}>
-                                        {u.label}
-                                      </option>
-                                    ))}
-                                  </Select>
-                                )}
+                                <Select
+                                  native
+                                  variant="standard"
+                                  disableUnderline
+                                  fullWidth
+                                  value={field.value ?? ''}
+                                  onChange={(e) =>
+                                    field.onChange(String(e.target.value ?? ''))
+                                  }
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  inputRef={field.ref}
+                                  inputProps={{
+                                    'aria-label': 'Unit',
+                                  }}
+                                  sx={{
+                                    ...inputStyles,
+                                    border: errors?.mediaVariation?.unit?.message
+                                      ? '1px solid red'
+                                      : '2px solid #cecece',
+                                    '& .MuiNativeSelect-select': {
+                                      paddingRight: '28px',
+                                      color: field.value ? '#000' : '#aaa',
+                                    },
+                                  }}
+                                >
+                                  <option value="" disabled >
+                                    Select unit
+                                  </option>
+
+                                  {unitSelectChoices.map((u) => (
+                                    <option key={u.value} value={u.value}>
+                                      {u.label}
+                                    </option>
+                                  ))}
+                                </Select>
+                              )}
                               />
                               <Typography
                                 sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
@@ -2150,63 +2164,65 @@ const MediaProductInfo = () => {
                                 </Typography>
                                 <Select
                                   disableUnderline
+                                  displayEmpty
+                                  defaultValue=""
                                   {...register('mediaVariation.Timeline')}
                                   sx={{
                                     ...inputStyles,
-                                    border: errors?.mediaVariation?.Timeline
-                                      ?.message
+                                    border: errors?.mediaVariation?.Timeline?.message
                                       ? '1px solid red'
                                       : '1px solid #E5E8EB',
                                   }}
-                                  disabled={FetchedproductData?.ProductSubCategory ===
-                                    '65029534eaa5251874e8c6b4'}
+                                  disabled={
+                                    FetchedproductData?.ProductSubCategory ===
+                                    '65029534eaa5251874e8c6b4'
+                                  }
+                                  renderValue={(selected) => {
+                                    if (!selected) {
+                                      return <span style={{ color: '#aaa' }}>Select timeline</span>;
+                                    }
+                                    return selected;
+                                  }}
                                 >
+                                  <MenuItem value="" disabled>
+                                    Select timeline
+                                  </MenuItem>
+
                                   <MenuItem
                                     value="Day"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
+                                    onClick={() => setOnlyState(!onlyState)}
                                   >
-                                    {' '}
-                                    Per Day{' '}
+                                    Per Day
                                   </MenuItem>
+
                                   <MenuItem
                                     value="Week"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
+                                    onClick={() => setOnlyState(!onlyState)}
                                   >
-                                    {' '}
-                                    Per Week{' '}
+                                    Per Week
                                   </MenuItem>
+
                                   <MenuItem
                                     value="Month"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
+                                    onClick={() => setOnlyState(!onlyState)}
                                   >
-                                    {' '}
-                                    Per Month{' '}
+                                    Per Month
                                   </MenuItem>
-                                  {!listingProfile.timelineHideOneTime ? (
+
+                                  {!listingProfile.timelineHideOneTime && (
                                     <MenuItem
                                       value="One Time"
-                                      onClick={() => {
-                                        setOnlyState(!onlyState);
-                                      }}
+                                      onClick={() => setOnlyState(!onlyState)}
                                     >
-                                      {' '}
-                                      Per One Time{' '}
+                                      Per One Time
                                     </MenuItem>
-                                  ) : null}
+                                  )}
+
                                   <MenuItem
                                     value="Year"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
+                                    onClick={() => setOnlyState(!onlyState)}
                                   >
-                                    {' '}
-                                    Per Year{' '}
+                                    Per Year
                                   </MenuItem>
                                 </Select>
                                 <Typography
@@ -2621,728 +2637,739 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                           </Box>
-                          <Box
-                            className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
-                            sx={{ alignItems: 'flex-start' }}
-                          >
                             <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
+                              sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mt: 2 }}
                             >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Min Order QTY Unit{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.minOrderQuantityunit?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    placeholder="100"
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    {...register(
-                                      'mediaVariation.minOrderQuantityunit',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                          if (
-                                            FetchedproductData?.ProductSubCategory ===
-                                            '65029534eaa5251874e8c6b4'
-                                          ) {
-                                            setValue(
-                                              'mediaVariation.maxOrderQuantityunit',
-                                              event.target.value,
-                                            );
-                                          }
-                                        },
-                                      },
-                                    )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    disabled
-                                    inputProps={{ readOnly: true }}
-                                    value={String(watch('mediaVariation.unit') ?? '')}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation?.minOrderQuantityunit
-                                      ?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Max Order QTY Unit{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.maxOrderQuantityunit?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    placeholder="200"
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    {...register(
-                                      'mediaVariation.maxOrderQuantityunit',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
-                                    )}
-                                    disabled={FetchedproductData?.ProductSubCategory ===
-                                      '65029534eaa5251874e8c6b4'}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    disabled
-                                    inputProps={{ readOnly: true }}
-                                    value={String(watch('mediaVariation.unit') ?? '')}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation?.maxOrderQuantityunit
-                                      ?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Min Order QTY Timeline{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.minOrderQuantitytimeline?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.minOrderQuantitytimeline',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
-                                    )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    placeholder={'Timeline'}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    {...register('mediaVariation.Timeline')}
-                                    disabled
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation
-                                      ?.minOrderQuantitytimeline?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Max Order QTY Timeline{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.maxOrderQuantitytimeline?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.maxOrderQuantitytimeline',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
-                                    )}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                    placeholder={'Timeline'}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    {...register('mediaVariation.Timeline')}
-                                    disabled
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation
-                                      ?.maxOrderQuantitytimeline?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Min Order Timeslot{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    gap: 1,
-                                  }}
-                                >
-                                  <Select
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.minTimeslotSeconds',
-                                      {
-                                        onChange: (e) => {
-                                          setOnlyState(!onlyState);
-                                        },
-                                      },
-                                    )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      width: '100%',
-                                      maxWidth: '100%',
-                                      border: errors?.mediaVariation
-                                        ?.minTimeslotSeconds?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
-                                  >
-                                    {SecondsFieldArr?.map((item, idx) => {
-                                      return (
-                                        <MenuItem
-                                          key={item ?? idx}
-                                          sx={{
-                                            border: '1px white solid',
-                                          }}
-                                          onClick={() => {
-                                            setMaxtimeslotArr(
-                                              filterMultiples(
-                                                SecondsFieldArr,
-                                                item,
-                                              ),
-                                            );
-                                          }}
-                                          value={item}
-                                        >
-                                          {item}
-                                        </MenuItem>
-                                      );
-                                    })}
-                                  </Select>
-                                  <Input
-                                    disableUnderline
-                                    value={'seconds'}
-                                    disabled
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '0 0 76px',
-                                      width: '76px',
-                                      minWidth: '76px',
-                                      maxWidth: '76px',
-                                      paddingY: '0.5px',
-                                      fontSize: '12px',
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation?.minTimeslotSeconds
-                                      ?.message
-                                  }
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    ...CommonTextStyle,
-                                    fontSize: '12px',
-                                    color: '#6B7A99',
-                                  }}
-                                >
-                                  {FetchedproductData?.mediaVariation
-                                    ?.minTimeslotSeconds
-                                    ? 'Selected minTimeslotSeconds :' +
-                                    FetchedproductData?.mediaVariation
-                                      ?.minTimeslotSeconds
-                                    : null}
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Max Order Timeslot{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    gap: 1,
-                                  }}
-                                >
-                                  <Select
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.maxTimeslotSeconds',
-                                    )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      width: '100%',
-                                      maxWidth: '100%',
-                                      border: errors?.mediaVariation
-                                        ?.maxTimeslotSeconds?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
-                                  >
-
-                                    {SecondsFieldArr?.map((item, idx) => {
-                                      return (
-                                        <MenuItem
-                                          key={item ?? idx}
-                                          sx={{
-                                            border: '1px white solid',
-                                          }}
-                                          onClick={() => {
-                                            setMaxtimeslotArr(
-                                              filterMultiples(
-                                                SecondsFieldArr,
-                                                item,
-                                              ),
-                                            );
-                                          }}
-                                          value={item}
-                                        >
-                                          {item}
-                                        </MenuItem>
-                                      );
-                                    })}
-                                  </Select>
-                                  <Input
-                                    disableUnderline
-                                    value={'seconds'}
-                                    disabled
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '0 0 76px',
-                                      width: '76px',
-                                      minWidth: '76px',
-                                      maxWidth: '76px',
-                                      paddingY: '0.5px',
-                                      fontSize: '12px',
-                                    }}
-                                  />
-                                </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation?.maxTimeslotSeconds
-                                      ?.message
-                                  }
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    ...CommonTextStyle,
-                                    fontSize: '12px',
-                                    color: '#6B7A99',
-                                  }}
-                                >
-                                  {FetchedproductData?.mediaVariation
-                                    ?.maxTimeslotSeconds
-                                    ? 'Selected maxTimeslotSeconds :' +
-                                    FetchedproductData?.mediaVariation
-                                      ?.maxTimeslotSeconds
-                                    : null}
-                                </Typography>
-                              </Box>
-                            </Box>
-
-                            {listingProfile.key === 'airport' && listingProfile.loopTimeField ? (
                               <Box
                                 className="min-w-0 w-full"
                                 sx={{
                                   display: 'flex',
                                   flexDirection: 'column',
                                   gap: 1,
-                                  mt: 1,
+                                  mt: 0,
                                   minWidth: 0,
                                 }}
                               >
                                 <Typography
+                                noWrap
                                   sx={{
                                     ...CommonTextStyle,
                                     fontSize: '12px',
                                     lineHeight: 1.25,
                                   }}
                                 >
-                                  Loop time (seconds){' '}
+                                  Min Order QTY Unit{' '}
                                   <span style={{ color: 'red' }}>*</span>
                                 </Typography>
-                                <Input
-                                  disableUnderline
-                                  type="number"
-                                  inputProps={{ min: 10, step: 1 }}
-                                  {...register('loopTimeSeconds')}
+                                <Box
                                   sx={{
-                                    ...inputStyles,
-                                    maxWidth: 160,
-                                    border: '1px solid #E5E8EB',
-                                    borderRadius: '10px',
-                                    px: 1,
-                                    height: 42,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.5,
+                                    width: '100%',
+                                    minWidth: 0,
                                   }}
-                                />
+                                >
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      width: '100%',
+                                      minWidth: 0,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.minOrderQuantityunit?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
+                                    }}
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      placeholder="100"
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      {...register(
+                                        'mediaVariation.minOrderQuantityunit',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                            if (
+                                              FetchedproductData?.ProductSubCategory ===
+                                              '65029534eaa5251874e8c6b4'
+                                            ) {
+                                              setValue(
+                                                'mediaVariation.maxOrderQuantityunit',
+                                                event.target.value,
+                                              );
+                                            }
+                                          },
+                                        },
+                                      )}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      disabled
+                                      inputProps={{ readOnly: true }}
+                                      value={String(watch('mediaVariation.unit') ?? '')}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    {
+                                      errors?.mediaVariation?.minOrderQuantityunit
+                                        ?.message
+                                    }
+                                  </Typography>
+                                </Box>
                               </Box>
-                            ) : null}
-                          </Box>
+                              <Box
+                                className="min-w-0 w-full"
+                                sx={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 1,
+                                  mt: 0,
+                                  minWidth: 0,
+                                }}
+                              >
+                                <Typography
+                                noWrap
+                                  sx={{
+                                    ...CommonTextStyle,
+                                    fontSize: '12px',
+                                    lineHeight: 1.25,
+                                  }}
+                                >
+                                  Max Order QTY Unit{' '}
+                                  <span style={{ color: 'red' }}>*</span>
+                                </Typography>
+
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.5,
+                                    width: '100%',
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      width: '100%',
+                                      minWidth: 0,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.maxOrderQuantityunit?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
+                                    }}
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      placeholder="200"
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      {...register(
+                                        'mediaVariation.maxOrderQuantityunit',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      disabled={FetchedproductData?.ProductSubCategory ===
+                                        '65029534eaa5251874e8c6b4'}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      disabled
+                                      inputProps={{ readOnly: true }}
+                                      value={String(watch('mediaVariation.unit') ?? '')}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    {
+                                      errors?.mediaVariation?.maxOrderQuantityunit
+                                        ?.message
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Box
+                                className="min-w-0 w-full"
+                                sx={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 1,
+                                  mt: 0,
+                                  minWidth: 0,
+                                }}
+                              >
+                                <Typography
+                                noWrap
+                                  sx={{
+                                    ...CommonTextStyle,
+                                    fontSize: '12px',
+                                    lineHeight: 1.25,
+                                  }}
+                                >
+                                  Min Order QTY Timeline{' '}
+                                  <span style={{ color: 'red' }}>*</span>
+                                </Typography>
+
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.5,
+                                    width: '100%',
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      width: '100%',
+                                      minWidth: 0,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.minOrderQuantitytimeline?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
+                                    }}
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      {...register(
+                                        'mediaVariation.minOrderQuantitytimeline',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      placeholder={'Timeline'}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      {...register('mediaVariation.Timeline')}
+                                      disabled
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    {
+                                      errors?.mediaVariation
+                                        ?.minOrderQuantitytimeline?.message
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Box
+                                className="min-w-0 w-full"
+                                sx={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 1,
+                                  mt: 0,
+                                  minWidth: 0,
+                                }}
+                              >
+                                <Typography
+                                noWrap
+                                  sx={{
+                                    ...CommonTextStyle,
+                                    fontSize: '12px',
+                                    lineHeight: 1.25,
+                                  }}
+                                >
+                                  Max Order QTY Timeline{' '}
+                                  <span style={{ color: 'red' }}>*</span>
+                                </Typography>
+
+                                <Box
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.5,
+                                    width: '100%',
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      width: '100%',
+                                      minWidth: 0,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.maxOrderQuantitytimeline?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
+                                    }}
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      {...register(
+                                        'mediaVariation.maxOrderQuantitytimeline',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                      placeholder={'Timeline'}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      {...register('mediaVariation.Timeline')}
+                                      disabled
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                  >
+                                    {
+                                      errors?.mediaVariation
+                                        ?.maxOrderQuantitytimeline?.message
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            </Box>
+
+                              <Box
+                              sx={{display: 'flex', gap: 1, mt: 2}}
+                              >
+                                <Box
+                                  className="min-w-0 w-full"
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    mt: 0,
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Typography
+                                  noWrap
+                                    sx={{
+                                      ...CommonTextStyle,
+                                      fontSize: '12px',
+                                      lineHeight: 1.25,
+                                    }}
+                                  >
+                                    Min Order Timeslot{' '}
+                                    <span style={{ color: 'red' }}>*</span>
+                                  </Typography>
+
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 0.5,
+                                      width: '100%',
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        width: '100%',
+                                        minWidth: 0,
+                                        alignItems: 'stretch',
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Select
+                                        disableUnderline
+                                        {...register(
+                                          'mediaVariation.minTimeslotSeconds',
+                                          {
+                                            onChange: (e) => {
+                                              setOnlyState(!onlyState);
+                                            },
+                                          },
+                                        )}
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '1 1 0',
+                                          minWidth: 0,
+                                          width: '100%',
+                                          maxWidth: '100%',
+                                          border: errors?.mediaVariation
+                                            ?.minTimeslotSeconds?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                        }}
+                                      >
+                                        {SecondsFieldArr?.map((item, idx) => {
+                                          return (
+                                            <MenuItem
+                                              key={item ?? idx}
+                                              sx={{
+                                                border: '1px white solid',
+                                              }}
+                                              onClick={() => {
+                                                setMaxtimeslotArr(
+                                                  filterMultiples(
+                                                    SecondsFieldArr,
+                                                    item,
+                                                  ),
+                                                );
+                                              }}
+                                              value={item}
+                                            >
+                                              {item}
+                                            </MenuItem>
+                                          );
+                                        })}
+                                      </Select>
+                                      <Input
+                                        disableUnderline
+                                        value={'seconds'}
+                                        disabled
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '0 0 76px',
+                                          width: '76px',
+                                          minWidth: '76px',
+                                          maxWidth: '76px',
+                                          paddingY: '0.5px',
+                                          fontSize: '12px',
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography
+                                      sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                    >
+                                      {
+                                        errors?.mediaVariation?.minTimeslotSeconds
+                                          ?.message
+                                      }
+                                    </Typography>
+                                    <Typography
+                                      sx={{
+                                        ...CommonTextStyle,
+                                        fontSize: '12px',
+                                        color: '#6B7A99',
+                                      }}
+                                    >
+                                      {FetchedproductData?.mediaVariation
+                                        ?.minTimeslotSeconds
+                                        ? 'Selected minTimeslotSeconds :' +
+                                        FetchedproductData?.mediaVariation
+                                          ?.minTimeslotSeconds
+                                        : null}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                <Box
+                                  className="min-w-0 w-full"
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    mt: 0,
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Typography
+                                  noWrap
+                                    sx={{
+                                      ...CommonTextStyle,
+                                      fontSize: '12px',
+                                      lineHeight: 1.25,
+                                    }}
+                                  >
+                                    Max Order Timeslot{' '}
+                                    <span style={{ color: 'red' }}>*</span>
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 0.5,
+                                      width: '100%',
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        width: '100%',
+                                        minWidth: 0,
+                                        alignItems: 'stretch',
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Select
+                                        disableUnderline
+                                        {...register(
+                                          'mediaVariation.maxTimeslotSeconds',
+                                        )}
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '1 1 0',
+                                          minWidth: 0,
+                                          width: '100%',
+                                          maxWidth: '100%',
+                                          border: errors?.mediaVariation
+                                            ?.maxTimeslotSeconds?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                        }}
+                                      >
+
+                                        {SecondsFieldArr?.map((item, idx) => {
+                                          return (
+                                            <MenuItem
+                                              key={item ?? idx}
+                                              sx={{
+                                                border: '1px white solid',
+                                              }}
+                                              onClick={() => {
+                                                setMaxtimeslotArr(
+                                                  filterMultiples(
+                                                    SecondsFieldArr,
+                                                    item,
+                                                  ),
+                                                );
+                                              }}
+                                              value={item}
+                                            >
+                                              {item}
+                                            </MenuItem>
+                                          );
+                                        })}
+                                      </Select>
+                                      <Input
+                                        disableUnderline
+                                        value={'seconds'}
+                                        disabled
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '0 0 76px',
+                                          width: '76px',
+                                          minWidth: '76px',
+                                          maxWidth: '76px',
+                                          paddingY: '0.5px',
+                                          fontSize: '12px',
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography
+                                      sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
+                                    >
+                                      {
+                                        errors?.mediaVariation?.maxTimeslotSeconds
+                                          ?.message
+                                      }
+                                    </Typography>
+                                    <Typography
+                                      sx={{
+                                        ...CommonTextStyle,
+                                        fontSize: '12px',
+                                        color: '#6B7A99',
+                                      }}
+                                    >
+                                      {FetchedproductData?.mediaVariation
+                                        ?.maxTimeslotSeconds
+                                        ? 'Selected maxTimeslotSeconds :' +
+                                        FetchedproductData?.mediaVariation
+                                          ?.maxTimeslotSeconds
+                                        : null}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              
+
+                              {listingProfile.key === 'airport' && listingProfile.loopTimeField ? (
+                                <Box
+                                  className="min-w-0 w-full"
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    mt: 0,
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      ...CommonTextStyle,
+                                      fontSize: '12px',
+                                      lineHeight: 1.25,
+                                    }}
+                                  >
+                                    Loop time (seconds){' '}
+                                    <span style={{ color: 'red' }}>*</span>
+                                  </Typography>
+                                  <Input
+                                    disableUnderline
+                                    type="number"
+                                    inputProps={{ min: 10, step: 1 }}
+                                    {...register('loopTimeSeconds')}
+                                    sx={{
+                                      ...inputStyles,
+                                      maxWidth: 160,
+                                      border: '1px solid #E5E8EB',
+                                      borderRadius: '10px',
+                                      px: 1,
+                                      height: 42,
+                                    }}
+                                  />
+                                </Box>
+                              ) : null}
+                            </Box>  
                         </Box>
                       )}
 
