@@ -2094,7 +2094,7 @@ const MediaProductInfo = () => {
                                       ...inputStyles,
                                       border: errors?.mediaVariation?.unit?.message
                                         ? '1px solid red'
-                                        : '1px solid #E5E8EB',
+                                        : '2px solid #cecece',
                                       '& .MuiNativeSelect-select': {
                                         paddingRight: '28px',
                                       },
@@ -2239,11 +2239,11 @@ const MediaProductInfo = () => {
                                 {...register('mediaVariation.repetition')}
                                 sx={{
                                   ...inputStyles,
-                                  mt: 0.5,
+                                  mt: 1,
                                   border: errors?.mediaVariation?.repetition
                                     ?.message
                                     ? '1px solid red'
-                                    : '1px solid #E5E8EB',
+                                    : '2px solid #cecece',
                                 }}
                                 onKeyDown={(e) => {
                                   if (
@@ -2543,7 +2543,7 @@ const MediaProductInfo = () => {
                               >
                                 GST <span style={{ color: 'red' }}> *</span>
                               </Typography>
-                              <Typography
+                              {FetchedproductData?.mediaVariation?.GST && <Typography
                                 sx={{
                                   ...CommonTextStyle,
                                   fontSize: '12px',
@@ -2551,7 +2551,6 @@ const MediaProductInfo = () => {
                                   border: errors?.mediaVariation?.GST?.message,
                                 }}
                               >
-                                {FetchedproductData?.mediaVariation?.GST ? (
                                   <span
                                     style={{
                                       fontWeight: 500,
@@ -2561,8 +2560,8 @@ const MediaProductInfo = () => {
                                     Your Selected GST:{' '}
                                     {FetchedproductData?.mediaVariation?.GST}
                                   </span>
-                                ) : null}
-                              </Typography>
+                                
+                              </Typography>}
 
                               <Box sx={{ position: 'relative', width: '100%', maxWidth: 120 }}>
                                 <Select
@@ -2604,7 +2603,7 @@ const MediaProductInfo = () => {
                                 <Typography
                                   sx={{
                                     position: 'absolute',
-                                    right: 10,
+                                    right: 75,
                                     top: '50%',
                                     transform: 'translateY(-50%)',
                                     color: '#979797',
@@ -3716,13 +3715,13 @@ const MediaProductInfo = () => {
                               ...inputStyles,
                               width: '100%',
                               maxWidth: '100%',
-                              height: '42px',
+                              height: '40px',
                               fontSize: '12px',
                               boxSizing: 'border-box',
                               border: errors?.GeographicalData?.landmark?.message &&
                                 IsDisabled !== 'PAN India'
                                 ? '1px solid red'
-                                : '1px solid #E5E8EB',
+                                : '2px solid #cecece',
                             }}
                           />
                           <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
