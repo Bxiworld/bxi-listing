@@ -3131,47 +3131,52 @@ const MediaProductInfo = () => {
                                     >
                                       <Select
                                         disableUnderline
-                                        {...register(
-                                          'mediaVariation.minTimeslotSeconds',
-                                          {
-                                            onChange: (e) => {
-                                              setOnlyState(!onlyState);
-                                            },
+                                        displayEmpty
+                                        defaultValue=""
+                                        {...register('mediaVariation.minTimeslotSeconds', {
+                                          onChange: (e) => {
+                                            setOnlyState(!onlyState);
                                           },
-                                        )}
+                                        })}
                                         sx={{
                                           ...inputStyles,
                                           flex: '1 1 0',
                                           minWidth: 0,
                                           width: '100%',
                                           maxWidth: '100%',
-                                          border: errors?.mediaVariation
-                                            ?.minTimeslotSeconds?.message
+                                          border: errors?.mediaVariation?.minTimeslotSeconds?.message
                                             ? '1px solid red'
                                             : '1px solid #E5E8EB',
                                         }}
+                                        renderValue={(selected) => {
+                                          if (!selected) {
+                                            return (
+                                              <span style={{ color: '#aaa' }}>
+                                                Select minimum 
+                                              </span>
+                                            );
+                                          }
+                                          return selected;
+                                        }}
                                       >
-                                        {SecondsFieldArr?.map((item, idx) => {
-                                          return (
-                                            <MenuItem
-                                              key={item ?? idx}
-                                              sx={{
-                                                border: '1px white solid',
-                                              }}
-                                              onClick={() => {
-                                                setMaxtimeslotArr(
-                                                  filterMultiples(
-                                                    SecondsFieldArr,
-                                                    item,
-                                                  ),
-                                                );
-                                              }}
-                                              value={item}
-                                            >
-                                              {item}
-                                            </MenuItem>
-                                          );
-                                        })}
+                                        <MenuItem value="" disabled>
+                                          Select minimum
+                                        </MenuItem>
+
+                                        {SecondsFieldArr?.map((item, idx) => (
+                                          <MenuItem
+                                            key={item ?? idx}
+                                            sx={{ border: '1px white solid' }}
+                                            onClick={() => {
+                                              setMaxtimeslotArr(
+                                                filterMultiples(SecondsFieldArr, item)
+                                              );
+                                            }}
+                                            value={item}
+                                          >
+                                            {item}
+                                          </MenuItem>
+                                        ))}
                                       </Select>
                                       <Input
                                         disableUnderline
@@ -3253,43 +3258,48 @@ const MediaProductInfo = () => {
                                     >
                                       <Select
                                         disableUnderline
-                                        {...register(
-                                          'mediaVariation.maxTimeslotSeconds',
-                                        )}
+                                        displayEmpty
+                                        defaultValue=""
+                                        {...register('mediaVariation.maxTimeslotSeconds')}
                                         sx={{
                                           ...inputStyles,
                                           flex: '1 1 0',
                                           minWidth: 0,
                                           width: '100%',
                                           maxWidth: '100%',
-                                          border: errors?.mediaVariation
-                                            ?.maxTimeslotSeconds?.message
+                                          border: errors?.mediaVariation?.maxTimeslotSeconds?.message
                                             ? '1px solid red'
                                             : '1px solid #E5E8EB',
                                         }}
+                                        renderValue={(selected) => {
+                                          if (!selected) {
+                                            return (
+                                              <span style={{ color: '#aaa' }}>
+                                                Select maximum
+                                              </span>
+                                            );
+                                          }
+                                          return selected;
+                                        }}
                                       >
+                                        <MenuItem value="" disabled>
+                                          Select maximum
+                                        </MenuItem>
 
-                                        {SecondsFieldArr?.map((item, idx) => {
-                                          return (
-                                            <MenuItem
-                                              key={item ?? idx}
-                                              sx={{
-                                                border: '1px white solid',
-                                              }}
-                                              onClick={() => {
-                                                setMaxtimeslotArr(
-                                                  filterMultiples(
-                                                    SecondsFieldArr,
-                                                    item,
-                                                  ),
-                                                );
-                                              }}
-                                              value={item}
-                                            >
-                                              {item}
-                                            </MenuItem>
-                                          );
-                                        })}
+                                        {SecondsFieldArr?.map((item, idx) => (
+                                          <MenuItem
+                                            key={item ?? idx}
+                                            sx={{ border: '1px white solid' }}
+                                            onClick={() => {
+                                              setMaxtimeslotArr(
+                                                filterMultiples(SecondsFieldArr, item)
+                                              );
+                                            }}
+                                            value={item}
+                                          >
+                                            {item}
+                                          </MenuItem>
+                                        ))}
                                       </Select>
                                       <Input
                                         disableUnderline
@@ -3356,6 +3366,7 @@ const MediaProductInfo = () => {
                                   <Input
                                     disableUnderline
                                     type="number"
+                                    placeholder="Enter time"
                                     inputProps={{ min: 10, step: 1 }}
                                     {...register('loopTimeSeconds')}
                                     sx={{
@@ -3560,6 +3571,8 @@ const MediaProductInfo = () => {
                           </Typography>
                           <Select
                             disableUnderline
+                            displayEmpty
+                            defaultValue=""
                             {...register('GeographicalData.region')}
                             sx={{
                               ...inputStyles,
@@ -3570,8 +3583,19 @@ const MediaProductInfo = () => {
                                 ? '1px solid red'
                                 : '1px solid #E5E8EB',
                             }}
+                            renderValue={(selected) => {
+                              if (!selected) {
+                                return (
+                                  <span style={{ color: '#aaa' }}>
+                                    Select region
+                                  </span>
+                                );
+                              }
+                              return selected;
+                            }}
                             onChange={(e) => {
                               const selectedValue = e.target.value;
+
                               setIsDisabled(selectedValue);
                               setStoreDataOfLocation({
                                 ...storeDataOfLocation,
@@ -3593,6 +3617,10 @@ const MediaProductInfo = () => {
                               }
                             }}
                           >
+                            <MenuItem value="" disabled>
+                              Select region
+                            </MenuItem>
+
                             <MenuItem value="Central">Central</MenuItem>
                             <MenuItem value="East ">East</MenuItem>
                             <MenuItem value="North">North</MenuItem>
@@ -3622,9 +3650,9 @@ const MediaProductInfo = () => {
                           >
                             State {IsDisabled === 'PAN India' ? ' (Optional)' : <span style={{ color: 'red' }}> *</span>}
                           </Typography>
-
                           <Select
                             disableUnderline
+                            displayEmpty
                             disabled={IsDisabled === 'PAN India'}
                             {...register('GeographicalData.state')}
                             sx={{
@@ -3632,9 +3660,11 @@ const MediaProductInfo = () => {
                               width: '100%',
                               maxWidth: '100%',
                               boxSizing: 'border-box',
-                              border: errors?.GeographicalData?.state?.message && IsDisabled !== 'PAN India'
-                                ? '1px solid red'
-                                : '1px solid #E5E8EB',
+                              border:
+                                errors?.GeographicalData?.state?.message &&
+                                IsDisabled !== 'PAN India'
+                                  ? '1px solid red'
+                                  : '1px solid #E5E8EB',
                             }}
                             onChange={(e) => {
                               setStoreDataOfLocation({
@@ -3644,9 +3674,29 @@ const MediaProductInfo = () => {
                               setStateArray(e.target.value);
                               setState(e.target.value);
                             }}
-                            value={IsDisabled === 'PAN India' ? '' : getValues('GeographicalData.state')}
+                            value={
+                              IsDisabled === 'PAN India'
+                                ? ''
+                                : getValues('GeographicalData.state') || ''
+                            }
+                            renderValue={(selected) => {
+                              if (!selected) {
+                                return (
+                                  <span style={{ color: '#aaa' }}>
+                                    Select state
+                                  </span>
+                                );
+                              }
+                              return selected;
+                            }}
                           >
-                            {StateData?.sort((a, b) => a.name.localeCompare(b.name)).map((res, index) => (
+                            <MenuItem value="" disabled>
+                              Select state
+                            </MenuItem>
+
+                            {StateData?.sort((a, b) =>
+                              a.name.localeCompare(b.name)
+                            ).map((res, index) => (
                               <MenuItem key={index} value={res?.name}>
                                 {res?.name}
                               </MenuItem>
@@ -3677,6 +3727,7 @@ const MediaProductInfo = () => {
 
                           <Select
                             disableUnderline
+                            displayEmpty
                             disabled={IsDisabled === 'PAN India' ? true : false}
                             {...register('GeographicalData.city')}
                             sx={{
@@ -3695,7 +3746,22 @@ const MediaProductInfo = () => {
                               });
                               setCity(e.target.value);
                             }}
+                            value={getValues('GeographicalData.city') || ''}
+                            renderValue={(selected) => {
+                              if (!selected) {
+                                return (
+                                  <span style={{ color: '#aaa' }}>
+                                    Select city
+                                  </span>
+                                );
+                              }
+                              return selected;
+                            }}
                           >
+                            <MenuItem value="" disabled>
+                              Select city
+                            </MenuItem>
+
                             {CityArray?.map((res, index) => (
                               <MenuItem key={index} value={res}>
                                 {res}
@@ -3790,17 +3856,17 @@ const MediaProductInfo = () => {
                               </Typography>
 
                               <Select
+                                displayEmpty
+                                defaultValue=""
                                 onChange={(e) => setName(e.target.value)}
                                 sx={{
                                   width: '100%',
                                   boxSizing: 'border-box',
                                   '.MuiOutlinedInput-notchedOutline': { border: 0 },
-                                  '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                                  {
+                                  '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
                                     border: 0,
                                   },
-                                  '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                                  {
+                                  '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
                                     border: 0,
                                   },
                                   background: '#fff',
@@ -3811,7 +3877,21 @@ const MediaProductInfo = () => {
                                   border: '1px solid #E5E8EB',
                                 }}
                                 key={traits}
+                                renderValue={(selected) => {
+                                  if (!selected) {
+                                    return (
+                                      <span style={{ color: '#aaa' }}>
+                                        Select feature
+                                      </span>
+                                    );
+                                  }
+                                  return selected;
+                                }}
                               >
+                                <MenuItem value="" disabled>
+                                  Select feature
+                                </MenuItem>
+
                                 {filterFeatureDropdownRows(
                                   MediaOnlineFeaturesData,
                                   listingProfile.featureAllowlist,
@@ -3839,6 +3919,7 @@ const MediaProductInfo = () => {
                                       </MenuItem>
                                     );
                                   }
+
                                   return (
                                     <MenuItem
                                       key={idx}
