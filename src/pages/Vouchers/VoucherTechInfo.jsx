@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, ArrowRight, Upload, FileText, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, FileText, X, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -167,6 +168,29 @@ export default function VoucherTechInfo({ category }) {
     
     setStoreListFile(file);
     toast.success('Store list file added');
+  };
+
+  const downloadSampleVoucherCodes = () => {
+    const data = [
+      ['UniqueVoucherCodes'],
+      ['VOUCHER001'],
+      ['VOUCHER002'],
+      ['VOUCHER003'],
+      ['VOUCHER004'],
+      ['VOUCHER005'],
+      ['VOUCHER006'],
+      ['VOUCHER007'],
+      ['VOUCHER008'],
+      ['VOUCHER009'],
+      ['VOUCHER0010'],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Voucher Codes');
+    
+    XLSX.writeFile(wb, 'sample_voucher_codes.xlsx');
+    toast.success('Sample file downloaded');
   };
 
   const onSubmit = async (data) => {
@@ -527,9 +551,9 @@ export default function VoucherTechInfo({ category }) {
                 <div className="space-y-2">
                   <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
                   <p className="text-xs text-[#6B7A99]">
-                    Upload Excel with voucher codes. Must have one column per product variation.
+                    Upload Excel with voucher codes.
                   </p>
-                  <div className="flex gap-4 items-center">
+                  <div className="flex gap-4 items-center flex-wrap">
                     <Button
                       type="button"
                       variant="outline"
@@ -539,6 +563,24 @@ export default function VoucherTechInfo({ category }) {
                       <Upload className="w-4 h-4 mr-2" />
                       {codeFile ? 'Change File' : 'Upload Codes'}
                     </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={downloadSampleVoucherCodes}
+                            className="border-[#C64091] text-[#C64091]"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download Sample
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     {codeFile && (
                       <div className="flex items-center gap-2 text-sm">
                         <FileText className="w-4 h-4 text-[#C64091]" />
