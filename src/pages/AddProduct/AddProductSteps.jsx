@@ -3723,8 +3723,16 @@ export const TechInfo = ({ category }) => {
                 type="submit"
                 disabled={
                   isSubmitting ||
-                  !watch('warrantyValue') ||
-                  !watch('guaranteeValue') ||
+                  watch('warrantyValue') === '' ||
+                  watch('warrantyValue') === undefined ||
+                  watch('warrantyValue') === null ||
+                  Number.isNaN(Number(watch('warrantyValue'))) ||
+                  Number(watch('warrantyValue')) < 0 ||
+                  watch('guaranteeValue') === '' ||
+                  watch('guaranteeValue') === undefined ||
+                  watch('guaranteeValue') === null ||
+                  Number.isNaN(Number(watch('guaranteeValue'))) ||
+                  Number(watch('guaranteeValue')) < 0 ||
                   !watch('weightBeforePacking') ||
                   !watch('packagingInstructions')?.trim() ||
                   !watch('usageInstructions')?.trim() ||
