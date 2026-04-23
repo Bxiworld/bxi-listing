@@ -1166,72 +1166,86 @@ export default function ProductPreview() {
 
                   return (
                     <Stack spacing={3}>
-                      {inclusions && (
-                        <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Inclusions
-                          </Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            {inclusions}
-                          </Typography>
-                        </Box>
-                      )}
-                      {exclusions && (
-                        <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Exclusions
-                          </Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            {exclusions}
-                          </Typography>
-                        </Box>
-                      )}
-                      {termsAndConditions && (
-                        <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Terms and Conditions
-                          </Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            {termsAndConditions}
-                          </Typography>
-                        </Box>
-                      )}
-                      {redemptionSteps && (
-                        <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Redemption Steps
-                          </Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            {redemptionSteps}
-                          </Typography>
-                        </Box>
-                      )}
-                      {redemptionType && (
-                        <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Redemption Type
-                          </Typography>
-                          <Typography fontWeight="500">{redemptionType}</Typography>
-                        </Box>
-                      )}
-                      {redemptionUrl && (
-                        <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Redemption URL
-                          </Typography>
-                          <Typography
-                            component="a"
-                            href={redemptionUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            sx={{ color: '#1A56DB', textDecoration: 'underline' }}
-                          >
-                            {redemptionUrl}
-                          </Typography>
-                        </Box>
-                      )}
+                      <Grid container spacing={3}>
+                        {/* Left Column */}
+                        <Grid item xs={12} md={6}>
+                          <Stack spacing={3}>
+                            {inclusions && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Inclusions
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                  {inclusions}
+                                </Typography>
+                              </Box>
+                            )}
+                            {exclusions && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Exclusions
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                  {exclusions}
+                                </Typography>
+                              </Box>
+                            )}
+                            {termsAndConditions && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Terms and Conditions
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                  {termsAndConditions}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Grid>
+
+                        {/* Right Column */}
+                        <Grid item xs={12} md={6}>
+                          <Stack spacing={3}>
+                            {redemptionSteps && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Redemption Steps
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                  {redemptionSteps}
+                                </Typography>
+                              </Box>
+                            )}
+                            {redemptionType && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Redemption Type
+                                </Typography>
+                                <Typography fontWeight="500">{redemptionType}</Typography>
+                              </Box>
+                            )}
+                            {redemptionUrl && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Redemption URL
+                                </Typography>
+                                <Typography
+                                  component="a"
+                                  href={redemptionUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                                >
+                                  {redemptionUrl}
+                                </Typography>
+                              </Box>
+                            )}
+                          </Stack>
+                        </Grid>
+                      {/* Tags at Bottom */}
                       {voucherTags.length > 0 && (
-                        <Box>
+                        <Grid item>
+                        <Box >
                           <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                             Tags
                           </Typography>
@@ -1241,7 +1255,10 @@ export default function ProductPreview() {
                             ))}
                           </Box>
                         </Box>
+                        </Grid>
                       )}
+                      </Grid>
+
                     </Stack>
                   );
                 }
