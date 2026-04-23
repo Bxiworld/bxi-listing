@@ -18,6 +18,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import BXITokenIcon from '../../assets/bxi-token.svg';
 import api, { productApi, keyFeatureApi } from '../../utils/api';
 import { getSupportingDocsDisplayLabels } from '../../utils/supportingBuyerDocs';
+import useAuthUser from '../../hooks/useAuthUser';
 
 
 const fontFamily =
@@ -265,6 +266,7 @@ export default function MultiplexMediaProductPreview() {
   const { id } = useParams();
 
   const navigate = useNavigate();
+  const { isAdmin } = useAuthUser();
   const bulkuploadnavigate = localStorage.getItem('bulkuploadnavigate');
 
   const [TabValue, setTabValue] = React.useState('1');
@@ -301,14 +303,23 @@ export default function MultiplexMediaProductPreview() {
       'Are you sure you want to upload this product?',
     );
     if (confirm !== true) return;
+    // Admin (listing journey with x-admin-token): go live immediately via default MediaListing branch.
+    // Seller: use pendingapproval; backend may still resolve to Approved for Brand World.
+    const payload = isAdmin
+      ? { id, _id: id, ProductUploadStatus: 'Approved' }
+      : { id, _id: id, ProductUploadStatus: 'pendingapproval' };
     productApi
-      .productMutation({ id, ProductUploadStatus: 'pendingapproval' })
+      .productMutation(payload)
       .then((res) => {
         const body = res?.data?.body ?? res?.data ?? res;
-        toast.success('Once uploaded, changes are subject to approval.');
-        if (body?.ProductUploadStatus === 'pendingapproval') {
-          setTimeout(() => navigate('/sellerhub'), 1200);
+        const finalStatus = body?.ProductUploadStatus;
+        if (finalStatus === 'Approved') {
+          toast.success('Your listing is now live.');
+        } else {
+          toast.success('Once uploaded, changes are subject to approval.');
         }
+        GetProductByid();
+        setTimeout(() => navigate('/sellerhub'), 1200);
       })
       .catch((err) => {
         toast.error(
@@ -601,55 +612,23 @@ export default function MultiplexMediaProductPreview() {
                 },
               }}
             >
-              <Tab label="Description" value="1" disableRipple />
-              <Tab label="Product info" value="2" disableRipple />
-              <Tab label="Technical" value="3" disableRipple />
-              <Tab label="Features" value="4" disableRipple />
+              {/* <Tab label="Description" value="0" disableRipple /> */}
+              <Tab label="Product info" value="1" disableRipple />
+              <Tab label="Technical Info" value="2" disableRipple />
+              <Tab label="Features" value="3" disableRipple />
             </Tabs>
           </Box>
 
-            {TabValue === '1' && (
+            {TabValue === '0' && (
             <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
               <Grid container>
                 <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
                   <Box>
-                    <Typography sx={TypographyTitleText}>
-                      {GetProductByIdData?.ProductSubtitle}
-                    </Typography>
                     <Typography sx={DescriptionAnswerText}>
                       {GetProductByIdData?.ProductDescription}
                     </Typography>
 
-                    <Typography sx={{ ...semi, color: textPrimary }}>
-                      Product Information
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: '100%',
-                        mx: 'auto',
-                        display: 'flex',
-                        alignItems: 'center',
-                        flexDirection: 'row',
-                        gap: '5px',
-                      }}
-                    >
-                      <DiscountedPrice
-                        regularPrice={
-                          GetProductByIdData?.ProductsVariantions?.at(0)
-                            ?.PricePerUnit
-                        }
-                        discountPrice={
-                          GetProductByIdData?.ProductsVariantions?.at(0)
-                            ?.DiscountedPrice
-                        }
-                        percentage={
-                          GetProductByIdData?.ProductsVariantions?.at(0)?.GST
-                        }
-                        GetProductByIdData={GetProductByIdData}
-                      />
-                    </Box>
-
-                    <Box
+                    {/* <Box
                       mt={4}
                       sx={{
                         width: '100%',
@@ -676,56 +655,6 @@ export default function MultiplexMediaProductPreview() {
                           </Grid>
                         ) : null}
 
-                        <Box
-                          sx={{
-                            width: '100%',
-                            mt: 2,
-                            borderRadius: `${radiusMd}px`,
-                            border: `1px solid ${borderSubtle}`,
-                            overflow: 'hidden',
-                            bgcolor: surface,
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                          }}
-                        >
-                          <DataGrid
-                            rows={dataGridrows}
-                            columns={columns}
-                            disableSelectionOnClick
-                            hideFooterSelectedRowCount
-                            disableColumnMenu
-                            autoHeight
-                            columnHeaderHeight={40}
-                            rowHeight={44}
-                            sx={{
-                              border: 'none',
-                              fontSize: '0.8125rem',
-                              '& .MuiDataGrid-columnHeaders': {
-                                fontSize: '0.6875rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.04em',
-                                textTransform: 'uppercase',
-                                color: textMuted,
-                                bgcolor: surfaceMuted,
-                                borderBottom: `1px solid ${borderSubtle}`,
-                              },
-                              '& .MuiDataGrid-columnSeparator': { display: 'none' },
-                              '& .MuiDataGrid-cell': {
-                                fontSize: '0.8125rem',
-                                color: textPrimary,
-                                borderColor: borderSubtle,
-                              },
-                              '& .MuiDataGrid-row:hover': {
-                                bgcolor: 'rgba(198, 64, 145, 0.03)',
-                              },
-                              '& .MuiDataGrid-footerContainer': {
-                                borderTop: `1px solid ${borderSubtle}`,
-                                bgcolor: surfaceMuted,
-                                minHeight: 48,
-                              },
-                              '& .MuiTablePagination-root': { color: textMuted },
-                            }}
-                          />
-                        </Box>
                         <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
                           {GetProductByIdData?.offerningbrandat ? (
                             <>
@@ -832,7 +761,7 @@ export default function MultiplexMediaProductPreview() {
                                 ?.maxOrderQuantitytimeline
                               }`
                               : 'N/A'}{' '}
-                            {''} /{' '}
+                            {''} / Week{' '}
                             {
                               GetProductByIdData?.ProductsVariantions.at(0)
                                 ?.Timeline
@@ -1070,9 +999,9 @@ export default function MultiplexMediaProductPreview() {
                               );
                             })}
                         </Box>
-                      ) : null}
+                      ) : null} */}
 
-                    {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks
+                    {/* {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks
                       .length === 0 ? null : (
                         <>
                           <Box sx={{ mt: 3 }}>
@@ -1099,201 +1028,73 @@ export default function MultiplexMediaProductPreview() {
                             </Box>
                           </Box>
                         </>
-                      )}
+                      )} */}
 
-                    <Box mt={4}>
-                      <Typography sx={{ ...pack, color: textPrimary }}>
-                        Technical Information
-                      </Typography>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '2px',
-                        }}
-                      >
-                        <Typography sx={inclusiveheader}>
-                          Supporting you would give to buyer
-                        </Typography>
-                        {getSupportingDocsDisplayLabels(
-                          GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
-                        ).map((label, idx) => (
-                          <Typography
-                            key={idx}
-                            sx={{
-                              ...packHead,
-                              color: '#6B7A99',
-                              fontWeight: 400,
-                              fontSize: '16px',
-                              display: 'flex',
-                              gap: '10px',
-                            }}
-                          >
-                            {label}
-                          </Typography>
-                        ))}
-                      </Box>
-
-                      <Box>
-                        <Typography sx={inclusiveheader}>
-                          Dimensions of Ad / Content Needed
-                        </Typography>
-                        <Box>
-                          <Typography sx={dots}>
-                            {GetProductByIdData?.Dimensions}
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box>
-                        <Typography sx={inclusiveheader}>
-                          Content Upload Link
-                        </Typography>
-                        <Box>
-                          <a
-                            style={{
-                              fontFamily: fontFamily,
-                              fontStyle: 'normal',
-                              fontWeight: 400,
-                              fontSize: '16px',
-                              color: '#445FD2',
-                            }}
-                          >
-                            {GetProductByIdData?.UploadLink}
-                          </a>
-                          <br />
-                        </Box>
-                      </Box>
-
-                      {/* Calendar display removed - calendar module no longer used */}
-                    </Box>
-
-                    <Box mt={4}>
-                      <Typography sx={{ ...pack, color: textPrimary }}>
-                        Key Features
-                      </Typography>
-                      <Box
-                        sx={{
-                          width: '100%',
-                          display: 'flex',
-                          flexDirection: 'row',
-                        }}
-                      >
-                        <Grid
-                          container
-                          mt={0.5}
-                          sx={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            justifyContent: 'flex-start',
-                            width: '100%',
-                          }}
-                        >
-                          {ProductFeatures?.map((res, featIdx) => {
-                            return (
-                              <Grid
-                                item
-                                key={res?._id != null ? String(res._id) : `feature-${featIdx}-${res?.name ?? ''}`}
-                                xl={3}
-                                lg={3}
-                                md={4}
-                                sm={6}
-                                xs={6}
-                              >
-                                <Box
-                                  sx={{
-                                    // px: 2,
-                                    display: 'flex',
-                                    // flexWrap: "wrap",
-                                    textAlign: 'start',
-                                    flexDirection: 'row',
-                                    gap: { xs: '12px', sm: '24px', md: '48px', lg: '72px' },
-                                    mt: 1.5,
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      justifyContent: 'flex-start',
-                                      gap: '20px',
-                                      width: '100%',
-                                    }}
-                                  >
-                                    {/* <Box
-                                        component="img"
-                                        src={bxifeature}
-                                        sx={{ height: "80px", width: "30px" }}
-                                      /> */}
-                                    <FeatureName name={res?.name} />
-                                    <Box
-                                      sx={{
-                                        width: '80%',
-                                        maxWidth: '825px',
-                                        height: 'auto',
-                                        wordWrap: 'break-word',
-                                      }}
-                                    >
-                                      <Typography sx={packHead}>
-                                        {res.name}
-                                      </Typography>
-                                      <Typography
-                                        sx={{
-                                          ...packVal,
-                                          fontSize: { xs: '0.9375rem', sm: '1rem' },
-                                        }}
-                                      >
-                                        {res.description}{' '}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                </Box>
-                              </Grid>
-                            );
-                          })}
-                        </Grid>
-                      </Box>
-                    </Box>
                   </Box>
                 </Grid>
               </Grid>{' '}
             </Box>
             )}
-            {TabValue === '2' && (
+            {TabValue === '1' && (
             <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
               {/* Price & Availability */}
               <Grid container>
                 <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
-                  <Typography sx={{ ...semi, color: textPrimary }}>
-                    {/* {GetProductByIdData?.ProductName} */}
-                    Product Information
-                  </Typography>
+
+                Description: <Typography sx={DescriptionAnswerText}>
+                      {GetProductByIdData?.ProductDescription}
+                    </Typography>
+
                   <Box
-                    sx={{
-                      width: '100%',
-                      mx: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      flexDirection: 'row',
-                      gap: '5px',
-                    }}
-                  >
-                    <DiscountedPrice
-                      regularPrice={
-                        GetProductByIdData?.ProductsVariantions?.at(0)
-                          ?.PricePerUnit
-                      }
-                      discountPrice={
-                        GetProductByIdData?.ProductsVariantions?.at(0)
-                          ?.DiscountedPrice
-                      }
-                      percentage={
-                        GetProductByIdData?.ProductsVariantions?.at(0)?.GST
-                      }
-                      GetProductByIdData={GetProductByIdData}
-                    // regularPrice={10000}
-                    // discountPrice={5000}
-                    />
-                  </Box>
+                          sx={{
+                            width: '100%',
+                            mt: 2,
+                            borderRadius: `${radiusMd}px`,
+                            border: `1px solid ${borderSubtle}`,
+                            overflow: 'hidden',
+                            bgcolor: surface,
+                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                          }}
+                        >
+                          <DataGrid
+                            rows={dataGridrows}
+                            columns={columns}
+                            disableSelectionOnClick
+                            hideFooterSelectedRowCount
+                            disableColumnMenu
+                            autoHeight
+                            columnHeaderHeight={40}
+                            rowHeight={44}
+                            sx={{
+                              border: 'none',
+                              fontSize: '0.8125rem',
+                              '& .MuiDataGrid-columnHeaders': {
+                                fontSize: '0.6875rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.04em',
+                                textTransform: 'uppercase',
+                                color: textMuted,
+                                bgcolor: surfaceMuted,
+                                borderBottom: `1px solid ${borderSubtle}`,
+                              },
+                              '& .MuiDataGrid-columnSeparator': { display: 'none' },
+                              '& .MuiDataGrid-cell': {
+                                fontSize: '0.8125rem',
+                                color: textPrimary,
+                                borderColor: borderSubtle,
+                              },
+                              '& .MuiDataGrid-row:hover': {
+                                bgcolor: 'rgba(198, 64, 145, 0.03)',
+                              },
+                              '& .MuiDataGrid-footerContainer': {
+                                borderTop: `1px solid ${borderSubtle}`,
+                                bgcolor: surfaceMuted,
+                                minHeight: 48,
+                              },
+                              '& .MuiTablePagination-root': { color: textMuted },
+                            }}
+                          />
+                        </Box>
 
                   <Box
                     mt={4}
@@ -1458,7 +1259,7 @@ export default function MultiplexMediaProductPreview() {
                       <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
                         <Typography sx={tableHeader}>GST</Typography>
                         <Typography sx={fetchValue}>
-                          {GetProductByIdData?.ProductsVariantions.at(0)?.GST} %
+                        {GetProductByIdData?.mediaVariation?.GST} %
                         </Typography>
                       </Grid>
                     </Grid>
@@ -1477,7 +1278,7 @@ export default function MultiplexMediaProductPreview() {
                               ?.maxOrderQuantitytimeline
                             }`
                             : 'N/A'}{' '}
-                          {''} /{' '}
+                          {''} / Week{' '}
                           {
                             GetProductByIdData?.ProductsVariantions.at(0)
                               ?.Timeline
@@ -1485,7 +1286,7 @@ export default function MultiplexMediaProductPreview() {
                         </Typography>
                       </Grid>
 
-                      {GetProductByIdData?.ProductSubCategory ===
+                      {/* {GetProductByIdData?.ProductSubCategory ===
                         '643cda0c53068696706e3951' ? null : (
                           <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
                             <Typography sx={tableHeader}>
@@ -1509,7 +1310,7 @@ export default function MultiplexMediaProductPreview() {
                               }
                             </Typography>
                           </Grid>
-                        )}
+                        )} */}
 
                       {GetProductByIdData?.ProductsVariantions?.at(0)
                         ?.minTimeslotSeconds ? (
@@ -1752,12 +1553,9 @@ export default function MultiplexMediaProductPreview() {
               </Grid>
             </Box>
             )}
-            {TabValue === '3' && (
+            {TabValue === '2' && (
             <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
               <Box>
-                <Typography sx={{ ...pack, color: textPrimary }}>
-                  Technical Information
-                </Typography>
                 <Box
                   sx={{
                     display: 'flex',
@@ -1858,7 +1656,7 @@ export default function MultiplexMediaProductPreview() {
               </Box>
             </Box>
             )}
-            {TabValue === '4' && (
+            {TabValue === '3' && (
             <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
               <Box>
                 <Typography sx={{ ...pack, color: textPrimary }}>
@@ -1973,7 +1771,7 @@ export default function MultiplexMediaProductPreview() {
                     },
                   }}
                 >
-                  Upload product
+                  Upload Content
                 </Button>
               </Box>
             )}
