@@ -48,6 +48,7 @@ export const ProductCard = ({
     VoucherImages,
     ProductsVariantions,
     reviewReasonNavigation,
+    reviewReason,
   } = product || {};
 
   // Get image URL
@@ -215,6 +216,16 @@ export const ProductCard = ({
                 <Trash2 className="w-3 h-3" />
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Review Section */}
+        {tabType === 'Admin Review' && (
+          <div className="product-card-review mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="text-sm font-semibold text-blue-900 mb-2">Admin Review</h4>
+            <p className="text-sm text-blue-800 line-clamp-3">
+              {reviewReason || 'No review reason provided'}
+            </p>
           </div>
         )}
       </div>
