@@ -1006,7 +1006,7 @@ const inferSelectedSizeFromVariation = (row, options = []) => {
 };
 
 const formatVariationSize = (row) => {
-  if (!row) return '—';
+  if (!row) return '';
   // `MeasurementUnit` is shared across size types. For shoe sizes, default to US.
   // For length-based sizes, default to cm.
   const defaultUnit = row.ShoeSize ? 'US' : 'cm';
@@ -1016,7 +1016,12 @@ const formatVariationSize = (row) => {
   if (row.Length && row.Height) return `${row.Length} x ${row.Height} ${unit}`.trim();
   if (row.Length) return `${row.Length} ${unit}`.trim();
   if (row.Weight) return `${row.Weight} ${unit || 'kg'}`.trim();
-  return row.ProductSize || '—';
+  return row.ProductSize || '';
+};
+
+const isOtherFeatureOption = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'other' || normalized === 'others';
 };
 
 export const ProductInfo = ({ category }) => {
@@ -1134,6 +1139,13 @@ export const ProductInfo = ({ category }) => {
   const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
 
   const hasSampleCheckbox = !isVoucherCategory;
+  const showSizeColumn =
+    (!isVoucherCategory || hasSizeOptions) &&
+    productsVariations.some((variation) => Boolean(formatVariationSize(variation)?.trim()));
+  const showSamplePriceColumn =
+    hasSampleCheckbox && productsVariations.some((variation) => Boolean(variation?.SamplePrice));
+  const showSampleQtyColumn =
+    hasSampleCheckbox && productsVariations.some((variation) => Boolean(variation?.SampleQty));
   const hasGenderInProductInfo = isVoucherCategory
     ? (voucherPiConfig?.hasGender || false)
     : [ 'lifestyle', 'others', 'lifestyleVoucher'].includes(category);
@@ -1299,7 +1311,7 @@ export const ProductInfo = ({ category }) => {
       toast.error(`Maximum ${PRODUCT_FEATURE_MAX} features allowed`);
       return;
     }
-    if (featureList.some((f) => f.name === featureToAdd)) {
+    if (!isOtherFeatureOption(featureToAdd) && featureList.some((f) => f.name === featureToAdd)) {
       toast.error('This feature is already added');
       return;
     }
@@ -1976,7 +1988,7 @@ export const ProductInfo = ({ category }) => {
               </div>
           
           {/* Template Download for Bulk Upload Categories */}
-          {supportsBulkUpload(category) && (
+          {/* {supportsBulkUpload(category) && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -2008,7 +2020,7 @@ export const ProductInfo = ({ category }) => {
                 </Button>
               </div>
             </div>
-          )}
+          )} */}
           
           <form noValidate onSubmit={handleSubmit(onSubmit, (formErrors) => {
             const firstKey = Object.keys(formErrors)[0];
@@ -2666,7 +2678,7 @@ export const ProductInfo = ({ category }) => {
                   <table className="w-full border-collapse bg-white text-sm">
                     <thead className="bg-[#F9FAFB] text-[#374151]">
                       <tr>
-                        {(!isVoucherCategory || hasSizeOptions) && <th className="px-3 py-2 text-center font-medium">Size</th>}
+                        {showSizeColumn && <th className="px-3 py-2 text-center font-medium">Size</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
@@ -2681,8 +2693,8 @@ export const ProductInfo = ({ category }) => {
                         <th className="px-3 py-2 text-center font-medium">Max</th>
                         {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Validity</th>}
                         {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Product ID</th>}
-                        {hasSampleCheckbox && <th className="px-3 py-2 text-center font-medium">Sample Price</th>}
-                        {hasSampleCheckbox && <th className="px-3 py-2 text-center font-medium">Sample Qty</th>}
+                        {showSamplePriceColumn && <th className="px-3 py-2 text-center font-medium">Sample Price</th>}
+                        {showSampleQtyColumn && <th className="px-3 py-2 text-center font-medium">Sample Qty</th>}
                         <th className="px-3 py-2 text-center font-medium">Action</th>
                       </tr>
                     </thead>
@@ -2693,7 +2705,7 @@ export const ProductInfo = ({ category }) => {
                           key={v.ProductIdType || idx}
                           className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
                         >
-                          {(!isVoucherCategory || hasSizeOptions) && (
+                          {showSizeColumn && (
                             <td className="px-3 py-2">
                               {formatVariationSize(v)}
                             </td>
@@ -2727,8 +2739,16 @@ export const ProductInfo = ({ category }) => {
                           <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
                           {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Month${v.validityOfVoucherValue > 1 ? 's' : ''}` : '—'}</td>}
                           {!isVoucherCategory && <td className="px-3 py-2">{v.ProductIdType || '—'}</td>}
-                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SamplePrice ? `${Number(v.SamplePrice).toLocaleString('en-IN')}` : '—'}</td>}
-                          {hasSampleCheckbox && <td className="px-3 py-2">{v.SampleQty ? `${Number(v.SampleQty).toLocaleString('en-IN')}` : '—'}</td>}
+                          {showSamplePriceColumn && (
+                            <td className="px-3 py-2">
+                              {v.SamplePrice ? `${Number(v.SamplePrice).toLocaleString('en-IN')}` : ''}
+                            </td>
+                          )}
+                          {showSampleQtyColumn && (
+                            <td className="px-3 py-2">
+                              {v.SampleQty ? `${Number(v.SampleQty).toLocaleString('en-IN')}` : ''}
+                            </td>
+                          )}
                           <td className="px-3 py-2 text-center">
                             <div className="inline-flex items-center gap-2">
                               <button
@@ -3045,7 +3065,7 @@ export const ProductInfo = ({ category }) => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="₹">INR (₹)</SelectItem>
-                        <SelectItem value="BXITokens">BXI Tokens <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /></SelectItem>
+                        <SelectItem value="BXITokens">Trade Credits <img src={bxitoken} alt="Trade Credits" className="w-4 h-4 inline-block ml-1" /></SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -3194,7 +3214,11 @@ export const ProductInfo = ({ category }) => {
                       </SelectTrigger>
                       <SelectContent>
                         {featureOptions
-                          .filter((o) => !featureList.some((f) => f.name === o.value))
+                          .filter(
+                            (o) =>
+                              isOtherFeatureOption(o.value) ||
+                              !featureList.some((f) => f.name === o.value)
+                          )
                           .map((o) => (
                             <SelectItem key={o.value} value={o.value}>
                               {o.label}
@@ -3531,11 +3555,8 @@ export const TechInfo = ({ category }) => {
                     <Input
                       type="number"
                       min={0}
-                      placeholder="0"
-                      {...register('warrantyValue', {
-                        required: 'Warranty is required',
-                        min: { value: 0, message: 'Warranty cannot be negative' },
-                      })}
+                      placeholder="1"
+                      {...register('warrantyValue', { required: 'Warranty is required', min: 0 })}
                       className={errors.warrantyValue ? 'border-red-500' : ''}
                     />
                     <Select value={watch('warrantyPeriod')} onValueChange={(v) => setValue('warrantyPeriod', v)}>
@@ -3556,11 +3577,8 @@ export const TechInfo = ({ category }) => {
                     <Input
                       type="number"
                       min={0}
-                      placeholder="0"
-                      {...register('guaranteeValue', {
-                        required: 'Guarantee is required',
-                        min: { value: 0, message: 'Guarantee cannot be negative' },
-                      })}
+                      placeholder="1"
+                      {...register('guaranteeValue', { required: 'Guarantee is required', min: 0 })}
                       className={errors.guaranteeValue ? 'border-red-500' : ''}
                     />
                     <Select value={watch('guaranteePeriod')} onValueChange={(v) => setValue('guaranteePeriod', v)}>
