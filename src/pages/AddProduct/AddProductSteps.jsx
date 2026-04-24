@@ -3065,7 +3065,7 @@ export const ProductInfo = ({ category }) => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="₹">INR (₹)</SelectItem>
-                        <SelectItem value="BXITokens">BXI Tokens <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /></SelectItem>
+                        <SelectItem value="BXITokens">Trade Credits <img src={bxitoken} alt="Trade Credits" className="w-4 h-4 inline-block ml-1" /></SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
