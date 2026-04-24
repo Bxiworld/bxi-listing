@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -49,9 +49,11 @@ export default function VoucherTechInfo({ category }) {
     address: '',
     area: '',
     landmark: '',
+    pincode: '',
     city: '',
     state: '',
   });
+  const [pincodeLoading, setPincodeLoading] = useState(false);
   const [cities, setCities] = useState([]);
   const codeFileRef = useRef(null);
   const storeFileRef = useRef(null);
@@ -133,26 +135,96 @@ export default function VoucherTechInfo({ category }) {
   useEffect(() => {
     if (offlineAddress.state) {
       const stateObj = StateData.find((s) => s.name === offlineAddress.state);
-      setCities(stateObj?.data || []);
+      const baseCities = stateObj?.data || [];
+      const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+      const currentCity = offlineAddress.city || '';
+      if (currentCity && !baseCities.some((c) => normalize(c) === normalize(currentCity))) {
+        setCities([currentCity, ...baseCities]);
+      } else {
+        setCities(baseCities);
+      }
     } else {
       setCities([]);
     }
-  }, [offlineAddress.state]);
+  }, [offlineAddress.state, offlineAddress.city]);
+
+  // Pincode auto-lookup handler
+  const handlePincodeLookup = useCallback(async (pincode) => {
+    if (String(pincode).length !== 6) return;
+    setPincodeLoading(true);
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+      if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
+        const postOffices = data[0].PostOffice;
+        const firstPo = postOffices[0];
+        const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+
+        const apiStateName = firstPo?.State;
+        const apiDistrict = firstPo?.District || firstPo?.Block;
+
+        const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
+        if (matchedState) {
+          const stateCities = matchedState.data || [];
+
+          const findMatchingCity = (candidate) => {
+            const candNorm = normalize(candidate);
+            if (!candNorm) return null;
+            const exact = stateCities.find((c) => normalize(c) === candNorm);
+            if (exact) return exact;
+            const partial = stateCities.find(
+              (c) => normalize(c).includes(candNorm) || candNorm.includes(normalize(c))
+            );
+            return partial || null;
+          };
+
+          const candidateStrings = Array.from(
+            new Set(
+              postOffices
+                .flatMap((po) => [po?.District, po?.Block, po?.Region])
+                .filter(Boolean)
+            )
+          );
+
+          const matchedCity = candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
+          const fallbackCity = apiDistrict || apiStateName || candidateStrings[0] || '';
+          const nextCity = matchedCity || fallbackCity || stateCities?.[0] || '';
+          const nextCityStr = String(nextCity || '').trim();
+
+          setOfflineAddress((prev) => ({
+            ...prev,
+            pincode: String(pincode),
+            state: matchedState.name,
+            city: nextCityStr,
+          }));
+          toast.success('Location auto-filled from pincode!');
+        } else {
+          toast.warning(`State "${apiStateName}" not found in list. Please select manually.`);
+        }
+      } else {
+        toast.error('Invalid pincode or no data found');
+      }
+    } catch {
+      toast.error('Failed to fetch pincode data');
+    } finally {
+      setPincodeLoading(false);
+    }
+  }, []);
 
   const handleCodeFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File size must be less than 10MB');
       return;
     }
-    
+
     setCodeFile(file);
     toast.success('Code file added');
   };
@@ -160,12 +232,12 @@ export default function VoucherTechInfo({ category }) {
   const handleStoreListChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
-    
+
     setStoreListFile(file);
     toast.success('Store list file added');
   };
@@ -188,7 +260,7 @@ export default function VoucherTechInfo({ category }) {
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Voucher Codes');
-    
+
     XLSX.writeFile(wb, 'sample_voucher_codes.xlsx');
     toast.success('Sample file downloaded');
   };
@@ -258,6 +330,7 @@ export default function VoucherTechInfo({ category }) {
         formData.append('Address', offlineAddress.address || '');
         formData.append('Area', offlineAddress.area || '');
         formData.append('Landmark', offlineAddress.landmark || '');
+        formData.append('Pincode', offlineAddress.pincode || '');
         formData.append('City', offlineAddress.city || '');
         formData.append('State', offlineAddress.state || '');
         if (storeListFile) formData.append('HotelLocations', storeListFile);
@@ -288,345 +361,363 @@ export default function VoucherTechInfo({ category }) {
             <Stepper currentStep={3} completedSteps={[1, 2]} />
           </aside>
           <main className="stepper-content">
-        <div className="form-section">
-          <div className="flex items-center gap-2">
-          <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Voucher Information refers to the details of the voucher, including the inclusions, exclusions, terms and conditions, redemption steps and redemption type.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Inclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="inclusions">
-                Inclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="inclusions"
-                placeholder="Inclusions"
-                rows={4}
-                maxLength={501}
-                {...register('inclusions')}
-                className={errors.inclusions ? 'border-red-500' : ''}
-              />
-              {errors.inclusions && (
-                <p className="text-sm text-red-500">{errors.inclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Exclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="exclusions">
-                Exclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="exclusions"
-                placeholder="Exclusions"
-                rows={4}
-                maxLength={501}
-                {...register('exclusions')}
-                className={errors.exclusions ? 'border-red-500' : ''}
-              />
-              {errors.exclusions && (
-                <p className="text-sm text-red-500">{errors.exclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Terms & Conditions – bxi TermConditions */}
-            <div className="space-y-2">
-              <Label htmlFor="termsAndConditions">
-                Terms & Conditions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="termsAndConditions"
-                placeholder="Terms & Conditions"
-                rows={4}
-                maxLength={501}
-                {...register('termsAndConditions')}
-                className={errors.termsAndConditions ? 'border-red-500' : ''}
-              />
-              {errors.termsAndConditions && (
-                <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Redemption Steps */}
-            <div className="space-y-2">
-              <Label htmlFor="redemptionSteps">
-                Redemption Steps <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="redemptionSteps"
-                placeholder="Redemption Steps"
-                rows={4}
-                maxLength={501}
-                {...register('redemptionSteps')}
-                className={errors.redemptionSteps ? 'border-red-500' : ''}
-              />
-              {errors.redemptionSteps && (
-                <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Redemption Type – bxi: "How can it be redeemed by buyer ?" */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <div className="space-y-2">
-                <Label>How can it be redeemed by buyer ? <span className="text-red-500">*</span></Label>
-                <RadioGroup
-                  value={redemptionType || 'online'}
-                  onValueChange={(value) => setValue('redemptionType', value)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="online" id="online" />
-                    <Label htmlFor="online" className="cursor-pointer font-normal">Online</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="offline" id="offline" />
-                    <Label htmlFor="offline" className="cursor-pointer font-normal">Offline</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="both" id="both" />
-                    <Label htmlFor="both" className="cursor-pointer font-normal">Both</Label>
-                  </div>
-                </RadioGroup>
+            <div className="form-section">
+              <div className="flex items-center gap-2">
+                <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Voucher Information refers to the details of the voucher, including the inclusions, exclusions, terms and conditions, redemption steps and redemption type.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
-              {/* Link (online URL) – bxi LINKName = 'Link' */}
-              {(redemptionType === 'online' || redemptionType === 'both') && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Inclusions */}
                 <div className="space-y-2">
-                  <Label htmlFor="onlineRedemptionUrl">
-                    Add URL <span className="text-red-500">*</span>
+                  <Label htmlFor="inclusions">
+                    Inclusions <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="onlineRedemptionUrl"
-                    type="text"
-                    placeholder="Add URL"
-                    {...register('onlineRedemptionUrl')}
-                    className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
+                  <Textarea
+                    id="inclusions"
+                    placeholder="Inclusions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('inclusions')}
+                    className={errors.inclusions ? 'border-red-500' : ''}
                   />
-                  {errors.onlineRedemptionUrl && (
-                    <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                  {errors.inclusions && (
+                    <p className="text-sm text-red-500">{errors.inclusions.message}</p>
                   )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
                 </div>
-              )}
 
-              {/* Offline: Address ( If Single ) Type Below, Area, Landmark, City, State, Upload Store List */}
-              {(redemptionType === 'offline' || redemptionType === 'both') && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Address ( If Single ) Type Below"
-                        value={offlineAddress.address}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Area <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Area"
-                        value={offlineAddress.area}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Landmark <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Landmark"
-                        value={offlineAddress.landmark}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, landmark: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>State <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={offlineAddress.state}
-                        onValueChange={(v) => {
-                          setOfflineAddress({ ...offlineAddress, state: v, city: '' });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {StateData.map((s) => (
-                            <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>City <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={offlineAddress.city}
-                        onValueChange={(v) => setOfflineAddress({ ...offlineAddress, city: v })}
-                        disabled={!offlineAddress.state}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select city" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cities.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                {/* Exclusions */}
+                <div className="space-y-2">
+                  <Label htmlFor="exclusions">
+                    Exclusions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="exclusions"
+                    placeholder="Exclusions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('exclusions')}
+                    className={errors.exclusions ? 'border-red-500' : ''}
+                  />
+                  {errors.exclusions && (
+                    <p className="text-sm text-red-500">{errors.exclusions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Terms & Conditions – bxi TermConditions */}
+                <div className="space-y-2">
+                  <Label htmlFor="termsAndConditions">
+                    Terms & Conditions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="termsAndConditions"
+                    placeholder="Terms & Conditions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('termsAndConditions')}
+                    className={errors.termsAndConditions ? 'border-red-500' : ''}
+                  />
+                  {errors.termsAndConditions && (
+                    <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Redemption Steps */}
+                <div className="space-y-2">
+                  <Label htmlFor="redemptionSteps">
+                    Redemption Steps <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="redemptionSteps"
+                    placeholder="Redemption Steps"
+                    rows={4}
+                    maxLength={501}
+                    {...register('redemptionSteps')}
+                    className={errors.redemptionSteps ? 'border-red-500' : ''}
+                  />
+                  {errors.redemptionSteps && (
+                    <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Redemption Type – bxi: "How can it be redeemed by buyer ?" */}
+                <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+                  <div className="space-y-2">
+                    <Label>How can it be redeemed by buyer ? <span className="text-red-500">*</span></Label>
+                    <RadioGroup
+                      value={redemptionType || 'online'}
+                      onValueChange={(value) => setValue('redemptionType', value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="online" id="online" />
+                        <Label htmlFor="online" className="cursor-pointer font-normal">Online</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="offline" id="offline" />
+                        <Label htmlFor="offline" className="cursor-pointer font-normal">Offline</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="both" id="both" />
+                        <Label htmlFor="both" className="cursor-pointer font-normal">Both</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Upload Store List ( If Multiple Locations) </Label>
-                    <p className="text-xs text-[#6B7A99]">Optional when both. Upload Excel with store locations.</p>
-                    <div className="flex gap-4 items-center">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => storeFileRef.current?.click()}
-                        className="border-[#C64091] text-[#C64091]"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {storeListFile ? 'Change File' : 'Upload Store List'}
-                      </Button>
-                      {storeListFile && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <FileText className="w-4 h-4 text-[#C64091]" />
-                          <span>{storeListFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setStoreListFile(null)}
-                            className="text-[#6B7A99] hover:text-[#C64091]"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                  {/* Link (online URL) – bxi LINKName = 'Link' */}
+                  {(redemptionType === 'online' || redemptionType === 'both') && (
+                    <div className="space-y-2">
+                      <Label htmlFor="onlineRedemptionUrl">
+                        Add URL <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="onlineRedemptionUrl"
+                        type="text"
+                        placeholder="Add URL"
+                        {...register('onlineRedemptionUrl')}
+                        className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
+                      />
+                      {errors.onlineRedemptionUrl && (
+                        <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
                       )}
                     </div>
-                    <input
-                      ref={storeFileRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleStoreListChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+                  )}
 
-            {/* Code Generation – bxi: "How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them)" */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <div className="space-y-2">
-                <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
-                <RadioGroup
-                  value={codeGenerationType || 'bxi'}
-                  onValueChange={(value) => setValue('codeGenerationType', value)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="bxi" id="bxi-generate" />
-                    <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="self" id="upload-codes" />
-                    <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                  {/* Offline: Address ( If Single ) Type Below, Area, Landmark, City, State, Upload Store List */}
+                  {(redemptionType === 'offline' || redemptionType === 'both') && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Address ( If Single ) Type Below"
+                            value={offlineAddress.address}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Area <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Area"
+                            value={offlineAddress.area}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Landmark <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Landmark"
+                            value={offlineAddress.landmark}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, landmark: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Pincode <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Enter 6-digit pincode"
+                            value={offlineAddress.pincode}
+                            maxLength={6}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                              setOfflineAddress({ ...offlineAddress, pincode: val });
+                              if (val.length === 6) {
+                                handlePincodeLookup(val);
+                              }
+                            }}
+                          />
+                          {pincodeLoading && (
+                            <p className="text-xs text-[#C64091]">Fetching location...</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>State <span className="text-red-500">*</span></Label>
+                          <Select
+                            value={offlineAddress.state}
+                            onValueChange={(v) => {
+                              setOfflineAddress({ ...offlineAddress, state: v, city: '' });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {StateData.map((s) => (
+                                <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>City <span className="text-red-500">*</span></Label>
+                          <Select
+                            value={offlineAddress.city}
+                            onValueChange={(v) => setOfflineAddress({ ...offlineAddress, city: v })}
+                            disabled={!offlineAddress.state}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select city" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cities.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-              {codeGenerationType === 'self' && (
-                <div className="space-y-2">
-                  <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
-                  <p className="text-xs text-[#6B7A99]">
-                    Upload Excel with voucher codes.
-                  </p>
-                  <div className="flex gap-4 items-center flex-wrap">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => codeFileRef.current?.click()}
-                      className="border-[#C64091] text-[#C64091]"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {codeFile ? 'Change File' : 'Upload Codes'}
-                    </Button>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                      <div className="space-y-2">
+                        <Label>Upload Store List ( If Multiple Locations) </Label>
+                        <p className="text-xs text-[#6B7A99]">Optional when both. Upload Excel with store locations.</p>
+                        <div className="flex gap-4 items-center">
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={downloadSampleVoucherCodes}
+                            onClick={() => storeFileRef.current?.click()}
                             className="border-[#C64091] text-[#C64091]"
                           >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download Sample
+                            <Upload className="w-4 h-4 mr-2" />
+                            {storeListFile ? 'Change File' : 'Upload Store List'}
                           </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {codeFile && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <FileText className="w-4 h-4 text-[#C64091]" />
-                        <span>{codeFile.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setCodeFile(null)}
-                          className="text-[#6B7A99] hover:text-[#C64091]"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                          {storeListFile && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FileText className="w-4 h-4 text-[#C64091]" />
+                              <span>{storeListFile.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => setStoreListFile(null)}
+                                className="text-[#6B7A99] hover:text-[#C64091]"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          ref={storeFileRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleStoreListChange}
+                          className="hidden"
+                        />
                       </div>
-                    )}
-                  </div>
-                  <input
-                    ref={codeFileRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleCodeFileChange}
-                    className="hidden"
-                  />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Actions */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !canSubmit}
-                className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+                {/* Code Generation – bxi: "How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them)" */}
+                <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+                  <div className="space-y-2">
+                    <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
+                    <RadioGroup
+                      value={codeGenerationType || 'bxi'}
+                      onValueChange={(value) => setValue('codeGenerationType', value)}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bxi" id="bxi-generate" />
+                        <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="self" id="upload-codes" />
+                        <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {codeGenerationType === 'self' && (
+                    <div className="space-y-2">
+                      <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
+                      <p className="text-xs text-[#6B7A99]">
+                        Upload Excel with voucher codes.
+                      </p>
+                      <div className="flex gap-4 items-center flex-wrap">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => codeFileRef.current?.click()}
+                          className="border-[#C64091] text-[#C64091]"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {codeFile ? 'Change File' : 'Upload Codes'}
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={downloadSampleVoucherCodes}
+                                className="border-[#C64091] text-[#C64091]"
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download Sample
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {codeFile && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <FileText className="w-4 h-4 text-[#C64091]" />
+                            <span>{codeFile.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setCodeFile(null)}
+                              className="text-[#6B7A99] hover:text-[#C64091]"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        ref={codeFileRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleCodeFileChange}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-between pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !canSubmit}
+                    className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {isSubmitting ? 'Saving...' : 'Save & Next'}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
           </main>
         </div>
       </div>
