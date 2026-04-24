@@ -3829,10 +3829,6 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
       .catch(() => setProductData(null));
   }, [id]);
 
-  useEffect(() => {
-    if (isMediaCategory) setValue('listPeriod', '1');
-  }, [isMediaCategory]);
-
   const processFiles = (newFiles) => {
     const valid = Array.from(newFiles).filter((f) => f.type?.startsWith('image/'));
     if (valid.length === 0) return;
@@ -3952,7 +3948,13 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
     const formData = new FormData();
     formData.append('id', id);
     formData.append('ProductUploadStatus', 'golive');
-    formData.append('listperiod', data.listPeriod || (isMediaCategory ? '1' : '') || productData?.listperiod || '70');
+    // Media is not delisted by listing period; do not send listperiod (avoids legacy "1 day" payloads).
+    if (!isMediaCategory) {
+      formData.append(
+        'listperiod',
+        data.listPeriod || productData?.listperiod || '70'
+      );
+    }
     formData.append('ListingType', productData?.ListingType || 'Product');
     formData.append('productName', productData?.ProductName || '');
     formData.append('productSubCategory', productData?.ProductSubCategory || '');

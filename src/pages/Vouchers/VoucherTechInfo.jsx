@@ -1,4 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  VOUCHER_JOURNEY_TYPE,
+  getVoucherJourneyLabel,
+  getVoucherJourneyType,
+  getVoucherJourneyTypeFromStorage,
+} from '../../utils/voucherType';
+import {
+  VOUCHER_DELIVERY_TYPE,
+  deliveryToRedemptionType,
+  normalizeVoucherDeliveryTypeFromProduct,
+} from '../../utils/voucherDelivery';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -32,10 +43,47 @@ const schema = z.object({
   exclusions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   termsAndConditions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   redemptionSteps: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
-  redemptionType: z.enum(['online', 'offline', 'both']),
+  voucherDeliveryType: z.enum([
+    VOUCHER_DELIVERY_TYPE.DIGITAL,
+    VOUCHER_DELIVERY_TYPE.PHYSICAL,
+    VOUCHER_DELIVERY_TYPE.BOTH,
+  ]),
+  voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
   codeGenerationType: z.enum(['bxi', 'self']),
   onlineRedemptionUrl: z.string().optional().or(z.literal('')),
 });
+
+function redemptionStepsToString(rs) {
+  if (Array.isArray(rs)) return rs.filter(Boolean).join('\n');
+  return rs != null ? String(rs) : '';
+}
+
+function offlineAddressFromProduct(p) {
+  const empty = { address: '', area: '', landmark: '', city: '', state: '' };
+  if (!p) return empty;
+  if (p.OfflineAddress) {
+    try {
+      const o =
+        typeof p.OfflineAddress === 'string' ? JSON.parse(p.OfflineAddress) : p.OfflineAddress;
+      return {
+        address: o?.address ?? '',
+        area: o?.area ?? '',
+        landmark: o?.landmark ?? '',
+        city: o?.city ?? '',
+        state: o?.state ?? '',
+      };
+    } catch {
+      return empty;
+    }
+  }
+  return {
+    address: p.Address ?? '',
+    area: p.Area ?? '',
+    landmark: p.Landmark ?? '',
+    city: p.City ?? '',
+    state: p.State ?? '',
+  };
+}
 
 export default function VoucherTechInfo({ category }) {
   useScrollToTopOnStepEnter();
@@ -55,6 +103,7 @@ export default function VoucherTechInfo({ category }) {
   const [cities, setCities] = useState([]);
   const codeFileRef = useRef(null);
   const storeFileRef = useRef(null);
+  const hydratedProductIdRef = useRef(null);
 
   const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'techInfo');
   const prevPath = prevStepPath || 'hotelsproductinfo';
@@ -73,13 +122,15 @@ export default function VoucherTechInfo({ category }) {
       exclusions: '',
       termsAndConditions: '',
       redemptionSteps: '',
-      redemptionType: 'online',
+      voucherDeliveryType: VOUCHER_DELIVERY_TYPE.DIGITAL,
+      voucherJourneyType: getVoucherJourneyTypeFromStorage(),
       codeGenerationType: 'bxi',
       onlineRedemptionUrl: '',
     },
   });
 
-  const redemptionType = watch('redemptionType');
+  const voucherDeliveryType = watch('voucherDeliveryType');
+  const voucherJourneyType = watch('voucherJourneyType');
   const codeGenerationType = watch('codeGenerationType');
   const inclusions = watch('inclusions');
   const exclusions = watch('exclusions');
@@ -93,7 +144,9 @@ export default function VoucherTechInfo({ category }) {
     (exclusions ?? '').trim().length > 0 &&
     (termsAndConditions ?? '').trim().length > 0 &&
     (redemptionSteps ?? '').trim().length > 0;
-  const redemptionTypeValue = (redemptionType || 'online').toLowerCase();
+  const redemptionTypeValue = deliveryToRedemptionType(
+    voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL
+  );
   const onlineOk =
     redemptionTypeValue === 'offline' ||
     (() => {
@@ -128,6 +181,35 @@ export default function VoucherTechInfo({ category }) {
     };
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    hydratedProductIdRef.current = null;
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !productData?._id || String(productData._id) !== String(id)) return;
+    if (hydratedProductIdRef.current === id) return;
+    hydratedProductIdRef.current = id;
+
+    setValue('voucherDeliveryType', normalizeVoucherDeliveryTypeFromProduct(productData));
+    setValue(
+      'voucherJourneyType',
+      productData.VoucherType
+        ? getVoucherJourneyType(productData.VoucherType)
+        : getVoucherJourneyTypeFromStorage()
+    );
+    setValue('inclusions', productData.Inclusions ?? '');
+    setValue('exclusions', productData.Exclusions ?? '');
+    setValue('termsAndConditions', productData.TermConditions ?? productData.TermsAndConditions ?? '');
+    setValue('redemptionSteps', redemptionStepsToString(productData.RedemptionSteps));
+    const link = (productData.Link ?? productData.OnlineRedemptionURL ?? '').trim();
+    setValue('onlineRedemptionUrl', link);
+    setOfflineAddress(offlineAddressFromProduct(productData));
+
+    const cg = String(productData.CodeGenerationType ?? productData.codeGenerationType ?? 'bxi')
+      .toLowerCase();
+    setValue('codeGenerationType', cg === 'self' ? 'self' : 'bxi');
+  }, [id, productData, setValue]);
 
   // Update cities when state changes
   useEffect(() => {
@@ -199,7 +281,8 @@ export default function VoucherTechInfo({ category }) {
       return;
     }
 
-    const redemptionTypeValue = (data.redemptionType || redemptionType || '').toLowerCase();
+    const delivery = (data.voucherDeliveryType || voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL).toLowerCase();
+    const redemptionTypeValue = deliveryToRedemptionType(delivery);
 
     // bxi TechInfoTemplate: URL must not contain bxiworld
     const url = (data.onlineRedemptionUrl || '').trim();
@@ -249,7 +332,9 @@ export default function VoucherTechInfo({ category }) {
       formData.append('Exclusions', data.exclusions);
       formData.append('TermConditions', data.termsAndConditions);
       formData.append('RedemptionSteps', data.redemptionSteps);
+      formData.append('voucherDeliveryType', delivery);
       formData.append('redemptionType', redemptionTypeValue);
+      formData.append('VoucherType', getVoucherJourneyLabel(data.voucherJourneyType));
       formData.append('CodeGenerationType', data.codeGenerationType === 'self' ? 'self' : 'bxi');
 
       if (url) formData.append('Link', url);
@@ -299,114 +384,62 @@ export default function VoucherTechInfo({ category }) {
                 </button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Voucher Information refers to the details of the voucher, including the inclusions, exclusions, terms and conditions, redemption steps and redemption type.</p>
+                <p>
+                  Voucher delivery (digital vs physical vs both) is saved as voucherDeliveryType on the product.
+                  redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes.
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Inclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="inclusions">
-                Inclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="inclusions"
-                placeholder="Inclusions"
-                rows={4}
-                maxLength={501}
-                {...register('inclusions')}
-                className={errors.inclusions ? 'border-red-500' : ''}
-              />
-              {errors.inclusions && (
-                <p className="text-sm text-red-500">{errors.inclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Exclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="exclusions">
-                Exclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="exclusions"
-                placeholder="Exclusions"
-                rows={4}
-                maxLength={501}
-                {...register('exclusions')}
-                className={errors.exclusions ? 'border-red-500' : ''}
-              />
-              {errors.exclusions && (
-                <p className="text-sm text-red-500">{errors.exclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Terms & Conditions – bxi TermConditions */}
-            <div className="space-y-2">
-              <Label htmlFor="termsAndConditions">
-                Terms & Conditions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="termsAndConditions"
-                placeholder="Terms & Conditions"
-                rows={4}
-                maxLength={501}
-                {...register('termsAndConditions')}
-                className={errors.termsAndConditions ? 'border-red-500' : ''}
-              />
-              {errors.termsAndConditions && (
-                <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Redemption Steps */}
-            <div className="space-y-2">
-              <Label htmlFor="redemptionSteps">
-                Redemption Steps <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="redemptionSteps"
-                placeholder="Redemption Steps"
-                rows={4}
-                maxLength={501}
-                {...register('redemptionSteps')}
-                className={errors.redemptionSteps ? 'border-red-500' : ''}
-              />
-              {errors.redemptionSteps && (
-                <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Redemption Type – bxi: "How can it be redeemed by buyer ?" */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+            {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical | both) */}
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>How can it be redeemed by buyer ? <span className="text-red-500">*</span></Label>
+                <Label>Voucher delivery type <span className="text-red-500">*</span></Label>
+                <p className="text-xs text-[#6B7A99]">
+                  How the voucher is delivered or fulfilled: digitally (e.g. code / link after payment), physically (shipping / in-store handoff),
+                  or both. This is separate from redemption instructions below, but URL and address fields follow your choice here.
+                </p>
                 <RadioGroup
-                  value={redemptionType || 'online'}
-                  onValueChange={(value) => setValue('redemptionType', value)}
+                  value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
+                  onValueChange={(value) => setValue('voucherDeliveryType', value)}
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="online" id="online" />
-                    <Label htmlFor="online" className="cursor-pointer font-normal">Online</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="offline" id="offline" />
-                    <Label htmlFor="offline" className="cursor-pointer font-normal">Offline</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="both" id="both" />
-                    <Label htmlFor="both" className="cursor-pointer font-normal">Both</Label>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+                    <div className="flex items-start space-x-2">
+                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
+                      <div>
+                        <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
+                          Digital delivery
+                        </Label>
+                        <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.PHYSICAL} id="delivery-physical" className="mt-1" />
+                      <div>
+                        <Label htmlFor="delivery-physical" className="cursor-pointer font-medium">
+                          Physical delivery
+                        </Label>
+                        <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.BOTH} id="delivery-both" className="mt-1" />
+                      <div>
+                        <Label htmlFor="delivery-both" className="cursor-pointer font-medium">
+                          Digital and physical
+                        </Label>
+                        <p className="text-xs text-[#6B7A99] font-normal">Both channels — URL plus offline location details.</p>
+                      </div>
+                    </div>
                   </div>
                 </RadioGroup>
               </div>
 
-              {/* Link (online URL) – bxi LINKName = 'Link' */}
-              {(redemptionType === 'online' || redemptionType === 'both') && (
+              {(voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL ||
+                voucherDeliveryType === VOUCHER_DELIVERY_TYPE.BOTH) && (
                 <div className="space-y-2">
                   <Label htmlFor="onlineRedemptionUrl">
                     Add URL <span className="text-red-500">*</span>
@@ -414,7 +447,7 @@ export default function VoucherTechInfo({ category }) {
                   <Input
                     id="onlineRedemptionUrl"
                     type="text"
-                    placeholder="Add URL"
+                    placeholder="https://..."
                     {...register('onlineRedemptionUrl')}
                     className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                   />
@@ -424,8 +457,8 @@ export default function VoucherTechInfo({ category }) {
                 </div>
               )}
 
-              {/* Offline: Address ( If Single ) Type Below, Area, Landmark, City, State, Upload Store List */}
-              {(redemptionType === 'offline' || redemptionType === 'both') && (
+              {(voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL ||
+                voucherDeliveryType === VOUCHER_DELIVERY_TYPE.BOTH) && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -526,6 +559,116 @@ export default function VoucherTechInfo({ category }) {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
+              <div className="space-y-2">
+                <Label>Voucher type <span className="text-red-500">*</span></Label>
+                <p className="text-xs text-[#6B7A99]">
+                  Same categories as general information: offer-specific deals vs value / gift-card style vouchers.
+                </p>
+                <RadioGroup
+                  value={voucherJourneyType || VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC}
+                  onValueChange={(value) => setValue('voucherJourneyType', value)}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+                    <div className="flex items-start space-x-2">
+                      <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC} id="vtype-offer" className="mt-1" />
+                      <div>
+                        <Label htmlFor="vtype-offer" className="cursor-pointer font-medium">
+                          Offer specific
+                        </Label>
+                        <p className="text-xs text-[#6B7A99] font-normal">Fixed offer or package (default).</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.VALUE_GIFT} id="vtype-value" className="mt-1" />
+                      <div>
+                        <Label htmlFor="vtype-value" className="cursor-pointer font-medium">
+                          Value voucher / gift cards
+                        </Label>
+                        <p className="text-xs text-[#6B7A99] font-normal">Denomination-style or gift-card listing.</p>
+                      </div>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+
+            {/* Inclusions */}
+            <div className="space-y-2">
+              <Label htmlFor="inclusions">
+                Inclusions <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="inclusions"
+                placeholder="Inclusions"
+                rows={4}
+                maxLength={501}
+                {...register('inclusions')}
+                className={errors.inclusions ? 'border-red-500' : ''}
+              />
+              {errors.inclusions && (
+                <p className="text-sm text-red-500">{errors.inclusions.message}</p>
+              )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+            </div>
+
+            {/* Exclusions */}
+            <div className="space-y-2">
+              <Label htmlFor="exclusions">
+                Exclusions <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="exclusions"
+                placeholder="Exclusions"
+                rows={4}
+                maxLength={501}
+                {...register('exclusions')}
+                className={errors.exclusions ? 'border-red-500' : ''}
+              />
+              {errors.exclusions && (
+                <p className="text-sm text-red-500">{errors.exclusions.message}</p>
+              )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+            </div>
+
+            {/* Terms & Conditions – bxi TermConditions */}
+            <div className="space-y-2">
+              <Label htmlFor="termsAndConditions">
+                Terms & Conditions <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="termsAndConditions"
+                placeholder="Terms & Conditions"
+                rows={4}
+                maxLength={501}
+                {...register('termsAndConditions')}
+                className={errors.termsAndConditions ? 'border-red-500' : ''}
+              />
+              {errors.termsAndConditions && (
+                <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
+              )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+            </div>
+
+            {/* Redemption Steps */}
+            <div className="space-y-2">
+              <Label htmlFor="redemptionSteps">
+                Redemption Steps <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="redemptionSteps"
+                placeholder="Redemption Steps"
+                rows={4}
+                maxLength={501}
+                {...register('redemptionSteps')}
+                className={errors.redemptionSteps ? 'border-red-500' : ''}
+              />
+              {errors.redemptionSteps && (
+                <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
+              )}
+              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
             </div>
 
             {/* Code Generation – bxi: "How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them)" */}
