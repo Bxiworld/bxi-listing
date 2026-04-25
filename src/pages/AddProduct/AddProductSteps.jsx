@@ -3330,7 +3330,7 @@ export const ProductInfo = ({ category }) => {
                 </h3>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter a tag (max 15 chars)"
+                    placeholder="Type a Tag and press Enter"
                     maxLength={15}
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
