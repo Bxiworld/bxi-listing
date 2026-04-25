@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
@@ -1024,6 +1024,10 @@ const isOtherFeatureOption = (value) => {
   return normalized === 'other' || normalized === 'others';
 };
 
+/** All variant GST% options; for chained variants, first row rules restrict choices */
+const ALL_GST_RATE_OPTIONS = ['0', '5', '12', '18', '28'];
+const NON_ZERO_GST_RATE_OPTIONS = ['5', '12', '18', '28'];
+
 export const ProductInfo = ({ category }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
@@ -1413,6 +1417,31 @@ export const ProductInfo = ({ category }) => {
     if (d.hsn && /^0+$/.test(d.hsn)) {
       toast.error('HSN cannot be all zeros');
       return;
+    }
+    const firstGst = String(productsVariations[0]?.GST ?? '');
+    const chosenGst = String(d.gst ?? '18');
+    if (productsVariations.length >= 1) {
+      if (editVariationIndex === null || editVariationIndex > 0) {
+        if (firstGst === '0' && chosenGst !== '0') {
+          toast.error('GST must be 0% for all variants when the first variant is 0%.');
+          return;
+        }
+        if (firstGst !== '0' && firstGst !== '' && chosenGst === '0') {
+          toast.error('GST cannot be 0% when the first variant uses a non-zero rate.');
+          return;
+        }
+      }
+      if (editVariationIndex === 0) {
+        const others = productsVariations.slice(1);
+        if (chosenGst === '0' && others.some((r) => String(r.GST) !== '0')) {
+          toast.error('Set all other variants to 0% GST, or remove them, before the first variant can be 0%.');
+          return;
+        }
+        if (chosenGst !== '0' && others.some((r) => String(r.GST) === '0')) {
+          toast.error('Update or remove variants that use 0% GST before the first variant can use a non-zero rate.');
+          return;
+        }
+      }
     }
     if (d.selectedSize === 'Shoes Size' && !d.shoeSize) {
       toast.error('Please select a shoe size');
@@ -1835,6 +1864,36 @@ export const ProductInfo = ({ category }) => {
     };
     fetchProduct();
   }, [id, category, setValue]);
+
+  const isGstChained = useMemo(() => {
+    if (editVariationIndex === 0) return false;
+    if (productsVariations.length === 0) return false;
+    if (editVariationIndex === null && productsVariations.length >= 1) return true;
+    if (editVariationIndex != null && editVariationIndex > 0) return true;
+    return false;
+  }, [editVariationIndex, productsVariations]);
+
+  const firstVariantGst = useMemo(
+    () => String(productsVariations[0]?.GST ?? '18'),
+    [productsVariations]
+  );
+
+  const gstFormOptions = useMemo(() => {
+    if (!isGstChained) return ALL_GST_RATE_OPTIONS;
+    return firstVariantGst === '0' ? ['0'] : NON_ZERO_GST_RATE_OPTIONS;
+  }, [isGstChained, firstVariantGst]);
+
+  useEffect(() => {
+    if (!isGstChained) return;
+    if (firstVariantGst === '0') {
+      setValue('gst', '0');
+      return;
+    }
+    const cur = getValues('gst');
+    if (cur === '0' || cur === '' || cur === undefined) {
+      setValue('gst', firstVariantGst);
+    }
+  }, [isGstChained, firstVariantGst, editVariationIndex, setValue, getValues, productsVariations.length]);
 
   const selectedSize = watch('selectedSize');
   const isDimensionSelectionLocked = hasSizeOptions && productsVariations.length > 0;
@@ -2340,18 +2399,19 @@ export const ProductInfo = ({ category }) => {
                   </TooltipProvider>
                 </div>
                 <Select
-                  defaultValue="18"
+                  value={watch('gst') || (gstFormOptions[0] ?? '18')}
                   onValueChange={(value) => setValue('gst', value)}
+                  disabled={isGstChained && firstVariantGst === '0'}
                 >
                   <SelectTrigger data-testid="select-gst">
                     <SelectValue placeholder="Select GST rate" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">0%</SelectItem>
-                    <SelectItem value="5">5%</SelectItem>
-                    <SelectItem value="12">12%</SelectItem>
-                    <SelectItem value="18">18%</SelectItem>
-                    <SelectItem value="28">28%</SelectItem>
+                    {gstFormOptions.map((rate) => (
+                      <SelectItem key={rate} value={rate}>
+                        {rate}%
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

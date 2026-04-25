@@ -8,6 +8,7 @@ import {
   getProductCategoryName,
   getVoucherVertical,
   isVoucherListing,
+  isMediaListing,
 } from './listingProductFields';
 
 // Category route mappings for products
@@ -176,25 +177,38 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
 };
 
 /**
+ * Media preview (multiplex, digital, hoarding, default online) from saved product fields.
+ * Must not depend on seller companyType — Admin view uses `companyType === 'Admin'`.
+ */
+const resolveMediaViewRoute = (product, productId) => {
+  const productCategory = getProductCategoryName(product);
+  const productSubCategory =
+    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '';
+  const mediaCategoryField = String(product?.mediaCategory || '').toLowerCase();
+  if (mediaCategoryField === 'dooh') {
+    return `/hoardingmediaofflineproductpreview/${productId}`;
+  }
+  if (productCategory === 'Multiplex ADs') {
+    if (productSubCategory === 'Digital ADs') {
+      return `/mediaonlineproductpreview/${productId}`;
+    }
+    return `/multiplexmediaonlineproductpreview/${productId}`;
+  }
+  if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
+    return `/hoardingmediaofflineproductpreview/${productId}`;
+  }
+  return `/mediaonlineproductpreview/${productId}`;
+};
+
+/**
  * Resolve View route
  */
 const resolveViewRoute = ({ product, companyType, productCategory, productSubCategory, productId }) => {
-  // Handle Media company type
-  if (companyType === 'Media') {
-    const mediaCategoryField = String(product?.mediaCategory || '').toLowerCase();
-    if (mediaCategoryField === 'dooh') {
-      return `/hoardingmediaofflineproductpreview/${productId}`;
-    }
-    if (productCategory === 'Multiplex ADs') {
-      if (productSubCategory === 'Digital ADs') {
-        return `/mediaonlineproductpreview/${productId}`;
-      }
-      return `/multiplexmediaonlineproductpreview/${productId}`;
-    }
-    if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      return `/hoardingmediaofflineproductpreview/${productId}`;
-    }
-    return `/mediaonlineproductpreview/${productId}`;
+  if (product?.bulk_upload_res_id) {
+    return `/mediaSheetsProductsPreview/${productId}`;
+  }
+  if (isMediaListing(product)) {
+    return resolveMediaViewRoute(product, productId);
   }
 
   // Handle Voucher listing type
@@ -268,8 +282,9 @@ const resolveEditRoute = ({
     return `/mediaSheetsProductsPreview/${productId}`;
   }
 
-  // Handle Media company type (multiplex, digital, hoarding have specific step routes)
-  if (companyType === 'Media') {
+  // Media journeys (and legacy Media company) — use product shape so Admin view routes correctly.
+  // Media-company **voucher** rows must use the voucher branch below, not this block.
+  if (!isVoucherListing(product) && (isMediaListing(product) || String(companyType) === 'Media')) {
     const reviewKey = listingStepKey;
     const mediaJourney = product?.mediaJourney;
     if (mediaJourney === 'television-ads') {

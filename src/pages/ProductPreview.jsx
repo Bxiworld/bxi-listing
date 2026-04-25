@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
 import { resolveMediaOnlineFormProfile } from '../config/mediaListingProfiles';
+import { isMediaListing } from '../utils/listingProductFields';
 
 const defaultImage =
   'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
@@ -52,26 +53,6 @@ const CATEGORY_TO_SLUG = {
   QSR: 'restaurant',
   Media: 'mediaonline',
 };
-
-/** True for online/offline media listings. API uses ListingType "Media" and ProductType MediaOnline/MediaOffline; ProductCategoryName is usually MediaOnline, Multiplex ADs, or MediaOffline—not the literal "Media". */
-function isMediaListing(p) {
-  if (!p) return false;
-  const lt = String(p.ListingType ?? '').trim();
-  if (lt.toLowerCase() === 'media') return true;
-  const pt = String(p.ProductType ?? '').trim().toLowerCase();
-  if (pt === 'mediaonline' || pt === 'mediaoffline') return true;
-  const cat = String(p.ProductCategoryName ?? '').trim();
-  if (
-    cat === 'MediaOnline' ||
-    cat === 'MediaOffline' ||
-    cat === 'Multiplex ADs' ||
-    cat === 'Media' ||
-    cat === 'News Papers / Magazines'
-  ) {
-    return true;
-  }
-  return false;
-}
 
 function formatPrice(value) {
   if (value == null || value === '') return 'N/A';
@@ -395,6 +376,13 @@ export default function ProductPreview() {
 
   const handleUpload = () => {
     if (!id || uploading) return;
+    if (
+      !window.confirm(
+        'Submit this listing for admin approval? You can go back to edit if you select Cancel.',
+      )
+    ) {
+      return;
+    }
     setUploading(true);
     const isVoucherListing = product?.ListingType === 'Voucher';
     productApi
