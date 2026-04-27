@@ -43,11 +43,7 @@ const schema = z.object({
   exclusions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   termsAndConditions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   redemptionSteps: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
-  voucherDeliveryType: z.enum([
-    VOUCHER_DELIVERY_TYPE.DIGITAL,
-    VOUCHER_DELIVERY_TYPE.PHYSICAL,
-    VOUCHER_DELIVERY_TYPE.BOTH,
-  ]),
+  voucherDeliveryType: z.enum([VOUCHER_DELIVERY_TYPE.DIGITAL, VOUCHER_DELIVERY_TYPE.PHYSICAL]),
   voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
   codeGenerationType: z.enum(['bxi', 'self']),
   onlineRedemptionUrl: z.string().optional().or(z.literal('')),
@@ -165,7 +161,9 @@ export default function VoucherTechInfo({ category }) {
       return !!hasAddress || !!storeListFile;
     })();
   const codeGenOk =
-    (codeGenerationType || 'bxi') !== 'self' || !!codeFile;
+    voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL ||
+    (codeGenerationType || 'bxi') !== 'self' ||
+    !!codeFile;
   const canSubmit = hasRequiredText && onlineOk && hasOfflineOk && codeGenOk;
 
   // Fetch product data
@@ -220,6 +218,13 @@ export default function VoucherTechInfo({ category }) {
       setCities([]);
     }
   }, [offlineAddress.state]);
+
+  useEffect(() => {
+    if (voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL) {
+      setValue('codeGenerationType', 'bxi');
+      setCodeFile(null);
+    }
+  }, [voucherDeliveryType, setValue]);
 
   const handleCodeFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -291,8 +296,8 @@ export default function VoucherTechInfo({ category }) {
       return;
     }
 
-    // bxi: online/both require valid Link (URL)
-    if (redemptionTypeValue === 'online' || redemptionTypeValue === 'both') {
+    // bxi: online delivery requires valid Link (URL)
+    if (redemptionTypeValue === 'online') {
       if (!url) {
         toast.error('This field is required');
         return;
@@ -304,8 +309,8 @@ export default function VoucherTechInfo({ category }) {
       }
     }
 
-    // bxi: offline/both require "Complete store address or Store list is required"
-    if (redemptionTypeValue === 'offline' || redemptionTypeValue === 'both') {
+    // bxi: physical delivery requires complete store address or store list
+    if (redemptionTypeValue === 'offline') {
       const hasAddress = offlineAddress.address?.trim() && offlineAddress.area?.trim() && offlineAddress.landmark?.trim() && offlineAddress.city?.trim() && offlineAddress.state?.trim();
       if (!hasAddress && !storeListFile) {
         toast.error('Complete store address or Store list is required.');
@@ -317,8 +322,12 @@ export default function VoucherTechInfo({ category }) {
       }
     }
 
-    // bxi: CodeGenerationType 'self' requires voucher files
-    if ((data.codeGenerationType || codeGenerationType) === 'self' && !codeFile) {
+    // bxi: CodeGenerationType 'self' requires voucher files (Ecodes / digital delivery only)
+    if (
+      redemptionTypeValue === 'online' &&
+      (data.codeGenerationType || codeGenerationType) === 'self' &&
+      !codeFile
+    ) {
       toast.error('Please upload voucher codes Excel file');
       return;
     }
@@ -339,7 +348,7 @@ export default function VoucherTechInfo({ category }) {
 
       if (url) formData.append('Link', url);
 
-      if (redemptionTypeValue === 'offline' || redemptionTypeValue === 'both') {
+      if (redemptionTypeValue === 'offline') {
         formData.append('Address', offlineAddress.address || '');
         formData.append('Area', offlineAddress.area || '');
         formData.append('Landmark', offlineAddress.landmark || '');
@@ -385,8 +394,8 @@ export default function VoucherTechInfo({ category }) {
               </TooltipTrigger>
               <TooltipContent>
                 <p>
-                  Voucher delivery (digital vs physical vs both) is saved as voucherDeliveryType on the product.
-                  redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes.
+                  Voucher delivery (Ecodes vs physical) is saved as voucherDeliveryType on the product.
+                  redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes when applicable.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -394,13 +403,13 @@ export default function VoucherTechInfo({ category }) {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical | both) */}
+            {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical) */}
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Voucher delivery type <span className="text-red-500">*</span></Label>
                 <p className="text-xs text-[#6B7A99]">
-                  How the voucher is delivered or fulfilled: digitally (e.g. code / link after payment), physically (shipping / in-store handoff),
-                  or both. This is separate from redemption instructions below, but URL and address fields follow your choice here.
+                  How the voucher is delivered or fulfilled: Ecodes (code / link after payment) or physically (shipping / in-store handoff).
+                  This is separate from redemption instructions below; URL and address fields follow your choice here.
                 </p>
                 <RadioGroup
                   value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
@@ -411,7 +420,7 @@ export default function VoucherTechInfo({ category }) {
                       <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
                       <div>
                         <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
-                          Digital delivery
+                          Ecodes Delivery
                         </Label>
                         <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
                       </div>
@@ -425,21 +434,11 @@ export default function VoucherTechInfo({ category }) {
                         <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.BOTH} id="delivery-both" className="mt-1" />
-                      <div>
-                        <Label htmlFor="delivery-both" className="cursor-pointer font-medium">
-                          Digital and physical
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Both channels — URL plus offline location details.</p>
-                      </div>
-                    </div>
                   </div>
                 </RadioGroup>
               </div>
 
-              {(voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL ||
-                voucherDeliveryType === VOUCHER_DELIVERY_TYPE.BOTH) && (
+              {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
                 <div className="space-y-2">
                   <Label htmlFor="onlineRedemptionUrl">
                     Add URL <span className="text-red-500">*</span>
@@ -457,8 +456,7 @@ export default function VoucherTechInfo({ category }) {
                 </div>
               )}
 
-              {(voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL ||
-                voucherDeliveryType === VOUCHER_DELIVERY_TYPE.BOTH) && (
+              {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -524,7 +522,7 @@ export default function VoucherTechInfo({ category }) {
 
                   <div className="space-y-2">
                     <Label>Upload Store List ( If Multiple Locations) </Label>
-                    <p className="text-xs text-[#6B7A99]">Optional when both. Upload Excel with store locations.</p>
+                    <p className="text-xs text-[#6B7A99]">Upload Excel with store locations when you have multiple outlets.</p>
                     <div className="flex gap-4 items-center">
                       <Button
                         type="button"
@@ -671,83 +669,85 @@ export default function VoucherTechInfo({ category }) {
               <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
             </div>
 
-            {/* Code Generation – bxi: "How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them)" */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <div className="space-y-2">
-                <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
-                <RadioGroup
-                  value={codeGenerationType || 'bxi'}
-                  onValueChange={(value) => setValue('codeGenerationType', value)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="bxi" id="bxi-generate" />
-                    <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="self" id="upload-codes" />
-                    <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {codeGenerationType === 'self' && (
+            {/* Code generation — Ecodes delivery only; hidden for physical delivery */}
+            {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
+              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
                 <div className="space-y-2">
-                  <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
-                  <p className="text-xs text-[#6B7A99]">
-                    Upload Excel with voucher codes.
-                  </p>
-                  <div className="flex gap-4 items-center flex-wrap">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => codeFileRef.current?.click()}
-                      className="border-[#C64091] text-[#C64091]"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {codeFile ? 'Change File' : 'Upload Codes'}
-                    </Button>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={downloadSampleVoucherCodes}
-                            className="border-[#C64091] text-[#C64091]"
-                          >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download Sample
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    {codeFile && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <FileText className="w-4 h-4 text-[#C64091]" />
-                        <span>{codeFile.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setCodeFile(null)}
-                          className="text-[#6B7A99] hover:text-[#C64091]"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    ref={codeFileRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleCodeFileChange}
-                    className="hidden"
-                  />
+                  <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
+                  <RadioGroup
+                    value={codeGenerationType || 'bxi'}
+                    onValueChange={(value) => setValue('codeGenerationType', value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="bxi" id="bxi-generate" />
+                      <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="self" id="upload-codes" />
+                      <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-              )}
-            </div>
+
+                {codeGenerationType === 'self' && (
+                  <div className="space-y-2">
+                    <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-[#6B7A99]">
+                      Upload Excel with voucher codes.
+                    </p>
+                    <div className="flex gap-4 items-center flex-wrap">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => codeFileRef.current?.click()}
+                        className="border-[#C64091] text-[#C64091]"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {codeFile ? 'Change File' : 'Upload Codes'}
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={downloadSampleVoucherCodes}
+                              className="border-[#C64091] text-[#C64091]"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download Sample
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {codeFile && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <FileText className="w-4 h-4 text-[#C64091]" />
+                          <span>{codeFile.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setCodeFile(null)}
+                            className="text-[#6B7A99] hover:text-[#C64091]"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={codeFileRef}
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleCodeFileChange}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-between pt-6">

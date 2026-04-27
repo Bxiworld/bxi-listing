@@ -18,7 +18,7 @@ export function deliveryToRedemptionType(delivery) {
 export function redemptionTypeToDeliveryType(redemption) {
   const r = String(redemption || '').trim().toLowerCase();
   if (r === 'offline') return VOUCHER_DELIVERY_TYPE.PHYSICAL;
-  if (r === 'both') return VOUCHER_DELIVERY_TYPE.BOTH;
+  if (r === 'both') return VOUCHER_DELIVERY_TYPE.DIGITAL;
   return VOUCHER_DELIVERY_TYPE.DIGITAL;
 }
 
@@ -28,7 +28,7 @@ export function normalizeVoucherDeliveryTypeFromProduct(p) {
   const d = String(raw).trim().toLowerCase();
   if (d === VOUCHER_DELIVERY_TYPE.DIGITAL) return VOUCHER_DELIVERY_TYPE.DIGITAL;
   if (d === VOUCHER_DELIVERY_TYPE.PHYSICAL) return VOUCHER_DELIVERY_TYPE.PHYSICAL;
-  if (d === VOUCHER_DELIVERY_TYPE.BOTH) return VOUCHER_DELIVERY_TYPE.BOTH;
+  if (d === VOUCHER_DELIVERY_TYPE.BOTH) return VOUCHER_DELIVERY_TYPE.DIGITAL;
   return redemptionTypeToDeliveryType(
     p.redemptionType ?? p.RedemptionType ?? 'online'
   );

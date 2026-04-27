@@ -24,18 +24,21 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 /** Radix Select forbids SelectItem value=""; use sentinel for “show all states”. */
 const ALL_STATES_VALUE = '__all_states__';
 
+/** Column order matches multiplex inventory Excel: Sr_No … Discounted_MRP. */
 const columns = [
-  { field: 'srNo', headerName: 'Sr No', width: 80 },
-  { field: 'city', headerName: 'City', width: 130 },
-  { field: 'location', headerName: 'Location', width: 200 },
-  { field: 'cinema', headerName: 'Cinema', width: 200 },
-  { field: 'audiNum', headerName: 'Audi #', width: 100 },
-  { field: 'seatingCapacity', headerName: 'Seats', width: 120 },
-  { field: 'screenCode', headerName: 'Screen Code', width: 150 },
-  { field: 'casCodes', headerName: 'CAS Codes', width: 130 },
-  { field: 'uploadCodes', headerName: 'Upload Codes', width: 130 },
-  { field: 'PricePerUnit', headerName: 'Price', width: 100 },
-  { field: 'DiscountedPrice', headerName: 'Discounted Price', width: 150 },
+  { field: 'srNo', headerName: 'Sr No', width: 72 },
+  { field: 'state', headerName: 'State', width: 120 },
+  { field: 'city', headerName: 'City', width: 120 },
+  { field: 'cinemaCategory', headerName: 'Cinema category', width: 140 },
+  { field: 'cinema', headerName: 'Cinema', width: 160 },
+  { field: 'audiNum', headerName: 'Audi #', width: 88 },
+  { field: 'seatingCapacity', headerName: 'Seating capacity', width: 120 },
+  { field: 'screenCode', headerName: 'Screen code', width: 130 },
+  { field: 'casCodes', headerName: 'CAS codes', width: 110 },
+  { field: 'uploadCodes', headerName: 'Upload codes', width: 110 },
+  { field: 'audiForm', headerName: 'Audi form', width: 100 },
+  { field: 'PricePerUnit', headerName: 'MRP', width: 90 },
+  { field: 'DiscountedPrice', headerName: 'Discounted MRP', width: 120 },
 ];
 
 /** API returns { screens: [...] } (Mongo subdocs use lowercase geo fields). */
@@ -49,14 +52,16 @@ function mapMultiplexDocToGridRows(doc) {
   return list.map((s, idx) => ({
     id: s._id?.toString?.() || `row-${idx}-${s.screenCode || ''}`,
     srNo: s.srNo ?? idx + 1,
+    state: s.state || '',
     city: s.city || '',
-    location: s.location || '',
+    cinemaCategory: s.cinemaCategory || '',
     cinema: s.cinema || '',
     audiNum: s.audiNum ?? '',
     seatingCapacity: s.seatingCapacity ?? '',
     screenCode: s.screenCode || '',
     casCodes: s.casCodes ?? s.CASCodes ?? '',
     uploadCodes: s.uploadCodes ?? s.UploadCodes ?? '',
+    audiForm: s.audiForm || '',
     PricePerUnit: s.PricePerUnit ?? 0,
     DiscountedPrice: s.DiscountedPrice ?? 0,
   }));
@@ -145,15 +150,22 @@ export default function MediaMultiplexProductInfo() {
     fetchScreens();
   }, [id]);
 
-  // Filter rows by state
+  // Filter rows by state (Excel `State` column when present; else infer from city list)
   useEffect(() => {
     if (!selectedState || selectedState === ALL_STATES_VALUE) {
       setFilteredRows(rows);
     } else {
-      setFilteredRows(rows.filter((r) => {
-        const cityObj = StateData.find((s) => s.name === selectedState);
-        return cityObj?.data?.some((c) => c.toLowerCase() === r.city.toLowerCase());
-      }));
+      setFilteredRows(
+        rows.filter((r) => {
+          const rowState = String(r.state || '').trim();
+          if (rowState)
+            return rowState.toLowerCase() === String(selectedState).toLowerCase();
+          const cityObj = StateData.find((s) => s.name === selectedState);
+          return cityObj?.data?.some(
+            (c) => c.toLowerCase() === String(r.city || '').toLowerCase()
+          );
+        })
+      );
     }
   }, [selectedState, rows]);
 
@@ -323,7 +335,7 @@ export default function MediaMultiplexProductInfo() {
 
   // download template funtion with aws url
   const handleDownloadTemplate = () => {
-    const fileUrl = 'https://bxidevelopment1.s3.ap-south-1.amazonaws.com/Excels/TemplateOfScreensforMultiplexAds.xlsx';
+    const fileUrl = 'https://mediajourneyexcel.sfo3.cdn.digitaloceanspaces.com/Cinema_excel_template.xlsx';
     window.open(fileUrl, '_blank');
   };
 
