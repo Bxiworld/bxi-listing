@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
 import { resolveMediaOnlineFormProfile } from '../config/mediaListingProfiles';
+import * as XLSX from 'xlsx';
 
 const defaultImage =
   'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
@@ -236,6 +237,76 @@ function variantQtyHasValue(q) {
   return q != null && q !== '' && !Number.isNaN(Number(q));
 }
 
+function getVoucherOfflineAddress(product) {
+  const empty = { address: '', area: '', landmark: '', city: '', state: '' };
+  if (!product) return empty;
+
+  if (product.OfflineAddress) {
+    try {
+      const parsed =
+        typeof product.OfflineAddress === 'string'
+          ? JSON.parse(product.OfflineAddress)
+          : product.OfflineAddress;
+      return {
+        address: parsed?.address ?? '',
+        area: parsed?.area ?? '',
+        landmark: parsed?.landmark ?? '',
+        city: parsed?.city ?? '',
+        state: parsed?.state ?? '',
+      };
+    } catch {
+      return empty;
+    }
+  }
+
+  return {
+    address: product.Address ?? '',
+    area: product.Area ?? '',
+    landmark: product.Landmark ?? '',
+    city: product.City ?? '',
+    state: product.State ?? '',
+  };
+}
+
+function getStoreListUrl(product) {
+  const list = product?.HotelsListUrls;
+  if (!Array.isArray(list) || list.length === 0) return '';
+  const first = list[0];
+  if (typeof first === 'string') return first;
+  return first?.url || '';
+}
+
+function normalizeStoreLocationRow(row = {}) {
+  const read = (keys = []) => {
+    for (const key of keys) {
+      const value = row?.[key];
+      if (value != null && String(value).trim() !== '') return String(value).trim();
+    }
+    return '';
+  };
+  return {
+    address: read(['address', 'Address', 'ADDRESS']),
+    area: read(['area', 'Area', 'AREA']),
+    landmark: read(['landmark', 'Landmark', 'LANDMARK']),
+    city: read(['city', 'City', 'CITY']),
+    state: read(['state', 'State', 'STATE']),
+  };
+}
+
+function parseStoreLocationsFromWorkbook(workbook) {
+  if (!workbook?.SheetNames?.length) return [];
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) return [];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  return rows
+    .map(normalizeStoreLocationRow)
+    .filter((row) =>
+      [row.address, row.area, row.landmark, row.city, row.state].some(
+        (v) => String(v || '').trim() !== ''
+      )
+    );
+}
+
 /** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
 function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
   if (!selectedVariantData) return [];
@@ -337,6 +408,8 @@ export default function ProductPreview() {
   const [tabValue, setTabValue] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [sizeChartDialogOpen, setSizeChartDialogOpen] = useState(false);
+  const [storeLocationsDialogOpen, setStoreLocationsDialogOpen] = useState(false);
+  const [multipleStoreLocations, setMultipleStoreLocations] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -374,6 +447,56 @@ export default function ProductPreview() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateStoreLocations = async () => {
+      if (!product) {
+        setMultipleStoreLocations([]);
+        return;
+      }
+
+      if (Array.isArray(product?.OfflineAddressList)) {
+        setMultipleStoreLocations(product.OfflineAddressList);
+        return;
+      }
+      if (typeof product?.OfflineAddressList === 'string') {
+        try {
+          const parsed = JSON.parse(product.OfflineAddressList);
+          if (Array.isArray(parsed)) {
+            setMultipleStoreLocations(parsed);
+            return;
+          }
+        } catch {
+          // noop, fallback to file parse.
+        }
+      }
+
+      const fileUrl = getStoreListUrl(product);
+      if (!fileUrl) {
+        setMultipleStoreLocations([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(fileUrl);
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const parsedLocations = parseStoreLocationsFromWorkbook(workbook);
+        if (!cancelled) setMultipleStoreLocations(parsedLocations);
+      } catch {
+        if (!cancelled) setMultipleStoreLocations([]);
+      }
+    };
+
+    hydrateStoreLocations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product]);
 
   const handleBack = () => {
     if (
@@ -1139,8 +1262,29 @@ export default function ProductPreview() {
                   const redemptionSteps =
                     product?.RedemptionSteps || product?.redemptionSteps;
                   const redemptionType = product?.redemptionType;
+                  const normalizedRedemptionType = String(redemptionType || '')
+                    .trim()
+                    .toLowerCase();
                   const redemptionUrl = product?.Link || product?.redemptionURL;
+                  const storeListUrl = getStoreListUrl(product);
+                  const offlineAddress = getVoucherOfflineAddress(product);
+                  const hasOfflineAddress =
+                    !!(
+                      String(offlineAddress.address || '').trim() ||
+                      String(offlineAddress.area || '').trim() ||
+                      String(offlineAddress.landmark || '').trim() ||
+                      String(offlineAddress.city || '').trim() ||
+                      String(offlineAddress.state || '').trim()
+                    );
+                  const showOfflineAddress =
+                    (normalizedRedemptionType === 'offline' ||
+                      normalizedRedemptionType === 'both') &&
+                    hasOfflineAddress;
+                  const hasMultipleStoreLocations = multipleStoreLocations.length > 0;
                   const voucherTagsRaw = product?.ProductTags ?? product?.Tags;
+                  const voucherValidity = product?.ListThisProductForAmount;
+                  const voucherValidityUnit = product?.ListThisProductForUnitOfTime;
+                  console.log('voucherValidity', voucherValidity + ' ' + voucherValidityUnit);
                   const voucherTags = Array.isArray(voucherTagsRaw)
                     ? voucherTagsRaw
                     : voucherTagsRaw != null && String(voucherTagsRaw).trim()
@@ -1154,6 +1298,7 @@ export default function ProductPreview() {
                     redemptionSteps ||
                     redemptionType ||
                     redemptionUrl ||
+                    showOfflineAddress ||
                     voucherTags.length > 0;
 
                   if (!hasVoucherTechInfo) {
@@ -1240,6 +1385,70 @@ export default function ProductPreview() {
                                 </Typography>
                               </Box>
                             )}
+                            {showOfflineAddress && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Offline Address
+                                </Typography>
+                                <Stack spacing={0.5}>
+                                  {String(offlineAddress.address || '').trim() && (
+                                    <Typography variant="body1" color="text.secondary">
+                                      {offlineAddress.address}
+                                    </Typography>
+                                  )}
+                                  {String(offlineAddress.area || '').trim() && (
+                                    <Typography variant="body1" color="text.secondary">
+                                      Area: {offlineAddress.area}
+                                    </Typography>
+                                  )}
+                                  {String(offlineAddress.landmark || '').trim() && (
+                                    <Typography variant="body1" color="text.secondary">
+                                      Landmark: {offlineAddress.landmark}
+                                    </Typography>
+                                  )}
+                                  {(String(offlineAddress.city || '').trim() ||
+                                    String(offlineAddress.state || '').trim()) && (
+                                    <Typography variant="body1" color="text.secondary">
+                                      {[offlineAddress.city, offlineAddress.state]
+                                        .filter((v) => String(v || '').trim())
+                                        .join(', ')}
+                                    </Typography>
+                                  )}
+                                </Stack>
+                              </Box>
+                            )}
+                            {(normalizedRedemptionType === 'offline' ||
+                              normalizedRedemptionType === 'both') && (
+                              <Box>
+                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                  Multiple Locations
+                                </Typography>
+                                {hasMultipleStoreLocations ? (
+                                  <Button
+                                    type="button"
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => setStoreLocationsDialogOpen(true)}
+                                  >
+                                    Show multiple locations ({multipleStoreLocations.length})
+                                  </Button>
+                                ) : storeListUrl ? (
+                                  <Typography
+                                    component="a"
+                                    href={storeListUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                                  >
+                                    Download uploaded store list
+                                  </Typography>
+                                ) : (
+                                  <Typography variant="body1" color="text.secondary">
+                                    No multiple locations uploaded.
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
                           </Stack>
                         </Grid>
                       {/* Tags at Bottom */}
@@ -1255,6 +1464,18 @@ export default function ProductPreview() {
                             ))}
                           </Box>
                         </Box>
+                        </Grid>
+                      )}
+                      {voucherValidity && voucherValidityUnit && (
+                        <Grid item>
+                          <Box>
+                            <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                              Validity
+                            </Typography>
+                          </Box>
+                          <Typography variant="body1" color="text.secondary">
+                            {voucherValidity + ' ' + voucherValidityUnit}
+                          </Typography>
                         </Grid>
                       )}
                       </Grid>
@@ -1616,6 +1837,43 @@ export default function ProductPreview() {
             </Button>
           </Box>
         )}
+
+        <Dialog
+          open={storeLocationsDialogOpen}
+          onClose={() => setStoreLocationsDialogOpen(false)}
+          fullWidth
+          maxWidth="md"
+        >
+          <DialogTitle>Multiple Store Locations</DialogTitle>
+          <DialogContent dividers>
+            {multipleStoreLocations.length === 0 ? (
+              <Typography color="text.secondary">No store locations available.</Typography>
+            ) : (
+              <Stack spacing={1.5}>
+                {multipleStoreLocations.map((loc, idx) => (
+                  <Box
+                    key={`${loc.address || 'location'}-${idx}`}
+                    sx={{ p: 1.5, border: '1px solid #E5E8EB', borderRadius: 1 }}
+                  >
+                    <Typography variant="body2" fontWeight={600} color="#111827">
+                      {loc.address || 'Address not specified'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {[loc.area, loc.landmark, loc.city, loc.state]
+                        .filter((v) => String(v || '').trim())
+                        .join(', ') || 'Details not provided'}
+                    </Typography>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button type="button" variant="outlined" onClick={() => setStoreLocationsDialogOpen(false)}>
+                Close
+              </Button>
+            </Box>
+          </DialogContent>
+        </Dialog>
       </Box>
     </Box>
   );

@@ -41,7 +41,7 @@ import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter
 const schema = z.object({
   inclusions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   exclusions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
-  termsAndConditions: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
+  termsAndConditions: z.string().min(1, 'This field is required').max(8000, 'This field cannot exceed 8000 characters'),
   redemptionSteps: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   voucherDeliveryType: z.enum([
     VOUCHER_DELIVERY_TYPE.DIGITAL,
@@ -85,6 +85,37 @@ function offlineAddressFromProduct(p) {
   };
 }
 
+function normalizeStoreLocationRow(row = {}) {
+  const read = (keys = []) => {
+    for (const key of keys) {
+      const value = row?.[key];
+      if (value != null && String(value).trim() !== '') return String(value).trim();
+    }
+    return '';
+  };
+  return {
+    address: read(['address', 'Address', 'ADDRESS']),
+    area: read(['area', 'Area', 'AREA']),
+    landmark: read(['landmark', 'Landmark', 'LANDMARK']),
+    city: read(['city', 'City', 'CITY']),
+    state: read(['state', 'State', 'STATE']),
+  };
+}
+
+function parseStoreLocationsFromWorkbook(workbook) {
+  if (!workbook?.SheetNames?.length) return [];
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) return [];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  return rows
+    .map(normalizeStoreLocationRow)
+    .filter((row) =>
+      [row.address, row.area, row.landmark, row.city, row.state].some(
+        (v) => String(v || '').trim() !== ''
+      )
+    );
+}
+
 export default function VoucherTechInfo({ category }) {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
@@ -93,6 +124,7 @@ export default function VoucherTechInfo({ category }) {
   const [productData, setProductData] = useState(null);
   const [codeFile, setCodeFile] = useState(null);
   const [storeListFile, setStoreListFile] = useState(null);
+  const [parsedStoreLocations, setParsedStoreLocations] = useState([]);
   const [offlineAddress, setOfflineAddress] = useState({
     address: '',
     area: '',
@@ -205,6 +237,18 @@ export default function VoucherTechInfo({ category }) {
     const link = (productData.Link ?? productData.OnlineRedemptionURL ?? '').trim();
     setValue('onlineRedemptionUrl', link);
     setOfflineAddress(offlineAddressFromProduct(productData));
+    if (Array.isArray(productData?.OfflineAddressList)) {
+      setParsedStoreLocations(productData.OfflineAddressList);
+    } else if (typeof productData?.OfflineAddressList === 'string') {
+      try {
+        const parsed = JSON.parse(productData.OfflineAddressList);
+        setParsedStoreLocations(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setParsedStoreLocations([]);
+      }
+    } else {
+      setParsedStoreLocations([]);
+    }
 
     const cg = String(productData.CodeGenerationType ?? productData.codeGenerationType ?? 'bxi')
       .toLowerCase();
@@ -248,8 +292,38 @@ export default function VoucherTechInfo({ category }) {
       return;
     }
     
-    setStoreListFile(file);
-    toast.success('Store list file added');
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt?.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        const locations = parseStoreLocationsFromWorkbook(workbook);
+        if (!locations.length) {
+          toast.error('Store list is empty. Please use the sample format.');
+          return;
+        }
+        setParsedStoreLocations(locations);
+        setStoreListFile(file);
+        toast.success('Store list file added');
+      } catch {
+        toast.error('Invalid store list format. Please use the sample file format.');
+      }
+    };
+    reader.onerror = () => toast.error('Unable to read store list file');
+    reader.readAsArrayBuffer(file);
+  };
+
+  const downloadSampleStoreLocations = () => {
+    const data = [
+      ['Address', 'Area', 'Landmark', 'City', 'State'],
+      ['Shop 12, High Street Plaza', 'Andheri East', 'Near Metro Station', 'Mumbai', 'Maharashtra'],
+      ['Unit 5, Central Mall', 'MG Road', 'Opp City Square', 'Bengaluru', 'Karnataka'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Store Locations');
+    XLSX.writeFile(wb, 'sample_store_locations.xlsx');
+    toast.success('Store list sample downloaded');
   };
 
   const downloadSampleVoucherCodes = () => {
@@ -345,6 +419,9 @@ export default function VoucherTechInfo({ category }) {
         formData.append('Landmark', offlineAddress.landmark || '');
         formData.append('City', offlineAddress.city || '');
         formData.append('State', offlineAddress.state || '');
+        if (parsedStoreLocations.length > 0) {
+          formData.append('OfflineAddressList', JSON.stringify(parsedStoreLocations));
+        }
         if (storeListFile) formData.append('HotelLocations', storeListFile);
       }
 
@@ -548,7 +625,21 @@ export default function VoucherTechInfo({ category }) {
                           </button>
                         </div>
                       )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={downloadSampleStoreLocations}
+                        className="border-[#C64091] text-[#C64091]"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Store List Sample
+                      </Button>
                     </div>
+                    {parsedStoreLocations.length > 0 && (
+                      <p className="text-xs text-[#6B7A99]">
+                        Parsed {parsedStoreLocations.length} location{parsedStoreLocations.length > 1 ? 's' : ''} from uploaded file.
+                      </p>
+                    )}
                     <input
                       ref={storeFileRef}
                       type="file"
@@ -642,14 +733,14 @@ export default function VoucherTechInfo({ category }) {
                 id="termsAndConditions"
                 placeholder="Terms & Conditions"
                 rows={4}
-                maxLength={501}
+                maxLength={8000}
                 {...register('termsAndConditions')}
                 className={errors.termsAndConditions ? 'border-red-500' : ''}
               />
               {errors.termsAndConditions && (
                 <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
               )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+              <p className="text-xs text-[#6B7A99]">Maximum 8000 characters</p>
             </div>
 
             {/* Redemption Steps */}
