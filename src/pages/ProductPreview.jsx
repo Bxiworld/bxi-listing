@@ -778,7 +778,7 @@ export default function ProductPreview() {
                   >
                     {variants?.map((v) => (
                       <MenuItem key={v._id ?? v.id} value={v._id ?? v.id}>
-                        ID: {v.ProductIdType || 'N/A'} / {v.ProductSize || v.flavor || v.NutritionInfo || 'N/A'}
+                         {v.Flavor|| v.ProductIdType || v.ProductSize || v.NutritionInfo || 'N/A'}
                       </MenuItem>
                     ))}
                   </Select>
