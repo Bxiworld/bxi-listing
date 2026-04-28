@@ -229,6 +229,7 @@ function DiscountedPrice({
             alt=""
             sx={{ width: 18, height: 18 }}
           />
+          <Typography variant='body2'> onwards</Typography>
         </Stack>
         {pct > 0 && (
           <Typography variant="body2" color="text.secondary">
