@@ -112,6 +112,53 @@ function parseStoreLocationsFromWorkbook(workbook) {
     );
 }
 
+function parseVoucherCodesFromWorkbook(workbook) {
+  if (!workbook?.SheetNames?.length) {
+    throw new Error('Excel file has no sheets');
+  }
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) throw new Error('Excel sheet is missing');
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+  const firstCol = rows.map((r) => (Array.isArray(r) ? r[0] : null));
+  const header = firstCol[0] != null ? String(firstCol[0]).trim() : '';
+  if (header !== 'UniqueVoucherCodes') {
+    throw new Error('Invalid voucher file: cell A1 must be exactly UniqueVoucherCodes');
+  }
+  const codes = firstCol
+    .slice(1)
+    .map((c) => (c == null ? '' : String(c).trim()))
+    .filter((c) => c.length > 0);
+  if (!codes.length) {
+    throw new Error('No voucher codes found under UniqueVoucherCodes header');
+  }
+  const seen = new Set();
+  const duplicates = [];
+  for (const code of codes) {
+    const key = code.toLowerCase();
+    if (seen.has(key)) duplicates.push(code);
+    else seen.add(key);
+  }
+  if (duplicates.length) {
+    throw new Error(`Duplicate codes found in file: ${duplicates.slice(0, 5).join(', ')}`);
+  }
+  return codes;
+}
+
+function getVariantDescriptor(variant = {}) {
+  const parts = [];
+  const push = (label, value) => {
+    if (value == null) return;
+    const text = String(value).trim();
+    if (!text) return;
+    parts.push(`${label}: ${text}`);
+  };
+  push('Offering type', variant?.OfferingType || variant?.ProductSubType);
+  push('Validity', variant?.validityOfVoucherValue);
+  push('Price', variant?.PricePerUnit);
+  push('HSN', variant?.HSN);
+  return parts.join(' | ');
+}
+
 export default function VoucherTechInfo({ category }) {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
@@ -119,6 +166,8 @@ export default function VoucherTechInfo({ category }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
   const [codeFile, setCodeFile] = useState(null);
+  const [variantCodeFiles, setVariantCodeFiles] = useState({});
+  const [variantCodeMeta, setVariantCodeMeta] = useState({});
   const [storeListFile, setStoreListFile] = useState(null);
   const [parsedStoreLocations, setParsedStoreLocations] = useState([]);
   const [offlineAddress, setOfflineAddress] = useState({
@@ -165,6 +214,15 @@ export default function VoucherTechInfo({ category }) {
   const termsAndConditions = watch('termsAndConditions');
   const redemptionSteps = watch('redemptionSteps');
   const onlineRedemptionUrl = watch('onlineRedemptionUrl');
+  const voucherVariants = Array.isArray(productData?.ProductsVariantions)
+    ? productData.ProductsVariantions
+    : [];
+  const hasMultipleVariants = voucherVariants.length > 1;
+
+  const getExpectedVariantQty = (variant) => {
+    const qty = Number(variant?.TotalAvailableQty ?? variant?.MaxOrderQuantity ?? 0);
+    return Number.isFinite(qty) ? qty : 0;
+  };
 
   const urlRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_+.~#?&//=]*)/g;
   const hasRequiredText =
@@ -195,7 +253,9 @@ export default function VoucherTechInfo({ category }) {
   const codeGenOk =
     voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL ||
     (codeGenerationType || 'bxi') !== 'self' ||
-    !!codeFile;
+    (hasMultipleVariants
+      ? voucherVariants.every((variant) => !!variantCodeFiles[String(variant?._id || '')])
+      : !!codeFile);
   const canSubmit = hasRequiredText && onlineOk && hasOfflineOk && codeGenOk;
 
   // Fetch product data
@@ -267,10 +327,12 @@ export default function VoucherTechInfo({ category }) {
     if (voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL) {
       setValue('codeGenerationType', 'bxi');
       setCodeFile(null);
+      setVariantCodeFiles({});
+      setVariantCodeMeta({});
     }
   }, [voucherDeliveryType, setValue]);
 
-  const handleCodeFileChange = (e) => {
+  const handleCodeFileChange = (e, variationId = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -284,8 +346,49 @@ export default function VoucherTechInfo({ category }) {
       return;
     }
     
-    setCodeFile(file);
-    toast.success('Code file added');
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt?.target?.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        const parsedCodes = parseVoucherCodesFromWorkbook(workbook);
+
+        if (variationId) {
+          setVariantCodeFiles((prev) => ({
+            ...prev,
+            [variationId]: file,
+          }));
+          setVariantCodeMeta((prev) => ({
+            ...prev,
+            [variationId]: {
+              count: parsedCodes.length,
+              codes: parsedCodes,
+            },
+          }));
+          toast.success('Variant code file added');
+        } else {
+          setCodeFile(file);
+          setVariantCodeMeta((prev) => ({
+            ...prev,
+            single: {
+              count: parsedCodes.length,
+              codes: parsedCodes,
+            },
+          }));
+          toast.success('Code file added');
+        }
+      } catch (err) {
+        toast.error(err?.message || 'Invalid voucher code file format');
+      } finally {
+        // Allow selecting the same filename again after edits.
+        e.target.value = '';
+      }
+    };
+    reader.onerror = () => {
+      toast.error('Unable to read voucher code file');
+      e.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleStoreListChange = (e) => {
@@ -310,11 +413,17 @@ export default function VoucherTechInfo({ category }) {
         setParsedStoreLocations(locations);
         setStoreListFile(file);
         toast.success('Store list file added');
+        // Allow selecting the same filename again after edits.
+        e.target.value = '';
       } catch {
         toast.error('Invalid store list format. Please use the sample file format.');
+        e.target.value = '';
       }
     };
-    reader.onerror = () => toast.error('Unable to read store list file');
+    reader.onerror = () => {
+      toast.error('Unable to read store list file');
+      e.target.value = '';
+    };
     reader.readAsArrayBuffer(file);
   };
 
@@ -400,10 +509,60 @@ export default function VoucherTechInfo({ category }) {
     if (
       redemptionTypeValue === 'online' &&
       (data.codeGenerationType || codeGenerationType) === 'self' &&
-      !codeFile
+      !(
+        hasMultipleVariants
+          ? voucherVariants.every((variant) => !!variantCodeFiles[String(variant?._id || '')])
+          : codeFile
+      )
     ) {
-      toast.error('Please upload voucher codes Excel file');
+      toast.error(
+        hasMultipleVariants
+          ? 'Please upload voucher codes file for each variant'
+          : 'Please upload voucher codes Excel file'
+      );
       return;
+    }
+
+    if (redemptionTypeValue === 'online' && (data.codeGenerationType || codeGenerationType) === 'self') {
+      const allCodes = [];
+      if (hasMultipleVariants) {
+        for (const variant of voucherVariants) {
+          const variationId = String(variant?._id || '');
+          const meta = variantCodeMeta[variationId];
+          if (meta?.codes?.length) allCodes.push(...meta.codes);
+        }
+      } else if (variantCodeMeta?.single?.codes?.length) {
+        allCodes.push(...variantCodeMeta.single.codes);
+      }
+      const seen = new Set();
+      const duplicates = [];
+      for (const code of allCodes) {
+        const key = String(code).trim().toLowerCase();
+        if (seen.has(key)) duplicates.push(code);
+        else seen.add(key);
+      }
+      if (duplicates.length) {
+        toast.error(
+          `Duplicate voucher codes found across variants: ${duplicates
+            .slice(0, 5)
+            .join(', ')}`
+        );
+        return;
+      }
+    }
+
+    if (hasMultipleVariants && (data.codeGenerationType || codeGenerationType) === 'self') {
+      for (const variant of voucherVariants) {
+        const variationId = String(variant?._id || '');
+        const expectedQty = getExpectedVariantQty(variant);
+        const parsedCount = Number(variantCodeMeta?.[variationId]?.count || 0);
+        if (expectedQty > 0 && parsedCount !== expectedQty) {
+          toast.error(
+            `Variant ${variationId.slice(-6)} requires ${expectedQty} codes, found ${parsedCount}.`
+          );
+          return;
+        }
+      }
     }
 
     setIsSubmitting(true);
@@ -434,8 +593,27 @@ export default function VoucherTechInfo({ category }) {
         if (storeListFile) formData.append('HotelLocations', storeListFile);
       }
 
-      if ((data.codeGenerationType || codeGenerationType) === 'self' && codeFile) {
-        formData.append('voucherCodes', codeFile);
+      if ((data.codeGenerationType || codeGenerationType) === 'self') {
+        if (hasMultipleVariants) {
+          const manifest = [];
+          let fileIndex = 0;
+          for (const variant of voucherVariants) {
+            const variationId = String(variant?._id || '');
+            const file = variantCodeFiles[variationId];
+            if (!file) continue;
+            formData.append('voucherCodesByVariant', file);
+            manifest.push({
+              variationId,
+              fileIndex,
+              expectedQty: getExpectedVariantQty(variant),
+            });
+            fileIndex += 1;
+          }
+          formData.append('voucherCodeManifest', JSON.stringify(manifest));
+        } else if (codeFile) {
+          // Backward-compatible single variant payload.
+          formData.append('voucherCodes', codeFile);
+        }
       }
 
       await api.post('/product/product_mutation', formData, {
@@ -445,7 +623,13 @@ export default function VoucherTechInfo({ category }) {
       toast.success('Voucher technical information saved!');
       navigate(`/${category}/${nextPath}/${id}`);
     } catch (error) {
-      toast.error(error?.response?.data?.message || 'Failed to save. Please try again.');
+      const backendMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.body?.message ||
+        error?.response?.data?.body ||
+        error?.response?.data?.error ||
+        '';
+      toast.error(backendMessage || 'Failed to save. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -456,7 +640,7 @@ export default function VoucherTechInfo({ category }) {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={3} completedSteps={[1, 2]} />
+            <Stepper currentStep={3} completedSteps={[1, 2]} category={category} />
           </aside>
           <main className="stepper-content">
         <div className="form-section">
@@ -604,7 +788,12 @@ export default function VoucherTechInfo({ category }) {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => storeFileRef.current?.click()}
+                        onClick={() => {
+                          if (storeFileRef.current) {
+                            storeFileRef.current.value = '';
+                            storeFileRef.current.click();
+                          }
+                        }}
                         className="border-[#C64091] text-[#C64091]"
                       >
                         <Upload className="w-4 h-4 mr-2" />
@@ -784,18 +973,11 @@ export default function VoucherTechInfo({ category }) {
                   <div className="space-y-2">
                     <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
                     <p className="text-xs text-[#6B7A99]">
-                      Upload Excel with voucher codes.
+                      {hasMultipleVariants
+                        ? 'Upload separate Excel files for each variant.'
+                        : 'Upload Excel with voucher codes.'}
                     </p>
                     <div className="flex gap-4 items-center flex-wrap">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => codeFileRef.current?.click()}
-                        className="border-[#C64091] text-[#C64091]"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {codeFile ? 'Change File' : 'Upload Codes'}
-                      </Button>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -814,27 +996,142 @@ export default function VoucherTechInfo({ category }) {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                      {codeFile && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <FileText className="w-4 h-4 text-[#C64091]" />
-                          <span>{codeFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setCodeFile(null)}
-                            className="text-[#6B7A99] hover:text-[#C64091]"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
                     </div>
-                    <input
-                      ref={codeFileRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleCodeFileChange}
-                      className="hidden"
-                    />
+
+                    {hasMultipleVariants ? (
+                      <div className="space-y-3">
+                        {voucherVariants.map((variant, idx) => {
+                          const variationId = String(variant?._id || '');
+                          const selectedFile = variantCodeFiles[variationId];
+                          const expectedQty = getExpectedVariantQty(variant);
+                          const parsedCount = variantCodeMeta?.[variationId]?.count;
+                          const inputId = `voucher-code-file-${variationId}`;
+                          return (
+                            <div
+                              key={variationId}
+                              className="rounded-md border border-[#E5E8EB] p-3 space-y-2"
+                            >
+                              <div className="text-sm font-medium text-[#1F2A44]">
+                                Variant {idx + 1}
+                                {expectedQty > 0 ? ` (Expected codes: ${expectedQty})` : ''}
+                              </div>
+                              {getVariantDescriptor(variant) ? (
+                                <p className="text-xs text-[#6B7A99] break-words">
+                                  {getVariantDescriptor(variant)}
+                                </p>
+                              ) : null}
+                              <p className="text-[11px] text-[#8A94A6] break-all">
+                                Variant ID: {variationId}
+                              </p>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const inputEl = document.getElementById(inputId);
+                                    if (inputEl) {
+                                      inputEl.value = '';
+                                      inputEl.click();
+                                    }
+                                  }}
+                                  className="border-[#C64091] text-[#C64091]"
+                                >
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  {selectedFile ? 'Change File' : 'Upload Codes'}
+                                </Button>
+                                {selectedFile && (
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <FileText className="w-4 h-4 text-[#C64091]" />
+                                    <span>{selectedFile.name}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setVariantCodeFiles((prev) => {
+                                          const next = { ...prev };
+                                          delete next[variationId];
+                                          return next;
+                                        });
+                                        setVariantCodeMeta((prev) => {
+                                          const next = { ...prev };
+                                          delete next[variationId];
+                                          return next;
+                                        });
+                                      }}
+                                      className="text-[#6B7A99] hover:text-[#C64091]"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                                {typeof parsedCount === 'number' ? (
+                                  <span className="text-xs text-[#6B7A99]">
+                                    Parsed codes: {parsedCount}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <input
+                                id={inputId}
+                                type="file"
+                                accept=".xlsx,.xls"
+                                onChange={(e) => handleCodeFileChange(e, variationId)}
+                                className="hidden"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              if (codeFileRef.current) {
+                                codeFileRef.current.value = '';
+                                codeFileRef.current.click();
+                              }
+                            }}
+                            className="border-[#C64091] text-[#C64091]"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {codeFile ? 'Change File' : 'Upload Codes'}
+                          </Button>
+                          {codeFile && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FileText className="w-4 h-4 text-[#C64091]" />
+                              <span>{codeFile.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCodeFile(null);
+                                  setVariantCodeMeta((prev) => {
+                                    const next = { ...prev };
+                                    delete next.single;
+                                    return next;
+                                  });
+                                }}
+                                className="text-[#6B7A99] hover:text-[#C64091]"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                          {typeof variantCodeMeta?.single?.count === 'number' ? (
+                            <span className="text-xs text-[#6B7A99]">
+                              Parsed codes: {variantCodeMeta.single.count}
+                            </span>
+                          ) : null}
+                        </div>
+                        <input
+                          ref={codeFileRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleCodeFileChange}
+                          className="hidden"
+                        />
+                      </>
+                    )}
                   </div>
                 )}
               </div>

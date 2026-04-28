@@ -548,7 +548,7 @@ const VoucherCard = () => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+            <Stepper currentStep={4} completedSteps={[1, 2, 3]} category={category} />
           </aside>
           <main className="stepper-content">
             <div className="form-section">
@@ -700,7 +700,7 @@ const VoucherCard = () => {
             <Box className={cls.fieldBox} sx={{ width: '550px', ml: '10px' }}>
               <Box sx={{ display: 'block', marginBottom: 1 }}>
                 <label className={cls.fieldLabel} style={{ fontSize: '16px', display: 'block' }}>
-                  List this voucher for number of days or months
+                  List voucher for no of days on platform
                   <span style={{ color: 'red' }}> *</span>
                 </label>
                 <label

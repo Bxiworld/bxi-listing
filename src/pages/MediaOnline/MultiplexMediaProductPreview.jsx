@@ -6,6 +6,12 @@ import {
   IconButton,
   Paper,
   Typography,
+  TableContainer,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   Tab,
   Tabs,
 } from '@mui/material';
@@ -221,14 +227,15 @@ function DiscountedPrice({
         )}
         <Stack direction="row" alignItems="center" gap={0.75}>
           <Typography variant="h6" fontWeight={700} sx={{ color: textPrimary }}>
-            <CommaSeprator Price={disc} />
+            <CommaSeprator Price={disc} /> 
           </Typography>
+          onwards
           <Box
             component="img"
             src={BXITokenIcon}
             alt=""
             sx={{ width: 18, height: 18 }}
-          />
+          /> 
         </Stack>
         {pct > 0 && (
           <Typography variant="body2" color="text.secondary">
@@ -1181,57 +1188,31 @@ export default function MultiplexMediaProductPreview() {
                           </Typography>
                         </Grid>
                       ) : null}
-                      <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                        {GetProductByIdData?.ProductsVariantions.at(0)?.unit ? (
-                          <>
-                            <Typography sx={tableHeader}>Unit</Typography>
+                      {GetProductByIdData?.ProductsVariantions.at(0)?.unit ? (
+                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                          <Typography sx={tableHeader}>Unit</Typography>
+                          <Typography sx={fetchValue}>
+                            Per{' '}
+                            {
+                              GetProductByIdData?.ProductsVariantions.at(0)
+                                ?.unit
+                            }
+                          </Typography>
+                        </Grid>
+                      ) : null}
+                      {GetProductByIdData?.ProductsVariantions.at(0)
+                        ?.Timeline ? (
+                          <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                            <Typography sx={tableHeader}> Timeline</Typography>
                             <Typography sx={fetchValue}>
-                              Per{' '}
+                            Per{' '}
                               {
                                 GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.unit
+                                  ?.Timeline
                               }
                             </Typography>
-                          </>
-                        ) : (
-                          <>
-                            {/* <Typography sx={tableHeader}>
-                              Release Details
-                            </Typography>
-                            <Typography sx={fetchValue}>
-                              {
-                                GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.releasedetails
-                              }
-                            </Typography> */}
-                          </>
-                        )}
-                      </Grid>
-                      <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                        {GetProductByIdData?.ProductsVariantions.at(0)
-                          ?.Timeline ? (
-                            <>
-                              <Typography sx={tableHeader}> Timeline</Typography>
-                              <Typography sx={fetchValue}>
-                              Per{' '}
-                                {
-                                  GetProductByIdData?.ProductsVariantions.at(0)
-                                    ?.Timeline
-                                }
-                              </Typography>
-                            </>
-                          ) : (
-                            <>
-                              {/* <Typography sx={tableHeader}> Edition</Typography>
-                              <Typography sx={fetchValue}>
-                                {
-                                  GetProductByIdData?.ProductsVariantions.at(0)
-                                    ?.edition
-                                }
-                              </Typography> */}
-                            </>
-                          )}
-                      </Grid>
+                          </Grid>
+                        ) : null}
                       {GetProductByIdData?.ProductsVariantions.at(0)
                         ?.repetition ? (
                           <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
@@ -1352,12 +1333,12 @@ export default function MultiplexMediaProductPreview() {
                         ) : null}
                     </Grid>
                     <Grid container sx={{ mt: 5, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                      <Grid item xl={2.4} lg={2.4} md={4} sm={6} xs={12}>
+                      {/* <Grid item xl={2.4} lg={2.4} md={4} sm={6} xs={12}>
                         <Typography sx={tableHeader}>Region</Typography>
                         <Typography sx={fetchValue}>
                           {GetProductByIdData?.GeographicalData?.region}
                         </Typography>
-                      </Grid>
+                      </Grid> */}
                       {GetProductByIdData?.GeographicalData?.state ===
                         undefined ||
                         GetProductByIdData?.GeographicalData?.state === null ||
@@ -1397,131 +1378,6 @@ export default function MultiplexMediaProductPreview() {
                     </Grid>
                   </Box>
 
-                  {GetProductByIdData?.OtherCost &&
-                    GetProductByIdData?.OtherCost?.length !== 0 ? (
-                      <Box mt={2}>
-                        <Typography
-                          sx={{
-                            ...product,
-                            fontWeight: 600,
-                            fontSize: '18px',
-                            lineHeight: '30px',
-                          }}
-                        >
-                        Additional Cost
-                        </Typography>
-                        {GetProductByIdData?.OtherCost?.length === 0
-                          ? ''
-                          : GetProductByIdData?.OtherCost?.map((cost) => {
-                            const newValue = cost?.CostPrice.toFixed(2);
-                            return (
-                              <>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    gap: '60px',
-                                    mt: 1,
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      minWidth: '160px',
-                                    }}
-                                  >
-                                    <Typography
-                                      sx={{
-                                        ...fetchValue,
-                                      }}
-                                    >
-                                      {' '}
-                                      {cost?.ReasonOfCost}{' '}
-                                    </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      minWidth: '160px',
-                                    }}
-                                  >
-                                    <Typography
-                                      sx={{
-                                        ...fetchValue,
-                                      }}
-                                    >
-                                    HSN - {cost?.AdCostHSN}{' '}
-                                    </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      minWidth: '160px',
-                                    }}
-                                  >
-                                    <Typography
-                                      sx={{
-                                        ...fetchValue,
-                                      }}
-                                    >
-                                    GST - {cost?.AdCostGST} %
-                                    </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      minWidth: '160px',
-                                    }}
-                                  >
-                                    <Typography
-                                      sx={{
-                                        ...fetchValue,
-                                      }}
-                                    >
-                                      {cost?.AdCostApplicableOn === 'All'
-                                        ? 'One Time Cost '
-                                        : 'Per Unit'}
-                                    </Typography>
-                                  </Box>
-                                  <Box
-                                    sx={{
-                                      gap: '5px',
-                                      minWidth: '160px',
-                                      display: 'flex',
-                                    }}
-                                  >
-                                    <Typography
-                                      sx={{
-                                        ...fetchValue,
-                                      }}
-                                    >
-                                      {newValue}
-                                    </Typography>
-                                    <Typography>
-                                      {cost.currencyType === 'BXITokens' ? (
-                                        <Box
-                                          component="img"
-                                          src={BXITokenIcon}
-                                          alt="token"
-                                          sx={{
-                                            height: 'auto',
-                                            width: '15px',
-                                            marginTop: '6px',
-                                          }}
-                                        />
-                                      ) : (
-                                        <Typography
-                                          sx={{
-                                            fontSize: '20px',
-                                            ml: 1,
-                                          }}
-                                        >
-                                        ₹
-                                        </Typography>
-                                      )}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </>
-                            );
-                          })}
-                      </Box>
-                    ) : null}
 
                   {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks
                     .length === 0 ? null : (
@@ -1556,108 +1412,118 @@ export default function MultiplexMediaProductPreview() {
             </Box>
             )}
             {TabValue === '2' && (
-            <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
-              <Box>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                  }}
-                >
-                  <Typography sx={inclusiveheader}>
-                    Supporting you would give to buyer
-                  </Typography>
-                  {getSupportingDocsDisplayLabels(
-                    GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
-                  ).map((label, idx) => (
-                    <Typography
-                      key={idx}
-                      sx={{
-                        ...packHead,
-                        color: '#6B7A99',
-                        fontWeight: 400,
-                        fontSize: '16px',
-                        display: 'flex',
-                        gap: '10px',
-                      }}
-                    >
-                      {label}
-                    </Typography>
-                  ))}
-                </Box>
+  <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+    <Box>
 
-                <Box>
-                  <Typography sx={inclusiveheader}>
-                    Dimensions of Ad / Content Needed
-                  </Typography>
-                  <Box>
-                    <Typography sx={dots}>
-                      {GetProductByIdData?.Dimensions}
-                    </Typography>
-                  </Box>
-                </Box>
+      {/* Supporting Section */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+        }}
+      >
+        <Typography sx={inclusiveheader}>
+          Supporting you would give to buyer
+        </Typography>
 
-                <Box>
-                  <Typography sx={inclusiveheader}>
-                    Content Upload Link
-                  </Typography>
-                  <Box>
-                    <a
-                      style={{
-                        fontFamily: fontFamily,
-                        fontStyle: 'normal',
-                        fontWeight: 400,
-                        fontSize: '16px',
-                        color: '#445FD2',
-                      }}
-                    >
-                      {GetProductByIdData?.UploadLink}
-                    </a>
-                    <br />
-                  </Box>
-                </Box>
+        {getSupportingDocsDisplayLabels(
+          GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
+        ).map((label, idx) => (
+          <Typography
+            key={idx}
+            sx={{
+              ...packHead,
+              color: '#6B7A99',
+              fontWeight: 400,
+              fontSize: '16px',
+            }}
+          >
+            {label}
+          </Typography>
+        ))}
+      </Box>
 
-                <Box>
-                  <Typography sx={inclusiveheader}>
-                    Inventory Available Dates
-                  </Typography>
-                  <Box sx={{ pt: '0.8%', display: 'flex', gap: '10%' }}>
-                    <Typography sx={dateMonth}>Start Date</Typography>
-                    <Typography sx={dateMonth}>End Date</Typography>
-                  </Box>
+      {/* Additional Cost Table */}
+      {GetProductByIdData?.OtherCost?.length > 0 && (
+        <Box mt={3}>
+          <Typography sx={inclusiveheader}>
+            Additional Cost
+          </Typography>
 
-                  <Box
-                    sx={{
-                      overflow: 'auto',
-                      marginRight: '900px',
-                      '::-webkit-scrollbar': {
-                        display: 'flex',
-                      },
-                      '::-webkit-scrollbar-thumb': {
-                        dynamic: '#8d8e90',
-                        minHeight: '10px',
-                        borderRadius: '8px',
-                      },
-                      '::-webkit-scrollbar-thumb:vertical': {
-                        maxHeight: '10px',
-                      },
-                      maxHeight: 'auto',
-                      height: 'auto',
-                    }}
-                  >
-                    <Stack>
-                      <Box sx={{ pt: '0.8%', display: 'flex', gap: '10%' }}>
-                        <Typography sx={valDateMonth}>
-                          {/* Calendar display removed - calendar module no longer used */}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Box>
-                </Box>
-              </Box>
-            </Box>
-            )}
+          <TableContainer
+            component={Paper}
+            sx={{
+              mt: 1,
+              boxShadow: 'none',
+              border: '1px solid #E0E0E0',
+              borderRadius: '8px',
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Reason</strong></TableCell>
+                  <TableCell><strong>HSN</strong></TableCell>
+                  <TableCell><strong>GST (%)</strong></TableCell>
+                  <TableCell><strong>Applicable On</strong></TableCell>
+                  <TableCell><strong>Amount</strong></TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {GetProductByIdData.OtherCost.map((cost, idx) => {
+                  const value = cost?.CostPrice
+                    ? cost.CostPrice.toFixed(2)
+                    : '0.00';
+
+                  return (
+                    <TableRow key={idx}>
+                      <TableCell>{cost?.ReasonOfCost}</TableCell>
+
+                      <TableCell>
+                        {cost?.AdCostHSN || '-'}
+                      </TableCell>
+
+                      <TableCell>
+                        {cost?.AdCostGST ?? '-'}
+                      </TableCell>
+
+                      <TableCell>
+                        {cost?.AdCostApplicableOn === 'All'
+                          ? 'One Time'
+                          : 'Per Unit'}
+                      </TableCell>
+
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {cost.currencyType === 'BXITokens' ? (
+                            <>
+                              {value}
+                              <Box
+                                component="img"
+                                src={BXITokenIcon}
+                                alt="token"
+                                sx={{ width: 16 }}
+                              />
+                            </>
+                          ) : (
+                            <>₹ {value}</>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
+
+    </Box>
+  </Box>
+)}
             {TabValue === '3' && (
             <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
               <Box>
