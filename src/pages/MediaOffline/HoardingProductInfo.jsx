@@ -14,7 +14,7 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 
 /** Official hoarding bulk-upload template (same as BXI-frontend). */
 const HOARDING_EXCEL_TEMPLATE_URL =
-  'https://bxidevelopment1.s3.ap-south-1.amazonaws.com/Excels/Hoarding%2BTemplate.xlsx';
+  'https://mediajourneyexcel.sfo3.cdn.digitaloceanspaces.com/HoardingExcelTemplate.xlsx';
 
 /**
  * Min positive MRP and min positive discounted price across Excel rows (same rule as multiplex screens).
@@ -76,25 +76,25 @@ export default function HoardingProductInfo() {
       .catch(() => {});
   }, [id]);
 
-  // DataGrid columns matching bxi-dashboard
+  // DataGrid columns — titles aligned with hoarding Excel template (multiplex-style wording)
   const columns = [
     { field: 'id', headerName: 'Sr No', width: 70 },
-    { field: 'name', headerName: 'Name', width: 150 },
-    { field: 'area', headerName: 'Area', width: 130 },
-    { field: 'landmark', headerName: 'Landmark', width: 130 },
-    { field: 'state', headerName: 'State', width: 120 },
-    { field: 'city', headerName: 'City', width: 120 },
+    { field: 'name', headerName: 'Media', width: 150 },
+    { field: 'area', headerName: 'Site name / location', width: 180 },
+    { field: 'width', headerName: 'Width (ft.)', width: 100 },
+    { field: 'height', headerName: 'Height (ft.)', width: 100 },
+    { field: 'size', headerName: 'Total sq. ft', width: 110 },
+    { field: 'landmark', headerName: 'Traffic', width: 120 },
+    { field: 'mediaType', headerName: 'Type', width: 110 },
     { field: 'latitude', headerName: 'Latitude', width: 100 },
     { field: 'longitude', headerName: 'Longitude', width: 100 },
-    { field: 'mediaVehicle', headerName: 'Media Vehicle', width: 130 },
-    { field: 'mediaCategory', headerName: 'Media Category', width: 130 },
-    { field: 'mediaType', headerName: 'Media Type', width: 130 },
+    { field: 'state', headerName: 'State', width: 120 },
+    { field: 'city', headerName: 'City', width: 120 },
+    { field: 'mediaVehicle', headerName: 'Media vehicle', width: 130 },
+    { field: 'mediaCategory', headerName: 'Media category', width: 130 },
     { field: 'quantity', headerName: 'Quantity', width: 90 },
-    { field: 'size', headerName: 'Size (Sq.Ft)', width: 110 },
-    { field: 'width', headerName: 'Width (ft.)', width: 110 },
-    { field: 'height', headerName: 'Height (ft.)', width: 110 },
     { field: 'mrp', headerName: 'MRP', width: 100 },
-    { field: 'discountedPrice', headerName: 'Discounted Price', width: 140 },
+    { field: 'discountedPrice', headerName: 'Discounted MRP', width: 130 },
   ];
 
   const handleStateSelect = (state) => {
@@ -140,26 +140,105 @@ export default function HoardingProductInfo() {
           return;
         }
 
-        // Map and validate data
-        const mappedData = jsonData.map((row, index) => ({
-          id: index + 1,
-          name: row['Name*'] || row['Name'] || '',
-          area: row['Area*'] || row['Area'] || '',
-          landmark: row['Landmark'] || '',
-          state: row['State*'] || row['State'] || selectedState,
-          city: row['City*'] || row['City'] || '',
-          latitude: row['Latitude'] || '',
-          longitude: row['Longitude'] || '',
-          mediaVehicle: row['Media Vehicle*'] || row['Media Vehicle'] || 'Hoarding',
-          mediaCategory: row['Media Category*'] || row['Media Category'] || 'Outdoor',
-          mediaType: row['Media Type*'] || row['Media Type'] || 'Static',
-          quantity: row['Quantity*'] || row['Quantity'] || 1,
-          size: row['Size (Sq.Ft)*'] || row['Size'] || 0,
-          width: row['Width (ft.)*'] || row['Width (ft.)'] || 0,
-          height: row['Height (ft.)*'] || row['Height (ft.)'] || 0,
-          mrp: row['MRP*'] || row['MRP'] || 0,
-          discountedPrice: row['Discounted MRP*'] || row['Discounted MRP'] || 0,
-        }));
+        const num = (v) => {
+          if (v === undefined || v === null || v === '') return 0;
+          const n = Number(String(v).replace(/,/g, '').trim());
+          return Number.isFinite(n) ? n : 0;
+        };
+        const str = (...vals) => {
+          for (const v of vals) {
+            if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+          }
+          return '';
+        };
+        /** Match Excel column regardless of underscores/spaces/case (align with BXI Hoarding_Excel_Process). */
+        const normHeader = (h) =>
+          String(h || '')
+            .replace(/^\ufeff/, '')
+            .replace(/\u00a0/g, ' ')
+            .replace(/[\\／∕]/g, '/')
+            .replace(/_/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .toLowerCase();
+        const buildNormRow = (row) => {
+          const map = {};
+          for (const [k, v] of Object.entries(row)) {
+            map[normHeader(k)] = v;
+          }
+          return map;
+        };
+        const cellByNorm = (row, ...aliases) => {
+          const map = buildNormRow(row);
+          for (const a of aliases) {
+            const v = map[normHeader(a)];
+            if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+          }
+          return '';
+        };
+        const cellMediaName = (row) => {
+          const v = cellByNorm(row, 'Media', 'media', 'Name*', 'Name', 'media name');
+          if (v) return v;
+          const map = buildNormRow(row);
+          for (const [nk, val] of Object.entries(map)) {
+            if (nk === 'media' || nk === 'media name') {
+              if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
+            }
+          }
+          return '';
+        };
+        const cellSiteLocation = (row) => {
+          const v = cellByNorm(
+            row,
+            'Site_Name/Location',
+            'Site Name/Location',
+            'Site name / location',
+            'Area*',
+            'Area'
+          );
+          if (v) return v;
+          const map = buildNormRow(row);
+          for (const [nk, val] of Object.entries(map)) {
+            if (nk.includes('site') && nk.includes('location')) {
+              if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
+            }
+          }
+          return '';
+        };
+        // Map and validate data (legacy * columns + new template: Sr_No, Media, Site_Name/Location, …)
+        const mappedData = jsonData.map((row, index) => {
+          const w = num(row['Width (ft.)*'] ?? row['Width (ft.)'] ?? row.Width ?? row.width ?? row['Width']);
+          const h = num(row['Height (ft.)*'] ?? row['Height (ft.)'] ?? row.Height ?? row.height ?? row['Height']);
+          const totalSq = num(
+            row['Total Sq. ft'] ?? row['Total sq. ft'] ?? row['Size (Sq.Ft)*'] ?? row['Size'] ?? row.size
+          );
+          const sizeVal = totalSq > 0 ? totalSq : w > 0 && h > 0 ? w * h : 0;
+          return {
+            id: index + 1,
+            name: str(cellMediaName(row), row['Name*'], row.Name, row.Media, row.media),
+            area: str(cellSiteLocation(row), row['Area*'], row.Area, row['Site_Name/Location']),
+            landmark: str(row.Landmark, row.Traffic, row.traffic),
+            state: str(row['State*'], row.State, row.state) || selectedState,
+            city: str(row['City*'], row.City, row.city),
+            latitude: str(row.Latitude, row.Lat, row.lat),
+            longitude: str(row.Longitude, row.Long, row.long),
+            mediaVehicle: str(row['Media Vehicle*'], row['Media Vehicle'], row['Media vehicle']) || 'Hoarding',
+            mediaCategory: str(row['Media Category*'], row['Media Category'], row['Media category']) || 'Outdoor',
+            mediaType: str(row['Media Type*'], row['Media Type'], row.Type, row.type) || 'Static',
+            quantity: row['Quantity*'] ?? row['Quantity'] ?? row.quantity ?? 1,
+            size: sizeVal,
+            width: w,
+            height: h,
+            mrp: num(row['MRP*'] ?? row.MRP ?? row.mrp),
+            discountedPrice: num(
+              row['Discounted MRP*'] ??
+                row['Discounted MRP'] ??
+                row['Discounted_MRP'] ??
+                row['Counted_M'] ??
+                row.counted_m
+            ),
+          };
+        });
 
         setHoardingData(mappedData);
         toast.success(`${mappedData.length} hoardings loaded from Excel`);

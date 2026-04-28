@@ -1,6 +1,6 @@
 /**
  * Digital ADs (Media Online) – Technical Information.
- * Parity with BXI-frontend DigitalScreensTechInfo + mandatory loop time (minutes in UI, stored as seconds in API).
+ * Parity with BXI-frontend DigitalScreensTechInfo + mandatory min/max slot times (seconds).
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -120,6 +120,9 @@ function resolveTimelineQuantityForFetch(mv, data, timelineDuration) {
 }
 
 const GST_OPTIONS = ['5', '10', '12', '18', '28'];
+const TIMESLOT_SECOND_OPTIONS = Array.from({ length: 18 }, (_, idx) =>
+  String((idx + 1) * 10),
+);
 
 const OthercostFieldsarray = [
   'Applicable On',
@@ -164,7 +167,9 @@ export default function DigitalScreensTechInfo() {
     offeringbrandat: '',
     repetition: '',
     dimensionSize: '',
-    loopTimeMinutes: '',
+    loopTimeSeconds: '',
+    minTimeSeconds: '',
+    maxTimeSeconds: '',
     timeline: '',
     timelineQuantity: '1',
     UploadLink: '',
@@ -176,6 +181,17 @@ export default function DigitalScreensTechInfo() {
 
   const { getValues, control, handleSubmit } = useForm({
     defaultValues: { OtherCost: [] },
+  });
+
+  const minSecondsNumber = Number(storeMediaAllData.minTimeSeconds);
+  const isDigitalAdsJourney =
+    String(productData?.mediaJourney || '').toLowerCase() === 'digital-ads';
+  const maxTimeOptions = TIMESLOT_SECOND_OPTIONS.filter((sec) => {
+    const secNumber = Number(sec);
+    if (!Number.isFinite(minSecondsNumber) || minSecondsNumber < 10) {
+      return secNumber >= 10;
+    }
+    return secNumber >= minSecondsNumber * 2;
   });
 
   const {
@@ -223,23 +239,10 @@ export default function DigitalScreensTechInfo() {
       const data = res.data;
       setProductData(data);
       const mv = data?.mediaVariation || {};
-      const loopFromSecRaw =
-        mv.minTimeslotSeconds ??
-        mv.maxTimeslotSeconds ??
-        data?.minOrderTimeslot ??
-        data?.maxOrderTimeslot ??
-        '';
-      const loopFromSec = Number(loopFromSecRaw);
-      const minutesFromStored =
-        Number.isFinite(loopFromSec) && loopFromSec > 0 ? loopFromSec / 60 : NaN;
-      const loopMinutesStr =
-        Number.isFinite(minutesFromStored) && minutesFromStored > 0
-          ? String(
-              Number.isInteger(minutesFromStored)
-                ? minutesFromStored
-                : Math.round(minutesFromStored * 100) / 100,
-            )
-          : '';
+      const loopTimeSecondsRaw =
+        mv.loopTimeSeconds ?? data?.loopTimeSeconds ?? mv.minTimeslotSeconds ?? data?.minOrderTimeslot ?? '';
+      const minTimeSecondsRaw = mv.minTimeslotSeconds ?? data?.minOrderTimeslot ?? '';
+      const maxTimeSecondsRaw = mv.maxTimeslotSeconds ?? data?.maxOrderTimeslot ?? '';
       const timelineDuration = resolveTimelineDurationFromProduct(mv, data);
       const timelineQuantity = resolveTimelineQuantityForFetch(mv, data, timelineDuration);
 
@@ -251,13 +254,24 @@ export default function DigitalScreensTechInfo() {
             '')
             .toString()
             .trim() || '',
-        offeringbrandat: data?.offeringbrandat ?? '',
+        offeringbrandat: data?.offeringbrandat ?? data?.offerningbrandat ?? '',
         repetition:
           mv.repetition != null && mv.repetition !== ''
             ? String(mv.repetition)
             : '',
         dimensionSize: mv.dimensionSize ?? data?.dimensionSize ?? '',
-        loopTimeMinutes: loopMinutesStr,
+        loopTimeSeconds:
+          loopTimeSecondsRaw != null && loopTimeSecondsRaw !== ''
+            ? String(loopTimeSecondsRaw)
+            : '',
+        minTimeSeconds:
+          minTimeSecondsRaw != null && minTimeSecondsRaw !== ''
+            ? String(minTimeSecondsRaw)
+            : '',
+        maxTimeSeconds:
+          maxTimeSecondsRaw != null && maxTimeSecondsRaw !== ''
+            ? String(maxTimeSecondsRaw)
+            : '',
         timeline: timelineDuration,
         timelineQuantity,
         UploadLink: data?.UploadLink ?? '',
@@ -388,14 +402,23 @@ export default function DigitalScreensTechInfo() {
       toast.error('Select GST rate');
       return;
     }
-    const loopMin = Number(storeMediaAllData.loopTimeMinutes);
-    if (!Number.isFinite(loopMin) || loopMin <= 0) {
-      toast.error('Loop time (minutes) is required and must be greater than zero');
+    const loopTimeSeconds = Number(storeMediaAllData.loopTimeSeconds);
+    if (!Number.isFinite(loopTimeSeconds) || loopTimeSeconds < 10 || loopTimeSeconds > 180) {
+      toast.error('Looptime (In Seconds) must be between 10 and 180');
       return;
     }
-    const loopSec = Math.round(loopMin * 60);
-    if (loopSec < 1) {
-      toast.error('Loop time must be at least 1 second when converted (use a longer duration in minutes)');
+    const minTimeSeconds = Number(storeMediaAllData.minTimeSeconds);
+    if (!Number.isFinite(minTimeSeconds) || minTimeSeconds < 10 || minTimeSeconds > 180) {
+      toast.error('Min Time Seconds must be between 10 and 180');
+      return;
+    }
+    const maxTimeSeconds = Number(storeMediaAllData.maxTimeSeconds);
+    if (!Number.isFinite(maxTimeSeconds) || maxTimeSeconds < 10 || maxTimeSeconds > 180) {
+      toast.error('Max Time Seconds must be between 10 and 180');
+      return;
+    }
+    if (maxTimeSeconds < minTimeSeconds * 2) {
+      toast.error('Max Time Seconds must be at least 2x of Min Time Seconds');
       return;
     }
     const qtyRaw = storeMediaAllData.timelineQuantity;
@@ -449,8 +472,9 @@ export default function DigitalScreensTechInfo() {
       maxOrderQuantityunit: 1,
       minOrderQuantitytimeline: t,
       maxOrderQuantitytimeline: t,
-      minTimeslotSeconds: loopSec,
-      maxTimeslotSeconds: loopSec,
+      minTimeslotSeconds: minTimeSeconds,
+      maxTimeslotSeconds: maxTimeSeconds,
+      loopTimeSeconds: loopTimeSeconds,
       GST: storeMediaAllData.GST,
       HSN: storeMediaAllData.HSN.trim(),
       Timeline: duration,
@@ -469,6 +493,7 @@ export default function DigitalScreensTechInfo() {
       _id: ProductId,
       mediaName: storeMediaAllData.mediaName.trim(),
       offeringbrandat: storeMediaAllData.offeringbrandat.trim(),
+      offerningbrandat: storeMediaAllData.offeringbrandat.trim(),
       adType: storeMediaAllData.adType,
       repetition: rep,
       GST: storeMediaAllData.GST,
@@ -489,8 +514,9 @@ export default function DigitalScreensTechInfo() {
       dimensionSize: storeMediaAllData.dimensionSize.trim(),
       minOrderQtyTimeline: t,
       maxOrderQtyTimeline: t,
-      minOrderTimeslot: loopSec,
-      maxOrderTimeslot: loopSec,
+      minOrderTimeslot: minTimeSeconds,
+      maxOrderTimeslot: maxTimeSeconds,
+      loopTimeSeconds: loopTimeSeconds,
       timeline: duration,
       UploadLink: storeMediaAllData.UploadLink?.trim() || '',
     };
@@ -566,22 +592,79 @@ export default function DigitalScreensTechInfo() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Loop time (seconds) *</Label>
-                      <Input
-                        type="number"
-                        min={10}
-                        step="any"
-                        value={storeMediaAllData.loopTimeMinutes}
+                      <Label>Looptime (In Seconds) *</Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={storeMediaAllData.loopTimeSeconds}
                         onChange={(e) =>
-                          setStoreMediaAllData((p) => ({ ...p, loopTimeMinutes: e.target.value }))
+                          setStoreMediaAllData((p) => ({ ...p, loopTimeSeconds: e.target.value }))
                         }
-                        placeholder="e.g. 1 for a 60-second loop"
-                      />
-                      {/* <p className="text-xs text-[#6B7A99]">
-                        How long one full loop runs on screen. We convert minutes to seconds for the listing API.
-                      </p> */}
+                      >
+                        <option value="">Select loop time</option>
+                        {TIMESLOT_SECOND_OPTIONS.map((sec) => (
+                          <option key={`loop-${sec}`} value={sec}>
+                            {sec}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 md:col-span-2" style={{ marginTop: "10px" }}>
+                      {/* <Label>Min / Max Time (In Seconds) *</Label> */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Min Time Seconds *</Label>
+                          <select
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            value={storeMediaAllData.minTimeSeconds}
+                            onChange={(e) =>
+                              setStoreMediaAllData((p) => {
+                                const nextMin = e.target.value;
+                                const nextMax = Number(p.maxTimeSeconds);
+                                const nextMinNumber = Number(nextMin);
+                                return {
+                                  ...p,
+                                  minTimeSeconds: nextMin,
+                                  maxTimeSeconds:
+                                    Number.isFinite(nextMax) && nextMax >= nextMinNumber * 2
+                                      ? p.maxTimeSeconds
+                                      : '',
+                                };
+                              })
+                            }
+                          >
+                            <option value="">Select min seconds</option>
+                            {TIMESLOT_SECOND_OPTIONS.map((sec) => (
+                              <option key={sec} value={sec}>
+                                {sec}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">Max Time Seconds *</Label>
+                          <select
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            value={storeMediaAllData.maxTimeSeconds}
+                            onChange={(e) =>
+                              setStoreMediaAllData((p) => ({ ...p, maxTimeSeconds: e.target.value }))
+                            }
+                            disabled={!storeMediaAllData.minTimeSeconds}
+                          >
+                            <option value="">
+                              {storeMediaAllData.minTimeSeconds
+                                ? 'Select max seconds'
+                                : 'Select min seconds first'}
+                            </option>
+                            {maxTimeOptions.map((sec) => (
+                              <option key={sec} value={sec}>
+                                {sec}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2" style={{ marginTop: "10px" }}>
                       <Label>Timeline (Duration) *</Label>
                       <select
                         className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -598,7 +681,7 @@ export default function DigitalScreensTechInfo() {
                         ))}
                       </select>
                     </div>
-                    <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                    <div className="space-y-2 md:col-span-2 lg:col-span-1" style={{ marginTop: "10px" }}>
                       <Label>Campaign duration *</Label>
                       <Input
                         type="number"
@@ -669,16 +752,18 @@ export default function DigitalScreensTechInfo() {
                         placeholder="e.g. 998314"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Creative / upload link</Label>
-                      <Input
-                        value={storeMediaAllData.UploadLink}
-                        onChange={(e) =>
-                          setStoreMediaAllData((p) => ({ ...p, UploadLink: e.target.value }))
-                        }
-                        placeholder="https://..."
-                      />
-                    </div>
+                    {!isDigitalAdsJourney && (
+                      <div className="space-y-2">
+                        <Label>Creative / upload link</Label>
+                        <Input
+                          value={storeMediaAllData.UploadLink}
+                          onChange={(e) =>
+                            setStoreMediaAllData((p) => ({ ...p, UploadLink: e.target.value }))
+                          }
+                          placeholder="https://..."
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3">

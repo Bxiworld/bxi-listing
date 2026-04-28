@@ -342,6 +342,8 @@ const MediaProductInfo = () => {
     },
   });
 
+  console.log(errors, 'errors');
+
   const FetchProduct = async () => {
     // Don't fetch if ProductId is not available
     if (!ProductId) {
@@ -613,6 +615,7 @@ const MediaProductInfo = () => {
   };
 
   const updateProductTotextilestatus = handleSubmit((data) => {
+    console.log(data, 'data');
     const DiscountedPrice = Number(data?.mediaVariation?.DiscountedPrice);
     const PricePerUnit = Number(data?.mediaVariation?.PricePerUnit);
     const existingTags = Array.isArray(FetchedproductData?.tags)
@@ -738,11 +741,15 @@ const MediaProductInfo = () => {
       updateProduct(datatobesent, {
         onSuccess: (response) => {
           if (response.status === 200) {
-            // Use new dynamic route
-            navigate(`/mediaoffline/tech-info/${id}`);
+            toast.success('Product updated successfully');
+            setTimeout(() => {
+              navigate(`/mediaoffline/tech-info/${id}`);
+            }, 2000);
           }
         },
-        onError: (error) => { },
+        onError: (error) => {
+          toast.error('Something went wrong');
+        },
       });
     }
   });
@@ -770,6 +777,8 @@ const MediaProductInfo = () => {
       navigate('/sellerhub');
     }
   };
+
+  // console.log(mediaVariation, 'mediaVariation');
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] py-6 sm:py-8">
@@ -1400,9 +1409,9 @@ const MediaProductInfo = () => {
                               fontWeight: 400,
                             }}
                           >
-                            {FetchedproductData?.mediaVariation?.location
-                              ? 'Your Selected Location :' +
-                              FetchedproductData?.mediaVariation?.location
+                            {FetchedproductData?.mediaVariation?.adType
+                              ? 'Your Selected Ad Type :' +
+                              FetchedproductData?.mediaVariation?.adType
                               : null}
                           </Typography>
                           <Select
@@ -1429,12 +1438,12 @@ const MediaProductInfo = () => {
                               return selected;
                             }}
                             disableUnderline
-                            {...register('mediaVariation.location')}
+                            {...register('mediaVariation.adType')}
                             sx={{
                               ...inputStyles,
                               width: '140px',
                               ...borderedControlSx(
-                                !!errors?.mediaVariation?.location?.message,
+                                !!errors?.mediaVariation?.adType?.message,
                               ),
                             }}
                           >
