@@ -32,6 +32,64 @@ export function isVoucherListing(product) {
   return getListingType(product).toLowerCase() === 'voucher';
 }
 
+const normForMedia = (value) =>
+  String(value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+/**
+ * Media rows from Seller Hub / APIs (not the seller’s companyType).
+ * Used so Admin view and mixed tabs still route to media preview + edit, not product preview.
+ */
+export function isMediaListing(product) {
+  if (!product) return false;
+  if (isVoucherListing(product)) return false;
+  if (getListingType(product).toLowerCase() === 'media') return true;
+  const pt = normForMedia(getProductType(product));
+  if (pt === 'mediaonline' || pt === 'mediaoffline') return true;
+  if (pt.includes('media online') || pt.includes('media offline')) return true;
+  const cat = normForMedia(getProductCategoryName(product));
+  if (cat === 'mediaonline' || cat === 'mediaoffline' || cat === 'media') return true;
+  if (cat.includes('mediaonline') || cat.includes('mediaoffline')) return true;
+  if (
+    cat.includes('multiplex') ||
+    cat.includes('hoarding') ||
+    cat.includes('news paper') ||
+    cat.includes('magazine') ||
+    cat.includes('dooh') ||
+    cat === 'btl' ||
+    cat.includes('btl')
+  ) {
+    return true;
+  }
+  const mj = String(product?.mediaJourney ?? '').toLowerCase();
+  if (mj && (mj.includes('television') || mj === 'television-ads' || mj.includes('digital-ads'))) {
+    return true;
+  }
+  return false;
+}
+
+/** Statuses that must never show on Seller Hub "In Draft" (stale InDraft + Approved in DB). */
+const SELLER_HUB_NON_DRAFT_STATUSES = new Set([
+  'approved',
+  'live',
+  'pendingapproval',
+  'delist',
+  'rejected',
+  'expiry',
+]);
+
+/**
+ * In Draft list should only include real drafts. Backend can return rows with
+ * InDraft: true and ProductUploadStatus: Approved — filter those out in the client too.
+ */
+export function passesSellerHubDraftTabListing(product) {
+  const s = String(product?.ProductUploadStatus ?? '').trim();
+  if (!s) return true;
+  return !SELLER_HUB_NON_DRAFT_STATUSES.has(s.toLowerCase());
+}
+
 /**
  * Vertical for voucher UI and routing. API often stores ProductType as "Others" while
  * ProductCategoryName holds the real category (e.g. Textile for textileVoucher drafts).
