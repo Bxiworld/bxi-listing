@@ -41,6 +41,40 @@ const voucherRoutes = {
   'Entertainment & Events': '/eeVoucher',
 };
 
+// Normalized aliases seen across APIs/auth payloads to keep voucher edit routing stable.
+const voucherRouteAliases = {
+  textile: '/textileVoucher',
+  textilevoucher: '/textileVoucher',
+  electronics: '/electronicsVoucher',
+  electronicsvoucher: '/electronicsVoucher',
+  fmcg: '/fmcgVoucher',
+  fmcgvoucher: '/fmcgVoucher',
+  officesupply: '/officesupplyVoucher',
+  officesupplyvoucher: '/officesupplyVoucher',
+  lifestyle: '/lifestyleVoucher',
+  lifestylevoucher: '/lifestyleVoucher',
+  mobility: '/mobilityVoucher',
+  mobilityvoucher: '/mobilityVoucher',
+  others: '/otherVoucher',
+  other: '/otherVoucher',
+  othervoucher: '/otherVoucher',
+  qsr: '/qsrVoucher',
+  qsrvoucher: '/qsrVoucher',
+  restaurantqsr: '/qsrVoucher',
+  restaurant: '/qsrVoucher',
+  restaurants: '/qsrVoucher',
+  hotel: '/hotelsVoucher',
+  hotels: '/hotelsVoucher',
+  hotelsvoucher: '/hotelsVoucher',
+  airlinetickets: '/airlineVoucher',
+  airlinestickets: '/airlineVoucher',
+  airline: '/airlineVoucher',
+  airlinevoucher: '/airlineVoucher',
+  entertainmentevents: '/eeVoucher',
+  entertainmentandevents: '/eeVoucher',
+  eevoucher: '/eeVoucher',
+};
+
 // Media category mappings
 const mediaRoutes = {
   'Multiplex ADs': '/mediaonline',
@@ -276,6 +310,17 @@ const resolveEditRoute = ({
     if (!key) return '';
     return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
   };
+  const resolveVoucherRouteByValue = (value) => {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (voucherRoutes[raw]) return voucherRoutes[raw];
+    const normalized = normalizeKeyForCategoryCompare(raw);
+    if (voucherRouteAliases[normalized]) return voucherRouteAliases[normalized];
+    const fuzzyKey = Object.keys(voucherRoutes).find(
+      (k) => normalizeKeyForCategoryCompare(k) === normalized
+    );
+    return fuzzyKey ? voucherRoutes[fuzzyKey] : null;
+  };
 
   // Handle bulk upload products
   if (isBulkUpload) {
@@ -329,14 +374,31 @@ const resolveEditRoute = ({
   // Handle Voucher listing type — use getVoucherVertical: ProductType may be wrongly "Others" while
   // ProductCategoryName has the real vertical (e.g. Textile).
   if (isVoucherListing(product)) {
-    const voucherCategoryCandidate =
-      getVoucherVertical(product) || companyType;
+    const isGenericOthersCategory = (val) => {
+      const n = normalizeKeyForCategoryCompare(val);
+      return n === '' || n === 'others' || n === 'other' || n === 'othervoucher';
+    };
+    const isAdminLikeCompanyType = (val) => {
+      const n = normalizeKeyForCategoryCompare(val);
+      return n === 'admin' || n === 'media' || n === '';
+    };
+    const voucherVertical = getVoucherVertical(product);
+    const companyTypePreferred =
+      !isAdminLikeCompanyType(companyType) && !isGenericOthersCategory(companyType);
+    // Non-admin seller flows are guarded by companyType-allowed voucher categories.
+    // So prioritize concrete companyType first to avoid seller-hub redirect loops.
+    const voucherCategoryCandidate = companyTypePreferred
+      ? companyType
+      : (
+        !isGenericOthersCategory(voucherVertical)
+          ? voucherVertical
+          : (!isGenericOthersCategory(companyType) ? companyType : (voucherVertical || companyType))
+      );
     const voucherRouteFromExactMatch =
-      voucherRoutes[voucherCategoryCandidate] || voucherRoutes[productCategory] || voucherRoutes[companyType];
-    const normalizedVoucherCategory = normalizeKeyForCategoryCompare(voucherCategoryCandidate);
-    const voucherRouteFromFuzzyMatch = !voucherRouteFromExactMatch && normalizedVoucherCategory
-      ? Object.keys(voucherRoutes).find((k) => normalizeKeyForCategoryCompare(k) === normalizedVoucherCategory)
-      : null;
+      resolveVoucherRouteByValue(voucherCategoryCandidate) ||
+      resolveVoucherRouteByValue(productCategory) ||
+      resolveVoucherRouteByValue(getProductType(product)) ||
+      resolveVoucherRouteByValue(companyType);
 
     const isHotelCategory = (val) => {
       const n = normalizeKeyForCategoryCompare(val);
@@ -350,7 +412,6 @@ const resolveEditRoute = ({
 
     const voucherRoute =
       voucherRouteFromExactMatch ||
-      (voucherRouteFromFuzzyMatch ? voucherRoutes[voucherRouteFromFuzzyMatch] : null) ||
       voucherRouteFromHotelSynonym ||
       voucherRoutes.Others;
     const isHotel =
@@ -367,14 +428,17 @@ const resolveEditRoute = ({
     if (isHotel && hotelVoucherStepMappings[hotelStepKey]) {
       return `${voucherRoute}${hotelVoucherStepMappings[hotelStepKey]}/${productId}`;
     }
-    // Generic voucher step mapping: product step 2->techinfo, 3->golive, 4->voucherdesign
-    const voucherStepMap = {
-      '/general-info': '/generalinformation',
-      '/product-info': '/techinfo',
-      '/tech-info': '/golive',
-      '/go-live': '/voucherdesign',
+    // Generic voucher step mapping aligned to voucher route table in App.js.
+    // Resolve from normalized listing step key to avoid ambiguity where multiple
+    // statuses previously collapsed onto the same generic step path.
+    const voucherStepByKey = {
+      generalinformation: '/generalinformation',
+      productinformation: '/techinfo',
+      technicalinformation: '/vouchertechinfo',
+      voucherdesign: '/voucherdesign',
+      golive: '/vouchergolive',
     };
-    const voucherStep = voucherStepMap[step] || '/generalinformation';
+    const voucherStep = voucherStepByKey[listingStepKey] || '/generalinformation';
     return `${voucherRoute}${voucherStep}/${productId}`;
   }
 

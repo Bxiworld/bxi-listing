@@ -1483,9 +1483,6 @@ export const ProductInfo = ({ category }) => {
     }
     const minQty = parseInt(d.minOrderQty, 10);
     const maxQty = parseInt(d.maxOrderQty, 10);
-    const totalAvailableQty = isVoucherCategory
-      ? parseInt(d.totalAvailableQty, 10)
-      : null;
     if (!Number.isFinite(minQty) || minQty < 1) {
       toast.error('Minimum Order Quantity must be greater than 0');
       return;
@@ -1496,16 +1493,6 @@ export const ProductInfo = ({ category }) => {
     }
     if (minQty > maxQty) {
       toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
-      return;
-    }
-    if (
-      isVoucherCategory &&
-      Number.isFinite(totalAvailableQty) &&
-      maxQty > totalAvailableQty
-    ) {
-      toast.error(
-        'Maximum Order Quantity cannot be greater than Total Available Quantity'
-      );
       return;
     }
     const wantsSample = !!d.isSample;
@@ -1539,7 +1526,6 @@ export const ProductInfo = ({ category }) => {
       Height: ['Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.height || '') : '',
       Weight: d.selectedSize === 'Weight' ? (d.weight || '') : '',
       MeasurementUnit: measurementUnit,
-      TotalAvailableQty: parseInt(d.totalAvailableQty, 10) || 1,
       ...(wantsSample && {
         SampleQty: sampleQty,
         SamplePrice: samplePrice,
@@ -1572,14 +1558,11 @@ export const ProductInfo = ({ category }) => {
     setValue('volume', '');
     setValue('shoeSize', '');
     setValue('minOrderQty', '');
-    // Voucher: max must not exceed total (form still validates on Save & Next); keep defaults consistent.
     if (isVoucherCategory) {
       setValue('maxOrderQty', '');
-      setValue('totalAvailableQty', '');
-      clearErrors(['maxOrderQty', 'totalAvailableQty']);
+      clearErrors(['maxOrderQty']);
     } else {
       setValue('maxOrderQty', '');
-      setValue('totalAvailableQty', '');
     }
     setValue('gst', '');
     setValue('hsn', '');
@@ -1626,7 +1609,6 @@ export const ProductInfo = ({ category }) => {
     setValue('hsn', row.HSN ?? '');
     setValue('minOrderQty', String(row.MinOrderQuantity ?? '1'));
     setValue('maxOrderQty', String(row.MaxOrderQuantity ?? '100'));
-    setValue('totalAvailableQty', String(row.TotalAvailableQty ?? '1'));
     setValue('productIdType', row.ProductIdType ?? '');
 
     setValue('isSample', !!(row.SampleQty || row.SamplePrice));
@@ -1699,11 +1681,9 @@ export const ProductInfo = ({ category }) => {
     setValue('minOrderQty', '1');
     if (isVoucherCategory) {
       setValue('maxOrderQty', '1');
-      setValue('totalAvailableQty', '1');
-      clearErrors(['maxOrderQty', 'totalAvailableQty']);
+      clearErrors(['maxOrderQty']);
     } else {
       setValue('maxOrderQty', '100');
-      setValue('totalAvailableQty', '1');
     }
     setValue('gst', '');
     setValue('hsn', '');
@@ -2524,20 +2504,7 @@ export const ProductInfo = ({ category }) => {
                   type="number"
                   placeholder="100"
                   min={1}
-                  {...register('maxOrderQty', {
-                    min: 1,
-                    validate: (value) => {
-                      if (!isVoucherCategory) return true;
-                      const maxQty = parseInt(value, 10);
-                      const totalQty = parseInt(getValues('totalAvailableQty'), 10);
-                      if (!Number.isFinite(maxQty) || !Number.isFinite(totalQty)) {
-                        return true;
-                      }
-                      return maxQty <= totalQty
-                        ? true
-                        : 'Maximum Order Quantity cannot be greater than Total Available Quantity';
-                    },
-                  })}
+                  {...register('maxOrderQty', { min: 1 })}
                   onWheel={(e) => e.target.blur()}
                   data-testid="input-max-qty"
                 />
@@ -2609,18 +2576,9 @@ export const ProductInfo = ({ category }) => {
                 )}
               </div>
             )}
-            {/* Voucher extra fields: Total Available Qty + Validity */}
+            {/* Voucher extra fields: Validity */}
             {isVoucherCategory  && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="totalAvailableQty">Total Available Quantity <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="totalAvailableQty"
-                    type="number"
-                    placeholder="100"
-                    {...register('totalAvailableQty', { min: 1 })}
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label>Validity of Voucher</Label>
                   <Select
@@ -2748,7 +2706,6 @@ export const ProductInfo = ({ category }) => {
                         <th className="px-3 py-2 text-center font-medium">GST</th>
                         <th className="px-3 py-2 text-center font-medium">{isVoucherCategory ? 'Price / Voucher' : 'MRP'}</th>
                         {shouldUseDiscountedPrice && <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>}
-                        {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Qty</th>}
                         <th className="px-3 py-2 text-center font-medium">Min</th>
                         <th className="px-3 py-2 text-center font-medium">Max</th>
                         {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Validity</th>}
@@ -2794,7 +2751,6 @@ export const ProductInfo = ({ category }) => {
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
                           <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString('en-IN')}` : '—'}</td>
                           {shouldUseDiscountedPrice && <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString('en-IN')}` : '—'}</td>}
-                          {isVoucherCategory && <td className="px-3 py-2">{v.TotalAvailableQty ?? '—'}</td>}
                           <td className="px-3 py-2">{v.MinOrderQuantity ?? '—'}</td>
                           <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
                           {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Month${v.validityOfVoucherValue > 1 ? 's' : ''}` : '—'}</td>}
