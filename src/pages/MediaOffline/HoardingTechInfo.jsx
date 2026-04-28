@@ -1,14 +1,10 @@
 import {
+    Paper,
     Box,
     Grid,
     Checkbox,
     Typography,
-    TextField,
-    Button,
     BottomNavigation,
-    Select,
-    MenuItem,
-    Input,
     TableContainer,
     Table,
     TableHead,
@@ -17,7 +13,13 @@ import {
     tableCellClasses,
     TableBody,
     Chip,
+    Button as MuiButton,
 } from '@mui/material';
+import { Label } from '../../components/ui/label';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
+import { Textarea } from '../../components/ui/textarea';
+import { Badge } from '../../components/ui/badge';
 import { Stack } from '@mui/system';
 import EditIcon from '../../assets/Images/CommonImages/EditIcon.svg';
 import { toast } from 'sonner';
@@ -28,7 +30,6 @@ import {
     supportingDocsToCheckboxState,
     checkboxStateToSupportingArray,
     emptySupportingCheckboxState,
-    SUPPORTING_DOC_KEYS_FORM_ORDER,
     SUPPORTING_DOC_LABELS,
     SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING,
 } from '../../utils/supportingBuyerDocs';
@@ -42,8 +43,7 @@ import {
     FEATURE_ALLOWLIST_BY_KEY,
 } from '../../config/mediaListingProfiles';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Button as UiButton } from '../../components/ui/button';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 
 
 // Constants
@@ -88,6 +88,7 @@ export default function HoardingTechInfo() {
     const otherInputRef = useRef(null);
     const [name, setName] = useState('');
     const tagInputRef = useRef(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [storeMediaAllData, setStoreMediaAllData] = useState({
         mediaName: '',
@@ -447,14 +448,16 @@ export default function HoardingTechInfo() {
 
         // Final validation before submission
         else {
-            await api.post(
-                'product/product_mutation_hoardings',
-                {
-                    ProductId: datatobesent?.ProductId,
-                    ...datatobesent,
-                    ProductUploadStatus: 'technicalinformation',
-                },
-            ).then((response) => {
+            setIsSubmitting(true);
+            try {
+                const response = await api.post(
+                    'product/product_mutation_hoardings',
+                    {
+                        ProductId: datatobesent?.ProductId,
+                        ...datatobesent,
+                        ProductUploadStatus: 'technicalinformation',
+                    },
+                );
                 if (response.status === 200 || response.data?.mediaVariation?.PricePerUnit) {
                     toast.success('Product updated successfully');
                     const id = ProductId;
@@ -464,10 +467,11 @@ export default function HoardingTechInfo() {
                 } else {
                     toast.error('Product not updated');
                 }
-            }).catch((error) => {
+            } catch (error) {
                 toast.error(`Error in updating product ${error}`);
-
-            });
+            } finally {
+                setIsSubmitting(false);
+            }
         }
     });
 
@@ -491,1197 +495,397 @@ export default function HoardingTechInfo() {
     ];
 
     return (
-        <div className="min-h-screen bg-[#ffffff] py-8">
+        <div className="min-h-screen bg-[#F8F9FA] py-8">
             <div className="form-container">
                 <div className="stepper-layout">
                     <aside className="stepper-rail">
                         <Stepper currentStep={3} category="mediaoffline" completedSteps={[1, 2]} />
                     </aside>
-                    <main className="stepper-content" style={{ border: "1px solid #e2e8f0", padding: "20px" , borderRadius:"10px"}}>
-                        <Box className="listing-journey">
-                            <form onSubmit={updateProductTechinfostatus}>
-                                <Box className="listing-journey-container">
-                                    <Box className="listing-journey-form">
-                                        <Box className="listing-header">
-                                            <Typography className="listing-header-title">
-                                                Technical Information
-                                                <ToolTip
-                                                    info={
-                                                        'Technical Information refers to specific details and specifications about a product\'s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product, This is Critical Information from Logistic & Buying Perspective for Making Informed Decisions'
-                                                    }
-                                                />
-                                            </Typography>
-                                        </Box>
+                    <main className="stepper-content">
+                        <div className="max-w-4xl mx-auto px-4 pb-16">
+                            <div className="form-section bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-6">
+                                <h2 className="form-section-title mb-6 flex items-center gap-2">
+                                    Technical Information
+                                    <ToolTip
+                                        info={
+                                            'Technical Information refers to specific details and specifications about a product\'s technical aspects, packaging Material, packing size, Dimensions, logistic or go live information for your offered product, This is Critical Information from Logistic & Buying Perspective for Making Informed Decisions'
+                                        }
+                                    />
+                                </h2>
 
-                                        <Box className="listing-section" sx={{ mt: 2, mb: 3 }}>
-                                            <Box
-                                                sx={{
-                                                    height: 'auto',
-                                                    minHeight: '100px',
-                                                    position: 'relative',
-                                                    display: 'flex',
-                                                    flexWrap: 'wrap',
-                                                    gap: '20px',
-                                                    flexDirection: 'row',
-                                                    mb: 3,
+                                <form onSubmit={updateProductTechinfostatus} className="space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Media Name *</Label>
+                                            <Input
+                                                placeholder="mumbai airport hoarding"
+                                                name="mediaName"
+                                                required
+                                                maxLength={50}
+                                                value={storeMediaAllData.mediaName}
+                                                onChange={(e) => {
+                                                    setStoreMediaAllData(prev => ({
+                                                        ...prev,
+                                                        mediaName: e.target.value,
+                                                    }));
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Offering this Branding at ? *</Label>
+                                            <Input
+                                                placeholder='Near mumbai airport exit gate'
+                                                name="offeringbrandat"
+                                                required
+                                                value={storeMediaAllData.offeringbrandat}
+                                                onChange={(e) => {
+                                                    setStoreMediaAllData(prev => ({
+                                                        ...prev,
+                                                        offeringbrandat: e.target.value,
+                                                    }));
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Ad Type *</Label>
+                                            <select
+                                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                {...register('mediaVariation.adType')}
+                                                value={storeMediaAllData.adType}
+                                                onChange={(e) => {
+                                                    setStoreMediaAllData(prev => ({
+                                                        ...prev,
+                                                        adType: e.target.value,
+                                                    }));
                                                 }}
                                             >
-                                                <Box
-                                                    sx={{
-                                                        height: 'auto',
-                                                        minHeight: 'auto',
-                                                        position: 'relative',
-                                                        display: 'flex',
-                                                        flexWrap: 'wrap',
-                                                        justifyContent: 'space-between',
-                                                        flexDirection: 'row',
-                                                        gap: '20px',
-                                                        width: '100%',
-                                                    }}
-                                                >
+                                                <option value="">Select ad type</option>
+                                                {LOCATION_OPTIONS?.map((location) => (
+                                                    <option key={location} value={location}>
+                                                        {location}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {FetchedproductData?.adType && (
+                                                <p className="text-[11px] text-[#4caf50]">
+                                                    Your Selected Ad Type: {FetchedproductData?.adType}
+                                                </p>
+                                            )}
+                                            {errors?.mediaVariation?.adType?.message && (
+                                                <p className="text-xs text-red-600">{errors?.mediaVariation?.adType?.message}</p>
+                                            )}
+                                        </div>
 
-                                                    <Box sx={{ width: "48%" }}>
-                                                        <Typography
-                                                            sx={{ ...CommonTextStyle, mb: 1 }}
-                                                        >
-                                                            Media Name
-                                                            <span style={{ color: 'red' }}> *</span>
-                                                        </Typography>
-                                                        <Input
-                                                            disableUnderline
-                                                            placeholder="mumbai airport hoarding"
-                                                            name="mediaName"
-                                                            required
-                                                            inputProps={{
-                                                                maxLength: 50,
-                                                            }}
-                                                            value={storeMediaAllData.mediaName}
-                                                            onChange={(e) => {
-                                                                setStoreMediaAllData(prev => ({
-                                                                    ...prev,
-                                                                    mediaName: e.target.value,
-                                                                }));
-                                                            }}
-                                                            sx={{
-                                                                ...inputStyles,
-                                                                mt: 1,
-                                                                width: '100%',
-                                                                border: errors?.mediaVariation?.mediaName?.message
-                                                                    ? '1px solid #DC2626'
-                                                                    : '1px solid #CBD5E0',
-                                                                '&:hover': {
-                                                                    border: errors?.mediaVariation?.mediaName?.message
-                                                                        ? '1px solid #DC2626'
-                                                                        : '1px solid #94A3B8',
-                                                                },
-                                                                '&:focus': {
-                                                                    border: errors?.mediaVariation?.mediaName?.message
-                                                                        ? '1.5px solid #DC2626'
-                                                                        : '1.5px solid #C64091',
-                                                                },
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (
-                                                                    e.key === ' ' &&
-                                                                    e.target.selectionStart === 0
-                                                                ) {
-                                                                    e.preventDefault();
-                                                                }
-                                                            }}
-                                                        />
-                                                    </Box>
-                                                    <Box sx={{ width: '48%' }}>
-                                                        <Typography sx={{ ...CommonTextStyle, mb: 1 }}>
-                                                            Offering this Branding at ?{' '}
-                                                            <span style={{ color: 'red' }}> *</span>
-                                                        </Typography>
-                                                        <Input
-                                                            disableUnderline
-                                                            placeholder='Near mumbai airport exit gate'
-                                                            name="offeringbrandat"
-                                                            required
-                                                            value={storeMediaAllData.offeringbrandat}
-                                                            onChange={(e) => {
-                                                                setStoreMediaAllData(prev => ({
-                                                                    ...prev,
-                                                                    offeringbrandat: e.target.value,
-                                                                }));
-                                                            }}
-                                                            sx={{
-                                                                ...inputStyles,
-                                                                width: '100%',
-                                                                marginTop: '10px',
-                                                                border: errors?.mediaVariation?.offeringbrandat?.message
-                                                                    ? '1px solid #DC2626'
-                                                                    : '1px solid #CBD5E0',
-                                                                '&:hover': {
-                                                                    border: errors?.mediaVariation?.offeringbrandat?.message
-                                                                        ? '1px solid #DC2626'
-                                                                        : '1px solid #94A3B8',
-                                                                },
-                                                                '&:focus': {
-                                                                    border: errors?.mediaVariation?.offeringbrandat?.message
-                                                                        ? '1.5px solid #DC2626'
-                                                                        : '1.5px solid #C64091',
-                                                                },
-                                                            }}
-                                                        />
-                                                    </Box>
-
-
-                                                </Box>
-
-                                                <Box sx={{
-                                                    height: 'auto',
-                                                    minHeight: '100px',
-                                                    position: 'relative',
-                                                    display: 'flex',
-                                                    flexWrap: 'wrap',
-                                                    justifyContent: 'space-between',
-                                                    flexDirection: 'row',
-                                                    width: '100%',
-                                                    mt: 2,
-                                                    mb: 1,
-                                                }}>
-                                                    <Box
-                                                        sx={{
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            gap: '10px',
-                                                            width: 'auto',
-                                                            maxWidth: '200px',
-                                                            minWidth: '200px',
-                                                        }}
-                                                    >
-                                                        <Typography
-                                                            sx={{
-                                                                ...CommonTextStyle,
-                                                                fontSize: '12px',
-                                                                fontWeight: 400,
-                                                                mb: 0.5,
-                                                            }}
-                                                        >
-                                                            Ad Type <span style={{ color: 'red' }}> *</span>
-                                                        </Typography>
-                                                        {FetchedproductData?.adType && (
-                                                            <Typography
-                                                                sx={{
-                                                                    ...CommonTextStyle,
-                                                                    fontSize: '11px',
-                                                                    fontWeight: 400,
-                                                                    mb: 0.5,
-                                                                    color: '#4caf50',
-                                                                }}
-                                                            >
-                                                                Your Selected Ad Type: {FetchedproductData?.adType}
-                                                            </Typography>
-                                                        )}
-                                                        <Select
-                                                            disableUnderline
-                                                            {...register('mediaVariation.adType')}
-                                                            sx={{
-                                                                ...inputStyles,
-                                                                width: '100%',
-                                                                border: errors?.mediaVariation?.adType?.message
-                                                                    ? '1px solid #DC2626'
-                                                                    : '1px solid #CBD5E0',
-                                                                '&:hover': {
-                                                                    border: errors?.mediaVariation?.adType?.message
-                                                                        ? '1px solid #DC2626'
-                                                                        : '1px solid #94A3B8',
-                                                                },
-                                                                '&:focus': {
-                                                                    border: errors?.mediaVariation?.adType?.message
-                                                                        ? '1.5px solid #DC2626'
-                                                                        : '1.5px solid #C64091',
-                                                                },
-                                                                '& .MuiSelect-select': {
-                                                                    border: 'none',
-                                                                },
-                                                            }}
-                                                            onChange={(e) => {
-                                                                setStoreMediaAllData(prev => ({
-                                                                    ...prev,
-                                                                    adType: e.target.value,
-                                                                }));
-                                                            }}
-                                                        >
-                                                            {LOCATION_OPTIONS?.map((location) => {
-                                                                return (
-                                                                    <MenuItem sx={MenuItemsCss} value={location}>
-                                                                        {location}
-                                                                    </MenuItem>
-                                                                )
-                                                            })}
-                                                        </Select>
-
-                                                        <Typography
-                                                            sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
-                                                        >
-                                                            {errors?.mediaVariation?.adType?.message}
-                                                        </Typography>
-                                                    </Box>
-
-                                                    <Box sx={{ width: 'auto', }}>
-                                                        <Box
-                                                            sx={{
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: '10px',
-                                                                maxWidth: '150px',
-                                                                minWidth: '150px',
-                                                            }}
-                                                        >
-                                                            <Typography
-                                                                sx={{
-                                                                    ...CommonTextStyle,
-                                                                    fontSize: '12px',
-                                                                    fontWeight: 400,
-                                                                    mb: 0.5,
-                                                                }}
-                                                            >
-                                                                Timeline <span style={{ color: 'red' }}> *</span>
-                                                            </Typography>
-                                                            {FetchedproductData?.mediaVariation?.timeline && (
-                                                                <Typography
-                                                                    sx={{
-                                                                        ...CommonTextStyle,
-                                                                        fontSize: '11px',
-                                                                        fontWeight: 400,
-                                                                        mb: 0.5,
-                                                                        color: '#4caf50',
-                                                                    }}
-                                                                >
-                                                                    Your Selected Timeline: {FetchedproductData?.mediaVariation?.timeline} days
-                                                                </Typography>
-                                                            )}
-                                                            <Select
-                                                                disableUnderline
-                                                                {...register('mediaVariation.timeline')}
-                                                                sx={{
-                                                                    ...inputStyles,
-                                                                    width: '100%',
-                                                                    border: errors?.mediaVariation?.timeline?.message
-                                                                        ? '1px solid #DC2626'
-                                                                        : '1px solid #CBD5E0',
-                                                                    '&:hover': {
-                                                                        border: errors?.mediaVariation?.timeline?.message
-                                                                            ? '1px solid #DC2626'
-                                                                            : '1px solid #94A3B8',
-                                                                    },
-                                                                    '&:focus': {
-                                                                        border: errors?.mediaVariation?.timeline?.message
-                                                                            ? '1.5px solid #DC2626'
-                                                                            : '1.5px solid #C64091',
-                                                                    },
-                                                                    '& .MuiSelect-select': {
-                                                                        border: 'none',
-                                                                        color: '#1A202C',
-                                                                    },
-                                                                }}
-                                                                value={storeMediaAllData.timeline}
-                                                                onChange={(e) => {
-                                                                    setStoreMediaAllData(prev => ({
-                                                                        ...prev,
-                                                                        timeline: e.target.value,
-                                                                    }));
-                                                                    setValue('mediaVariation.timeline', e.target.value);
-                                                                }}
-                                                            >
-                                                                {TIMELINE_OPTIONS?.map((timeline) => {
-                                                                    return (
-                                                                        <MenuItem key={timeline} sx={MenuItemsCss} value={timeline}>
-                                                                            {timeline} days
-                                                                        </MenuItem>
-                                                                    )
-                                                                })}
-                                                            </Select>
-
-                                                            <Typography
-                                                                sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
-                                                            >
-                                                                {errors?.mediaVariation?.timeline?.message}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Box>
-                                                    <Box sx={{ width: 'auto' }}>
-                                                        <Box
-                                                            sx={{
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: '10px',
-                                                                maxWidth: '100%',
-                                                            }}
-                                                        >
-                                                            <Typography
-                                                                sx={{
-                                                                    ...CommonTextStyle,
-                                                                    fontSize: '12px',
-                                                                    fontWeight: 400,
-                                                                    mb: 0.5,
-                                                                }}
-                                                            >
-                                                                HSN <span style={{ color: 'red' }}> *</span>
-                                                            </Typography>
-                                                            {FetchedproductData?.mediaVariation?.HSN && (
-                                                                <Typography
-                                                                    sx={{
-                                                                        ...CommonTextStyle,
-                                                                        fontSize: '11px',
-                                                                        fontWeight: 400,
-                                                                        mb: 0.5,
-                                                                        color: '#4caf50',
-                                                                    }}
-                                                                >
-                                                                    Your Selected HSN: {FetchedproductData?.mediaVariation?.HSN}
-                                                                </Typography>
-                                                            )}
-                                                            <Input
-                                                                disableUnderline
-                                                                placeholder="123456"
-                                                                name="HSN"
-                                                                value={storeMediaAllData.HSN}
-                                                                onChange={(e) => {
-                                                                    setStoreMediaAllData(prev => ({
-                                                                        ...prev,
-                                                                        HSN: e.target.value,
-                                                                    }));
-                                                                }}
-                                                                sx={{
-                                                                    ...inputStyles,
-                                                                    mt: 0,
-                                                                    width: '140px',
-                                                                    border: errors?.mediaVariation?.HSN?.message
-                                                                        ? '1px solid #DC2626'
-                                                                        : '1px solid #CBD5E0',
-                                                                    '&:hover': {
-                                                                        border: errors?.mediaVariation?.HSN?.message
-                                                                            ? '1px solid #DC2626'
-                                                                            : '1px solid #94A3B8',
-                                                                    },
-                                                                    '&:focus': {
-                                                                        border: errors?.mediaVariation?.HSN?.message
-                                                                            ? '1.5px solid #DC2626'
-                                                                            : '1.5px solid #C64091',
-                                                                    },
-                                                                }}
-                                                                onKeyDown={(e) => {
-                                                                    if (
-                                                                        e.key === ' ' &&
-                                                                        e.target.selectionStart === 0
-                                                                    ) {
-                                                                        e.preventDefault();
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </Box>
-                                                    </Box>
-                                                    <Box sx={{ width: 'auto', }}>
-                                                        <Box
-                                                            sx={{
-                                                                display: 'flex',
-                                                                flexDirection: 'column',
-                                                                gap: '10px',
-                                                                maxWidth: '100%',
-                                                            }}
-                                                        >
-                                                            <Typography
-                                                                sx={{
-                                                                    ...CommonTextStyle,
-                                                                    fontSize: '12px',
-                                                                    fontWeight: 400,
-                                                                    mb: 0.5,
-                                                                }}
-                                                            >
-                                                                GST <span style={{ color: 'red' }}> *</span>
-                                                            </Typography>
-
-                                                            <Select
-                                                                disableUnderline
-                                                                value={storeMediaAllData.GST || ''}
-                                                                onChange={(e) => {
-                                                                    setStoreMediaAllData(prev => ({
-                                                                        ...prev,
-                                                                        GST: e.target.value,
-                                                                    }));
-                                                                }}
-                                                                sx={{
-                                                                    ...inputStyles,
-                                                                    width: '100%',
-                                                                    border: errors?.mediaVariation?.GST?.message
-                                                                        ? '1px solid #DC2626'
-                                                                        : '1px solid #CBD5E0',
-                                                                    '&:hover': {
-                                                                        border: errors?.mediaVariation?.GST?.message
-                                                                            ? '1px solid #DC2626'
-                                                                            : '1px solid #94A3B8',
-                                                                    },
-                                                                    '&:focus': {
-                                                                        border: errors?.mediaVariation?.GST?.message
-                                                                            ? '1.5px solid #DC2626'
-                                                                            : '1.5px solid #C64091',
-                                                                    },
-                                                                    '& .MuiSelect-select': {
-                                                                        border: 'none',
-                                                                        color: '#1A202C',
-                                                                    },
-                                                                }}
-                                                            >
-                                                                <MenuItem sx={MenuItemsCss} value="5">
-                                                                    5
-                                                                </MenuItem>
-                                                                <MenuItem sx={MenuItemsCss} value="10">
-                                                                    10
-                                                                </MenuItem>
-                                                                <MenuItem sx={MenuItemsCss} value="12">
-                                                                    12
-                                                                </MenuItem>
-                                                                <MenuItem sx={MenuItemsCss} value="18">
-                                                                    18
-                                                                </MenuItem>
-                                                                <MenuItem sx={MenuItemsCss} value="28">
-                                                                    28
-                                                                </MenuItem>
-                                                            </Select>
-                                                            {FetchedproductData?.mediaVariation?.GST && (
-                                                                <Typography
-                                                                    sx={{
-                                                                        ...CommonTextStyle,
-                                                                        fontSize: '11px',
-                                                                        fontWeight: 400,
-                                                                        mb: 0.5,
-                                                                        color: '#4caf50',
-                                                                    }}
-                                                                >
-                                                                    Selected GST: {FetchedproductData?.mediaVariation?.GST}
-                                                                </Typography>
-                                                            )}
-                                                            <Typography
-                                                                sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
-                                                            >
-                                                                {errors?.mediaVariation?.GST?.message}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-
-
-
-                                            <Box sx={{ display: 'grid', gap: '10px', py: 0, mt: 0, mb: 0 }}>
-                                                <Typography sx={{ ...CommonTextStyle, mb: 1.5 }}>
-                                                    What supporting document would you give to the Buyer?{' '}
-                                                    <span style={{ color: 'red' }}> *</span>
-                                                </Typography>
-                                                <Grid container>
-                                                    <Grid
-                                                        xl={12}
-                                                        lg={12}
-                                                        md={12}
-                                                        sm={12}
-                                                        xs={12}
-                                                        sx={{ display: 'flex', flexDirection: 'row', gap: '10px', flexWrap: 'wrap', mt: 1 }}
-                                                    >
-
-                                                        {SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING.map((docKey) => (
-                                                            <Box key={docKey} sx={{ display: 'flex', gap: '8px', alignItems: 'center', mb: 1 }}>
-                                                                <Checkbox
-                                                                    checked={!!storeMediaAllData?.supportingDocs?.[docKey]}
-                                                                    onChange={(_, checked) => {
-                                                                        setStoreMediaAllData((prev) => ({
-                                                                            ...prev,
-                                                                            supportingDocs: {
-                                                                                ...prev.supportingDocs,
-                                                                                [docKey]: checked,
-                                                                            },
-                                                                        }));
-                                                                    }}
-                                                                    sx={{
-                                                                        color: '#CBD5E0',
-                                                                        '&.Mui-checked': {
-                                                                            color: '#C64091',
-                                                                        },
-                                                                        '&:hover': {
-                                                                            backgroundColor: 'rgba(198, 64, 145, 0.1)',
-                                                                        },
-                                                                        '&.Mui-checked:hover': {
-                                                                            backgroundColor: 'rgba(198, 64, 145, 0.15)',
-                                                                        },
-                                                                    }}
-                                                                />
-                                                                <Typography sx={{ ...CommonTextStyle, fontSize: '13px' }}>{SUPPORTING_DOC_LABELS[docKey]}</Typography>
-                                                            </Box>
-                                                        ))}
-
-                                                    </Grid>
-                                                </Grid>
-                                            </Box>
-
-                                            <Box sx={{ mt: 2, mb: 3 }}>
-                                                <OthercostPortion
-                                                    append={(data, index) => {
-                                                        if (index !== null) {
-                                                            OthercostUpdate(index, data);
-                                                        } else {
-                                                            OthercostAppend(data);
-                                                        }
-                                                        SetOthercostEditId(null);
-                                                    }}
-                                                    defaultValue={
-                                                        OthercostEditId !== null
-                                                            ? OthercostFields[OthercostEditId]
-                                                            : null
-                                                    }
-                                                    index={OthercostEditId}
-                                                />
-                                            </Box>
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    gap: '20px',
-                                                    flexDirection: 'column',
-                                                    width: '98%',
-                                                    mx: 'auto',
-                                                    mt: 2,
-                                                    mb: 3,
+                                        <div className="space-y-2">
+                                            <Label>Timeline *</Label>
+                                            <select
+                                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                {...register('mediaVariation.timeline')}
+                                                value={storeMediaAllData.timeline}
+                                                onChange={(e) => {
+                                                    setStoreMediaAllData(prev => ({
+                                                        ...prev,
+                                                        timeline: e.target.value,
+                                                    }));
+                                                    setValue('mediaVariation.timeline', e.target.value);
                                                 }}
                                             >
-                                                <TableContainer
-                                                    sx={{
-                                                        width: 'auto',
-                                                        borderRadius: '10px',
-                                                        background: 'transparent',
-                                                        border:
-                                                            OthercostFields.length === 0
-                                                                ? 'none'
-                                                                : '1px solid #e3e3e3',
-                                                        ml: 1,
-                                                        overflow: 'auto',
-                                                        '::-webkit-scrollbar': {
-                                                            display: 'flex',
-                                                            height: '6px',
-                                                        },
-                                                    }}
-                                                >
-                                                    <Table
-                                                        sx={{
-                                                            [`& .${tableCellClasses.root}`]: {
-                                                                borderBottom: 'none',
-                                                            },
-                                                            borderRadius: '10px',
-                                                            overflowX: 'hidden',
-                                                            background: 'transparent',
-                                                        }}
-                                                        size="small"
-                                                        aria-label="a dense table"
-                                                    >
-                                                        {OthercostFields?.map((item, idx) => {
-                                                            return (
-                                                                <>
-                                                                    <TableHead>
-                                                                        <TableRow>
-                                                                            {OthercostFieldsarray?.map((data) => {
-                                                                                if (data === 'id' || data === 'listPeriod')
-                                                                                    return null;
-                                                                                return (
-                                                                                    <TableCell
-                                                                                        align="left"
-                                                                                        key={data}
-                                                                                        sx={{
-                                                                                            ...tableDataStyle,
-                                                                                            padding: '10px',
-                                                                                            textTransform: 'capitalize',
-                                                                                            whiteSpace: 'nowrap',
-                                                                                        }}
-                                                                                        component="th"
-                                                                                        scope="row"
-                                                                                    >
-                                                                                        {data}
-                                                                                    </TableCell>
-                                                                                );
-                                                                            })}
-                                                                        </TableRow>
-                                                                    </TableHead>
-                                                                    <TableBody
-                                                                        sx={{
-                                                                            borderBottom: '1px solid #EDEFF2',
-                                                                        }}
-                                                                    >
-                                                                        <TableRow
-                                                                            key={item}
-                                                                            style={{
-                                                                                borderBottom: '1px solid #e3e3e3',
-                                                                                padding: '10px',
-                                                                            }}
-                                                                        >
-                                                                            <TableCell align="center" sx={TableCellStyle}>
-                                                                                {item.AdCostApplicableOn}
-                                                                            </TableCell>
-                                                                            <TableCell
-                                                                                align="left"
-                                                                                sx={{
-                                                                                    ...TableCellStyle,
-                                                                                    display: 'flex',
-                                                                                    alignItems: 'center',
-                                                                                }}
-                                                                            >
-                                                                                {item.CostPrice}
-                                                                                {'  '}
-                                                                                {item.currencyType === 'BXITokens' ? (
-                                                                                    <img
-                                                                                        src={bxitoken}
-                                                                                        style={{
-                                                                                            width: '15px',
-                                                                                            height: '15px',
-                                                                                        }}
-                                                                                        alt="bxitoken"
-                                                                                    />
-                                                                                ) : (
-                                                                                    item.currencyType
-                                                                                )}
-                                                                            </TableCell>
-                                                                            <TableCell align="left" sx={TableCellStyle}>
-                                                                                {item.AdCostHSN}
-                                                                            </TableCell>
-                                                                            <TableCell align="left" sx={TableCellStyle}>
-                                                                                {item.AdCostGST} %
-                                                                            </TableCell>
-                                                                            <TableCell align="left" sx={TableCellStyle}>
-                                                                                {item.ReasonOfCost}
-                                                                            </TableCell>
+                                                <option value="">Select timeline</option>
+                                                {TIMELINE_OPTIONS?.map((timeline) => (
+                                                    <option key={timeline} value={timeline}>
+                                                        {timeline} days
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {FetchedproductData?.mediaVariation?.timeline && (
+                                                <p className="text-[11px] text-[#4caf50]">
+                                                    Your Selected Timeline: {FetchedproductData?.mediaVariation?.timeline} days
+                                                </p>
+                                            )}
+                                            {errors?.mediaVariation?.timeline?.message && (
+                                                <p className="text-xs text-red-600">{errors?.mediaVariation?.timeline?.message}</p>
+                                            )}
+                                        </div>
 
-                                                                            <Box
-                                                                                sx={{
-                                                                                    display: 'flex',
-                                                                                    alignItems: 'center',
-                                                                                    justifyContent: 'center',
-                                                                                }}
-                                                                            >
-                                                                                <Button
-                                                                                    onClick={() => {
-                                                                                        SetOthercostEditId(idx);
-                                                                                    }}
-                                                                                >
-                                                                                    <Box component="img" src={EditIcon} />
-                                                                                </Button>
-                                                                                <Button
-                                                                                    onClick={() => {
-                                                                                        OthercostRemove(idx);
-                                                                                    }}
-                                                                                >
-                                                                                    <Box component="img" src={RemoveIcon} />
-                                                                                </Button>
-                                                                            </Box>
-                                                                        </TableRow>
-                                                                    </TableBody>
-                                                                </>
-                                                            );
-                                                        })}
-                                                    </Table>
-                                                </TableContainer>
-                                            </Box>
-                                            <Box
-                                                sx={{
-                                                    py: 1,
-                                                    mt: 2,
-                                                    mb: 1,
+                                        <div className="space-y-2">
+                                            <Label>HSN *</Label>
+                                            <Input
+                                                placeholder="123456"
+                                                name="HSN"
+                                                value={storeMediaAllData.HSN}
+                                                onChange={(e) => {
+                                                    setStoreMediaAllData(prev => ({
+                                                        ...prev,
+                                                        HSN: e.target.value,
+                                                    }));
+                                                }}
+                                            />
+                                            {FetchedproductData?.mediaVariation?.HSN && (
+                                                <p className="text-[11px] text-[#4caf50]">
+                                                    Your Selected HSN: {FetchedproductData?.mediaVariation?.HSN}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>GST *</Label>
+                                            <select
+                                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                value={storeMediaAllData.GST || ''}
+                                                onChange={(e) => {
+                                                    setStoreMediaAllData(prev => ({
+                                                        ...prev,
+                                                        GST: e.target.value,
+                                                    }));
                                                 }}
                                             >
-                                                <Box
-                                                    sx={{
-                                                        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                        color: '#6B7A99',
-                                                        mb: 2,
-                                                    }}
-                                                >
-                                                    <Typography sx={{ fontSize: '16px', fontWeight: '500', mb: 0.5 }}>
-                                                        Select the best features that describe your brand/media
-                                                    </Typography>
-                                                    <Typography sx={{ fontSize: '12px' }}>
-                                                        {' '}
-                                                        (The more features you write the more you are
-                                                        discovered){' '}
-                                                    </Typography>
-                                                </Box>
+                                                <option value="">Select GST</option>
+                                                {['5', '10', '12', '18', '28'].map((val) => (
+                                                    <option key={val} value={val}>{val}%</option>
+                                                ))}
+                                            </select>
+                                            {FetchedproductData?.mediaVariation?.GST && (
+                                                <p className="text-[11px] text-[#4caf50]">
+                                                    Selected GST: {FetchedproductData?.mediaVariation?.GST}%
+                                                </p>
+                                            )}
+                                            {errors?.mediaVariation?.GST?.message && (
+                                                <p className="text-xs text-red-600">{errors?.mediaVariation?.GST?.message}</p>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                                <Box>
-                                                    <Box
-                                                        sx={{
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            gap: '20px',
+
+
+                                    <div className="space-y-3">
+                                        <Label>What supporting document would you give to the Buyer? *</Label>
+                                        <div className="flex flex-wrap gap-4">
+                                            {SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING.map((docKey) => (
+                                                <label key={docKey} className="flex items-center gap-2 text-sm text-[#6B7A99]">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!storeMediaAllData?.supportingDocs?.[docKey]}
+                                                        onChange={(e) => {
+                                                            setStoreMediaAllData((prev) => ({
+                                                                ...prev,
+                                                                supportingDocs: {
+                                                                    ...prev.supportingDocs,
+                                                                    [docKey]: e.target.checked,
+                                                                },
+                                                            }));
                                                         }}
-                                                    >
-                                                        <Typography sx={{ ...CommonTextStyle, mb: 1 }}>
-                                                            Select Best Features ( Min 5 and Max 20){' '}
-                                                            <span style={{ color: 'red' }}> *</span>
-                                                        </Typography>
-
-                                                        <Select
-                                                            onChange={(e) => setName(e.target.value)}
-                                                            sx={{
-                                                                width: '100%',
-                                                                background: '#fff',
-                                                                height: '42px',
-                                                                borderRadius: '8px',
-                                                                fontSize: '12px',
-                                                                color: '#1A202C',
-                                                                border: '1px solid #CBD5E0',
-                                                                '&:hover': {
-                                                                    border: '1px solid #94A3B8',
-                                                                },
-                                                                '&.Mui-focused': {
-                                                                    border: '1.5px solid #C64091',
-                                                                },
-                                                                '.MuiOutlinedInput-notchedOutline': {
-                                                                    border: 'none',
-                                                                },
-                                                                '&.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline':
-                                                                {
-                                                                    border: 'none',
-                                                                },
-                                                                '&.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-                                                                {
-                                                                    border: 'none',
-                                                                },
-                                                                '& .MuiSelect-select': {
-                                                                    color: '#1A202C',
-                                                                },
-                                                            }}
-                                                            key={traits}
-                                                        >
-                                                            {filterFeatureDropdownRows(
-                                                                MediaOnlineFeaturesData,
-                                                                FEATURE_ALLOWLIST_BY_KEY.hoarding,
-                                                                items.map((i) => i.name),
-                                                            )?.map((el, idx) => {
-                                                                if (el?.IsHead) {
-                                                                    return (
-                                                                        <MenuItem
-                                                                            key={idx}
-                                                                            disabled
-                                                                            sx={{
-                                                                                ...CommonTextStyle,
-                                                                                color: '#000',
-                                                                                '&.MuiMenuItem-root': {
-                                                                                    color: '#000000',
-                                                                                },
-                                                                                '&.Mui-disabled': {
-                                                                                    color: '#000000',
-                                                                                },
-                                                                                fontWeight: 'bold',
-                                                                            }}
-                                                                        >
-                                                                            {el?.MediaonlineFeaturesingle}
-                                                                        </MenuItem>
-                                                                    );
-                                                                }
-                                                                return (
-                                                                    <MenuItem
-                                                                        key={idx}
-                                                                        value={el?.MediaonlineFeaturesingle}
-                                                                        sx={CommonTextStyle}
-                                                                    >
-                                                                        {el?.MediaonlineFeaturesingle}
-                                                                    </MenuItem>
-                                                                );
-                                                            })}
-                                                        </Select>
-                                                        {items?.length > 0 && items.length < 5 && (
-                                                            <Typography
-                                                                sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}
-                                                            >
-                                                                Select{' '}
-                                                                {5 - items?.length} more feature
-                                                            </Typography>
-                                                        )}
-                                                    </Box>
-
-
-                                                    <Box sx={{ mt: 2 }}>
-                                                        <Typography sx={{ ...CommonTextStyle, mb: 1 }}>
-                                                            Feature Description{' '}
-                                                            <span style={{ color: 'red' }}> *</span>
-                                                        </Typography>
-
-                                                        <TextField
-                                                            focused
-                                                            multiline
-                                                            variant="standard"
-                                                            placeholder="Eg. Larger then Life Ads Across the Large Screens"
-                                                            value={description}
-                                                            onKeyDown={(e) => {
-                                                                if (
-                                                                    e.key === ' ' &&
-                                                                    e.target.selectionStart === 0
-                                                                ) {
-                                                                    e.preventDefault();
-                                                                } else if (e.key === 'Enter') {
-                                                                    e.preventDefault();
-                                                                    handleItemAdd();
-                                                                }
-                                                            }}
-                                                            sx={{
-                                                                ...TextFieldStyle,
-                                                                height: '100%',
-                                                                minHeight: '100px',
-                                                                background: '#FFFFFF',
-                                                                border: '1px solid #CBD5E0',
-                                                                '&:hover': {
-                                                                    border: '1px solid #94A3B8',
-                                                                },
-                                                                '&.Mui-focused': {
-                                                                    border: '1.5px solid #C64091',
-                                                                },
-                                                            }}
-                                                            onChange={(e) => setDescription(e.target.value)}
-                                                            minRows={3}
-                                                            InputProps={{
-                                                                disableUnderline: true,
-                                                                endAdornment: (
-                                                                    <Typography
-                                                                        variant="body1"
-                                                                        style={{
-                                                                            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                                            fontSize: '12px',
-                                                                            color: '#c64091',
-                                                                        }}
-                                                                    ></Typography>
-                                                                ),
-                                                                style: {
-                                                                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                                    fontSize: '12px',
-                                                                    padding: '10px',
-                                                                    color: '#c64091',
-                                                                },
-                                                            }}
-                                                        />
-                                                        {items?.length > 0 && items.length < 5 && (
-                                                            <Typography
-                                                                sx={{ color: 'red', fontFamily: 'ui-sans-serif, system-ui, sans-serif', mt: 1 }}
-                                                            >
-                                                                Enter{' '}
-                                                                {5 - items?.length} more feature description
-                                                            </Typography>
-                                                        )}
-                                                    </Box>
-                                                    <Button
-                                                        variant="contained"
-                                                        onClick={handleItemAdd}
-                                                        sx={ProceedToAddButtonStyle}
-                                                    >
-                                                        Proceed to Add
-                                                    </Button>
-
-                                                    <Typography
-                                                        sx={{
-                                                            color: '#6B7A99',
-                                                            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                            fontSize: '16px',
-                                                            fontWeight: 600,
-                                                            mb: 2,
-                                                            mt: 3,
-                                                        }}
-                                                    >
-                                                        Key Features ({items.length})
-                                                    </Typography>
-                                                    <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                                        {items?.map((item, index) => (
-                                                            <Box
-                                                                key={index}
-                                                                sx={{
-                                                                    border: '1px solid #E3E3E3',
-                                                                    mx: 'auto',
-                                                                    height: 'auto',
-                                                                    width: '100%',
-                                                                    display: 'flex',
-                                                                    flexDirection: 'column',
-                                                                    placeItems: 'center',
-                                                                    borderRadius: '10px',
-                                                                    p: 1.5,
-                                                                }}
-                                                            >
-                                                                <Box
-                                                                    key={index}
-                                                                    sx={{
-                                                                        display: 'flex',
-                                                                        width: '97%',
-                                                                        height: 'auto',
-                                                                        justifyContent: 'space-between',
-                                                                        minHeight: '60px',
-                                                                    }}
-                                                                >
-                                                                    <Typography sx={{ mapdata }}>
-                                                                        <Typography
-                                                                            sx={{
-                                                                                fontWeight: 'bold',
-                                                                                marginTop: '15px',
-                                                                                fontSize: '12px',
-                                                                                height: 'auto',
-                                                                                color: ' #6B7A99',
-                                                                                fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                                            }}
-                                                                        >
-                                                                            {item.name}
-                                                                        </Typography>
-                                                                        <span style={{ fontSize: '12px', color: '#6B7A99' }}>
-                                                                            {item.description}
-                                                                        </span>
-                                                                    </Typography>
-
-                                                                    <Button
-                                                                        onClick={() => handleDelete(index)}
-                                                                        sx={{ textTransform: 'none', fontSize: '15px' }}
-                                                                    >
-                                                                        X
-                                                                    </Button>
-                                                                </Box>
-                                                            </Box>
-                                                        ))}
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-
-                                            <Box
-                                                sx={{
-                                                    py: 1,
-                                                    display: 'flex',
-                                                    gap: '20px',
-                                                    position: 'relative',
-                                                    mt: 1,
-                                                    mb: 3,
-                                                }}
-                                            >
-                                                <Box
-                                                    sx={{
-                                                        width: '100%',
-                                                        height: '45px',
-                                                        borderRadius: '10px',
-                                                    }}
-                                                >
-                                                    <Typography sx={{ ...CommonTextStyle, mb: 1.5 }}>
-                                                        Other information buyer must know/ Remarks{' '}
-                                                    </Typography>
-                                                    <Box
-                                                        sx={{
-                                                            display: 'flex',
-                                                            background: '#fff',
-                                                            borderRadius: '10px',
-                                                            gap: '10px',
-                                                        }}
-                                                    >
-                                                        <TextField
-                                                            placeholder="Eg. Technical Charges to be Paid on Extra on actual"
-                                                            inputRef={otherInputRef}
-                                                            id="standard-basic"
-                                                            variant="standard"
-                                                            InputProps={{
-                                                                disableUnderline: 'true',
-                                                                style: {
-                                                                    fontSize: '14px',
-                                                                    padding: '7px',
-                                                                    color: '#1A202C',
-                                                                },
-                                                            }}
-                                                            InputLabelProps={{
-                                                                style: {
-                                                                    color: 'red',
-                                                                },
-                                                            }}
-                                                            sx={{
-                                                                width: '100%',
-                                                                height: '42px',
-                                                                background: '#FFFFFF',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #CBD5E0',
-                                                                '&:hover': {
-                                                                    border: '1px solid #94A3B8',
-                                                                },
-                                                                '&.Mui-focused': {
-                                                                    border: '1.5px solid #C64091',
-                                                                },
-                                                            }}
-                                                            onKeyDown={otherenter}
-                                                        />
-                                                        <Button
-                                                            variant="outlined"
-                                                            sx={{
-                                                                borderColor: '#c64091',
-                                                                color: '#6B7A99',
-                                                                right: 1,
-                                                                textTransform: 'none',
-                                                                fontSize: '12px',
-                                                                alignSelf: 'center',
-                                                                '&:hover': {
-                                                                    border: 'none',
-                                                                },
-                                                            }}
-                                                            onClick={OtherInformationSubmit}
-                                                        >
-                                                            Add
-                                                        </Button>
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-
-                                            {OtherInfoArray?.map((items, index) => {
-                                                return (
-                                                    <Box
-                                                        key={items}
-                                                        sx={{
-                                                            justifyContent: 'space-between',
-                                                            display: 'flex',
-                                                            mt: index === 0 ? 2 : 1.5,
-                                                            mb: index === OtherInfoArray.length - 1 ? 0 : 1,
-                                                            width: 'auto',
-                                                            gap: '20px',
-                                                            border: '1px solid #E3E3E3',
-                                                            borderRadius: '10px',
-                                                        }}
-                                                    >
-                                                        <Typography
-                                                            id="standard-basic"
-                                                            variant="standard"
-                                                            InputProps={{
-                                                                disableUnderline: 'true',
-                                                                style: {
-                                                                    color: 'rgba(107, 122, 153)',
-                                                                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                                    fontSize: '14px',
-                                                                    padding: '7px',
-                                                                },
-                                                            }}
-                                                            InputLabelProps={{
-                                                                style: {
-                                                                    color: 'red',
-                                                                },
-                                                            }}
-                                                            sx={{
-                                                                fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                                                                background: 'transparent',
-                                                                padding: '10px',
-                                                                color: '#1A202C',
-                                                                width: '600px',
-                                                                wordWrap: 'break-word',
-                                                            }}
-                                                        >
-                                                            {items}
-                                                        </Typography>
-                                                        <Box
-                                                            sx={{
-                                                                marginRight: '10px',
-                                                            }}
-                                                            component="img"
-                                                            src={RemoveIcon}
-                                                            onClick={() => {
-                                                                const temp = OtherInfoArray.filter(
-                                                                    (item) => item !== items,
-                                                                );
-                                                                setOtherInfoArray(temp);
-                                                            }}
-                                                        />
-                                                    </Box>
-                                                );
-                                            })}
-                                            <Box sx={{ display: 'grid', gap: '10px', mt: 4, mb: 0 }}>
-                                                <Typography sx={{ ...TypographyStyle, mb: 1.5 }}>
-                                                    Tags (Keywords that can improve your seach visibility on
-                                                    marketplace)<span style={{ color: 'red' }}> *</span>
-                                                </Typography>
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        background: '#fff',
-                                                        borderRadius: '10px',
-                                                        gap: '10px',
-                                                    }}
-                                                >
-                                                    <TextField
-                                                        placeholder="Add Tags"
-                                                        inputRef={tagInputRef}
-                                                        sx={{
-                                                            width: '100%',
-                                                            background: '#fff',
-                                                            borderRadius: '8px',
-                                                            height: '41px',
-                                                            border: '1px solid #CBD5E0',
-                                                            '&:hover': {
-                                                                border: '1px solid #94A3B8',
-                                                            },
-                                                            '&.Mui-focused': {
-                                                                border: '1.5px solid #C64091',
-                                                            },
-                                                        }}
-                                                        variant="standard"
-                                                        InputProps={{
-                                                            disableUnderline: true,
-                                                            style: {
-                                                                color: 'rgba(107, 122, 153)',
-                                                                fontSize: '14px',
-                                                                marginTop: '5px',
-                                                                marginLeft: '1%',
-                                                                color: '#c64091',
-                                                            },
-                                                        }}
-                                                        inputProps={{ maxLength: 15 }}
-                                                        onKeyDown={handleAddTag}
+                                                        className="rounded border-input"
                                                     />
-                                                    <Button
-                                                        variant="outlined"
-                                                        sx={{
-                                                            borderColor: '#c64091',
-                                                            color: '#6B7A99',
-                                                            right: 1,
-                                                            textTransform: 'none',
-                                                            fontSize: '12px',
-                                                            alignSelf: 'center',
-                                                            '&:hover': {
-                                                                border: 'none',
-                                                            },
-                                                        }}
-                                                        onClick={handleAddButtonClick}
-                                                    >
-                                                        Add
-                                                    </Button>
-                                                </Box>
+                                                    {SUPPORTING_DOC_LABELS[docKey]}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
 
-                                                <Box
-                                                    sx={deleteTagStyle}
+                                    <div className="space-y-3">
+                                        <Label>Other costs</Label>
+                                        <OthercostPortion
+                                            append={(data, index) => {
+                                                if (index !== null) OthercostUpdate(index, data);
+                                                else OthercostAppend(data);
+                                                SetOthercostEditId(null);
+                                            }}
+                                            defaultValue={OthercostEditId !== null ? OthercostFields[OthercostEditId] : null}
+                                            index={OthercostEditId}
+                                        />
+                                        {OthercostFields.length > 0 && (
+                                            <TableContainer className="border rounded-lg overflow-auto">
+                                                <Table size="small">
+                                                    <TableHead>
+                                                        <TableRow>
+                                                            {OthercostFieldsarray.map((data) => {
+                                                                if (data === 'id' || data === 'listPeriod') return null;
+                                                                return (
+                                                                    <TableCell key={data} className="bg-[#F8F9FA] font-medium">
+                                                                        {data}
+                                                                    </TableCell>
+                                                                );
+                                                            })}
+                                                            <TableCell align="center" className="bg-[#F8F9FA] font-medium">Actions</TableCell>
+                                                        </TableRow>
+                                                    </TableHead>
+                                                    <TableBody>
+                                                        {OthercostFields.map((item, idx) => (
+                                                            <TableRow key={idx}>
+                                                                <TableCell>{item.AdCostApplicableOn}</TableCell>
+                                                                <TableCell>
+                                                                    <span className="flex items-center gap-1">
+                                                                        {item.CostPrice}
+                                                                        {item.currencyType === 'BXITokens' ? (
+                                                                            <img src={bxitoken} alt="" className="w-4 h-4" />
+                                                                        ) : (
+                                                                            item.currencyType
+                                                                        )}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell>{item.AdCostHSN}</TableCell>
+                                                                <TableCell>{item.AdCostGST}%</TableCell>
+                                                                <TableCell>{item.ReasonOfCost}</TableCell>
+                                                                <TableCell align="center">
+                                                                    <div className="flex justify-center gap-1">
+                                                                        <MuiButton size="small" onClick={() => SetOthercostEditId(idx)}>
+                                                                            <Box component="img" src={EditIcon} alt="Edit" sx={{ width: 18 }} />
+                                                                        </MuiButton>
+                                                                        <MuiButton size="small" onClick={() => OthercostRemove(idx)}>
+                                                                            <Box component="img" src={RemoveIcon} alt="Remove" sx={{ width: 18 }} />
+                                                                        </MuiButton>
+                                                                    </div>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </TableContainer>
+                                        )}
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Label>Product features * (min 5, max 20)</Label>
+                                            <p className="text-xs text-[#6B7A99] mt-1">
+                                                Select the best features that describe your brand/media.
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <select
+                                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                                    onChange={(e) => setName(e.target.value)}
+                                                    value={name}
                                                 >
-                                                    {tags.map((tag) => (
-                                                        <Chip
-                                                            key={tag}
-                                                            label={tag}
-                                                            onDelete={() => handleDeleteTag(tag)} // Fix: Pass the tag to delete
-                                                            sx={crosstagstyle}
-                                                        />
+                                                    <option value="">Select feature</option>
+                                                    {filterFeatureDropdownRows(
+                                                        MediaOnlineFeaturesData,
+                                                        FEATURE_ALLOWLIST_BY_KEY.hoarding,
+                                                        items.map((i) => i.name),
+                                                    )?.map((el, idx) => (
+                                                        el?.IsHead ? (
+                                                            <option key={idx} disabled className="font-bold text-gray-500">
+                                                                — {el.MediaonlineFeaturesingle} —
+                                                            </option>
+                                                        ) : (
+                                                            <option key={idx} value={el.MediaonlineFeaturesingle}>
+                                                                {el.MediaonlineFeaturesingle}
+                                                            </option>
+                                                        )
                                                     ))}
-                                                </Box>
-                                            </Box>
-                                        </Box>
-                                    </Box>
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Textarea
+                                                    placeholder="Feature description"
+                                                    value={description}
+                                                    onChange={(e) => setDescription(e.target.value)}
+                                                    rows={2}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            handleItemAdd();
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <Button type="button" variant="outline" onClick={handleItemAdd}>
+                                            Add feature
+                                        </Button>
 
-                                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <UiButton
+                                        <div className="space-y-2">
+                                            {items.map((item, index) => (
+                                                <div key={index} className="flex items-start justify-between gap-2 rounded-lg border border-[#E2E8F0] p-3 bg-gray-50">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-[#111827]">{item.name}</p>
+                                                        <p className="text-sm text-[#6B7A99]">{item.description}</p>
+                                                    </div>
+                                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleDelete(index)}>
+                                                        <X className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 pt-4 border-t border-[#E2E8F0]">
+                                        <div className="space-y-2">
+                                            <Label>Other Information Buyer Must Know</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    placeholder="e.g. Free installation for first 10 days"
+                                                    ref={otherInputRef}
+                                                    onKeyDown={otherenter}
+                                                />
+                                                <Button type="button" variant="outline" onClick={OtherInformationSubmit}>
+                                                    Add
+                                                </Button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {OtherInfoArray?.map((info, idx) => (
+                                                    <Badge key={idx} variant="secondary" className="flex items-center gap-1 py-1 px-2 h-auto text-xs">
+                                                        {info}
+                                                        <X
+                                                            className="w-3 h-3 cursor-pointer hover:text-red-500"
+                                                            onClick={() => setOtherInfoArray(OtherInfoArray.filter((_, i) => i !== idx))}
+                                                        />
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Tags *</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    placeholder="Add tags and press enter"
+                                                    ref={tagInputRef}
+                                                    onKeyDown={handleAddTag}
+                                                />
+                                                <Button type="button" variant="outline" onClick={handleAddButtonClick}>
+                                                    Add
+                                                </Button>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {tags?.map((tag, idx) => (
+                                                    <Badge key={idx} variant="secondary" className="flex items-center gap-1 py-1 px-2 h-auto text-xs">
+                                                        {tag}
+                                                        <X
+                                                            className="w-3 h-3 cursor-pointer hover:text-red-500"
+                                                            onClick={() => setTags(tags.filter((_, i) => i !== idx))}
+                                                        />
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center pt-8 border-t border-[#E2E8F0]">
+                                        <Button
                                             type="button"
                                             variant="outline"
-                                            className="border-[#E5E8EB] text-[#111827] hover:bg-[#F8F9FA]"
-                                            onClick={() => navigate(`/mediaoffline/mediaofflinehoardinginfo/${ProductId}`)}
+                                            onClick={() => navigate(`/mediaoffline/hoardinglisting/${ProductId}`)}
+                                            className="flex items-center gap-2 h-10 px-6"
                                         >
                                             <ArrowLeft className="w-4 h-4" />
                                             Back
-                                        </UiButton>
-                                        <UiButton
+                                        </Button>
+                                        <Button
                                             type="submit"
-                                            className="bg-[#C64091] hover:bg-[#A03375] text-white shadow-sm"
+                                            className="flex items-center gap-2 h-10 px-6 bg-[#C64091] hover:bg-[#A33276] text-white"
+                                            disabled={items.length < 5 || isSubmitting}
                                         >
-                                            Next
+                                            {isSubmitting ? 'Saving...' : 'Save & Next'}
                                             <ArrowRight className="w-4 h-4" />
-                                        </UiButton>
+                                        </Button>
                                     </div>
-                                </Box>
-                            </form>
-                        </Box>
+                                </form>
+                            </div>
+                        </div>
                     </main>
                 </div>
             </div>
