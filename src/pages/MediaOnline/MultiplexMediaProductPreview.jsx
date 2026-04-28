@@ -352,17 +352,19 @@ export default function MultiplexMediaProductPreview() {
   };
 
   const columns = [
-    { field: 'srNo', headerName: 'Sr No', width: 80 },
-    { field: 'city', headerName: 'City', width: 130 },
-    { field: 'location', headerName: 'Location', width: 200 },
-    { field: 'cinema', headerName: 'Cinema', width: 200 },
-    { field: 'audiNum', headerName: 'Audi #', width: 100 },
-    { field: 'seatingCapacity', headerName: 'Seats', width: 120 },
-    { field: 'screenCode', headerName: 'Screen Code', width: 150 },
-    { field: 'casCodes', headerName: 'CAS Codes', width: 130 },
-    { field: 'uploadCodes', headerName: 'Upload Codes', width: 130 },
-    { field: 'PricePerUnit', headerName: 'Price', width: 100 },
-    { field: 'DiscountedPrice', headerName: 'Discounted Price', width: 150 },
+    { field: 'srNo', headerName: 'Sr No', width: 72 },
+    { field: 'state', headerName: 'State', width: 120 },
+    { field: 'city', headerName: 'City', width: 120 },
+    { field: 'cinemaCategory', headerName: 'Cinema category', width: 140 },
+    { field: 'cinema', headerName: 'Cinema', width: 160 },
+    { field: 'audiNum', headerName: 'Audi #', width: 88 },
+    { field: 'seatingCapacity', headerName: 'Seating capacity', width: 120 },
+    { field: 'screenCode', headerName: 'Screen code', width: 130 },
+    { field: 'casCodes', headerName: 'CAS codes', width: 110 },
+    { field: 'uploadCodes', headerName: 'Upload codes', width: 110 },
+    { field: 'audiForm', headerName: 'Audi form', width: 100 },
+    { field: 'PricePerUnit', headerName: 'MRP', width: 90 },
+    { field: 'DiscountedPrice', headerName: 'Discounted MRP', width: 120 },
   ];
 
   useEffect(() => {

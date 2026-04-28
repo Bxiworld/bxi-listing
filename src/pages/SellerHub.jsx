@@ -41,6 +41,7 @@ import { useAuthUser } from '../hooks/useAuthUser';
 import useListingEntryContext from '../hooks/useListingEntryContext';
 import { getAllowedCategories, getAllowedVouchers } from '../config/categories';
 import { PRODUCT_TYPE_BY_CATEGORY } from '../config/categoryFormConfig';
+import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing } from '../utils/listingProductFields';
 
 const TABS = ['Live', 'In Draft', 'Admin Review', 'Delist', 'Rejected', 'All'];
 const CATEGORY_FILTER_OPTIONS = Array.from(
@@ -204,8 +205,19 @@ export default function SellerHub() {
 
   const currentTabData = getCurrentTabData();
   const { data: products, totalProducts, totalPages, loading } = currentTabData;
+  const tabProducts = useMemo(() => {
+    if (activeTab !== 'In Draft') return products || [];
+    return (products || []).filter(passesSellerHubDraftTabListing);
+  }, [activeTab, products]);
+
   const filteredProducts = useMemo(() => {
-    if (!selectedType) return products || [];
+    if (!selectedType) return tabProducts || [];
+
+    // "Media" in the category dropdown (mediaonline + mediaoffline both map to label `Media` in PRODUCT_TYPE_BY_CATEGORY).
+    // Do not use substring matching — rows use "Multiplex ADs" / "Hoardings", not the word "Media" in every field.
+    if (selectedType === 'Media') {
+      return (tabProducts || []).filter((product) => isMediaListing(product));
+    }
 
     const selectedNorm = normalizeCategory(selectedType);
     const aliasPool = new Set([
@@ -213,7 +225,12 @@ export default function SellerHub() {
       ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) => normalizeCategory(a)),
     ]);
 
-    return (products || []).filter((product) => {
+    return (tabProducts || []).filter((product) => {
+      // Media lines often have ProductType "Others" (API default) — do not let them match the product vertical "Others" or any non-Media category.
+      if (isMediaListing(product)) {
+        return false;
+      }
+
       const categoryCandidates = [
         product?.ProductCategoryName,
         product?.ProductType,
@@ -226,20 +243,14 @@ export default function SellerHub() {
         [...aliasPool].some((alias) => candidate === alias || candidate.includes(alias) || alias.includes(candidate))
       );
     });
-  }, [products, selectedType]);
+  }, [tabProducts, selectedType]);
   const fullyFilteredProducts = useMemo(() => {
     if (!selectedListingType) return filteredProducts;
 
     return filteredProducts.filter((product) => {
-      const listingTypeNorm = normalizeCategory(product?.ListingType);
-      const categoryNorm = normalizeCategory(product?.ProductCategoryName);
-      const isMedia =
-        listingTypeNorm === 'media' ||
-        categoryNorm.includes('mediaonline') ||
-        categoryNorm.includes('mediaoffline') ||
-        categoryNorm.includes('media online') ||
-        categoryNorm.includes('media offline');
-      const isVoucher = listingTypeNorm === 'voucher' || categoryNorm.includes('voucher');
+      // Use shared row-shape logic (API may use "Multiplex ADs", "Hoardings", etc. — not only "mediaonline").
+      const isMedia = isMediaListing(product);
+      const isVoucher = isVoucherListing(product);
 
       switch (selectedListingType) {
         case 'Product':
@@ -314,6 +325,11 @@ export default function SellerHub() {
 
   const handleRelist = async (product) => {
     if (!product?._id) return;
+    if (
+      !window.confirm('Relist this listing? It will return to live after approval where applicable.')
+    ) {
+      return;
+    }
     try {
       await dispatch(relistProduct({
         productId: product._id,
@@ -329,6 +345,9 @@ export default function SellerHub() {
 
   const handleDelist = async (product) => {
     if (!product?._id) return;
+    if (!window.confirm('Delist this listing? Buyers will no longer see it in the marketplace.')) {
+      return;
+    }
     try {
       await dispatch(delistProduct({
         productId: product._id,
@@ -590,7 +609,7 @@ export default function SellerHub() {
             Clear search
           </Button>
         </div>
-      ) : (products || []).length > 0 && fullyFilteredProducts?.length === 0 ? (
+      ) : (tabProducts || []).length > 0 && fullyFilteredProducts?.length === 0 ? (
         <div className="empty-state" data-testid="sellerhub-filter-empty">
           <Package className="empty-state-icon" />
           <p className="empty-state-text">No listings match your filters.</p>
