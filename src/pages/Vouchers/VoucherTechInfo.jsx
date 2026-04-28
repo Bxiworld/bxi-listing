@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  VOUCHER_JOURNEY_TYPE,
   getVoucherJourneyLabel,
   getVoucherJourneyType,
   getVoucherJourneyTypeFromStorage,
@@ -44,7 +43,7 @@ const schema = z.object({
   termsAndConditions: z.string().min(1, 'This field is required').max(8000, 'This field cannot exceed 8000 characters'),
   redemptionSteps: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   voucherDeliveryType: z.enum([VOUCHER_DELIVERY_TYPE.DIGITAL, VOUCHER_DELIVERY_TYPE.PHYSICAL]),
-  voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
+  // voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
   codeGenerationType: z.enum(['bxi', 'self']),
   onlineRedemptionUrl: z.string().optional().or(z.literal('')),
 });
@@ -368,7 +367,7 @@ export default function VoucherTechInfo({ category }) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -532,113 +531,115 @@ export default function VoucherTechInfo({ category }) {
             <Stepper currentStep={3} completedSteps={[1, 2]} />
           </aside>
           <main className="stepper-content">
-        <div className="form-section">
-          <div className="flex items-center gap-2">
-          <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Voucher delivery (Ecodes vs physical) is saved as voucherDeliveryType on the product.
-                  redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes when applicable.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical) */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Voucher delivery type <span className="text-red-500">*</span></Label>
-                <p className="text-xs text-[#6B7A99]">
-                  How the voucher is delivered or fulfilled: Ecodes (code / link after payment) or physically (shipping / in-store handoff).
-                  This is separate from redemption instructions below; URL and address fields follow your choice here.
-                </p>
-                <RadioGroup
-                  value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
-                  onValueChange={(value) => setValue('voucherDeliveryType', value)}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
-                      <div>
-                        <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
-                          Ecodes Delivery
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.PHYSICAL} id="delivery-physical" className="mt-1" />
-                      <div>
-                        <Label htmlFor="delivery-physical" className="cursor-pointer font-medium">
-                          Physical delivery
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
-                      </div>
-                    </div>
-                  </div>
-                </RadioGroup>
+            <div className="form-section">
+              <div className="flex items-center gap-2">
+                <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Voucher delivery (Ecodes vs physical) is saved as voucherDeliveryType on the product.
+                        redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes when applicable.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
-              {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
-                <div className="space-y-2">
-                  <Label htmlFor="redemptionSteps">
-                    Redemption Steps <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="onlineRedemptionUrl"
-                    type="text"
-                    placeholder="https://..."
-                    {...register('onlineRedemptionUrl')}
-                    className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
-                  />
-                  {errors.redemptionSteps && (
-                    <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-                  )}
-                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-                </div>
-
-              {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical) */}
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Voucher delivery type <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-[#6B7A99]">
+                      How the voucher is delivered or fulfilled: Ecodes (code / link after payment) or physically (shipping / in-store handoff).
+                      This is separate from redemption instructions below; URL and address fields follow your choice here.
+                    </p>
+                    <RadioGroup
+                      value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
+                      onValueChange={(value) => setValue('voucherDeliveryType', value)}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
+                          <div>
+                            <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
+                              Ecodes Delivery
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.PHYSICAL} id="delivery-physical" className="mt-1" />
+                          <div>
+                            <Label htmlFor="delivery-physical" className="cursor-pointer font-medium">
+                              Physical delivery
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
                     <div className="space-y-2">
-                      <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Address ( If Single ) Type Below"
-                        value={offlineAddress.address}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Area <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Area"
-                        value={offlineAddress.area}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="onlineRedemptionUrl">
-                        Add URL <span className="text-red-500">*</span>
+                      <Label htmlFor="redemptionSteps">
+                        Redemption Steps <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="onlineRedemptionUrl"
                         type="text"
-                        placeholder="Add URL"
+                        placeholder="https://..."
                         {...register('onlineRedemptionUrl')}
                         className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                       />
-                      {errors.onlineRedemptionUrl && (
-                        <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                      {errors.redemptionSteps && (
+                        <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
                       )}
+                      <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                    </div>
+                  )}
+                  {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Address ( If Single ) Type Below"
+                            value={offlineAddress.address}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Area <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Area"
+                            value={offlineAddress.area}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="onlineRedemptionUrl">
+                            Add URL <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="onlineRedemptionUrl"
+                            type="text"
+                            placeholder="Add URL"
+                            {...register('onlineRedemptionUrl')}
+                            className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
+                          />
+                          {errors.onlineRedemptionUrl && (
+                            <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -672,7 +673,7 @@ export default function VoucherTechInfo({ category }) {
                                 <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
                               ))}
                             </SelectContent>
-                          </Select>
+                          </button>
                         </div>
                       )}
                       <Button
@@ -699,198 +700,196 @@ export default function VoucherTechInfo({ category }) {
                     />
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
-              <div className="space-y-2">
-                <Label>Voucher type <span className="text-red-500">*</span></Label>
-                <p className="text-xs text-[#6B7A99]">
-                  Same categories as general information: offer-specific deals vs value / gift-card style vouchers.
-                </p>
-                <RadioGroup
-                  value={voucherJourneyType || VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC}
-                  onValueChange={(value) => setValue('voucherJourneyType', value)}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC} id="vtype-offer" className="mt-1" />
-                      <div>
-                        <Label htmlFor="vtype-offer" className="cursor-pointer font-medium">
-                          Offer specific
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Fixed offer or package (default).</p>
+                {/* 
+                <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
+                  <div className="space-y-2">
+                    <Label>Voucher type <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-[#6B7A99]">
+                      Same categories as general information: offer-specific deals vs value / gift-card style vouchers.
+                    </p>
+                    <RadioGroup
+                      value={voucherJourneyType || VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC}
+                      onValueChange={(value) => setValue('voucherJourneyType', value)}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC} id="vtype-offer" className="mt-1" />
+                          <div>
+                            <Label htmlFor="vtype-offer" className="cursor-pointer font-medium">
+                              Offer specific
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Fixed offer or package (default).</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.VALUE_GIFT} id="vtype-value" className="mt-1" />
+                          <div>
+                            <Label htmlFor="vtype-value" className="cursor-pointer font-medium">
+                              Value voucher / gift cards
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Denomination-style or gift-card listing.</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.VALUE_GIFT} id="vtype-value" className="mt-1" />
-                      <div>
-                        <Label htmlFor="vtype-value" className="cursor-pointer font-medium">
-                          Value voucher / gift cards
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Denomination-style or gift-card listing.</p>
-                      </div>
-                    </div>
+                    </RadioGroup>
                   </div>
-                </RadioGroup>
-              </div>
-            </div>
+                </div> */}
 
-            {/* Inclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="inclusions">
-                Inclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="inclusions"
-                placeholder="Inclusions"
-                rows={4}
-                maxLength={501}
-                {...register('inclusions')}
-                className={errors.inclusions ? 'border-red-500' : ''}
-              />
-              {errors.inclusions && (
-                <p className="text-sm text-red-500">{errors.inclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Exclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="exclusions">
-                Exclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="exclusions"
-                placeholder="Exclusions"
-                rows={4}
-                maxLength={501}
-                {...register('exclusions')}
-                className={errors.exclusions ? 'border-red-500' : ''}
-              />
-              {errors.exclusions && (
-                <p className="text-sm text-red-500">{errors.exclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Terms & Conditions – bxi TermConditions */}
-            <div className="space-y-2">
-              <Label htmlFor="termsAndConditions">
-                Terms & Conditions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="termsAndConditions"
-                placeholder="Terms & Conditions"
-                rows={4}
-                maxLength={8000}
-                {...register('termsAndConditions')}
-                className={errors.termsAndConditions ? 'border-red-500' : ''}
-              />
-              {errors.termsAndConditions && (
-                <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 8000 characters</p>
-            </div>
-
-            {/* Redemption Steps */}
-            <div className="space-y-2">
-              <Label htmlFor="redemptionSteps">
-                Redemption Steps <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="redemptionSteps"
-                placeholder="Redemption Steps"
-                rows={4}
-                maxLength={501}
-                {...register('redemptionSteps')}
-                className={errors.redemptionSteps ? 'border-red-500' : ''}
-              />
-              {errors.redemptionSteps && (
-                <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Code generation — Ecodes delivery only; hidden for physical delivery */}
-            {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+                {/* Inclusions */}
                 <div className="space-y-2">
-                  <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
-                  <RadioGroup
-                    value={codeGenerationType || 'bxi'}
-                    onValueChange={(value) => setValue('codeGenerationType', value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="bxi" id="bxi-generate" />
-                      <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="self" id="upload-codes" />
-                      <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
-                    </div>
-                  </RadioGroup>
+                  <Label htmlFor="inclusions">
+                    Inclusions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="inclusions"
+                    placeholder="Inclusions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('inclusions')}
+                    className={errors.inclusions ? 'border-red-500' : ''}
+                  />
+                  {errors.inclusions && (
+                    <p className="text-sm text-red-500">{errors.inclusions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
                 </div>
 
-                {codeGenerationType === 'self' && (
-                  <div className="space-y-2">
-                    <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
-                    <p className="text-xs text-[#6B7A99]">
-                      Upload Excel with voucher codes.
-                    </p>
-                    <div className="flex gap-4 items-center flex-wrap">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => codeFileRef.current?.click()}
-                        className="border-[#C64091] text-[#C64091]"
+                {/* Exclusions */}
+                <div className="space-y-2">
+                  <Label htmlFor="exclusions">
+                    Exclusions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="exclusions"
+                    placeholder="Exclusions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('exclusions')}
+                    className={errors.exclusions ? 'border-red-500' : ''}
+                  />
+                  {errors.exclusions && (
+                    <p className="text-sm text-red-500">{errors.exclusions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Terms & Conditions – bxi TermConditions */}
+                <div className="space-y-2">
+                  <Label htmlFor="termsAndConditions">
+                    Terms & Conditions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="termsAndConditions"
+                    placeholder="Terms & Conditions"
+                    rows={4}
+                    maxLength={8000}
+                    {...register('termsAndConditions')}
+                    className={errors.termsAndConditions ? 'border-red-500' : ''}
+                  />
+                  {errors.termsAndConditions && (
+                    <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 8000 characters</p>
+                </div>
+
+                {/* Redemption Steps */}
+                <div className="space-y-2">
+                  <Label htmlFor="redemptionSteps">
+                    Redemption Steps <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="redemptionSteps"
+                    placeholder="Redemption Steps"
+                    rows={4}
+                    maxLength={501}
+                    {...register('redemptionSteps')}
+                    className={errors.redemptionSteps ? 'border-red-500' : ''}
+                  />
+                  {errors.redemptionSteps && (
+                    <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Code generation — Ecodes delivery only; hidden for physical delivery */}
+                {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
+                  <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+                    <div className="space-y-2">
+                      <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
+                      <RadioGroup
+                        value={codeGenerationType || 'bxi'}
+                        onValueChange={(value) => setValue('codeGenerationType', value)}
                       >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {codeFile ? 'Change File' : 'Upload Codes'}
-                      </Button>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={downloadSampleVoucherCodes}
-                              className="border-[#C64091] text-[#C64091]"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              Download Sample
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      {codeFile && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <FileText className="w-4 h-4 text-[#C64091]" />
-                          <span>{codeFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setCodeFile(null)}
-                            className="text-[#6B7A99] hover:text-[#C64091]"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bxi" id="bxi-generate" />
+                          <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
                         </div>
-                      )}
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="self" id="upload-codes" />
+                          <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
-                    <input
-                      ref={codeFileRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleCodeFileChange}
-                      className="hidden"
-                    />
+
+                    {codeGenerationType === 'self' && (
+                      <div className="space-y-2">
+                        <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
+                        <p className="text-xs text-[#6B7A99]">
+                          Upload Excel with voucher codes.
+                        </p>
+                        <div className="flex gap-4 items-center flex-wrap">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => codeFileRef.current?.click()}
+                            className="border-[#C64091] text-[#C64091]"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {codeFile ? 'Change File' : 'Upload Codes'}
+                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={downloadSampleVoucherCodes}
+                                  className="border-[#C64091] text-[#C64091]"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download Sample
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Cell A1 in the Excel should exactly be <strong>UniqueVoucherCodes</strong></p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {codeFile && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <FileText className="w-4 h-4 text-[#C64091]" />
+                              <span>{codeFile.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => setCodeFile(null)}
+                                className="text-[#6B7A99] hover:text-[#C64091]"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          ref={codeFileRef}
+                          type="file"
+                          accept=".xlsx,.xls"
+                          onChange={handleCodeFileChange}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
                 {/* Actions */}
                 <div className="flex justify-between pt-6">
@@ -911,11 +910,13 @@ export default function VoucherTechInfo({ category }) {
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
+
+
               </form>
             </div>
           </main>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
