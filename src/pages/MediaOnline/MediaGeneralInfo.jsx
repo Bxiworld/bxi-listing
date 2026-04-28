@@ -26,6 +26,12 @@ import api from '../../utils/api';
 import { getMediaSubcategories } from '../../config/mediaSubcategories';
 import { Stepper } from '../AddProduct/AddProductSteps';
 
+/** Utility function to count letters/characters in a string */
+function countLetters(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return text.length;
+}
+
 /**
  * Journey type determines the flow after general info:
  * - digital-ads / digital-screens → Digital Screens flow (DOOH / Excel)
@@ -64,6 +70,9 @@ export default function MediaGeneralInfo() {
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
+  const [productNameLetters, setProductNameLetters] = useState(0);
+  const [productSubtitleLetters, setProductSubtitleLetters] = useState(0);
+  const [descriptionLetters, setDescriptionLetters] = useState(0);
 
   const mediaCategory = useMemo(() => {
     return searchParams.get('mediaCategory') ||
@@ -424,6 +433,7 @@ export default function MediaGeneralInfo() {
                 id="productname"
                 placeholder="Eg. Cafe coffee Day Juhu (8 keywords max)"
                 {...register('productname')}
+                onChange={(e) => setProductNameLetters(countLetters(e.target.value))}
                 className={errors.productname ? 'border-red-500' : ''}
                 onKeyDown={(e) => {
                   if (e.key === ' ' && e.target.selectionStart === 0) {
@@ -431,9 +441,12 @@ export default function MediaGeneralInfo() {
                   }
                 }}
               />
-              {errors.productname && (
-                <p className="text-sm text-red-500">{errors.productname.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productname && (
+                  <p className="text-sm text-red-500">{errors.productname.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{productNameLetters} / 50</p>
+              </div>
             </div>
 
             {/* Subtitle */}
@@ -445,6 +458,7 @@ export default function MediaGeneralInfo() {
                 id="productsubtitle"
                 placeholder="Eg. Digital Ads inside cafe on 64 inch TV (24 keywords max)"
                 {...register('productsubtitle')}
+                onChange={(e) => setProductSubtitleLetters(countLetters(e.target.value))}
                 className={errors.productsubtitle ? 'border-red-500' : ''}
                 onKeyDown={(e) => {
                   if (e.key === ' ' && e.target.selectionStart === 0) {
@@ -452,9 +466,12 @@ export default function MediaGeneralInfo() {
                   }
                 }}
               />
-              {errors.productsubtitle && (
-                <p className="text-sm text-red-500">{errors.productsubtitle.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productsubtitle && (
+                  <p className="text-sm text-red-500">{errors.productsubtitle.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{productSubtitleLetters} / 75</p>
+              </div>
             </div>
 
             {/* Description */}
@@ -467,6 +484,7 @@ export default function MediaGeneralInfo() {
                 placeholder="Eg. Big Brands Need Big digital 64 inch Screens, strategically placed inside cafeteria at a prominent location..."
                 rows={5}
                 {...register('productdescription')}
+                onChange={(e) => setDescriptionLetters(countLetters(e.target.value))}
                 className={errors.productdescription ? 'border-red-500' : ''}
                 onKeyDown={(e) => {
                   if (e.key === ' ' && e.target.selectionStart === 0) {
@@ -474,9 +492,12 @@ export default function MediaGeneralInfo() {
                   }
                 }}
               />
-              {errors.productdescription && (
-                <p className="text-sm text-red-500">{errors.productdescription.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productdescription && (
+                  <p className="text-sm text-red-500">{errors.productdescription.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{descriptionLetters} / 1000</p>
+              </div>
             </div>
 
             {/* Actions */}

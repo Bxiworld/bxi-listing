@@ -58,6 +58,12 @@ function formatSizeOptionButtonLabel(opt) {
   return opt.replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
+/** Utility function to count letters/characters in a string */
+function countLetters(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return text.length;
+}
+
 const STATE_REGION_MAP = {
   'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
   'Rajasthan': 'North', 'Himachal Pradesh': 'North', 'Uttarakhand': 'North',
@@ -228,6 +234,11 @@ export const GeneralInformation = ({ category }) => {
   const [genderCategoryData, setGenderCategoryData] = useState([]);
   const [selectedGenderId, setSelectedGenderId] = useState(null);
   const [selectedGender, setSelectedGender] = useState('Unisex');
+  
+  // Letter count states
+  const [productNameLetters, setProductNameLetters] = useState(0);
+  const [productSubtitleLetters, setProductSubtitleLetters] = useState(0);
+  const [descriptionLetters, setDescriptionLetters] = useState(0);
 
   const giConfig = getGeneralInfoConfig(category);
   const valSchema = getValidationSchema(category, 'generalInfo');
@@ -822,12 +833,16 @@ export const GeneralInformation = ({ category }) => {
                   if (p.max) r.maxLength = { value: p.max, message: `Product name must be at most ${p.max} characters` };
                   return r;
                 })())}
+                onChange={(e) => setProductNameLetters(countLetters(e.target.value))}
                 className={errors.productName ? 'border-red-500' : ''}
                 data-testid="input-product-name"
               />
-              {errors.productName && (
-                <p className="text-sm text-red-500">{errors.productName.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productName && (
+                  <p className="text-sm text-red-500">{errors.productName.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{productNameLetters} / 50</p>
+              </div>
             </div>
 
             {/* Subtitle – shown when config.hasSubtitle; validation from getValidationSchema */}
@@ -846,11 +861,15 @@ export const GeneralInformation = ({ category }) => {
                     if (p.max) r.maxLength = { value: p.max, message: `Product subtitle must be at most ${p.max} characters` };
                     return r;
                   })())}
+                  onChange={(e) => setProductSubtitleLetters(countLetters(e.target.value))}
                   className={errors.productSubtitle ? 'border-red-500' : ''}
                 />
-                {errors.productSubtitle && (
-                  <p className="text-sm text-red-500">{errors.productSubtitle.message}</p>
-                )}
+                <div className="flex items-center justify-between mt-1">
+                  {errors.productSubtitle && (
+                    <p className="text-sm text-red-500">{errors.productSubtitle.message}</p>
+                  )}
+                  <p className="text-xs text-gray-500 ml-auto">{productSubtitleLetters} / 75</p>
+                </div>
               </div>
             )}
 
@@ -875,12 +894,16 @@ export const GeneralInformation = ({ category }) => {
                   if (p.max) r.maxLength = { value: p.max, message: `Description cannot exceed ${p.max} characters` };
                   return r;
                 })())}
+                onChange={(e) => setDescriptionLetters(countLetters(e.target.value))}
                 className={errors.description ? 'border-red-500' : ''}
                 data-testid="input-description"
               />
-              {errors.description && (
-                <p className="text-sm text-red-500">{errors.description.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.description && (
+                  <p className="text-sm text-red-500">{errors.description.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{descriptionLetters} / 1000</p>
+              </div>
             </div>
 
             {/* Mobility: Registration process radio */}

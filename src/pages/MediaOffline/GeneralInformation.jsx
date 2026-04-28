@@ -35,6 +35,12 @@ import {
 } from '../../utils/mediaSubcategoryListing';
 import { Stepper } from '../AddProduct/AddProductSteps';
 
+/** Utility function to count letters/characters in a string */
+function countLetters(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return text.length;
+}
+
 /**
  * Journey type determines the flow after general info:
  * - hoarding → Hoarding flow
@@ -70,8 +76,10 @@ export default function MediaOfflineGeneralInfo() {
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
-  /** Static UI labels resolved to Mongo _id from /mediasubcategory/for_listing */
   const [resolvedStaticOptions, setResolvedStaticOptions] = useState([]);
+  const [productNameLetters, setProductNameLetters] = useState(0);
+  const [productSubtitleLetters, setProductSubtitleLetters] = useState(0);
+  const [descriptionLetters, setDescriptionLetters] = useState(0);
 
   // Get journey and media category from URL params or storage
   const journey = useMemo(() => {
@@ -428,11 +436,15 @@ export default function MediaOfflineGeneralInfo() {
                 id="productname"
                 placeholder="Enter product name"
                 {...register('productname')}
+                onChange={(e) => setProductNameLetters(countLetters(e.target.value))}
                 className={errors.productname ? 'border-red-500' : ''}
               />
-              {errors.productname && (
-                <p className="text-sm text-red-500">{errors.productname.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productname && (
+                  <p className="text-sm text-red-500">{errors.productname.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{productNameLetters} / 50</p>
+              </div>
             </div>
 
             {/* Subtitle */}
@@ -444,11 +456,15 @@ export default function MediaOfflineGeneralInfo() {
                 id="productsubtitle"
                 placeholder="Enter subtitle"
                 {...register('productsubtitle')}
+                onChange={(e) => setProductSubtitleLetters(countLetters(e.target.value))}
                 className={errors.productsubtitle ? 'border-red-500' : ''}
               />
-              {errors.productsubtitle && (
-                <p className="text-sm text-red-500">{errors.productsubtitle.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productsubtitle && (
+                  <p className="text-sm text-red-500">{errors.productsubtitle.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{productSubtitleLetters} / 75</p>
+              </div>
             </div>
 
             {/* Description */}
@@ -461,11 +477,15 @@ export default function MediaOfflineGeneralInfo() {
                 placeholder="Describe your product..."
                 rows={5}
                 {...register('productdescription')}
+                onChange={(e) => setDescriptionLetters(countLetters(e.target.value))}
                 className={errors.productdescription ? 'border-red-500' : ''}
               />
-              {errors.productdescription && (
-                <p className="text-sm text-red-500">{errors.productdescription.message}</p>
-              )}
+              <div className="flex items-center justify-between mt-1">
+                {errors.productdescription && (
+                  <p className="text-sm text-red-500">{errors.productdescription.message}</p>
+                )}
+                <p className="text-xs text-gray-500 ml-auto">{descriptionLetters} / 1000</p>
+              </div>
             </div>
 
             {/* Actions */}

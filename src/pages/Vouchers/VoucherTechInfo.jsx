@@ -125,9 +125,11 @@ export default function VoucherTechInfo({ category }) {
     address: '',
     area: '',
     landmark: '',
+    pincode: '',
     city: '',
     state: '',
   });
+  const [pincodeLoading, setPincodeLoading] = useState(false);
   const [cities, setCities] = useState([]);
   const codeFileRef = useRef(null);
   const storeFileRef = useRef(null);
@@ -257,11 +259,81 @@ export default function VoucherTechInfo({ category }) {
   useEffect(() => {
     if (offlineAddress.state) {
       const stateObj = StateData.find((s) => s.name === offlineAddress.state);
-      setCities(stateObj?.data || []);
+      const baseCities = stateObj?.data || [];
+      const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+      const currentCity = offlineAddress.city || '';
+      if (currentCity && !baseCities.some((c) => normalize(c) === normalize(currentCity))) {
+        setCities([currentCity, ...baseCities]);
+      } else {
+        setCities(baseCities);
+      }
     } else {
       setCities([]);
     }
-  }, [offlineAddress.state]);
+  }, [offlineAddress.state, offlineAddress.city]);
+
+  // Pincode auto-lookup handler
+  const handlePincodeLookup = useCallback(async (pincode) => {
+    if (String(pincode).length !== 6) return;
+    setPincodeLoading(true);
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+      if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
+        const postOffices = data[0].PostOffice;
+        const firstPo = postOffices[0];
+        const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+
+        const apiStateName = firstPo?.State;
+        const apiDistrict = firstPo?.District || firstPo?.Block;
+
+        const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
+        if (matchedState) {
+          const stateCities = matchedState.data || [];
+
+          const findMatchingCity = (candidate) => {
+            const candNorm = normalize(candidate);
+            if (!candNorm) return null;
+            const exact = stateCities.find((c) => normalize(c) === candNorm);
+            if (exact) return exact;
+            const partial = stateCities.find(
+              (c) => normalize(c).includes(candNorm) || candNorm.includes(normalize(c))
+            );
+            return partial || null;
+          };
+
+          const candidateStrings = Array.from(
+            new Set(
+              postOffices
+                .flatMap((po) => [po?.District, po?.Block, po?.Region])
+                .filter(Boolean)
+            )
+          );
+
+          const matchedCity = candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
+          const fallbackCity = apiDistrict || apiStateName || candidateStrings[0] || '';
+          const nextCity = matchedCity || fallbackCity || stateCities?.[0] || '';
+          const nextCityStr = String(nextCity || '').trim();
+
+          setOfflineAddress((prev) => ({
+            ...prev,
+            pincode: String(pincode),
+            state: matchedState.name,
+            city: nextCityStr,
+          }));
+          toast.success('Location auto-filled from pincode!');
+        } else {
+          toast.warning(`State "${apiStateName}" not found in list. Please select manually.`);
+        }
+      } else {
+        toast.error('Invalid pincode or no data found');
+      }
+    } catch {
+      toast.error('Failed to fetch pincode data');
+    } finally {
+      setPincodeLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL) {
@@ -273,17 +345,17 @@ export default function VoucherTechInfo({ category }) {
   const handleCodeFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File size must be less than 10MB');
       return;
     }
-    
+
     setCodeFile(file);
     toast.success('Code file added');
   };
@@ -291,7 +363,7 @@ export default function VoucherTechInfo({ category }) {
   const handleStoreListChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
@@ -349,7 +421,7 @@ export default function VoucherTechInfo({ category }) {
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Voucher Codes');
-    
+
     XLSX.writeFile(wb, 'sample_voucher_codes.xlsx');
     toast.success('Sample file downloaded');
   };
@@ -426,6 +498,7 @@ export default function VoucherTechInfo({ category }) {
         formData.append('Address', offlineAddress.address || '');
         formData.append('Area', offlineAddress.area || '');
         formData.append('Landmark', offlineAddress.landmark || '');
+        formData.append('Pincode', offlineAddress.pincode || '');
         formData.append('City', offlineAddress.city || '');
         formData.append('State', offlineAddress.state || '');
         if (parsedStoreLocations.length > 0) {
@@ -517,8 +590,8 @@ export default function VoucherTechInfo({ category }) {
 
               {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
                 <div className="space-y-2">
-                  <Label htmlFor="onlineRedemptionUrl">
-                    Add URL <span className="text-red-500">*</span>
+                  <Label htmlFor="redemptionSteps">
+                    Redemption Steps <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="onlineRedemptionUrl"
@@ -527,11 +600,11 @@ export default function VoucherTechInfo({ category }) {
                     {...register('onlineRedemptionUrl')}
                     className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                   />
-                  {errors.onlineRedemptionUrl && (
-                    <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                  {errors.redemptionSteps && (
+                    <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
                   )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
                 </div>
-              )}
 
               {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
                 <div className="space-y-4">
@@ -553,49 +626,21 @@ export default function VoucherTechInfo({ category }) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Landmark <span className="text-red-500">*</span></Label>
+                      <Label htmlFor="onlineRedemptionUrl">
+                        Add URL <span className="text-red-500">*</span>
+                      </Label>
                       <Input
-                        placeholder="Landmark"
-                        value={offlineAddress.landmark}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, landmark: e.target.value })}
+                        id="onlineRedemptionUrl"
+                        type="text"
+                        placeholder="Add URL"
+                        {...register('onlineRedemptionUrl')}
+                        className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                       />
+                      {errors.onlineRedemptionUrl && (
+                        <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <Label>State <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={offlineAddress.state}
-                        onValueChange={(v) => {
-                          setOfflineAddress({ ...offlineAddress, state: v, city: '' });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {StateData.map((s) => (
-                            <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>City <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={offlineAddress.city}
-                        onValueChange={(v) => setOfflineAddress({ ...offlineAddress, city: v })}
-                        disabled={!offlineAddress.state}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select city" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cities.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Upload Store List ( If Multiple Locations) </Label>
@@ -619,8 +664,15 @@ export default function VoucherTechInfo({ category }) {
                             onClick={() => setStoreListFile(null)}
                             className="text-[#6B7A99] hover:text-[#C64091]"
                           >
-                            <X className="w-4 h-4" />
-                          </button>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {StateData.map((s) => (
+                                <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
                       <Button
@@ -840,27 +892,27 @@ export default function VoucherTechInfo({ category }) {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !canSubmit}
-                className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+                {/* Actions */}
+                <div className="flex justify-between pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !canSubmit}
+                    className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {isSubmitting ? 'Saving...' : 'Save & Next'}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
           </main>
         </div>
       </div>
