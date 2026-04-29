@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  VOUCHER_JOURNEY_TYPE,
   getVoucherJourneyLabel,
   getVoucherJourneyType,
   getVoucherJourneyTypeFromStorage,
@@ -44,7 +43,7 @@ const schema = z.object({
   termsAndConditions: z.string().min(1, 'This field is required').max(8000, 'This field cannot exceed 8000 characters'),
   redemptionSteps: z.string().min(1, 'This field is required').max(500, 'This field cannot exceed 500 characters'),
   voucherDeliveryType: z.enum([VOUCHER_DELIVERY_TYPE.DIGITAL, VOUCHER_DELIVERY_TYPE.PHYSICAL]),
-  voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
+  // voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
   codeGenerationType: z.enum(['bxi', 'self']),
   onlineRedemptionUrl: z.string().optional().or(z.literal('')),
 });
@@ -174,9 +173,11 @@ export default function VoucherTechInfo({ category }) {
     address: '',
     area: '',
     landmark: '',
+    pincode: '',
     city: '',
     state: '',
   });
+  const [pincodeLoading, setPincodeLoading] = useState(false);
   const [cities, setCities] = useState([]);
   const codeFileRef = useRef(null);
   const storeFileRef = useRef(null);
@@ -317,11 +318,81 @@ export default function VoucherTechInfo({ category }) {
   useEffect(() => {
     if (offlineAddress.state) {
       const stateObj = StateData.find((s) => s.name === offlineAddress.state);
-      setCities(stateObj?.data || []);
+      const baseCities = stateObj?.data || [];
+      const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+      const currentCity = offlineAddress.city || '';
+      if (currentCity && !baseCities.some((c) => normalize(c) === normalize(currentCity))) {
+        setCities([currentCity, ...baseCities]);
+      } else {
+        setCities(baseCities);
+      }
     } else {
       setCities([]);
     }
-  }, [offlineAddress.state]);
+  }, [offlineAddress.state, offlineAddress.city]);
+
+  // Pincode auto-lookup handler
+  const handlePincodeLookup = useCallback(async (pincode) => {
+    if (String(pincode).length !== 6) return;
+    setPincodeLoading(true);
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = await res.json();
+      if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
+        const postOffices = data[0].PostOffice;
+        const firstPo = postOffices[0];
+        const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+
+        const apiStateName = firstPo?.State;
+        const apiDistrict = firstPo?.District || firstPo?.Block;
+
+        const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
+        if (matchedState) {
+          const stateCities = matchedState.data || [];
+
+          const findMatchingCity = (candidate) => {
+            const candNorm = normalize(candidate);
+            if (!candNorm) return null;
+            const exact = stateCities.find((c) => normalize(c) === candNorm);
+            if (exact) return exact;
+            const partial = stateCities.find(
+              (c) => normalize(c).includes(candNorm) || candNorm.includes(normalize(c))
+            );
+            return partial || null;
+          };
+
+          const candidateStrings = Array.from(
+            new Set(
+              postOffices
+                .flatMap((po) => [po?.District, po?.Block, po?.Region])
+                .filter(Boolean)
+            )
+          );
+
+          const matchedCity = candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
+          const fallbackCity = apiDistrict || apiStateName || candidateStrings[0] || '';
+          const nextCity = matchedCity || fallbackCity || stateCities?.[0] || '';
+          const nextCityStr = String(nextCity || '').trim();
+
+          setOfflineAddress((prev) => ({
+            ...prev,
+            pincode: String(pincode),
+            state: matchedState.name,
+            city: nextCityStr,
+          }));
+          toast.success('Location auto-filled from pincode!');
+        } else {
+          toast.warning(`State "${apiStateName}" not found in list. Please select manually.`);
+        }
+      } else {
+        toast.error('Invalid pincode or no data found');
+      }
+    } catch {
+      toast.error('Failed to fetch pincode data');
+    } finally {
+      setPincodeLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL) {
@@ -335,12 +406,12 @@ export default function VoucherTechInfo({ category }) {
   const handleCodeFileChange = (e, variationId = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File size must be less than 10MB');
       return;
@@ -394,12 +465,12 @@ export default function VoucherTechInfo({ category }) {
   const handleStoreListChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       toast.error('Please upload an Excel file (.xlsx or .xls)');
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -458,7 +529,7 @@ export default function VoucherTechInfo({ category }) {
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Voucher Codes');
-    
+
     XLSX.writeFile(wb, 'sample_voucher_codes.xlsx');
     toast.success('Sample file downloaded');
   };
@@ -585,6 +656,7 @@ export default function VoucherTechInfo({ category }) {
         formData.append('Address', offlineAddress.address || '');
         formData.append('Area', offlineAddress.area || '');
         formData.append('Landmark', offlineAddress.landmark || '');
+        formData.append('Pincode', offlineAddress.pincode || '');
         formData.append('City', offlineAddress.city || '');
         formData.append('State', offlineAddress.state || '');
         if (parsedStoreLocations.length > 0) {
@@ -643,143 +715,117 @@ export default function VoucherTechInfo({ category }) {
             <Stepper currentStep={3} completedSteps={[1, 2]} category={category} />
           </aside>
           <main className="stepper-content">
-        <div className="form-section">
-          <div className="flex items-center gap-2">
-          <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                  <Info className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  Voucher delivery (Ecodes vs physical) is saved as voucherDeliveryType on the product.
-                  redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes when applicable.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical) */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Voucher delivery type <span className="text-red-500">*</span></Label>
-                <p className="text-xs text-[#6B7A99]">
-                  How the voucher is delivered or fulfilled: Ecodes (code / link after payment) or physically (shipping / in-store handoff).
-                  This is separate from redemption instructions below; URL and address fields follow your choice here.
-                </p>
-                <RadioGroup
-                  value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
-                  onValueChange={(value) => setValue('voucherDeliveryType', value)}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
-                      <div>
-                        <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
-                          Ecodes Delivery
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.PHYSICAL} id="delivery-physical" className="mt-1" />
-                      <div>
-                        <Label htmlFor="delivery-physical" className="cursor-pointer font-medium">
-                          Physical delivery
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
-                      </div>
-                    </div>
-                  </div>
-                </RadioGroup>
+            <div className="form-section">
+              <div className="flex items-center gap-2">
+                <h2 className="form-section-title">Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                        <Info className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Voucher delivery (Ecodes vs physical) is saved as voucherDeliveryType on the product.
+                        redemptionType is kept in sync for older flows. Also set voucher type, copy, redemption steps, link or store details, and codes when applicable.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
-              {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
-                <div className="space-y-2">
-                  <Label htmlFor="onlineRedemptionUrl">
-                    Add URL <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="onlineRedemptionUrl"
-                    type="text"
-                    placeholder="https://..."
-                    {...register('onlineRedemptionUrl')}
-                    className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
-                  />
-                  {errors.onlineRedemptionUrl && (
-                    <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
-                  )}
-                </div>
-              )}
-
-              {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Voucher delivery — stored as product.voucherDeliveryType (digital | physical) */}
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Address ( If Single ) Type Below"
-                        value={offlineAddress.address}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Area <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Area"
-                        value={offlineAddress.area}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Landmark <span className="text-red-500">*</span></Label>
-                      <Input
-                        placeholder="Landmark"
-                        value={offlineAddress.landmark}
-                        onChange={(e) => setOfflineAddress({ ...offlineAddress, landmark: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>State <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={offlineAddress.state}
-                        onValueChange={(v) => {
-                          setOfflineAddress({ ...offlineAddress, state: v, city: '' });
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {StateData.map((s) => (
-                            <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>City <span className="text-red-500">*</span></Label>
-                      <Select
-                        value={offlineAddress.city}
-                        onValueChange={(v) => setOfflineAddress({ ...offlineAddress, city: v })}
-                        disabled={!offlineAddress.state}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select city" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {cities.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label>Voucher delivery type <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-[#6B7A99]">
+                      How the voucher is delivered or fulfilled: Ecodes (code / link after payment) or physically (shipping / in-store handoff).
+                      This is separate from redemption instructions below; URL and address fields follow your choice here.
+                    </p>
+                    <RadioGroup
+                      value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
+                      onValueChange={(value) => setValue('voucherDeliveryType', value)}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
+                          <div>
+                            <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
+                              Ecodes Delivery
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.PHYSICAL} id="delivery-physical" className="mt-1" />
+                          <div>
+                            <Label htmlFor="delivery-physical" className="cursor-pointer font-medium">
+                              Physical delivery
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </RadioGroup>
                   </div>
+
+                  {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
+                    <div className="space-y-2">
+                      <Label htmlFor="redemptionSteps">
+                        Redemption Steps <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        id="onlineRedemptionUrl"
+                        type="text"
+                        placeholder="https://..."
+                        {...register('onlineRedemptionUrl')}
+                        className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
+                      />
+                      {errors.redemptionSteps && (
+                        <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
+                      )}
+                      <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                    </div>
+                  )}
+                  {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Address ( If Single ) Type Below"
+                            value={offlineAddress.address}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Area <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Area"
+                            value={offlineAddress.area}
+                            onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="onlineRedemptionUrl">
+                            Add URL <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="onlineRedemptionUrl"
+                            type="text"
+                            placeholder="Add URL"
+                            {...register('onlineRedemptionUrl')}
+                            className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
+                          />
+                          {errors.onlineRedemptionUrl && (
+                            <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label>Upload Store List ( If Multiple Locations) </Label>
@@ -808,7 +854,14 @@ export default function VoucherTechInfo({ category }) {
                             onClick={() => setStoreListFile(null)}
                             className="text-[#6B7A99] hover:text-[#C64091]"
                           >
-                            <X className="w-4 h-4" />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {StateData.map((s) => (
+                                <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
                           </button>
                         </div>
                       )}
@@ -836,137 +889,115 @@ export default function VoucherTechInfo({ category }) {
                     />
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
-              <div className="space-y-2">
-                <Label>Voucher type <span className="text-red-500">*</span></Label>
-                <p className="text-xs text-[#6B7A99]">
-                  Same categories as general information: offer-specific deals vs value / gift-card style vouchers.
-                </p>
-                <RadioGroup
-                  value={voucherJourneyType || VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC}
-                  onValueChange={(value) => setValue('voucherJourneyType', value)}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC} id="vtype-offer" className="mt-1" />
-                      <div>
-                        <Label htmlFor="vtype-offer" className="cursor-pointer font-medium">
-                          Offer specific
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Fixed offer or package (default).</p>
+                {/* 
+                <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
+                  <div className="space-y-2">
+                    <Label>Voucher type <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-[#6B7A99]">
+                      Same categories as general information: offer-specific deals vs value / gift-card style vouchers.
+                    </p>
+                    <RadioGroup
+                      value={voucherJourneyType || VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC}
+                      onValueChange={(value) => setValue('voucherJourneyType', value)}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC} id="vtype-offer" className="mt-1" />
+                          <div>
+                            <Label htmlFor="vtype-offer" className="cursor-pointer font-medium">
+                              Offer specific
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Fixed offer or package (default).</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.VALUE_GIFT} id="vtype-value" className="mt-1" />
+                          <div>
+                            <Label htmlFor="vtype-value" className="cursor-pointer font-medium">
+                              Value voucher / gift cards
+                            </Label>
+                            <p className="text-xs text-[#6B7A99] font-normal">Denomination-style or gift-card listing.</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value={VOUCHER_JOURNEY_TYPE.VALUE_GIFT} id="vtype-value" className="mt-1" />
-                      <div>
-                        <Label htmlFor="vtype-value" className="cursor-pointer font-medium">
-                          Value voucher / gift cards
-                        </Label>
-                        <p className="text-xs text-[#6B7A99] font-normal">Denomination-style or gift-card listing.</p>
-                      </div>
-                    </div>
+                    </RadioGroup>
                   </div>
-                </RadioGroup>
-              </div>
-            </div>
+                </div> */}
 
-            {/* Inclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="inclusions">
-                Inclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="inclusions"
-                placeholder="Inclusions"
-                rows={4}
-                maxLength={501}
-                {...register('inclusions')}
-                className={errors.inclusions ? 'border-red-500' : ''}
-              />
-              {errors.inclusions && (
-                <p className="text-sm text-red-500">{errors.inclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Exclusions */}
-            <div className="space-y-2">
-              <Label htmlFor="exclusions">
-                Exclusions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="exclusions"
-                placeholder="Exclusions"
-                rows={4}
-                maxLength={501}
-                {...register('exclusions')}
-                className={errors.exclusions ? 'border-red-500' : ''}
-              />
-              {errors.exclusions && (
-                <p className="text-sm text-red-500">{errors.exclusions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Terms & Conditions – bxi TermConditions */}
-            <div className="space-y-2">
-              <Label htmlFor="termsAndConditions">
-                Terms & Conditions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="termsAndConditions"
-                placeholder="Terms & Conditions"
-                rows={4}
-                maxLength={8000}
-                {...register('termsAndConditions')}
-                className={errors.termsAndConditions ? 'border-red-500' : ''}
-              />
-              {errors.termsAndConditions && (
-                <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 8000 characters</p>
-            </div>
-
-            {/* Redemption Steps */}
-            <div className="space-y-2">
-              <Label htmlFor="redemptionSteps">
-                Redemption Steps <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="redemptionSteps"
-                placeholder="Redemption Steps"
-                rows={4}
-                maxLength={501}
-                {...register('redemptionSteps')}
-                className={errors.redemptionSteps ? 'border-red-500' : ''}
-              />
-              {errors.redemptionSteps && (
-                <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-              )}
-              <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
-            </div>
-
-            {/* Code generation — Ecodes delivery only; hidden for physical delivery */}
-            {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
-              <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+                {/* Inclusions */}
                 <div className="space-y-2">
-                  <Label>How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span></Label>
-                  <RadioGroup
-                    value={codeGenerationType || 'bxi'}
-                    onValueChange={(value) => setValue('codeGenerationType', value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="bxi" id="bxi-generate" />
-                      <Label htmlFor="bxi-generate" className="cursor-pointer font-normal">BXI</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="self" id="upload-codes" />
-                      <Label htmlFor="upload-codes" className="cursor-pointer font-normal">Upload Now</Label>
-                    </div>
-                  </RadioGroup>
+                  <Label htmlFor="inclusions">
+                    Inclusions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="inclusions"
+                    placeholder="Inclusions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('inclusions')}
+                    className={errors.inclusions ? 'border-red-500' : ''}
+                  />
+                  {errors.inclusions && (
+                    <p className="text-sm text-red-500">{errors.inclusions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Exclusions */}
+                <div className="space-y-2">
+                  <Label htmlFor="exclusions">
+                    Exclusions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="exclusions"
+                    placeholder="Exclusions"
+                    rows={4}
+                    maxLength={501}
+                    {...register('exclusions')}
+                    className={errors.exclusions ? 'border-red-500' : ''}
+                  />
+                  {errors.exclusions && (
+                    <p className="text-sm text-red-500">{errors.exclusions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                </div>
+
+                {/* Terms & Conditions – bxi TermConditions */}
+                <div className="space-y-2">
+                  <Label htmlFor="termsAndConditions">
+                    Terms & Conditions <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="termsAndConditions"
+                    placeholder="Terms & Conditions"
+                    rows={4}
+                    maxLength={8000}
+                    {...register('termsAndConditions')}
+                    className={errors.termsAndConditions ? 'border-red-500' : ''}
+                  />
+                  {errors.termsAndConditions && (
+                    <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 8000 characters</p>
+                </div>
+
+                {/* Redemption Steps */}
+                <div className="space-y-2">
+                  <Label htmlFor="redemptionSteps">
+                    Redemption Steps <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="redemptionSteps"
+                    placeholder="Redemption Steps"
+                    rows={4}
+                    maxLength={501}
+                    {...register('redemptionSteps')}
+                    className={errors.redemptionSteps ? 'border-red-500' : ''}
+                  />
+                  {errors.redemptionSteps && (
+                    <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
+                  )}
+                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
                 </div>
 
                 {codeGenerationType === 'self' && (
@@ -1134,33 +1165,33 @@ export default function VoucherTechInfo({ category }) {
                     )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !canSubmit}
-                className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
+                {/* Actions */}
+                <div className="flex justify-between pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate(`/${category}/${prevPath}/${id}`)}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !canSubmit}
+                    className="bg-[#C64091] hover:bg-[#A03375] disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {isSubmitting ? 'Saving...' : 'Save & Next'}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+
+
+              </form>
             </div>
-          </form>
-        </div>
           </main>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
