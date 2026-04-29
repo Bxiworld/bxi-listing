@@ -15,6 +15,7 @@ import {
   Divider,
   Stack,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import React, {
   useEffect,
   useState,
@@ -95,7 +96,7 @@ async function uploadVoucherImages(frontData, backData) {
   return uploads;
 }
 
-const VoucherCard = () => {
+const VoucherCard = ({ category: productCategory }) => {
   useScrollToTopOnPathname();
   let id;
   id = useParams().id;
@@ -139,7 +140,7 @@ const VoucherCard = () => {
     liveRoot = document.getElementById('voucher-live-preview');
     return liveRoot ? liveRoot.outerHTML : buildEndToEndVoucherHtml();
   };
-  
+
   const [dataUrlFront, setDataUrlFront] = useState('');
   const [dataUrlBack, setDataUrlBack] = useState('');
   const [files, setFiles] = useState([]);
@@ -210,7 +211,7 @@ const VoucherCard = () => {
       toast.error('Failed to generate voucher front image');
       return;
     }
-    
+
     setTimeout(() => {
       const options = {
         quality: 1,
@@ -463,7 +464,7 @@ const VoucherCard = () => {
             url: u.url,
             typeOfFile: u.typeOfFile
           }));
-          
+
           // Update state for UI
           setFiles(voucherImages);
 
@@ -618,258 +619,258 @@ const VoucherCard = () => {
                   // bgcolor: "red",
                 }}
               >
-            <Stack
-              sx={{
-                overflow: 'auto',
-                '::-webkit-scrollbar': {
-                  display: 'flex',
-                },
-                '::-webkit-scrollbar-thumb': {
-                  dynamic: '#8d8e90',
-                  minHeight: '10px',
-                  borderRadius: '8px',
-                },
-                '::-webkit-scrollbar-thumb:vertical': {
-                  maxHeight: '30px',
-                },
-                maxHeight: 'auto',
-                height: 'auto',
-                p: 1,
-                display: 'flex',
-                flexDirection: 'row',
-                gap: '10px',
-              }}
-            >
-              <Box>
-                <Box className={classes.templateHeader}>
-                  <Typography
-                    className={classes.templateLabel}
-                    sx={{ fontSize: '20px', color: '#315794', fontWeight: 600 }}
-                  >
-                    Voucher Template
-                  </Typography>
-                  <button
-                    className={classes.templateEditIconButton}
-                    onClick={() => {
-                      setOpen(true);
-                    }}
-                  >
-                    <EditIcon fontSize={'large'} />
-                  </button>
-                </Box>
-                <Box sx={{ width: '100%' }}>
-                  <div id='voucher-live-preview-front'>
-                    <Template
-                      cardBgColor={cardBgColor}
-                      cardImage={files[0]?.preview}
-                      category={category ? category : 0}
-                      templateId='Template1'
-                      productData={productData}
-                      textInverted={checked}
-                      iconInverted={invertIconChecked}
-                      myRefBack={myRefBack}
-                      myRefFront={myRefFront}
-                      gradientColors={gradientColors}
+                <Stack
+                  sx={{
+                    overflow: 'auto',
+                    '::-webkit-scrollbar': {
+                      display: 'flex',
+                    },
+                    '::-webkit-scrollbar-thumb': {
+                      dynamic: '#8d8e90',
+                      minHeight: '10px',
+                      borderRadius: '8px',
+                    },
+                    '::-webkit-scrollbar-thumb:vertical': {
+                      maxHeight: '30px',
+                    },
+                    maxHeight: 'auto',
+                    height: 'auto',
+                    p: 1,
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: '10px',
+                  }}
+                >
+                  <Box>
+                    <Box className={classes.templateHeader}>
+                      <Typography
+                        className={classes.templateLabel}
+                        sx={{ fontSize: '20px', color: '#315794', fontWeight: 600 }}
+                      >
+                        Voucher Template
+                      </Typography>
+                      <button
+                        className={classes.templateEditIconButton}
+                        onClick={() => {
+                          setOpen(true);
+                        }}
+                      >
+                        <EditIcon fontSize={'large'} />
+                      </button>
+                    </Box>
+                    <Box sx={{ width: '100%' }}>
+                      <div id='voucher-live-preview-front'>
+                        <Template
+                          cardBgColor={cardBgColor}
+                          cardImage={files[0]?.preview}
+                          category={category ? category : 0}
+                          templateId='Template1'
+                          productData={productData}
+                          textInverted={checked}
+                          iconInverted={invertIconChecked}
+                          myRefBack={myRefBack}
+                          myRefFront={myRefFront}
+                          gradientColors={gradientColors}
+                        />
+                      </div>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <TemplateCustomOptions
+                      updateFile={e => {
+                        setFiles(e);
+                      }}
+                      updateBGColor={e => {
+                        setCardBgColor(e);
+                      }}
+                      updateIcon={e => {
+                        setCategory(e);
+                      }}
+                      updateTextColor={e => {
+                        setChecked(e);
+                      }}
+                      updateInvertIcon={e => {
+                        setInvertIconChecked(e);
+                      }}
+                      updateGradientColors={colors => {
+                        setGradientColors(colors);
+                      }}
                     />
-                  </div>
-                </Box>
-              </Box>
-              <Box>
-                <TemplateCustomOptions
-                  updateFile={e => {
-                    setFiles(e);
-                  }}
-                  updateBGColor={e => {
-                    setCardBgColor(e);
-                  }}
-                  updateIcon={e => {
-                    setCategory(e);
-                  }}
-                  updateTextColor={e => {
-                    setChecked(e);
-                  }}
-                  updateInvertIcon={e => {
-                    setInvertIconChecked(e);
-                  }}
-                  updateGradientColors={colors => {
-                    setGradientColors(colors);
-                  }}
-                />
-              </Box>
-            </Stack>
-            <Box className={cls.fieldBox} sx={{ width: '550px', ml: '10px' }}>
-              <Box sx={{ display: 'block', marginBottom: 1 }}>
-                <label className={cls.fieldLabel} style={{ fontSize: '16px', display: 'block' }}>
-                  List voucher for no of days on platform
-                  <span style={{ color: 'red' }}> *</span>
-                </label>
-                <label
-                  style={{
-                    fontSize: '12px',
-                    color: '#6B7A99',
-                    fontWeight: 400,
-                    fontFamily: 'Poppins',
-                    display: 'block',
-                    marginTop: '4px',
-                  }}
-                >
-                  Note: Activation of Voucher after you sell is when the expiry should start
-                </label>
-              </Box>
-              {productData?.validityOfVoucherValue && (
-                <Typography
-                  className={cls.fieldLabel}
-                  sx={{
-                    fontSize: '14px',
-                    color: '#C64091',
-                    marginBottom: '8px',
-                    fontFamily: 'Inter, sans-serif',
-                  }}
-                >
-                  You have already added validity of Voucher of {productData.validityOfVoucherValue}
-                </Typography>
-              )}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'stretch',
-                  border: '1px solid #E3E3E3',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                  maxWidth: '200px',
-                }}
-              >
-                <TextField
-                  variant='standard'
-                  type='number'
-                  name='ListThisProductForAmount'
-                  placeholder={String(
-                    getValidityMax(ListThisProductForUnitOfTime || 'Days')
+                  </Box>
+                </Stack>
+                <Box className={cls.fieldBox} sx={{ width: '550px', ml: '10px' }}>
+                  <Box sx={{ display: 'block', marginBottom: 1 }}>
+                    <label className={cls.fieldLabel} style={{ fontSize: '16px', display: 'block' }}>
+                      List voucher for no of days on platform
+                      <span style={{ color: 'red' }}> *</span>
+                    </label>
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        color: '#6B7A99',
+                        fontWeight: 400,
+                        fontFamily: 'Poppins',
+                        display: 'block',
+                        marginTop: '4px',
+                      }}
+                    >
+                      Note: Activation of Voucher after you sell is when the expiry should start
+                    </label>
+                  </Box>
+                  {productData?.validityOfVoucherValue && (
+                    <Typography
+                      className={cls.fieldLabel}
+                      sx={{
+                        fontSize: '14px',
+                        color: '#C64091',
+                        marginBottom: '8px',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    >
+                      You have already added validity of Voucher of {productData.validityOfVoucherValue}
+                    </Typography>
                   )}
-                  inputProps={{
-                    min: 1,
-                    max:
-                      ListThisProductForUnitOfTime === 'Months'
-                        ? 18
-                        : 365,
-                    step: 1,
-                  }}
-                  InputProps={{
-                    disableUnderline: true,
-                    style: {
-                      fontSize: '14px',
-                      padding: '10px 12px',
-                      color: '#C64091',
-                    },
-                  }}
-                  value={
-                    ListThisProductForAmount ??
-                    productData?.validityOfVoucherValue ??
-                    ''
-                  }
-                  onChange={handleChange}
-                  className={cls.goLivetextField}
-                  error={
-                    hasStartedTyping &&
-                    !validateInput(
-                      ListThisProductForAmount,
-                      ListThisProductForUnitOfTime || 'Days'
-                    )
-                  }
-                  helperText={
-                    hasStartedTyping &&
-                    !validateInput(
-                      ListThisProductForAmount,
-                      ListThisProductForUnitOfTime || 'Days'
-                    )
-                      ? ListThisProductForUnitOfTime === 'Months'
-                        ? 'Please enter valid months (1–18)!'
-                        : 'Please enter valid days (1–365)!'
-                      : ''
-                  }
-                  sx={{
-                    flex: '1 1 auto',
-                    minWidth: 0,
-                    '& .MuiFormHelperText-root': { marginTop: '4px' },
-                  }}
-                />
-                <Select
-                  className={cls.goLiveSelectBox}
-                  value={ListThisProductForUnitOfTime || 'Days'}
-                  name='ListThisProductForUnitOfTime'
-                  onChange={e => {
-                    const unit = e.target.value;
-                    const current =
-                      ListThisProductForAmount ??
-                      productData?.validityOfVoucherValue ??
-                      '';
-                    const clamped = clampValidityValue(current, unit);
-                    setListThisProductForUnitOfTime(unit);
-                    setListThisProductForAmount(clamped);
-                    setProductData(prev =>
-                      prev
-                        ? {
-                            ...prev,
-                            validityOfVoucherUnit: unit,
-                            validityOfVoucherValue:
-                              clamped !== ''
-                                ? clamped
-                                : prev.validityOfVoucherValue,
-                          }
-                        : prev
-                    );
-                  }}
-                  sx={{
-                    minWidth: '90px',
-                    fontFamily: 'Poppins',
-                    fontSize: '14px',
-                    color: '#C64091',
-                    '& .MuiOutlinedInput-notchedOutline': { border: 0 },
-                    '&.MuiOutlinedInput-root': {
-                      borderLeft: '1px solid #E3E3E3',
-                      borderRadius: 0,
-                    },
-                  }}
-                >
-                  <MenuItem className={cls.goLiveMenuItems} value='Days'>
-                    Days
-                  </MenuItem>
-                  <MenuItem className={cls.goLiveMenuItems} value='Months'>
-                    Months
-                  </MenuItem>
-                </Select>
-              </Box>
-            </Box>
-
-            <Dialog
-              fullWidth
-              maxWidth='md'
-              open={open}
-              onClose={handleClose}
-              sx={{ zIndex: 100 }}
-            >
-              <DialogTitle style={{ background: '#EEF1F6' }}>
-                Edit Content on Voucher
-              </DialogTitle>
-              <DialogContent style={{ background: '#EEF1F6' }}>
-                <Box>
-                  <EditVoucherForm
-                    cardData={productData}
-                    closePopup={() => {
-                      setOpen(false);
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'stretch',
+                      border: '1px solid #E3E3E3',
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      backgroundColor: '#FFFFFF',
+                      maxWidth: '200px',
                     }}
-                    updateFormData={e => {
-                      setProductData(e);
-                    }}
-                  />
+                  >
+                    <TextField
+                      variant='standard'
+                      type='number'
+                      name='ListThisProductForAmount'
+                      placeholder={String(
+                        getValidityMax(ListThisProductForUnitOfTime || 'Days')
+                      )}
+                      inputProps={{
+                        min: 1,
+                        max:
+                          ListThisProductForUnitOfTime === 'Months'
+                            ? 18
+                            : 365,
+                        step: 1,
+                      }}
+                      InputProps={{
+                        disableUnderline: true,
+                        style: {
+                          fontSize: '14px',
+                          padding: '10px 12px',
+                          color: '#C64091',
+                        },
+                      }}
+                      value={
+                        ListThisProductForAmount ??
+                        productData?.validityOfVoucherValue ??
+                        ''
+                      }
+                      onChange={handleChange}
+                      className={cls.goLivetextField}
+                      error={
+                        hasStartedTyping &&
+                        !validateInput(
+                          ListThisProductForAmount,
+                          ListThisProductForUnitOfTime || 'Days'
+                        )
+                      }
+                      helperText={
+                        hasStartedTyping &&
+                          !validateInput(
+                            ListThisProductForAmount,
+                            ListThisProductForUnitOfTime || 'Days'
+                          )
+                          ? ListThisProductForUnitOfTime === 'Months'
+                            ? 'Please enter valid months (1–18)!'
+                            : 'Please enter valid days (1–365)!'
+                          : ''
+                      }
+                      sx={{
+                        flex: '1 1 auto',
+                        minWidth: 0,
+                        '& .MuiFormHelperText-root': { marginTop: '4px' },
+                      }}
+                    />
+                    <Select
+                      className={cls.goLiveSelectBox}
+                      value={ListThisProductForUnitOfTime || 'Days'}
+                      name='ListThisProductForUnitOfTime'
+                      onChange={e => {
+                        const unit = e.target.value;
+                        const current =
+                          ListThisProductForAmount ??
+                          productData?.validityOfVoucherValue ??
+                          '';
+                        const clamped = clampValidityValue(current, unit);
+                        setListThisProductForUnitOfTime(unit);
+                        setListThisProductForAmount(clamped);
+                        setProductData(prev =>
+                          prev
+                            ? {
+                              ...prev,
+                              validityOfVoucherUnit: unit,
+                              validityOfVoucherValue:
+                                clamped !== ''
+                                  ? clamped
+                                  : prev.validityOfVoucherValue,
+                            }
+                            : prev
+                        );
+                      }}
+                      sx={{
+                        minWidth: '90px',
+                        fontFamily: 'Poppins',
+                        fontSize: '14px',
+                        color: '#C64091',
+                        '& .MuiOutlinedInput-notchedOutline': { border: 0 },
+                        '&.MuiOutlinedInput-root': {
+                          borderLeft: '1px solid #E3E3E3',
+                          borderRadius: 0,
+                        },
+                      }}
+                    >
+                      <MenuItem className={cls.goLiveMenuItems} value='Days'>
+                        Days
+                      </MenuItem>
+                      <MenuItem className={cls.goLiveMenuItems} value='Months'>
+                        Months
+                      </MenuItem>
+                    </Select>
+                  </Box>
                 </Box>
-              </DialogContent>
-              {/* <DialogActions>
+
+                <Dialog
+                  fullWidth
+                  maxWidth='md'
+                  open={open}
+                  onClose={handleClose}
+                  sx={{ zIndex: 100 }}
+                >
+                  <DialogTitle style={{ background: '#EEF1F6' }}>
+                    Edit Content on Voucher
+                  </DialogTitle>
+                  <DialogContent style={{ background: '#EEF1F6' }}>
+                    <Box>
+                      <EditVoucherForm
+                        cardData={productData}
+                        closePopup={() => {
+                          setOpen(false);
+                        }}
+                        updateFormData={e => {
+                          setProductData(e);
+                        }}
+                      />
+                    </Box>
+                  </DialogContent>
+                  {/* <DialogActions>
             <Button onClick={handleClose}>Cancel</Button>
             <Button onClick={null}>Save</Button>
           </DialogActions> */}
-            </Dialog>
+                </Dialog>
               </Box>
               <div className={cls.formNavigation}>
                 <div
@@ -886,74 +887,113 @@ const VoucherCard = () => {
                       gap: '16px',
                       alignItems: 'center',
                       flexWrap: 'wrap',
+                      justifyContent: 'space-between'
                     }}
                   >
-                <Button
-                  variant="outlined"
-                  type="button"
-                  onClick={() => {
-                    const confirmLeave = window.confirm(
-                      'Are you sure you want to cancel the product?'
-                    );
-                    if (confirmLeave) {
-                      navigate('/home/sellerhub');
-                    }
-                  }}
-                  sx={{
-                    minWidth: 120,
-                    height: 40,
-                    borderRadius: '10px',
-                    borderColor: '#636161',
-                    color: '#636161',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
-                    '&:hover': {
-                      borderColor: '#000',
-                      color: '#000',
-                      backgroundColor: '#FAFBFD',
-                    },
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  disabled={
-                    !value ||
-                    !ListThisProductForAmount ||
-                    !validateInput(
-                      ListThisProductForAmount,
-                      ListThisProductForUnitOfTime || 'Days'
-                    ) ||
-                    files.length === 0
-                  }
-                  onClick={() => uploadTemplate()}
-                  sx={{
-                    minWidth: 120,
-                    height: 40,
-                    borderRadius: '10px',
-                    backgroundColor: '#C64091',
-                    color: '#fff',
-                    fontFamily: 'Inter, sans-serif',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: '#A03375',
-                      color: '#fff',
-                    },
-                    '&.Mui-disabled': {
-                      backgroundColor: '#C64091',
-                      color: '#fff',
-                      opacity: 0.5,
-                      pointerEvents: 'none',
-                    },
-                  }}
-                >
-                  {showSpinner ? <CircularProgress size={20} color="inherit" /> : 'Next'}
-                </Button>
+                    <Button
+                      variant="outlined"
+                      type="button"
+                      onClick={() => navigate(`/${productCategory}/${productCategory === 'hotelsVoucher' ? 'hotelstechinfo' : 'vouchertechinfo'}/${id}`)}
+                      sx={{
+                        minWidth: 120,
+                        height: 40,
+                        borderRadius: '10px',
+                        borderColor: '#636161',
+                        color: '#636161',
+                        fontFamily: 'Inter, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        textTransform: 'none',
+                        boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        '&:hover': {
+                          borderColor: '#000',
+                          color: '#000',
+                          backgroundColor: '#FAFBFD',
+                        },
+                      }}
+                    >
+                      <ArrowBackIcon sx={{ fontSize: '18px' }} />
+                      Back
+                    </Button>
+                    <Box
+                      sx={{
+                        padding: '10px',
+                        display: 'flex',
+                        gap: '16px',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        type="button"
+                        onClick={() => {
+                          const confirmLeave = window.confirm(
+                            'Are you sure you want to cancel the product?'
+                          );
+                          if (confirmLeave) {
+                            navigate('/home/sellerhub');
+                          }
+                        }}
+                        sx={{
+                          minWidth: 120,
+                          height: 40,
+                          borderRadius: '10px',
+                          borderColor: '#636161',
+                          color: '#636161',
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          textTransform: 'none',
+                          boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
+                          '&:hover': {
+                            borderColor: '#000',
+                            color: '#000',
+                            backgroundColor: '#FAFBFD',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        disabled={
+                          !value ||
+                          !ListThisProductForAmount ||
+                          !validateInput(
+                            ListThisProductForAmount,
+                            ListThisProductForUnitOfTime || 'Days'
+                          ) ||
+                          files.length === 0
+                        }
+                        onClick={() => uploadTemplate()}
+                        sx={{
+                          minWidth: 120,
+                          height: 40,
+                          borderRadius: '10px',
+                          backgroundColor: '#C64091',
+                          color: '#fff',
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          textTransform: 'none',
+                          '&:hover': {
+                            backgroundColor: '#A03375',
+                            color: '#fff',
+                          },
+                          '&.Mui-disabled': {
+                            backgroundColor: '#C64091',
+                            color: '#fff',
+                            opacity: 0.5,
+                            pointerEvents: 'none',
+                          },
+                        }}
+                      >
+                        {showSpinner ? <CircularProgress size={20} color="inherit" /> : 'Next'}
+                      </Button>
+                    </Box>
                   </Box>
                 </div>
               </div>
