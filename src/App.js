@@ -58,7 +58,7 @@ import MediaOfflineTechInfo from './pages/MediaOffline/MediaOfflineTechInfo';
 import HotelsProductInfo from './pages/Vouchers/HotelsProductInfo';
 import VoucherTechInfo from './pages/Vouchers/VoucherTechInfo';
 import VoucherDesign from './pages/Vouchers/EditVoucherTemplate/Voucher';
-import VoucherGoLive from './pages/Vouchers/EditVoucherTemplate/Voucher';
+import VoucherGoLive from './pages/Vouchers/VoucherGoLive';
 
 // Product Categories
 const productCategories = [

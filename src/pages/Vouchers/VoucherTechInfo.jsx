@@ -993,6 +993,33 @@ export default function VoucherTechInfo({ category }) {
                   <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
                 </div>
 
+                {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
+                  <div className="space-y-2">
+                    <Label>
+                      How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span>
+                    </Label>
+                    <RadioGroup
+                      value={codeGenerationType || 'bxi'}
+                      onValueChange={(value) => setValue('codeGenerationType', value)}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bxi" id="codegen-bxi" />
+                          <Label htmlFor="codegen-bxi" className="cursor-pointer font-normal">
+                            BXI
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="self" id="codegen-self" />
+                          <Label htmlFor="codegen-self" className="cursor-pointer font-normal">
+                            Upload Now
+                          </Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+
                 {codeGenerationType === 'self' && (
                   <div className="space-y-2">
                     <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
