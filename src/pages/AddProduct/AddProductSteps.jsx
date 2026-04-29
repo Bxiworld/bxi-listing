@@ -235,11 +235,6 @@ export const GeneralInformation = ({ category }) => {
   const [selectedGenderId, setSelectedGenderId] = useState(null);
   const [selectedGender, setSelectedGender] = useState('Unisex');
   
-  // Letter count states
-  const [productNameLetters, setProductNameLetters] = useState(0);
-  const [productSubtitleLetters, setProductSubtitleLetters] = useState(0);
-  const [descriptionLetters, setDescriptionLetters] = useState(0);
-
   const giConfig = getGeneralInfoConfig(category);
   const valSchema = getValidationSchema(category, 'generalInfo');
   const isVoucherCategory = category?.endsWith?.('Voucher');
@@ -332,6 +327,9 @@ export const GeneralInformation = ({ category }) => {
 
   const categoryLabel = normalizeCategoryLabel(category);
   const selectedSubcategory = watch('subcategory');
+  const watchedProductName = watch('productName') || '';
+  const watchedProductSubtitle = watch('productSubtitle') || '';
+  const watchedDescription = watch('description') || '';
   const textileGenderDisplayOrder = ['kids', 'female', 'male', 'unisex', 'others'];
   const orderedGenderCategoryData =
     giConfig.hasGenderSelection && Array.isArray(genderCategoryData)
@@ -832,7 +830,6 @@ export const GeneralInformation = ({ category }) => {
                   if (p.max) r.maxLength = { value: p.max, message: `Product name must be at most ${p.max} characters` };
                   return r;
                 })())}
-                onChange={(e) => setProductNameLetters(countLetters(e.target.value))}
                 className={errors.productName ? 'border-red-500' : ''}
                 data-testid="input-product-name"
               />
@@ -840,7 +837,7 @@ export const GeneralInformation = ({ category }) => {
                 {errors.productName && (
                   <p className="text-sm text-red-500">{errors.productName.message}</p>
                 )}
-                <p className="text-xs text-gray-500 ml-auto">{productNameLetters} / 50</p>
+                <p className="text-xs text-gray-500 ml-auto">{countLetters(watchedProductName)} / 50</p>
               </div>
             </div>
 
@@ -860,14 +857,13 @@ export const GeneralInformation = ({ category }) => {
                     if (p.max) r.maxLength = { value: p.max, message: `Product subtitle must be at most ${p.max} characters` };
                     return r;
                   })())}
-                  onChange={(e) => setProductSubtitleLetters(countLetters(e.target.value))}
                   className={errors.productSubtitle ? 'border-red-500' : ''}
                 />
                 <div className="flex items-center justify-between mt-1">
                   {errors.productSubtitle && (
                     <p className="text-sm text-red-500">{errors.productSubtitle.message}</p>
                   )}
-                  <p className="text-xs text-gray-500 ml-auto">{productSubtitleLetters} / 75</p>
+                  <p className="text-xs text-gray-500 ml-auto">{countLetters(watchedProductSubtitle)} / 75</p>
                 </div>
               </div>
             )}
@@ -893,7 +889,6 @@ export const GeneralInformation = ({ category }) => {
                   if (p.max) r.maxLength = { value: p.max, message: `Description cannot exceed ${p.max} characters` };
                   return r;
                 })())}
-                onChange={(e) => setDescriptionLetters(countLetters(e.target.value))}
                 className={errors.description ? 'border-red-500' : ''}
                 data-testid="input-description"
               />
@@ -901,7 +896,7 @@ export const GeneralInformation = ({ category }) => {
                 {errors.description && (
                   <p className="text-sm text-red-500">{errors.description.message}</p>
                 )}
-                <p className="text-xs text-gray-500 ml-auto">{descriptionLetters} / 1000</p>
+                <p className="text-xs text-gray-500 ml-auto">{countLetters(watchedDescription)} / 1000</p>
               </div>
             </div>
 

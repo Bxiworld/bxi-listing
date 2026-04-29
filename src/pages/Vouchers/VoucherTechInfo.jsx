@@ -854,14 +854,7 @@ export default function VoucherTechInfo({ category }) {
                             onClick={() => setStoreListFile(null)}
                             className="text-[#6B7A99] hover:text-[#C64091]"
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select state" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {StateData.map((s) => (
-                                <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                              ))}
-                            </SelectContent>
+                            <X className="w-4 h-4" />
                           </button>
                         </div>
                       )}
