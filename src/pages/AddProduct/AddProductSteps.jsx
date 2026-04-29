@@ -373,7 +373,6 @@ export const GeneralInformation = ({ category }) => {
             : [
                 'Value Voucher',
                 'Gift Cards',
-                'Specific Voucher',
               ];
         const options = defaultVoucherSubcategories
           .map((s) => ({ value: s, label: s }))

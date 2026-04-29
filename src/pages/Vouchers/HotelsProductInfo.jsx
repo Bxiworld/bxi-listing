@@ -469,7 +469,7 @@ export default function HotelsProductInfo({ category }) {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={2} completedSteps={[1]} />
+            <Stepper currentStep={2} completedSteps={[1]} category={category} />
           </aside>
           <main className="stepper-content">
         <div className="form-section">

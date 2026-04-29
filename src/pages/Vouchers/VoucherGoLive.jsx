@@ -78,7 +78,7 @@ export default function VoucherGoLive({ category }) {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={4} completedSteps={[1, 2, 3]} />
+            <Stepper currentStep={4} completedSteps={[1, 2, 3]} category={category} />
           </aside>
           <main className="stepper-content">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
