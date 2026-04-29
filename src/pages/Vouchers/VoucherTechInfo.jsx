@@ -143,6 +143,26 @@ function parseVoucherCodesFromWorkbook(workbook) {
   return codes;
 }
 
+function normalizePreviewText(value) {
+  const lines = String(value ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim());
+
+  while (lines.length > 0 && lines[0] === '') lines.shift();
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+
+  const collapsed = [];
+  let prevBlank = false;
+  for (const line of lines) {
+    const isBlank = line === '';
+    if (isBlank && prevBlank) continue;
+    collapsed.push(line);
+    prevBlank = isBlank;
+  }
+
+  return collapsed.join('\n').trim();
+}
+
 function getVariantDescriptor(variant = {}) {
   const parts = [];
   const push = (label, value) => {
@@ -638,13 +658,18 @@ export default function VoucherTechInfo({ category }) {
 
     setIsSubmitting(true);
     try {
+      const normalizedInclusions = normalizePreviewText(data.inclusions);
+      const normalizedExclusions = normalizePreviewText(data.exclusions);
+      const normalizedTermsAndConditions = normalizePreviewText(data.termsAndConditions);
+      const normalizedRedemptionSteps = normalizePreviewText(data.redemptionSteps);
+
       const formData = new FormData();
       formData.append('_id', id);
       formData.append('ProductUploadStatus', 'voucherdesign');
-      formData.append('Inclusions', data.inclusions);
-      formData.append('Exclusions', data.exclusions);
-      formData.append('TermConditions', data.termsAndConditions);
-      formData.append('RedemptionSteps', data.redemptionSteps);
+      formData.append('Inclusions', normalizedInclusions);
+      formData.append('Exclusions', normalizedExclusions);
+      formData.append('TermConditions', normalizedTermsAndConditions);
+      formData.append('RedemptionSteps', normalizedRedemptionSteps);
       formData.append('voucherDeliveryType', delivery);
       formData.append('redemptionType', redemptionTypeValue);
       formData.append('VoucherType', getVoucherJourneyLabel(data.voucherJourneyType));

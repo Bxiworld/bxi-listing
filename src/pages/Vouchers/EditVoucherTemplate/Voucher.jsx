@@ -95,7 +95,7 @@ async function uploadVoucherImages(frontData, backData) {
   return uploads;
 }
 
-const VoucherCard = () => {
+const VoucherCard = ({ category: flowCategory }) => {
   useScrollToTopOnPathname();
   let id;
   id = useParams().id;
@@ -548,7 +548,7 @@ const VoucherCard = () => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={4} completedSteps={[1, 2, 3]} category={category} />
+            <Stepper currentStep={4} completedSteps={[1, 2, 3]} category={flowCategory} />
           </aside>
           <main className="stepper-content">
             <div className="form-section">

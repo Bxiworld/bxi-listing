@@ -1065,9 +1065,8 @@ export default function ProductPreview() {
                               if (body !== '') return body;
                               return 'No description available.';
                             })()
-                          : product?.ProductSubtittle ||
+                          : product?.ProductDescription ||
                             product?.ProductSubtitle ||
-                            product?.ProductDescription ||
                             'No description available.'}
                       </Typography>
                     </Box>
