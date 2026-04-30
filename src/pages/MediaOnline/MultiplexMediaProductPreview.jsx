@@ -229,7 +229,6 @@ function DiscountedPrice({
           <Typography variant="h6" fontWeight={700} sx={{ color: textPrimary }}>
             <CommaSeprator Price={disc} /> 
           </Typography>
-          onwards
           <Box
             component="img"
             src={BXITokenIcon}
