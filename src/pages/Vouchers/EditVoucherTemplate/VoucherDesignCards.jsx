@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box, Typography } from '@mui/material';
 
 const defaultCardBg = '#1a1a2e';
 
@@ -112,39 +113,83 @@ export const VoucherCardBack = React.forwardRef(
       >
         <div className="h-full p-5 flex flex-col gap-3 overflow-hidden">
           <p className="text-base font-semibold" style={{ fontFamily: 'Inter, sans-serif', color: textInverted ? '#fff' : '#000' }}>Details</p>
-          <p className="text-xs font-medium mb-2" style={{ color: textInverted ? 'rgb(255,255,255)' : 'rgba(0,0,0,0.6)' }}>What&apos;s included</p>
-          <div
-            className="p-3 rounded-[10px] border text-xs"
-            style={{
+          <Box
+            className="p-3 rounded-[10px] border"
+            sx={{
               background: textInverted ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
               borderColor: textInverted ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-              color: textInverted ? '#fff' : 'rgba(0,0,0,0.8)',
+              height: '56px',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            {productData?.inclusions || 'Inclusions will appear here.'}
-          </div>
+            <Typography
+              sx={{
+                fontSize: '12px',
+                lineHeight: '1.4',
+                color: textInverted ? '#fff' : 'rgba(0,0,0,0.8)',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {productData?.inclusions || 'Inclusions will appear here.'}
+            </Typography>
+          </Box>
           <p className="text-xs font-medium mb-2" style={{ color: textInverted ? 'rgb(255,255,255)' : 'rgba(0,0,0,0.6)' }}>Exclusions</p>
-          <div
-            className="p-3 rounded-[10px] border text-xs"
-            style={{
+          <Box
+            className="p-3 rounded-[10px] border"
+            sx={{
               background: textInverted ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
               borderColor: textInverted ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-              color: textInverted ? '#fff' : 'rgba(0,0,0,0.8)',
+              height: '56px',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            {productData?.exclusions || 'Exclusions will appear here.'}
-          </div>
+            <Typography
+              sx={{
+                fontSize: '12px',
+                lineHeight: '1.4',
+                color: textInverted ? '#fff' : 'rgba(0,0,0,0.8)',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {productData?.exclusions || 'Exclusions will appear here.'}
+            </Typography>
+          </Box>
           <p className="text-xs font-medium mb-2" style={{ color: textInverted ? 'rgb(255,255,255)' : 'rgba(0,0,0,0.6)' }}>Terms and conditions</p>
-          <div
-            className="p-3 rounded-[10px] border text-xs"
-            style={{
+          <Box
+            className="p-3 rounded-[10px] border"
+            sx={{
               background: textInverted ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
               borderColor: textInverted ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-              color: textInverted ? '#fff' : 'rgba(0,0,0,0.8)',
+              height: '56px',
+              display: 'flex',
+              alignItems: 'center',
             }}
           >
-            {productData?.termsAndConditions || 'Terms and conditions will appear here.'}
-          </div>
+            <Typography
+              sx={{
+                fontSize: '12px',
+                lineHeight: '1.4',
+                color: textInverted ? '#fff' : 'rgba(0,0,0,0.8)',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {productData?.termsAndConditions || 'Terms and conditions will appear here.'}
+            </Typography>
+          </Box>
         </div>
       </div>
     );
