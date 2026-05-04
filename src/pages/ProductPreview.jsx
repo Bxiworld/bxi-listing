@@ -511,7 +511,7 @@ export default function ProductPreview() {
     productApi
       .productMutation({ id, ProductUploadStatus: 'pendingapproval' })
       .then(() => {
-        toast.success('Once uploaded, changes are subject to approval.');
+        toast.success('Once uploaded, changes are subject to approval and edits can be made later.');
         setTimeout(() => navigate('/sellerhub'), 2000);
       })
       .catch(() => {
