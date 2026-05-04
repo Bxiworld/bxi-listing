@@ -163,7 +163,10 @@ const VoucherCard = ({ category: flowCategory }) => {
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
   // Left Card
 
-  const getValidityMax = unit => (unit === 'Months' ? 18 : 365);
+  const MAX_VALIDITY_DAYS = 365;
+  const MAX_VALIDITY_MONTHS = 12;
+  const getValidityMax = unit =>
+    unit === 'Months' ? MAX_VALIDITY_MONTHS : MAX_VALIDITY_DAYS;
 
   /** Keeps typed/pasted values within max for the selected unit (empty allowed). */
   const clampValidityValue = (raw, unit) => {
@@ -189,8 +192,8 @@ const VoucherCard = ({ category: flowCategory }) => {
   const validateInput = (value, unit = ListThisProductForUnitOfTime || 'Days') => {
     const parsedValue = parseInt(value, 10);
     if (!Number.isFinite(parsedValue) || parsedValue <= 0) return false;
-    if (unit === 'Months') return parsedValue <= 18;
-    return parsedValue <= 365;
+    if (unit === 'Months') return parsedValue <= MAX_VALIDITY_MONTHS;
+    return parsedValue <= MAX_VALIDITY_DAYS;
   };
 
   useEffect(() => {
@@ -432,16 +435,21 @@ const VoucherCard = ({ category: flowCategory }) => {
                 ? 'Offer Specific'
                 : 'Gift Card',
           };
-          setListThisProductForAmount(
-            res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue
-          );
+          const loadedUnit =
+            response?.ProductsVariantions?.[0]?.validityOfVoucherUnit || 'Days';
+          const loadedValue =
+            res?.data?.ProductsVariantions?.at(0)?.validityOfVoucherValue;
+          const clampedLoadedValue = clampValidityValue(loadedValue, loadedUnit);
+          setListThisProductForAmount(clampedLoadedValue);
           if (response?.ProductsVariantions?.length > 0) {
             let variations = response.ProductsVariantions[0];
             productDetails.pricePerUnit = variations.PricePerUnit;
             productDetails.validityOfVoucherUnit =
               variations?.validityOfVoucherUnit || 'Days';
-            productDetails.validityOfVoucherValue =
-              variations?.validityOfVoucherValue;
+            productDetails.validityOfVoucherValue = clampValidityValue(
+              variations?.validityOfVoucherValue,
+              productDetails.validityOfVoucherUnit
+            );
           } else {
             productDetails.validityOfVoucherUnit =
               productDetails.validityOfVoucherUnit || 'Days';
@@ -752,8 +760,8 @@ const VoucherCard = ({ category: flowCategory }) => {
                         min: 1,
                         max:
                           ListThisProductForUnitOfTime === 'Months'
-                            ? 18
-                            : 365,
+                            ? MAX_VALIDITY_MONTHS
+                            : MAX_VALIDITY_DAYS,
                         step: 1,
                       }}
                       InputProps={{
@@ -785,8 +793,8 @@ const VoucherCard = ({ category: flowCategory }) => {
                             ListThisProductForUnitOfTime || 'Days'
                           )
                           ? ListThisProductForUnitOfTime === 'Months'
-                            ? 'Please enter valid months (1–18)!'
-                            : 'Please enter valid days (1–365)!'
+                            ? `Please enter valid months (1–${MAX_VALIDITY_MONTHS})!`
+                            : `Please enter valid days (1–${MAX_VALIDITY_DAYS})!`
                           : ''
                       }
                       sx={{

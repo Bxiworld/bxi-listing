@@ -540,7 +540,7 @@ export default function ProductPreview() {
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
     images?.length > 0;
-  const uploadCtaLabel = isMediaProduct ? 'Upload Media' : isVoucherListing ? 'Upload Voucher' : 'Upload Products';
+  const uploadCtaLabel = isMediaProduct ? 'Upload Media' : isVoucherListing ? 'Upload Voucher' : 'Upload Product';
 
   const primaryColor = '#C64091';
   const primaryDark = '#A03375';
@@ -778,7 +778,12 @@ export default function ProductPreview() {
                   >
                     {variants?.map((v) => (
                       <MenuItem key={v._id ?? v.id} value={v._id ?? v.id}>
-                         {v.Flavor|| v.ProductIdType || v.ProductSize || v.NutritionInfo || 'N/A'}
+                        {v.VariantName?.trim() ||
+                          v.Flavor ||
+                          v.ProductIdType ||
+                          v.ProductSize ||
+                          v.NutritionInfo ||
+                          'N/A'}
                       </MenuItem>
                     ))}
                   </Select>
