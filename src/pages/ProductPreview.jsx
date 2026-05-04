@@ -1065,11 +1065,23 @@ export default function ProductPreview() {
                               if (body !== '') return body;
                               return 'No description available.';
                             })()
-                          : product?.ProductSubtittle ||
+                          : product?.ProductDescription ||
                             product?.ProductSubtitle ||
-                            product?.ProductDescription ||
                             'No description available.'}
                       </Typography>
+                    </Box>
+                    {product?.ProductsVariantions.at(0).OfferingType && (
+                    <Box>
+                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                        Offering Type
+                      </Typography>
+                      <Typography variant="body1" color="text.secondary">
+                        {product?.ProductsVariantions.at(0).OfferingType}
+                      </Typography>
+                    </Box>
+                    )}
+                    <Box>
+                      
                     </Box>
                     {product?.ModelName && (
                       <Box>

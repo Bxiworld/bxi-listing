@@ -3786,6 +3786,7 @@ export const TechInfo = ({ category }) => {
 // Go Live Step – Product Images, Size Chart, Listing Period (from bxi-dashboard GoLive)
 const MEDIA_CATEGORIES = ['mediaonline', 'mediaoffline'];
 const RESTRICTED_ASPECT_CATEGORIES = ['textile', 'officesupply', 'lifestyle', 'others'];
+const MAX_GO_LIVE_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
 
 function isHoardingMediaProduct(data) {
   if (!data) return false;
@@ -3861,6 +3862,15 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   const processFiles = (newFiles) => {
     const valid = Array.from(newFiles).filter((f) => f.type?.startsWith('image/'));
     if (valid.length === 0) return;
+
+    const oversized = valid.filter((f) => f.size > MAX_GO_LIVE_IMAGE_SIZE_BYTES);
+    if (oversized.length > 0) {
+      const names = oversized.slice(0, 2).map((f) => f.name).join(', ');
+      const more = oversized.length > 2 ? ` and ${oversized.length - 2} more` : '';
+      toast.error(`Image size exceeds 1MB. Please re-upload smaller image(s): ${names}${more}`);
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
 
     const toAdd = valid.filter((f) => !files.some((p) => p.name === f.name));
     if (toAdd.length < valid.length) {
@@ -4006,8 +4016,19 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
         navigate(`/allproductpreview/${id}`);
       }
     } catch (err) {
-      setUploadError(err?.response?.data?.message || err?.message || 'Upload failed. Please try again.');
-      toast.error('Upload failed. Please try again.');
+      const apiMessage = err?.response?.data?.message || '';
+      const apiError = err?.response?.data?.error || '';
+      const rawMessage = String(err?.message || '');
+      const isFileTooLarge =
+        /file too large/i.test(apiMessage) ||
+        /file too large/i.test(apiError) ||
+        /file too large/i.test(rawMessage) ||
+        err?.response?.data?.code === 'LIMIT_FILE_SIZE';
+      const friendlyMessage = isFileTooLarge
+        ? 'One or more images exceed 1MB. Please upload smaller images and try again.'
+        : (apiMessage || rawMessage || 'Upload failed. Please try again.');
+      setUploadError(friendlyMessage);
+      toast.error(friendlyMessage);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -4078,7 +4099,7 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                     <div className="flex flex-wrap justify-center gap-2 mt-3">
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs font-semibold">Min. 3 images</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">JPEG, PNG, GIF</span>
-                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">Max 10MB</span>
+                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">Max 1MB</span>
                       <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
                         {hasRestrictedAspect ? '4:3, 3:2, 16:9' : '4:3, 3:2, 16:9 or 32:9'}
                       </span>

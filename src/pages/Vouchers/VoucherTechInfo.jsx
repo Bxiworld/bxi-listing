@@ -53,6 +53,12 @@ function redemptionStepsToString(rs) {
   return rs != null ? String(rs) : '';
 }
 
+/** Utility function to count letters/characters in a string */
+function countLetters(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return text.length;
+}
+
 function offlineAddressFromProduct(p) {
   const empty = { address: '', area: '', landmark: '', city: '', state: '' };
   if (!p) return empty;
@@ -143,6 +149,26 @@ function parseVoucherCodesFromWorkbook(workbook) {
   return codes;
 }
 
+function normalizePreviewText(value) {
+  const lines = String(value ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim());
+
+  while (lines.length > 0 && lines[0] === '') lines.shift();
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+
+  const collapsed = [];
+  let prevBlank = false;
+  for (const line of lines) {
+    const isBlank = line === '';
+    if (isBlank && prevBlank) continue;
+    collapsed.push(line);
+    prevBlank = isBlank;
+  }
+
+  return collapsed.join('\n').trim();
+}
+
 function getVariantDescriptor(variant = {}) {
   const parts = [];
   const push = (label, value) => {
@@ -182,6 +208,15 @@ export default function VoucherTechInfo({ category }) {
   const codeFileRef = useRef(null);
   const storeFileRef = useRef(null);
   const hydratedProductIdRef = useRef(null);
+
+  // Letter count states
+  const [inclusionsLetters, setInclusionsLetters] = useState(0);
+  const [exclusionsLetters, setExclusionsLetters] = useState(0);
+  const [termsLetters, setTermsLetters] = useState(0);
+  const [redemptionStepsLetters, setRedemptionStepsLetters] = useState(0);
+  const [onlineUrlLetters, setOnlineUrlLetters] = useState(0);
+  const [addressLetters, setAddressLetters] = useState(0);
+  const [areaLetters, setAreaLetters] = useState(0);
 
   const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'techInfo');
   const prevPath = prevStepPath || 'hotelsproductinfo';
@@ -290,12 +325,21 @@ export default function VoucherTechInfo({ category }) {
         : getVoucherJourneyTypeFromStorage()
     );
     setValue('inclusions', productData.Inclusions ?? '');
+    setInclusionsLetters(countLetters(productData.Inclusions));
     setValue('exclusions', productData.Exclusions ?? '');
+    setExclusionsLetters(countLetters(productData.Exclusions));
     setValue('termsAndConditions', productData.TermConditions ?? productData.TermsAndConditions ?? '');
-    setValue('redemptionSteps', redemptionStepsToString(productData.RedemptionSteps));
+    setTermsLetters(countLetters(productData.TermConditions ?? productData.TermsAndConditions));
+    const rs = redemptionStepsToString(productData.RedemptionSteps);
+    setValue('redemptionSteps', rs);
+    setRedemptionStepsLetters(countLetters(rs));
     const link = (productData.Link ?? productData.OnlineRedemptionURL ?? '').trim();
     setValue('onlineRedemptionUrl', link);
-    setOfflineAddress(offlineAddressFromProduct(productData));
+    setOnlineUrlLetters(countLetters(link));
+    const addr = offlineAddressFromProduct(productData);
+    setOfflineAddress(addr);
+    setAddressLetters(countLetters(addr.address));
+    setAreaLetters(countLetters(addr.area));
     if (Array.isArray(productData?.OfflineAddressList)) {
       setParsedStoreLocations(productData.OfflineAddressList);
     } else if (typeof productData?.OfflineAddressList === 'string') {
@@ -416,7 +460,7 @@ export default function VoucherTechInfo({ category }) {
       toast.error('File size must be less than 10MB');
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -638,13 +682,18 @@ export default function VoucherTechInfo({ category }) {
 
     setIsSubmitting(true);
     try {
+      const normalizedInclusions = normalizePreviewText(data.inclusions);
+      const normalizedExclusions = normalizePreviewText(data.exclusions);
+      const normalizedTermsAndConditions = normalizePreviewText(data.termsAndConditions);
+      const normalizedRedemptionSteps = normalizePreviewText(data.redemptionSteps);
+
       const formData = new FormData();
       formData.append('_id', id);
       formData.append('ProductUploadStatus', 'voucherdesign');
-      formData.append('Inclusions', data.inclusions);
-      formData.append('Exclusions', data.exclusions);
-      formData.append('TermConditions', data.termsAndConditions);
-      formData.append('RedemptionSteps', data.redemptionSteps);
+      formData.append('Inclusions', normalizedInclusions);
+      formData.append('Exclusions', normalizedExclusions);
+      formData.append('TermConditions', normalizedTermsAndConditions);
+      formData.append('RedemptionSteps', normalizedRedemptionSteps);
       formData.append('voucherDeliveryType', delivery);
       formData.append('redemptionType', redemptionTypeValue);
       formData.append('VoucherType', getVoucherJourneyLabel(data.voucherJourneyType));
@@ -774,19 +823,23 @@ export default function VoucherTechInfo({ category }) {
                   {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
                     <div className="space-y-2">
                       <Label htmlFor="redemptionSteps">
-                        Redemption Steps <span className="text-red-500">*</span>
+                        Add URL <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="onlineRedemptionUrl"
                         type="text"
                         placeholder="https://..."
                         {...register('onlineRedemptionUrl')}
+                        maxLength={500}
+                        onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
                         className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                       />
-                      {errors.redemptionSteps && (
-                        <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-                      )}
-                      <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                      <div className="flex items-center justify-between mt-1">
+                        {errors.onlineRedemptionUrl && (
+                          <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                        )}
+                        <p className="text-xs text-gray-500 ml-auto">{onlineUrlLetters} / 500</p>
+                      </div>
                     </div>
                   )}
                   {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
@@ -797,16 +850,28 @@ export default function VoucherTechInfo({ category }) {
                           <Input
                             placeholder="Address ( If Single ) Type Below"
                             value={offlineAddress.address}
-                            onChange={(e) => setOfflineAddress({ ...offlineAddress, address: e.target.value })}
+                            maxLength={500}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setOfflineAddress({ ...offlineAddress, address: val });
+                              setAddressLetters(countLetters(val));
+                            }}
                           />
+                          <p className="text-xs text-gray-500 text-right mt-1">{addressLetters} / 500</p>
                         </div>
                         <div className="space-y-2">
                           <Label>Area <span className="text-red-500">*</span></Label>
                           <Input
                             placeholder="Area"
                             value={offlineAddress.area}
-                            onChange={(e) => setOfflineAddress({ ...offlineAddress, area: e.target.value })}
+                            maxLength={500}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setOfflineAddress({ ...offlineAddress, area: val });
+                              setAreaLetters(countLetters(val));
+                            }}
                           />
+                          <p className="text-xs text-gray-500 text-right mt-1">{areaLetters} / 500</p>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="onlineRedemptionUrl">
@@ -817,11 +882,16 @@ export default function VoucherTechInfo({ category }) {
                             type="text"
                             placeholder="Add URL"
                             {...register('onlineRedemptionUrl')}
+                            maxLength={500}
+                            onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
                             className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                           />
-                          {errors.onlineRedemptionUrl && (
-                            <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
-                          )}
+                          <div className="flex items-center justify-between mt-1">
+                            {errors.onlineRedemptionUrl && (
+                              <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                            )}
+                            <p className="text-xs text-gray-500 ml-auto">{onlineUrlLetters} / 500</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -926,14 +996,17 @@ export default function VoucherTechInfo({ category }) {
                     id="inclusions"
                     placeholder="Inclusions"
                     rows={4}
-                    maxLength={501}
+                    maxLength={500}
                     {...register('inclusions')}
+                    onChange={(e) => setInclusionsLetters(countLetters(e.target.value))}
                     className={errors.inclusions ? 'border-red-500' : ''}
                   />
-                  {errors.inclusions && (
-                    <p className="text-sm text-red-500">{errors.inclusions.message}</p>
-                  )}
-                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                  <div className="flex items-center justify-between mt-1">
+                    {errors.inclusions && (
+                      <p className="text-sm text-red-500">{errors.inclusions.message}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">{inclusionsLetters} / 500</p>
+                  </div>
                 </div>
 
                 {/* Exclusions */}
@@ -945,14 +1018,17 @@ export default function VoucherTechInfo({ category }) {
                     id="exclusions"
                     placeholder="Exclusions"
                     rows={4}
-                    maxLength={501}
+                    maxLength={500}
                     {...register('exclusions')}
+                    onChange={(e) => setExclusionsLetters(countLetters(e.target.value))}
                     className={errors.exclusions ? 'border-red-500' : ''}
                   />
-                  {errors.exclusions && (
-                    <p className="text-sm text-red-500">{errors.exclusions.message}</p>
-                  )}
-                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                  <div className="flex items-center justify-between mt-1">
+                    {errors.exclusions && (
+                      <p className="text-sm text-red-500">{errors.exclusions.message}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">{exclusionsLetters} / 500</p>
+                  </div>
                 </div>
 
                 {/* Terms & Conditions – bxi TermConditions */}
@@ -966,12 +1042,15 @@ export default function VoucherTechInfo({ category }) {
                     rows={4}
                     maxLength={8000}
                     {...register('termsAndConditions')}
+                    onChange={(e) => setTermsLetters(countLetters(e.target.value))}
                     className={errors.termsAndConditions ? 'border-red-500' : ''}
                   />
-                  {errors.termsAndConditions && (
-                    <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
-                  )}
-                  <p className="text-xs text-[#6B7A99]">Maximum 8000 characters</p>
+                  <div className="flex items-center justify-between mt-1">
+                    {errors.termsAndConditions && (
+                      <p className="text-sm text-red-500">{errors.termsAndConditions.message}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">{termsLetters} / 8000</p>
+                  </div>
                 </div>
 
                 {/* Redemption Steps */}
@@ -983,15 +1062,45 @@ export default function VoucherTechInfo({ category }) {
                     id="redemptionSteps"
                     placeholder="Redemption Steps"
                     rows={4}
-                    maxLength={501}
+                    maxLength={500}
                     {...register('redemptionSteps')}
+                    onChange={(e) => setRedemptionStepsLetters(countLetters(e.target.value))}
                     className={errors.redemptionSteps ? 'border-red-500' : ''}
                   />
-                  {errors.redemptionSteps && (
-                    <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
-                  )}
-                  <p className="text-xs text-[#6B7A99]">Maximum 500 characters</p>
+                  <div className="flex items-center justify-between mt-1">
+                    {errors.redemptionSteps && (
+                      <p className="text-sm text-red-500">{errors.redemptionSteps.message}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">{redemptionStepsLetters} / 500</p>
+                  </div>
                 </div>
+
+                {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
+                  <div className="space-y-2">
+                    <Label>
+                      How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span>
+                    </Label>
+                    <RadioGroup
+                      value={codeGenerationType || 'bxi'}
+                      onValueChange={(value) => setValue('codeGenerationType', value)}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bxi" id="codegen-bxi" />
+                          <Label htmlFor="codegen-bxi" className="cursor-pointer font-normal">
+                            BXI
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="self" id="codegen-self" />
+                          <Label htmlFor="codegen-self" className="cursor-pointer font-normal">
+                            Upload Now
+                          </Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
 
                 {codeGenerationType === 'self' && (
                   <div className="space-y-2">
