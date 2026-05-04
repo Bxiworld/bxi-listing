@@ -3,6 +3,7 @@
  * Based on product type, company type, listing type, and action
  */
 import { getVoucherJourneyType, VOUCHER_JOURNEY_TYPE } from './voucherType';
+import { getMediaJourney } from '../constants/mediaMapping';
 import {
   getProductType,
   getProductCategoryName,
@@ -215,22 +216,12 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
  * Must not depend on seller companyType — Admin view uses `companyType === 'Admin'`.
  */
 const resolveMediaViewRoute = (product, productId) => {
-  const productCategory = getProductCategoryName(product);
-  const productSubCategory =
-    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '';
-  const mediaCategoryField = String(product?.mediaCategory || '').toLowerCase();
-  if (mediaCategoryField === 'dooh') {
+  const mediaJourney = getMediaJourney(product?.mediaCategory);
+
+  if (mediaJourney === 'hoarding') {
     return `/hoardingmediaofflineproductpreview/${productId}`;
   }
-  if (productCategory === 'Multiplex ADs') {
-    if (productSubCategory === 'Digital ADs') {
-      return `/mediaonlineproductpreview/${productId}`;
-    }
-    return `/multiplexmediaonlineproductpreview/${productId}`;
-  }
-  if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-    return `/hoardingmediaofflineproductpreview/${productId}`;
-  }
+  // All other media journeys currently use the standard online preview
   return `/mediaonlineproductpreview/${productId}`;
 };
 
@@ -331,43 +322,36 @@ const resolveEditRoute = ({
   // Media-company **voucher** rows must use the voucher branch below, not this block.
   if (!isVoucherListing(product) && (isMediaListing(product) || String(companyType) === 'Media')) {
     const reviewKey = listingStepKey;
-    const mediaJourney = product?.mediaJourney;
+    const mediaJourney = getMediaJourney(product?.mediaCategory);
+
     if (mediaJourney === 'television-ads') {
-      const televisionSteps = {
-        generalinformation: 'general-info',
-        productinformation: 'product-info',
-        technicalinformation: 'tech-info',
-        golive: 'go-live',
-      };
-      const televisionStep = televisionSteps[reviewKey] || 'product-info';
-      return `/mediaonline/${televisionStep}/${productId}`;
+      const steps = { generalinformation: 'general-info', productinformation: 'product-info', technicalinformation: 'tech-info', golive: 'go-live' };
+      return `/mediaonline/${steps[reviewKey] || 'product-info'}/${productId}`;
     }
-    if (productCategory === 'Multiplex ADs') {
-      if (productSubCategory === 'Digital ADs') {
-        const digitalSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
-        const digitalStep = digitalSteps[reviewKey] || 'mediaonlinedigitalscreensinfo';
-        return `/mediaonline/${digitalStep}/${productId}`;
-      }
-      const multiplexSteps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'multiplexgolive' };
-      const multiplexStep = multiplexSteps[reviewKey] || 'mediaonlinemultiplexproductinfo';
-      return `/mediaonline/${multiplexStep}/${productId}`;
+
+    if (mediaJourney === 'display-video') {
+      const steps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'multiplexgolive' };
+      return `/mediaonline/${steps[reviewKey] || 'mediaonlinemultiplexproductinfo'}/${productId}`;
     }
-    if (productCategory === 'Hoardings' || productSubCategory === 'Hoardings') {
-      if (reviewKey === 'golive') {
-        return `/mediaonline/go-live/${productId}?from=hoarding`;
-      }
-      const hoardingSteps = {
-        generalinformation: 'general-info',
-        productinformation: 'mediaofflinehoardinginfo',
-        technicalinformation: 'mediaofflinehoardingtechinfo',
-      };
-      const hoardingStep = hoardingSteps[reviewKey] || 'mediaofflinehoardinginfo';
-      return `/mediaoffline/${hoardingStep}/${productId}`;
+
+    if (mediaJourney === 'digital-ads') {
+      const steps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
+      return `/mediaonline/${steps[reviewKey] || 'mediaonlinedigitalscreensinfo'}/${productId}`;
     }
-    // Default media offline (e.g. News Paper & Magazine): general-info or product-info
-    if (reviewKey === 'generalinformation') {
-      return `/mediaoffline/general-info/${productId}`;
+
+    if (mediaJourney === 'hoarding') {
+      if (reviewKey === 'golive') return `/mediaonline/go-live/${productId}?from=hoarding`;
+      const steps = { generalinformation: 'general-info', productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo' };
+      return `/mediaoffline/${steps[reviewKey] || 'mediaofflinehoardinginfo'}/${productId}`;
     }
+
+    if (mediaJourney === 'newspaper' || mediaJourney === 'airport' || mediaJourney === 'multiplex' || mediaJourney === 'btl') {
+      if (reviewKey === 'generalinformation') return `/mediaoffline/general-info/${productId}`;
+      return `/mediaoffline/product-info/${productId}`;
+    }
+
+    // Default fallback
+    if (reviewKey === 'generalinformation') return `/mediaoffline/general-info/${productId}`;
     return `/mediaoffline/product-info/${productId}`;
   }
 

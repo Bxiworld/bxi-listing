@@ -1,7 +1,5 @@
-/**
- * Builds General Information URLs so the correct listing journey is preserved
- * (e.g. television-ads vs digital-ads) when stepping back from product/tech info.
- */
+import { getMediaJourney } from '../constants/mediaMapping';
+
 export function getMediaListingQueryParams(product) {
   const params = new URLSearchParams();
   const mc =
@@ -9,11 +7,9 @@ export function getMediaListingQueryParams(product) {
     (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaCategory')) ||
     (typeof localStorage !== 'undefined' && localStorage.getItem('mediaCategory')) ||
     '';
-  const mj =
-    product?.mediaJourney ||
-    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaJourney')) ||
-    (typeof localStorage !== 'undefined' && localStorage.getItem('mediaJourney')) ||
-    '';
+  
+  const mj = getMediaJourney(mc);
+  
   const mp =
     (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaParent')) ||
     (typeof localStorage !== 'undefined' && localStorage.getItem('mediaParent')) ||

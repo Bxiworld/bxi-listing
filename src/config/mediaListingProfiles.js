@@ -328,25 +328,27 @@ export const DOOH_AD_TYPE_OPTIONS_FILTERED = [
  * @param {object} product
  * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
  */
-const MULTIPLEX_SUB_ID = '643cda0c53068696706e3951';
-
-export function resolveMediaOnlineFormProfile(product) {
+export function getMediaListingProfile(product) {
   const mc = String(product?.mediaCategory || readStorage('mediaCategory') || '').toLowerCase();
-  const journey = String(product?.mediaJourney || readStorage('mediaJourney') || '').toLowerCase();
-  const subName = String(product?.ProductSubCategoryName || '').trim();
-  const subId = String(product?.ProductSubCategory || '');
+  const journey = getMediaJourney(mc);
+  
+  const subName = String(
+    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? ''
+  );
+  const subId = String(
+    product?.ProductSubCategory ?? product?.productSubCategory ?? ''
+  );
 
   const base = {
     key: 'default',
     featureAllowlist: null,
-    /** When set, rows whose label matches (case-insensitive) are removed before allowlist. */
     featureBlocklist: null,
     adTypeOptions: null,
     unitOptions: null,
     timelineHideOneTime: false,
-    dimensionLabel: 'Dimension Size',
     dimensionRequired: true,
-    repetitionRequired: true,
+    repetitionRequired: false,
+    dimensionLabel: 'Dimension',
     offeringPlaceholder: 'Eg. station number',
     syncTimeslots: true,
     defaultGstIfEmpty: 18,
@@ -359,11 +361,7 @@ export function resolveMediaOnlineFormProfile(product) {
     gstSelectWidthPx: null,
   };
 
-  if (
-    subId === MULTIPLEX_SUB_ID ||
-    subName === 'Multiplex ADs' ||
-    String(product?.ProductCategoryName || '') === 'Multiplex ADs'
-  ) {
+  if (journey === 'display-video' && (mc === 'multiplex' || subName.includes('Multiplex'))) {
     return {
       ...base,
       key: 'multiplex',
@@ -372,7 +370,7 @@ export function resolveMediaOnlineFormProfile(product) {
     };
   }
 
-  if (mc === 'airport' || journey === 'airport') {
+  if (journey === 'airport') {
     return {
       ...base,
       key: 'airport',
@@ -392,13 +390,7 @@ export function resolveMediaOnlineFormProfile(product) {
     };
   }
 
-  /** OOH / hoardings — hide media meta & inventory-style rows on technical preview. */
-  if (
-    subName.toLowerCase() === 'hoardings' ||
-    mc === 'ooh' ||
-    journey === 'ooh' ||
-    mc === 'outdoor'
-  ) {
+  if (journey === 'hoarding') {
     return {
       ...base,
       key: 'hoarding',
@@ -408,7 +400,7 @@ export function resolveMediaOnlineFormProfile(product) {
     };
   }
 
-  if (mc === 'dooh' || journey === 'dooh') {
+  if (journey === 'digital-ads') {
     return {
       ...base,
       key: 'dooh',
@@ -421,7 +413,7 @@ export function resolveMediaOnlineFormProfile(product) {
     };
   }
 
-  if (subName === 'Radio' || subId === RADIO_SUB_ID) {
+  if (journey === 'display-video' && mc === 'radio') {
     return {
       ...base,
       key: 'radio',
@@ -435,7 +427,7 @@ export function resolveMediaOnlineFormProfile(product) {
     };
   }
 
-  if (mc === 'television' || journey === 'television') {
+  if (journey === 'television-ads') {
     return {
       ...base,
       key: 'television',
@@ -444,20 +436,6 @@ export function resolveMediaOnlineFormProfile(product) {
       supportingDocKeys: TELEVISION_SUPPORTING_DOC_KEYS,
       offeringPlaceholder:
         'Eg. Star Plus, Aaj Tak, Star Sports',
-    };
-  }
-
-  if (mc === 'other') {
-    return {
-      ...base,
-      key: 'othersOnline',
-      featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.othersOnline,
-      adTypeOptions: OTHERS_ONLINE_AD_TYPES,
-      unitOptions: OTHERS_ONLINE_UNITS,
-      dimensionRequired: false,
-      repetitionRequired: false,
-      /** Min/max timeslot are independent; sync would collapse max options and hide the max dropdown */
-      syncTimeslots: false,
     };
   }
 

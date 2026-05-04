@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { getMediaJourney } from '../../constants/mediaMapping';
 import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
 import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Tag } from 'lucide-react';
@@ -656,26 +657,21 @@ export const GeneralInformation = ({ category }) => {
 
       let targetPath;
       if (isMediaOnline) {
-        const storedJourney =
-          (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaJourney')) ||
-          (typeof localStorage !== 'undefined' && localStorage.getItem('mediaJourney')) ||
-          '';
         const storedMediaCategory =
           (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaCategory')) ||
           (typeof localStorage !== 'undefined' && localStorage.getItem('mediaCategory')) ||
           '';
-        const isTelevisionListing =
-          storedJourney === 'television-ads' ||
-          (storedMediaCategory === 'television' && storedJourney === 'digital-ads');
-        if (subcategoryName === 'Digital ADs' && !isTelevisionListing) {
+        const journey = getMediaJourney(storedMediaCategory);
+
+        if (subcategoryName === 'Digital ADs' && journey !== 'television-ads') {
           targetPath = `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
-        } else if (subcategoryName === 'Multiplex ADs') {
+        } else if (subcategoryName === 'Multiplex ADs' || journey === 'multiplex') {
           targetPath = `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
         } else {
           targetPath = `/mediaonline/product-info/${productId}`;
         }
       } else if (isMediaOffline) {
-        if (subcategoryName === 'Hoardings') {
+        if (subcategoryName === 'Hoardings' || getMediaJourney(storedMediaCategory) === 'hoarding') {
           targetPath = `/mediaoffline/mediaofflinehoardinginfo/${productId}`;
         } else {
           targetPath = `/mediaoffline/mediaofflineproductinfo/${productId}`;

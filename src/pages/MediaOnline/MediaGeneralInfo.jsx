@@ -26,29 +26,21 @@ import api from '../../utils/api';
 import { getMediaSubcategories } from '../../config/mediaSubcategories';
 import { Stepper } from '../AddProduct/AddProductSteps';
 
-/** Utility function to count letters/characters in a string */
-function countLetters(text) {
-  if (!text || typeof text !== 'string') return 0;
-  return text.length;
-}
+import { getMediaJourney } from '../../constants/mediaMapping';
 
 /**
- * Journey type determines the flow after general info:
- * - digital-ads / digital-screens → Digital Screens flow (DOOH / Excel)
- * - television-ads → Generic media online product-info (Television; not digital screens)
- * - multiplex → Multiplex flow
- * - display-video / airport / other → Generic product info flow
+ * Journey type determines the flow after general info
  */
 const getJourneyRoute = (journey, productId) => {
   switch (journey) {
     case 'digital-ads':
-    case 'digital-screens':
       return `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
-    case 'multiplex':
+    case 'display-video':
       return `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
     case 'television-ads':
-    case 'display-video':
     case 'airport':
+    case 'hoarding':
+    case 'newspaper':
     default:
       return `/mediaonline/product-info/${productId}`;
   }
@@ -107,28 +99,12 @@ export default function MediaGeneralInfo() {
     return selectedCategory?.subCategories || [];
   }, [subcategories, mediaCategory, listingParent]);
 
-  const journeyRaw = useMemo(() => {
-    return searchParams.get('journey') ||
-      sessionStorage.getItem('mediaJourney') ||
-      localStorage.getItem('mediaJourney') ||
-      productData?.mediaJourney ||
-      '';
-  }, [searchParams, productData?.mediaJourney]);
+  const journey = useMemo(() => getMediaJourney(mediaCategory), [mediaCategory]);
 
-  /** Television must not follow the DOOH digital-screens journey; normalize legacy links. */
-  const journey = useMemo(() => {
-    if (mediaCategory === 'television' && journeyRaw === 'digital-ads') {
-      return 'television-ads';
-    }
-    return journeyRaw;
-  }, [mediaCategory, journeyRaw]);
-
-  useEffect(() => {
-    if (mediaCategory === 'television' && journeyRaw === 'digital-ads') {
-      sessionStorage.setItem('mediaJourney', 'television-ads');
-      localStorage.setItem('mediaJourney', 'television-ads');
-    }
-  }, [mediaCategory, journeyRaw]);
+  function countLetters(text) {
+    if (!text || typeof text !== 'string') return 0;
+    return text.length;
+  }
 
   // Static subcategories (used instead of API when available for this category)
   const staticSubcategories = useMemo(
@@ -291,7 +267,6 @@ export default function MediaGeneralInfo() {
         ProductSubCategoryName: subcategoryName,
         // Store media category for downstream pages
         mediaCategory: mediaCategory,
-        mediaJourney: journey,
       };
 
       const res = await api.post('/product/product_mutation', payload);

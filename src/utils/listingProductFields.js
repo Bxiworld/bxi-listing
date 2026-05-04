@@ -1,3 +1,5 @@
+import { getMediaJourney } from '../constants/mediaMapping';
+
 /**
  * Normalize listing rows from BXI APIs that may use PascalCase or camelCase.
  *
@@ -46,27 +48,19 @@ export function isMediaListing(product) {
   if (!product) return false;
   if (isVoucherListing(product)) return false;
   if (getListingType(product).toLowerCase() === 'media') return true;
+  
+  // Use centralized mapping to check if the category or journey implies a media product
+  const mc = product?.mediaCategory;
+  if (mc && getMediaJourney(mc)) return true;
+
   const pt = normForMedia(getProductType(product));
   if (pt === 'mediaonline' || pt === 'mediaoffline') return true;
   if (pt.includes('media online') || pt.includes('media offline')) return true;
+  
   const cat = normForMedia(getProductCategoryName(product));
   if (cat === 'mediaonline' || cat === 'mediaoffline' || cat === 'media') return true;
   if (cat.includes('mediaonline') || cat.includes('mediaoffline')) return true;
-  if (
-    cat.includes('multiplex') ||
-    cat.includes('hoarding') ||
-    cat.includes('news paper') ||
-    cat.includes('magazine') ||
-    cat.includes('dooh') ||
-    cat === 'btl' ||
-    cat.includes('btl')
-  ) {
-    return true;
-  }
-  const mj = String(product?.mediaJourney ?? '').toLowerCase();
-  if (mj && (mj.includes('television') || mj === 'television-ads' || mj.includes('digital-ads'))) {
-    return true;
-  }
+  
   return false;
 }
 
