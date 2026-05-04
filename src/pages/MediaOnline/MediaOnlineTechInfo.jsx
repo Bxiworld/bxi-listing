@@ -36,7 +36,7 @@ import {
   checkboxStateToSupportingArray,
   emptySupportingCheckboxState,
 } from '../../utils/supportingBuyerDocs';
-import { resolveMediaOnlineFormProfile } from '../../config/mediaListingProfiles';
+import { getMediaListingProfile } from '../../config/mediaListingProfiles';
 const options = { day: '2-digit', month: 'short', year: 'numeric' };
 
 /** Row-major pairs for a stable 2-column grid (left | right). */
@@ -110,7 +110,7 @@ export default function TechInfo() {
     fetchproductData?.ProductSubCategoryName === 'Radio' ||
     fetchproductData?.ProductSubCategory === '65029534eaa5251874e8c6c1';
 
-  const techFormProfile = resolveMediaOnlineFormProfile(fetchproductData || {});
+  const techFormProfile = getMediaListingProfile(fetchproductData || {});
   const supportingDocGridRows = useMemo(() => {
     if (techFormProfile.key === 'television') {
       return [

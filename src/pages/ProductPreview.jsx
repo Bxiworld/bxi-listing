@@ -36,7 +36,7 @@ import { productApi, keyFeatureApi } from '../utils/api';
 import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
-import { resolveMediaOnlineFormProfile } from '../config/mediaListingProfiles';
+import { getMediaListingProfile } from '../config/mediaListingProfiles';
 import * as XLSX from 'xlsx';
 import { isMediaListing } from '../utils/listingProductFields';
 
@@ -1026,7 +1026,7 @@ export default function ProductPreview() {
                   product?.productDescription ||
                   '';
                 const onlineProfile = isMediaProduct
-                  ? resolveMediaOnlineFormProfile(product || {})
+                  ? getMediaListingProfile(product || {})
                   : null;
                 const mediaNameForDescription =
                   product?.medianame || product?.ProductName || '';
@@ -1520,7 +1520,7 @@ export default function ProductPreview() {
                         ? String(product.loopTimeMinutes).trim()
                         : null;
                   const geo = product?.GeographicalData || {};
-                  const prevProfile = resolveMediaOnlineFormProfile(product || {});
+                  const prevProfile = getMediaListingProfile(product || {});
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
                       ? 'AD Duration'

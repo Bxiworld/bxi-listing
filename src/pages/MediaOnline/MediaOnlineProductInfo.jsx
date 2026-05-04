@@ -40,7 +40,7 @@ import StateData from '../../utils/StateCityArray.json';
 import { Stepper } from '../AddProduct/AddProductSteps';
 import { buildMediaOnlineGeneralInfoPath } from '../../utils/mediaOnlineListingPaths';
 import {
-  resolveMediaOnlineFormProfile,
+  getMediaListingProfile,
   filterFeatureDropdownRows,
   isTirupatiAirportSubcategory,
 } from '../../config/mediaListingProfiles';
@@ -426,7 +426,7 @@ const MediaProductInfo = () => {
   const [MaxtimeslotArr, setMaxtimeslotArr] = useState([]);
 
   const listingProfile = useMemo(
-    () => resolveMediaOnlineFormProfile(FetchedproductData || {}),
+    () => getMediaListingProfile(FetchedproductData || {}),
     [FetchedproductData],
   );
   /** Flat list for Unit dropdown; native <select> avoids MUI MenuItem direct-descendant quirks. */
@@ -471,7 +471,7 @@ const MediaProductInfo = () => {
   /** When min/max are not synced, populate max timeslot choices after load (e.g. Media → Other) */
   useEffect(() => {
     if (!FetchedproductData?.mediaVariation) return;
-    const profile = resolveMediaOnlineFormProfile(FetchedproductData);
+    const profile = getMediaListingProfile(FetchedproductData);
     if (profile.syncTimeslots) return;
     const minTs = Number(FetchedproductData.mediaVariation.minTimeslotSeconds);
     if (!Number.isFinite(minTs) || minTs <= 0) return;
@@ -562,7 +562,7 @@ const MediaProductInfo = () => {
 
 
   const updateProductTotextilestatus = handleSubmit((data) => {
-    const submitProfile = resolveMediaOnlineFormProfile(FetchedproductData || {});
+    const submitProfile = getMediaListingProfile(FetchedproductData || {});
     const DiscountedPrice = data?.mediaVariation.DiscountedPrice?.replace(
       /,/g,
       '',
