@@ -891,7 +891,7 @@ export default function HoardingMediaProductPreview() {
                       </Grid>
 
                       <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                        {GetProductByIdData?.ProductsVariantions?.at(0)
+                        {/* {GetProductByIdData?.ProductsVariantions?.at(0)
                           ?.minTimeslotSeconds ? (
                             <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
                               <Typography sx={tableHeader}>
@@ -911,7 +911,7 @@ export default function HoardingMediaProductPreview() {
                               / Seconds {''}{' '}
                               </Typography>
                             </Grid>
-                          ) : null}
+                          ) : null} */}
                         {GetProductByIdData?.ProductsVariantions?.at(0)
                           ?.seatingCapacity ? (
                             <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
@@ -1226,10 +1226,10 @@ export default function HoardingMediaProductPreview() {
                       </Grid>
                     </Grid>
                     <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                    {GetProductByIdData?.minOrderQtyTimeline &&  <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
+                    {GetProductByIdData?.minOrderQtyTimeline &&  <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
                         <Typography sx={tableHeader}>
                           {' '}
-                          Min - Max Order Quantity Timeline
+                          Min - Max Order Quantity Timeline 
                         </Typography>
                         <Typography sx={fetchValue}>
                           {GetProductByIdData?.ProductsVariantions.at(0)
@@ -1240,7 +1240,7 @@ export default function HoardingMediaProductPreview() {
                               ?.maxOrderQuantitytimeline
                             }`
                             : 'N/A'}{' '}
-                          {''} /{' '}
+                          {''} {' '} {'(Days)'}
                           {
                             GetProductByIdData?.ProductsVariantions.at(0)
                               ?.Timeline
@@ -1250,7 +1250,7 @@ export default function HoardingMediaProductPreview() {
 
                       {GetProductByIdData?.ProductSubCategory ===
                         '643cda0c53068696706e3951' ? null : (
-                          <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
+                          <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
                             <Typography sx={tableHeader}>
                               {' '}
                             Min - Max Order Quantity Unit
@@ -1265,7 +1265,7 @@ export default function HoardingMediaProductPreview() {
                                 GetProductByIdData?.ProductsVariantions?.at(0)
                                   ?.maxOrderQuantityunit
                               }
-                            /{' '}
+                            {' '} {'(Unit)'}
                               {
                                 GetProductByIdData?.ProductsVariantions.at(0)
                                   ?.unit
@@ -1276,7 +1276,7 @@ export default function HoardingMediaProductPreview() {
 
                       {GetProductByIdData?.ProductsVariantions?.at(0)
                         ?.minTimeslotSeconds ? (
-                          <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
+                          <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
                             <Typography sx={tableHeader}>
                               {' '}
                             Min - Max Timeslot
@@ -1291,7 +1291,21 @@ export default function HoardingMediaProductPreview() {
                                 GetProductByIdData?.ProductsVariantions?.at(0)
                                   ?.maxTimeslotSeconds
                               }
-                            / Seconds {''}{' '}
+                             {'(Seconds)'} {''}{' '}
+                            </Typography>
+                          </Grid>
+                        ) : null}
+
+                      {GetProductByIdData?.loopTimeSeconds ? (
+                          <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
+                            <Typography sx={tableHeader}>
+                              {' '}
+                            Loop Time
+                            </Typography>
+                            <Typography sx={fetchValue}>
+                              {
+                                GetProductByIdData?.loopTimeSeconds
+                              } (Seconds)
                             </Typography>
                           </Grid>
                         ) : null}
