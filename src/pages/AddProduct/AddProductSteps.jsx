@@ -1508,6 +1508,16 @@ export const ProductInfo = ({ category }) => {
       toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
       return;
     }
+    const variantNameTrimmed = String(d.variantName ?? '').trim();
+    if (!variantNameTrimmed) {
+      toast.error('Variant name is required');
+      return;
+    }
+    if (variantNameTrimmed.length > 120) {
+      toast.error('Variant name must be 120 characters or less');
+      return;
+    }
+
     const wantsSample = !!d.isSample;
     const sampleQty = wantsSample ? parseInt(d.sampleAvailability, 10) : 0;
     const samplePrice = wantsSample
@@ -1524,7 +1534,11 @@ export const ProductInfo = ({ category }) => {
       }
     }
     const extraCol = activeVoucherConfig?.extraVariantColumn;
+    const existingRow =
+      editVariationIndex !== null ? productsVariations[editVariationIndex] : null;
     const variation = {
+      ...(existingRow?._id ? { _id: existingRow._id } : {}),
+      VariantName: variantNameTrimmed,
       PricePerUnit: price,
       ...(shouldUseDiscountedPrice ? { DiscountedPrice: discountedPrice } : {}),
       MinOrderQuantity: minQty,
@@ -1560,6 +1574,8 @@ export const ProductInfo = ({ category }) => {
       setProductsVariations((prev) => [...prev, variation]);
       toast.success('Variation added');
     }
+    // Size requirement is satisfied once at least one variation exists.
+    clearErrors(['selectedSize']);
     setValue('price', '');
     setValue('discountedPrice', '');
     setValue('productIdType', '');
@@ -1584,6 +1600,7 @@ export const ProductInfo = ({ category }) => {
     setValue('flavor', '');
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
+    setValue('variantName', '');
     // Keep size selection & unit fixed once variants exist (BXI Frontend parity).
     // Don't reset sizeUnit to 'cm' unconditionally — re-derive from the locked dimension
     // so subsequent variants keep the correct unit (e.g. 'gsm' for GSM, 'kg' for Weight).
@@ -1616,6 +1633,7 @@ export const ProductInfo = ({ category }) => {
     if (!row) return;
     setEditVariationIndex(idx);
 
+    setValue('variantName', row.VariantName ?? '');
     setValue('price', row.PricePerUnit ?? '');
     setValue('discountedPrice', shouldUseDiscountedPrice ? (row.DiscountedPrice ?? '') : '');
     setValue('gst', String(row.GST ?? '18'));
@@ -1705,6 +1723,7 @@ export const ProductInfo = ({ category }) => {
     setValue('flavor', '');
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
+    setValue('variantName', '');
     const lockedSize = (getValues('selectedSize') || '').toLowerCase();
     if (lockedSize.includes('weight') || lockedSize === 'gsm') {
       setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
@@ -1786,6 +1805,7 @@ export const ProductInfo = ({ category }) => {
       flavor: '',
       offeringType: '',
       dateOfEvent: '',
+      variantName: '',
     }
   });
 
@@ -1938,7 +1958,10 @@ export const ProductInfo = ({ category }) => {
       return;
     }
 
-    if (hasSizeOptions && !watch('selectedSize')) {
+    if (productsVariations.length > 0) {
+      clearErrors(['selectedSize']);
+    }
+    if (hasSizeOptions && productsVariations.length === 0 && !watch('selectedSize')) {
       setError('selectedSize', { type: 'required', message: 'Please select at least one dimension/description option.' });
       toast.error('Please select at least one dimension/description option.');
       return;
@@ -2337,6 +2360,24 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
+            <div className="space-y-2">
+              <Label htmlFor="variantName">
+                Variant Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="variantName"
+                placeholder="e.g. Small — Navy, 500ml Pack"
+                maxLength={120}
+                {...register('variantName', {
+                  maxLength: { value: 120, message: 'Maximum 120 characters' },
+                })}
+              />
+              {errors.variantName && (
+                <p className="text-sm text-red-600">{errors.variantName.message}</p>
+              )}
+              <p className="text-xs text-gray-500">Required when adding a variation (Proceed to Add). Max 120 characters.</p>
+            </div>
+
             {/* HSN + GST (same row) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* HSN – when config has HSN */}
@@ -2600,7 +2641,7 @@ export const ProductInfo = ({ category }) => {
                   >
                     <SelectTrigger><SelectValue placeholder="Select validity" /></SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 18 }, (_, i) => i + 1).map((n) => (
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
                         <SelectItem key={n} value={String(n)}>{n} Month{n > 1 ? 's' : ''}</SelectItem>
                       ))}
                     </SelectContent>
@@ -2714,6 +2755,7 @@ export const ProductInfo = ({ category }) => {
                         {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
                         {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
+                        <th className="px-3 py-2 text-center font-medium">Variant name</th>
 
                         <th className="px-3 py-2 text-center font-medium">HSN</th>
                         <th className="px-3 py-2 text-center font-medium">GST</th>
@@ -2759,6 +2801,7 @@ export const ProductInfo = ({ category }) => {
                           {showDateOfEvent && (
                             <td className="px-3 py-2">{v.DateOfTheEvent || '—'}</td>
                           )}
+                          <td className="px-3 py-2 font-medium text-[#111827]">{v.VariantName?.trim() || '—'}</td>
 
                           <td className="px-3 py-2">{v.HSN || '—'}</td>
                           <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
