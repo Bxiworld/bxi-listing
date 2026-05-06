@@ -3,6 +3,8 @@
  * Resolved from product.mediaCategory / mediaJourney + subcategory where needed.
  */
 
+import { getMediaJourney } from '../constants/mediaMapping';
+
 const RADIO_SUB_ID = '65029534eaa5251874e8c6c1';
 
 function readStorage(key) {
