@@ -34,6 +34,8 @@ import { getMediaJourney } from '../../constants/mediaMapping';
 const getJourneyRoute = (journey, productId, mediaCategory = '') => {
   const normalizedCategory = String(mediaCategory).toLowerCase().trim();
   switch (journey) {
+    case 'multiplex':
+      return `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
     case 'digital-ads':
       return `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
     case 'display-video':
