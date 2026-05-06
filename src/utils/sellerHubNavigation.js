@@ -323,6 +323,7 @@ const resolveEditRoute = ({
   if (!isVoucherListing(product) && (isMediaListing(product) || String(companyType) === 'Media')) {
     const reviewKey = listingStepKey;
     const mediaJourney = getMediaJourney(product?.mediaCategory);
+    const mediaCategory = String(product?.mediaCategory || '').toLowerCase().trim();
 
     if (mediaJourney === 'television-ads') {
       const steps = { generalinformation: 'general-info', productinformation: 'product-info', technicalinformation: 'tech-info', golive: 'go-live' };
@@ -330,8 +331,12 @@ const resolveEditRoute = ({
     }
 
     if (mediaJourney === 'display-video') {
-      const steps = { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'multiplexgolive' };
-      return `/mediaonline/${steps[reviewKey] || 'mediaonlinemultiplexproductinfo'}/${productId}`;
+      const isMultiplexCategory = mediaCategory === 'multiplex';
+      const steps = isMultiplexCategory
+        ? { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'multiplexgolive' }
+        : { generalinformation: 'general-info', productinformation: 'product-info', technicalinformation: 'tech-info', golive: 'go-live' };
+      const fallbackStep = isMultiplexCategory ? 'mediaonlinemultiplexproductinfo' : 'product-info';
+      return `/mediaonline/${steps[reviewKey] || fallbackStep}/${productId}`;
     }
 
     if (mediaJourney === 'digital-ads') {

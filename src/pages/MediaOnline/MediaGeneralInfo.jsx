@@ -31,12 +31,15 @@ import { getMediaJourney } from '../../constants/mediaMapping';
 /**
  * Journey type determines the flow after general info
  */
-const getJourneyRoute = (journey, productId) => {
+const getJourneyRoute = (journey, productId, mediaCategory = '') => {
+  const normalizedCategory = String(mediaCategory).toLowerCase().trim();
   switch (journey) {
     case 'digital-ads':
       return `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
     case 'display-video':
-      return `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
+      return normalizedCategory === 'multiplex'
+        ? `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`
+        : `/mediaonline/product-info/${productId}`;
     case 'television-ads':
     case 'airport':
     case 'hoarding':
@@ -287,7 +290,7 @@ export default function MediaGeneralInfo() {
 
       // Route based on journey type (priority) or fallback to subcategory
       if (journey) {
-        const nextRoute = getJourneyRoute(journey, savedProductId);
+        const nextRoute = getJourneyRoute(journey, savedProductId, mediaCategory);
         navigate(nextRoute);
       } else if (responseData?.ProductSubCategoryName === 'Digital ADs') {
         if (mediaCategory === 'television' || journey === 'television-ads') {
