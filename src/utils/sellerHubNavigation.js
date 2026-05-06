@@ -165,7 +165,7 @@ const hotelVoucherStepMappings = {
   'generalinformation': '/generalinformation',
   'productinformation': '/hotelsproductinfo',
   'technicalinformation': '/hotelstechinfo',
-  'golive': '/hotelsgolive',
+  'golive': '/voucherdesign',
   'voucherdesign': '/voucherdesign',
 };
 
@@ -425,7 +425,7 @@ const resolveEditRoute = ({
       productinformation: '/techinfo',
       technicalinformation: '/vouchertechinfo',
       voucherdesign: '/voucherdesign',
-      golive: '/vouchergolive',
+      golive: '/voucherdesign',
     };
     const voucherStep = voucherStepByKey[listingStepKey] || '/generalinformation';
     return `${voucherRoute}${voucherStep}/${productId}`;
