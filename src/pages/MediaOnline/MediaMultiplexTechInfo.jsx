@@ -535,6 +535,18 @@ export default function MediaMultiplexTechInfo() {
       return;
     }
 
+    // Min/Max Order Qty Timeline validation - cannot be 0
+    const minOrderQtyTimeline = Number(storeMediaAllData?.minOrderQtyTimeline);
+    const maxOrderQtyTimeline = Number(storeMediaAllData?.maxOrderQtyTimeline);
+    if (minOrderQtyTimeline === 0) {
+      toast.error('Min Order QTY Timeline cannot be 0');
+      return;
+    }
+    if (maxOrderQtyTimeline === 0) {
+      toast.error('Max Order QTY Timeline cannot be 0');
+      return;
+    }
+
     // Min/Max Quantity validation
     const minQty = Number(data?.mediaVariation?.minOrderQuantityunit);
     const maxQty = Number(data?.mediaVariation?.maxOrderQuantityunit);
@@ -1158,6 +1170,9 @@ export default function MediaMultiplexTechInfo() {
                                           ) {
                                             e.preventDefault();
                                           }
+                                          if (e.key === '0' && e.target.value === '') {
+                                            e.preventDefault();
+                                          }
                                         }}
                                         placeholder={'Timeline'}
                                       />
@@ -1231,6 +1246,9 @@ export default function MediaMultiplexTechInfo() {
                                             e.key === ' ' &&
                                             e.target.selectionStart === 0
                                           ) {
+                                            e.preventDefault();
+                                          }
+                                          if (e.key === '0' && e.target.value === '') {
                                             e.preventDefault();
                                           }
                                         }}
