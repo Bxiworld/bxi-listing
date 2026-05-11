@@ -1038,8 +1038,8 @@ const isOtherFeatureOption = (value) => {
 };
 
 /** All variant GST% options; for chained variants, first row rules restrict choices */
-const ALL_GST_RATE_OPTIONS = ['0', '5', '12', '18', '28'];
-const NON_ZERO_GST_RATE_OPTIONS = ['5', '12', '18', '28'];
+const ALL_GST_RATE_OPTIONS = ['0', '3', '5', '12', '18', '28'];
+const NON_ZERO_GST_RATE_OPTIONS = ['3', '5', '12', '18', '28'];
 
 export const ProductInfo = ({ category }) => {
   useScrollToTopOnStepEnter();

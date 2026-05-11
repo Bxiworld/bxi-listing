@@ -762,7 +762,6 @@ export default function MediaMultiplexTechInfo() {
                             >
                               <MenuItem value='BMP'>BMP</MenuItem>
                               <MenuItem value='Interval'>Interval</MenuItem>
-                              <MenuItem value='Both'>Both</MenuItem>
                             </Select>
                           </Box>
                           <Box>
