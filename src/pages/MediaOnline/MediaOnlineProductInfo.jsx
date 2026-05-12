@@ -200,7 +200,6 @@ const MediaProductInfo = () => {
     watch,
     control,
     setError,
-    reset,
     resetField,
     formState: { errors },
   } = useForm({
@@ -346,7 +345,19 @@ const MediaProductInfo = () => {
           data?.mediaVariation?.maxOrderQuantitytimeline,
         );
         setValue('mediaVariation.location', data?.mediaVariation?.location);
-        setValue('mediaVariation.unit', data?.mediaVariation?.unit);
+        {
+          const incoming = data?.mediaVariation?.unit;
+          const hasIncoming =
+            incoming != null && String(incoming).trim() !== '';
+          if (hasIncoming) {
+            setValue('mediaVariation.unit', String(incoming).trim());
+          } else {
+            const cur = getValues('mediaVariation.unit');
+            if (cur != null && String(cur).trim() !== '') {
+              setValue('mediaVariation.unit', String(cur).trim());
+            }
+          }
+        }
         setValue('mediaVariation.Timeline', data?.mediaVariation?.Timeline);
         OthercostAppend(data?.OtherCost);
         setValue('GeographicalData', data?.GeographicalData);
@@ -429,30 +440,40 @@ const MediaProductInfo = () => {
     () => getMediaListingProfile(FetchedproductData || {}),
     [FetchedproductData],
   );
+  const watchedMediaUnit = watch('mediaVariation.unit');
   /** Flat list for Unit dropdown; native <select> avoids MUI MenuItem direct-descendant quirks. */
   const unitSelectChoices = useMemo(() => {
+    let choices;
     if (listingProfile.unitOptions?.length) {
-      return listingProfile.unitOptions;
+      choices = listingProfile.unitOptions;
+    } else {
+      const isRadio =
+        FetchedproductData?.ProductSubCategoryName === 'Radio' ||
+        String(FetchedproductData?.ProductSubCategory || '') ===
+          '65029534eaa5251874e8c6c1';
+      choices = [
+        { value: 'Screen', label: 'Per Screen' },
+        { value: 'Unit', label: 'Per Unit' },
+        ...(isRadio ? [] : [{ value: 'Spot', label: 'Per Spot' }]),
+        { value: 'Sq cm', label: 'Per Sq cm' },
+        { value: 'Display', label: 'Per Display' },
+        { value: 'Location', label: 'Per Location' },
+        { value: 'Release', label: 'Per Release' },
+        { value: 'Annoucment', label: 'Per Announcement' },
+        { value: 'Video', label: 'Per Video' },
+      ];
     }
-    const isRadio =
-      FetchedproductData?.ProductSubCategoryName === 'Radio' ||
-      String(FetchedproductData?.ProductSubCategory || '') ===
-        '65029534eaa5251874e8c6c1';
-    return [
-      { value: 'Screen', label: 'Per Screen' },
-      { value: 'Unit', label: 'Per Unit' },
-      ...(isRadio ? [] : [{ value: 'Spot', label: 'Per Spot' }]),
-      { value: 'Sq cm', label: 'Per Sq cm' },
-      { value: 'Display', label: 'Per Display' },
-      { value: 'Location', label: 'Per Location' },
-      { value: 'Release', label: 'Per Release' },
-      { value: 'Annoucment', label: 'Per Announcement' },
-      { value: 'Video', label: 'Per Video' },
-    ];
+    const v =
+      watchedMediaUnit != null ? String(watchedMediaUnit).trim() : '';
+    if (v && !choices.some((o) => String(o.value) === v)) {
+      return [...choices, { value: v, label: v }];
+    }
+    return choices;
   }, [
     listingProfile.unitOptions,
     FetchedproductData?.ProductSubCategoryName,
     FetchedproductData?.ProductSubCategory,
+    watchedMediaUnit,
   ]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
@@ -3559,11 +3580,9 @@ const MediaProductInfo = () => {
                                 setState('');
                                 setCity('');
                               } else {
-                                reset({
-                                  'GeographicalData.state': '',
-                                  'GeographicalData.city': '',
-                                  'GeographicalData.landmark': '',
-                                });
+                                setValue('GeographicalData.state', '');
+                                setValue('GeographicalData.city', '');
+                                setValue('GeographicalData.landmark', '');
                               }
                             }}
                           >

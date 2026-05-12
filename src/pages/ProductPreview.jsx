@@ -1525,6 +1525,7 @@ export default function ProductPreview() {
                         ? String(product.loopTimeMinutes).trim()
                         : null;
                   const geo = product?.GeographicalData || {};
+                  const tags = product?.tags || [];
                   const prevProfile = getMediaListingProfile(product || {});
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
@@ -1642,6 +1643,18 @@ export default function ProductPreview() {
                               </Grid>
                             )}
                           </Grid>
+                        </Box>
+                      )}
+                      {tags.length > 0 && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Tags
+                          </Typography>
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                            {tags.map((tag, index) => (
+                              <Chip key={index} label={String(tag)} size="small" />
+                            ))}
+                          </Box>
                         </Box>
                       )}
                     </Stack>
