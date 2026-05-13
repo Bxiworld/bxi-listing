@@ -123,6 +123,65 @@ export default function MediaMultiplexProductInfo() {
     fetchProduct();
   }, [id]);
 
+  // Restore product-info fields when resuming a draft (Location lives on product root after save).
+  useEffect(() => {
+    if (!productData?._id) return;
+    const mv =
+      productData.mediaVariation && typeof productData.mediaVariation === 'object'
+        ? productData.mediaVariation
+        : {};
+    const mvArr = Array.isArray(productData.MediaVariation)
+      ? productData.MediaVariation
+      : [];
+    const firstRow = mvArr[0] || {};
+
+    const loc =
+      productData.Location ||
+      productData.location ||
+      firstRow.location ||
+      '';
+    const rep =
+      productData.repetition ||
+      mv.repetition ||
+      firstRow.repetition ||
+      '';
+    const dim =
+      productData.dimensionSize ||
+      mv.dimensionSize ||
+      firstRow.dimensionSize ||
+      '';
+
+    if (String(loc).trim()) setValue('location', String(loc).trim());
+    if (String(rep).trim()) setValue('repetition', String(rep).trim());
+    if (String(dim).trim()) setValue('dimensionSize', String(dim).trim());
+
+    const minQ =
+      mv.minOrderQuantityunit ?? firstRow.minOrderQuantity ?? firstRow.minOrderQuantityunit;
+    const maxQ =
+      mv.maxOrderQuantityunit ?? firstRow.maxOrderQuantity ?? firstRow.maxOrderQuantityunit;
+    if (minQ != null && minQ !== '' && !Number.isNaN(Number(minQ))) {
+      setValue('minOrderQuantity', Number(minQ));
+    }
+    if (maxQ != null && maxQ !== '' && !Number.isNaN(Number(maxQ))) {
+      setValue('maxOrderQuantity', Number(maxQ));
+    }
+    if (mv.GST != null && mv.GST !== '') {
+      setValue('GST', String(mv.GST));
+    }
+
+    if (mvArr.length > 1) {
+      setMediaVariations(
+        mvArr.map((v) => ({
+          location: v.location || '',
+          repetition: v.repetition || '',
+          dimensionSize: v.dimensionSize || '',
+          minOrderQuantity: Number(v.minOrderQuantity ?? v.minOrderQuantityunit ?? 1) || 1,
+          maxOrderQuantity: Number(v.maxOrderQuantity ?? v.maxOrderQuantityunit ?? 100) || 100,
+        }))
+      );
+    }
+  }, [productData, setValue]);
+
   useEffect(() => {
     setSelectedState(ALL_STATES_VALUE);
   }, [id]);
@@ -304,6 +363,7 @@ export default function MediaMultiplexProductInfo() {
         GST: data.GST,
         tags,
         MediaVariation: variationList,
+        Location: String(primary?.location ?? data.location ?? '').trim(),
         // Tech step + APIs read these from the product root / mediaVariation — not only inside MediaVariation[]
         dimensionSize: primary?.dimensionSize ?? '',
         repetition: primary?.repetition ?? '',
