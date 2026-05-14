@@ -104,6 +104,7 @@ const stepMappings = {
   productinformation: '/product-info',
   technicalinformation: '/tech-info',
   golive: '/go-live',
+  productpreview: '/product-preview',
   // Voucher-only status: same path segment as go-live; voucherStepMap maps to /voucherdesign
   voucherdesign: '/go-live',
 };
@@ -115,6 +116,7 @@ const STEP_PROGRESS_ORDER = {
   technicalinformation: 3,
   golive: 4,
   voucherdesign: 5,
+  productpreview: 6,
 };
 
 /** Normalized labels that are not real step keys — ignore for routing */
@@ -215,11 +217,20 @@ export const resolveSellerHubRoute = ({ product, companyType, action, reviewReas
  * Media preview (multiplex, digital, hoarding, default online) from saved product fields.
  * Must not depend on seller companyType — Admin view uses `companyType === 'Admin'`.
  */
+const normalizeKeyForMediaPreview = (key) => {
+  if (!key) return '';
+  return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+};
+
 const resolveMediaViewRoute = (product, productId) => {
   const mediaJourney = getMediaJourney(product?.mediaCategory);
+  const pc = normalizeKeyForMediaPreview(getProductCategoryName(product));
 
   if (mediaJourney === 'hoarding') {
     return `/hoardingmediaofflineproductpreview/${productId}`;
+  }
+  if (mediaJourney === 'multiplex' || pc === 'multiplexads') {
+    return `/multiplexmediaonlineproductpreview/${productId}`;
   }
   // All other media journeys currently use the standard online preview
   return `/mediaonlineproductpreview/${productId}`;
@@ -325,12 +336,52 @@ const resolveEditRoute = ({
     const mediaJourney = getMediaJourney(product?.mediaCategory);
     const mediaCategory = String(product?.mediaCategory || '').toLowerCase().trim();
 
-    if (mediaJourney === 'television-ads') {
+    const pcNormForMedia = normalizeKeyForCategoryCompare(productCategory);
+    let effectiveMediaJourney = mediaJourney;
+    if (!effectiveMediaJourney) {
+      if (pcNormForMedia === 'multiplexads') {
+        effectiveMediaJourney = 'multiplex';
+      } else if (pcNormForMedia === 'digitalads') {
+        effectiveMediaJourney = 'digital-ads';
+      }
+    }
+
+    if (reviewKey === 'productpreview') {
+      const isMultiplexLike =
+        effectiveMediaJourney === 'multiplex' ||
+        pcNormForMedia === 'multiplexads' ||
+        normalizeKeyForCategoryCompare(productSubCategory || '') === 'multiplexads';
+      if (isMultiplexLike) {
+        return `/multiplexmediaonlineproductpreview/${productId}`;
+      }
+      if (effectiveMediaJourney === 'digital-ads' || pcNormForMedia === 'digitalads') {
+        if (mediaCategory === 'dooh') {
+          return `/hoardingmediaofflineproductpreview/${productId}`;
+        }
+        return `/mediaonlineproductpreview/${productId}`;
+      }
+      if (effectiveMediaJourney === 'hoarding') {
+        return `/hoardingmediaofflineproductpreview/${productId}`;
+      }
+      return `/mediaonlineproductpreview/${productId}`;
+    }
+
+    if (effectiveMediaJourney === 'television-ads') {
       const steps = { generalinformation: 'general-info', productinformation: 'product-info', technicalinformation: 'tech-info', golive: 'go-live' };
       return `/mediaonline/${steps[reviewKey] || 'product-info'}/${productId}`;
     }
 
-    if (mediaJourney === 'display-video') {
+    if (effectiveMediaJourney === 'multiplex') {
+      const steps = {
+        generalinformation: 'general-info',
+        productinformation: 'mediaonlinemultiplexproductinfo',
+        technicalinformation: 'mediamultiplextechinfo',
+        golive: 'multiplexgolive',
+      };
+      return `/mediaonline/${steps[reviewKey] || 'mediaonlinemultiplexproductinfo'}/${productId}`;
+    }
+
+    if (effectiveMediaJourney === 'display-video') {
       const isMultiplexCategory = mediaCategory === 'multiplex';
       const steps = isMultiplexCategory
         ? { generalinformation: 'general-info', productinformation: 'mediaonlinemultiplexproductinfo', technicalinformation: 'mediamultiplextechinfo', golive: 'multiplexgolive' }
@@ -339,18 +390,18 @@ const resolveEditRoute = ({
       return `/mediaonline/${steps[reviewKey] || fallbackStep}/${productId}`;
     }
 
-    if (mediaJourney === 'digital-ads') {
+    if (effectiveMediaJourney === 'digital-ads') {
       const steps = { generalinformation: 'general-info', productinformation: 'mediaonlinedigitalscreensinfo', technicalinformation: 'mediaonlinedigitalscreenstechinfo', golive: 'digitalscreensgolive' };
       return `/mediaonline/${steps[reviewKey] || 'mediaonlinedigitalscreensinfo'}/${productId}`;
     }
 
-    if (mediaJourney === 'hoarding') {
+    if (effectiveMediaJourney === 'hoarding') {
       if (reviewKey === 'golive') return `/mediaonline/go-live/${productId}?from=hoarding`;
       const steps = { generalinformation: 'general-info', productinformation: 'mediaofflinehoardinginfo', technicalinformation: 'mediaofflinehoardingtechinfo' };
       return `/mediaoffline/${steps[reviewKey] || 'mediaofflinehoardinginfo'}/${productId}`;
     }
 
-    if (mediaJourney === 'newspaper' || mediaJourney === 'airport' || mediaJourney === 'multiplex' || mediaJourney === 'btl') {
+    if (effectiveMediaJourney === 'newspaper' || effectiveMediaJourney === 'airport' || effectiveMediaJourney === 'btl') {
       if (reviewKey === 'generalinformation') return `/mediaoffline/general-info/${productId}`;
       return `/mediaoffline/product-info/${productId}`;
     }

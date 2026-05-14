@@ -77,7 +77,7 @@ function FeatureItem({ name, description }) {
         const url = data?.URL ?? data?.url;
         if (url) setIconUrl(url);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [name]);
   const showImg = iconUrl && !imgError;
   return (
@@ -674,320 +674,320 @@ export default function ProductPreview() {
         <Grid container spacing={4} sx={{ mt: 3 }}>
           {/* Image carousel */}
           <Grid item xs={12} lg={6}>
-          <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
-            <Stack alignItems="center">
-              {images?.length === 0 ? (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    width: '100%',
-                    maxWidth: 450,
-                    aspectRatio: '1',
-                    borderRadius: 2,
-                    border: '2px dashed',
-                    borderColor: 'grey.300',
-                    bgcolor: 'grey.50',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Typography color="text.secondary" fontWeight="medium">
-                    No Image Uploaded
-                  </Typography>
-                </Paper>
-              ) : (
-                <Paper elevation={0} sx={{ width: '100%', maxWidth: 450, position: 'relative' }}>
-                  <Box
+            <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
+              <Stack alignItems="center">
+                {images?.length === 0 ? (
+                  <Paper
+                    elevation={0}
                     sx={{
+                      width: '100%',
+                      maxWidth: 450,
                       aspectRatio: '1',
                       borderRadius: 2,
-                      backgroundSize: product?.ListingType === 'Product' ? 'cover' : 'contain',
-                      backgroundPosition: product?.ListingType === 'Product' ? 'center' : 'center',
-                      backgroundRepeat: product?.ListingType === 'Product' ? 'no-repeat' : 'no-repeat',
-                      backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
+                      border: '2px dashed',
+                      borderColor: 'grey.300',
+                      bgcolor: 'grey.50',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
-                  />
-                  {images?.length > 1 && (
-                    <>
-                      <IconButton
-                        onClick={() => setCarouselIndex((i) => (i === 0 ? images?.length - 1 : i - 1))}
-                        sx={{
-                          position: 'absolute',
-                          left: 8,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          bgcolor: 'rgba(255,255,255,0.9)',
-                          '&:hover': { bgcolor: 'white' },
-                        }}
-                      >
-                        <ChevronLeft size={24} />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => setCarouselIndex((i) => (i === images?.length - 1 ? 0 : i + 1))}
-                        sx={{
-                          position: 'absolute',
-                          right: 8,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          bgcolor: 'rgba(255,255,255,0.9)',
-                          '&:hover': { bgcolor: 'white' },
-                        }}
-                      >
-                        <ChevronRight size={24} />
-                      </IconButton>
-                    </>
-                  )}
-                </Paper>
-              )}
-            </Stack>
+                  >
+                    <Typography color="text.secondary" fontWeight="medium">
+                      No Image Uploaded
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <Paper elevation={0} sx={{ width: '100%', maxWidth: 450, position: 'relative' }}>
+                    <Box
+                      sx={{
+                        aspectRatio: '1',
+                        borderRadius: 2,
+                        backgroundSize: product?.ListingType === 'Product' ? 'cover' : 'contain',
+                        backgroundPosition: product?.ListingType === 'Product' ? 'center' : 'center',
+                        backgroundRepeat: product?.ListingType === 'Product' ? 'no-repeat' : 'no-repeat',
+                        backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
+                      }}
+                    />
+                    {images?.length > 1 && (
+                      <>
+                        <IconButton
+                          onClick={() => setCarouselIndex((i) => (i === 0 ? images?.length - 1 : i - 1))}
+                          sx={{
+                            position: 'absolute',
+                            left: 8,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            bgcolor: 'rgba(255,255,255,0.9)',
+                            '&:hover': { bgcolor: 'white' },
+                          }}
+                        >
+                          <ChevronLeft size={24} />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => setCarouselIndex((i) => (i === images?.length - 1 ? 0 : i + 1))}
+                          sx={{
+                            position: 'absolute',
+                            right: 8,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            bgcolor: 'rgba(255,255,255,0.9)',
+                            '&:hover': { bgcolor: 'white' },
+                          }}
+                        >
+                          <ChevronRight size={24} />
+                        </IconButton>
+                      </>
+                    )}
+                  </Paper>
+                )}
+              </Stack>
             </Paper>
           </Grid>
 
           {/* Product info */}
           <Grid item xs={12} lg={6}>
             <Paper elevation={0} sx={{ p: 4, backgroundImage: 'linear-gradient(to bottom, #ffffff, #F3F6F9)', border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
-            <Stack spacing={2}>
-              <Box>
-                <Chip
-                  label={product?.ProductUploadStatus || 'Draft'}
-                  size="small"
-                  sx={{
-                    mb: 1,
-                    bgcolor: product?.ProductUploadStatus === 'Approved' ? 'success.light' : 'warning.light',
-                    color: '#ffffff',
-                    fontWeight: 500,
-                    p: 1,
-                  }}
+              <Stack spacing={2}>
+                <Box>
+                  <Chip
+                    label={product?.ProductUploadStatus || 'Draft'}
+                    size="small"
+                    sx={{
+                      mb: 1,
+                      bgcolor: product?.ProductUploadStatus === 'Approved' ? 'success.light' : 'warning.light',
+                      color: '#ffffff',
+                      fontWeight: 500,
+                      p: 1,
+                    }}
+                  />
+                  <Typography variant="h4" fontWeight="600" color="text.primary" data-testid="product-name" sx={{ mt: 1 }}>
+                    {product?.ProductName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {[product?.ProductCategoryName, product?.ProductSubCategoryName].filter(Boolean).join(' / ')}
+                  </Typography>
+                </Box>
+
+                {variants?.length > 1 && (
+                  <FormControl size="small" sx={{ minWidth: 280 }}>
+                    <InputLabel>Select Variant</InputLabel>
+                    <Select
+                      value={selectedVariant ?? ''}
+                      label="Select Variant"
+                      onChange={(e) => setSelectedVariant(e.target.value)}
+                    >
+                      {variants?.map((v) => (
+                        <MenuItem key={v._id ?? v.id} value={v._id ?? v.id}>
+                          {v.VariantName?.trim() ||
+                            v.Flavor ||
+                            v.ProductIdType ||
+                            v.ProductSize ||
+                            v.NutritionInfo ||
+                            'N/A'}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+
+                <DiscountedPriceDisplay
+                  regularPrice={selectedVariantData?.PricePerUnit}
+                  discountPrice={selectedVariantData?.DiscountedPrice}
+                  percentage={selectedVariantData?.GST}
+                  priceBasis={isMediaProduct ? 'exclusive' : 'inclusive'}
                 />
-                <Typography variant="h4" fontWeight="600" color="text.primary" data-testid="product-name" sx={{ mt: 1 }}>
-                  {product?.ProductName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {[product?.ProductCategoryName, product?.ProductSubCategoryName].filter(Boolean).join(' / ')}
-                </Typography>
-              </Box>
 
-              {variants?.length > 1 && (
-                <FormControl size="small" sx={{ minWidth: 280 }}>
-                  <InputLabel>Select Variant</InputLabel>
-                  <Select
-                    value={selectedVariant ?? ''}
-                    label="Select Variant"
-                    onChange={(e) => setSelectedVariant(e.target.value)}
-                  >
-                    {variants?.map((v) => (
-                      <MenuItem key={v._id ?? v.id} value={v._id ?? v.id}>
-                        {v.VariantName?.trim() ||
-                          v.Flavor ||
-                          v.ProductIdType ||
-                          v.ProductSize ||
-                          v.NutritionInfo ||
-                          'N/A'}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
+                {!isVoucherListing &&
+                  product?.ProductCategoryName !== 'QSR' &&
+                  product?.ProductCategoryName !== 'FMCG' &&
+                  selectedVariantData?.ProductColor && (
+                    <Box>
+                      <Typography variant="body2" fontWeight="medium" color="text.secondary" sx={{ mb: 1 }}>
+                        Colors
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 2,
+                          border: '2px solid',
+                          borderColor: 'grey.300',
+                          bgcolor: selectedVariantData.ProductColor,
+                        }}
+                      />
+                    </Box>
+                  )}
 
-              <DiscountedPriceDisplay
-                regularPrice={selectedVariantData?.PricePerUnit}
-                discountPrice={selectedVariantData?.DiscountedPrice}
-                percentage={selectedVariantData?.GST}
-                priceBasis={isMediaProduct ? 'exclusive' : 'inclusive'}
-              />
-
-              {!isVoucherListing &&
-                product?.ProductCategoryName !== 'QSR' &&
-                product?.ProductCategoryName !== 'FMCG' &&
-                selectedVariantData?.ProductColor && (
+                {product?.gender && (
                   <Box>
-                    <Typography variant="body2" fontWeight="medium" color="text.secondary" sx={{ mb: 1 }}>
-                      Colors
+                    <Typography variant="body2" fontWeight="medium" color="text.secondary">
+                      Gender
                     </Typography>
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 2,
-                        border: '2px solid',
-                        borderColor: 'grey.300',
-                        bgcolor: selectedVariantData.ProductColor,
-                      }}
-                    />
+                    <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
+                      {product.gender}
+                    </Typography>
                   </Box>
                 )}
 
-              {product?.gender && (
-                <Box>
-                  <Typography variant="body2" fontWeight="medium" color="text.secondary">
-                    Gender
-                  </Typography>
-                  <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                    {product.gender}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
-              {selectedVariantData && variantPreviewColumns.length > 0 && (
-                <>
-                  <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
-                  <TableContainer
-                    component={Paper}
-                    elevation={0}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'grey.200',
-                      borderRadius: 2,
-                      overflowX: 'auto',
-                    }}
-                  >
-                    <Table
-                      size="small"
+                {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
+                {selectedVariantData && variantPreviewColumns.length > 0 && (
+                  <>
+                    <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
+                    <TableContainer
+                      component={Paper}
+                      elevation={0}
                       sx={{
-                        tableLayout: 'fixed',
-                        width: '100%',
-                        minWidth: Math.max(variantTableMinTotal, 320),
+                        border: '1px solid',
+                        borderColor: 'grey.200',
+                        borderRadius: 2,
+                        overflowX: 'auto',
                       }}
                     >
-                      <colgroup>
-                        {variantPreviewColumns.map((col) => (
-                          <col
-                            key={col.id}
-                            style={{
-                              width: `${(col.minWidth / variantTableMinTotal) * 100}%`,
-                            }}
-                          />
-                        ))}
-                      </colgroup>
-                      <TableHead>
-                        <TableRow>
-                          {variantPreviewColumns.map((col) => (
-                            <TableCell
-                              key={col.id}
-                              align="center"
-                              sx={{ fontWeight: 600, py: 1.5, bgcolor: 'grey.50' }}
-                            >
-                              {col.heading}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
-                          {variantPreviewColumns.map((col) => (
-                            <TableCell key={col.id} align="center" sx={{ py: 2 }}>
-                              {col.cell}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </>
-              )}
-
-              {/* Size chart */}
-              {!isVoucherListing &&
-                (isTextileStyle || product?.ProductCategoryName === 'Textile') && (
-                <Box>
-                  <Typography
-                    component="button"
-                    type="button"
-                    variant="body2"
-                    fontWeight="600"
-                    sx={{
-                      color: '#1A56DB',
-                      cursor: 'pointer',
-                      border: 'none',
-                      background: 'none',
-                      '&:hover': { textDecoration: 'underline' },
-                    }}
-                    onClick={() => setSizeChartDialogOpen(true)}
-                  >
-                    Size Chart
-                  </Typography>
-                  <Dialog
-                    open={sizeChartDialogOpen}
-                    onClose={() => setSizeChartDialogOpen(false)}
-                    fullScreen={sizeChartFullScreen}
-                    maxWidth="md"
-                    fullWidth
-                    aria-labelledby="size-chart-dialog-title"
-                    slotProps={{
-                      paper: {
-                        sx: sizeChartFullScreen
-                          ? {
-                              m: 0,
-                              maxHeight: '100%',
-                              height: '100%',
-                              borderRadius: 0,
-                              pt: 'env(safe-area-inset-top)',
-                              pb: 'env(safe-area-inset-bottom)',
-                            }
-                          : undefined,
-                      },
-                    }}
-                  >
-                    <DialogTitle
-                      id="size-chart-dialog-title"
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 1,
-                        pr: 1,
-                        flexShrink: 0,
-                      }}
-                    >
-                      Size chart
-                      <IconButton
-                        type="button"
-                        onClick={() => setSizeChartDialogOpen(false)}
-                        aria-label="Close size chart"
-                        size="large"
-                        edge="end"
+                      <Table
+                        size="small"
+                        sx={{
+                          tableLayout: 'fixed',
+                          width: '100%',
+                          minWidth: Math.max(variantTableMinTotal, 320),
+                        }}
                       >
-                        <CloseIcon />
-                      </IconButton>
-                    </DialogTitle>
-                    <DialogContent
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'flex-start',
-                        overflow: 'auto',
-                        pt: 1,
-                        pb: 2,
-                        minHeight: 0,
-                      }}
-                    >
-                      {sizeChartUrl ? (
-                        <Box
-                          component="img"
-                          src={sizeChartUrl}
-                          alt="Size chart"
+                        <colgroup>
+                          {variantPreviewColumns.map((col) => (
+                            <col
+                              key={col.id}
+                              style={{
+                                width: `${(col.minWidth / variantTableMinTotal) * 100}%`,
+                              }}
+                            />
+                          ))}
+                        </colgroup>
+                        <TableHead>
+                          <TableRow>
+                            {variantPreviewColumns.map((col) => (
+                              <TableCell
+                                key={col.id}
+                                align="center"
+                                sx={{ fontWeight: 600, py: 1.5, bgcolor: 'grey.50' }}
+                              >
+                                {col.heading}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                            {variantPreviewColumns.map((col) => (
+                              <TableCell key={col.id} align="center" sx={{ py: 2 }}>
+                                {col.cell}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+
+                {/* Size chart */}
+                {!isVoucherListing &&
+                  (isTextileStyle || product?.ProductCategoryName === 'Textile') && (
+                    <Box>
+                      <Typography
+                        component="button"
+                        type="button"
+                        variant="body2"
+                        fontWeight="600"
+                        sx={{
+                          color: '#1A56DB',
+                          cursor: 'pointer',
+                          border: 'none',
+                          background: 'none',
+                          '&:hover': { textDecoration: 'underline' },
+                        }}
+                        onClick={() => setSizeChartDialogOpen(true)}
+                      >
+                        Size Chart
+                      </Typography>
+                      <Dialog
+                        open={sizeChartDialogOpen}
+                        onClose={() => setSizeChartDialogOpen(false)}
+                        fullScreen={sizeChartFullScreen}
+                        maxWidth="md"
+                        fullWidth
+                        aria-labelledby="size-chart-dialog-title"
+                        slotProps={{
+                          paper: {
+                            sx: sizeChartFullScreen
+                              ? {
+                                m: 0,
+                                maxHeight: '100%',
+                                height: '100%',
+                                borderRadius: 0,
+                                pt: 'env(safe-area-inset-top)',
+                                pb: 'env(safe-area-inset-bottom)',
+                              }
+                              : undefined,
+                          },
+                        }}
+                      >
+                        <DialogTitle
+                          id="size-chart-dialog-title"
                           sx={{
-                            maxWidth: '100%',
-                            width: 'auto',
-                            height: 'auto',
-                            maxHeight: sizeChartFullScreen
-                              ? 'calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
-                              : 'min(70vh, 520px)',
-                            objectFit: 'contain',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                            pr: 1,
+                            flexShrink: 0,
                           }}
-                        />
-                      ) : (
-                        <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                          Size Chart Unavailable
-                        </Typography>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </Box>
-              )}
-            </Stack>
+                        >
+                          Size chart
+                          <IconButton
+                            type="button"
+                            onClick={() => setSizeChartDialogOpen(false)}
+                            aria-label="Close size chart"
+                            size="large"
+                            edge="end"
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </DialogTitle>
+                        <DialogContent
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'flex-start',
+                            overflow: 'auto',
+                            pt: 1,
+                            pb: 2,
+                            minHeight: 0,
+                          }}
+                        >
+                          {sizeChartUrl ? (
+                            <Box
+                              component="img"
+                              src={sizeChartUrl}
+                              alt="Size chart"
+                              sx={{
+                                maxWidth: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                maxHeight: sizeChartFullScreen
+                                  ? 'calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
+                                  : 'min(70vh, 520px)',
+                                objectFit: 'contain',
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                              Size Chart Unavailable
+                            </Typography>
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                    </Box>
+                  )}
+              </Stack>
             </Paper>
           </Grid>
         </Grid>
@@ -1066,27 +1066,27 @@ export default function ProductPreview() {
                       <Typography variant="body1" color="text.secondary">
                         {isMediaProduct
                           ? (() => {
-                              const body = String(mediaDescriptionBody || '').trim();
-                              if (body !== '') return body;
-                              return 'No description available.';
-                            })()
+                            const body = String(mediaDescriptionBody || '').trim();
+                            if (body !== '') return body;
+                            return 'No description available.';
+                          })()
                           : product?.ProductDescription ||
-                            product?.ProductSubtitle ||
-                            'No description available.'}
+                          product?.ProductSubtitle ||
+                          'No description available.'}
                       </Typography>
                     </Box>
                     {product?.ProductsVariantions.at(0).OfferingType && (
-                    <Box>
-                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
-                        Offering Type
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        {product?.ProductsVariantions.at(0).OfferingType}
-                      </Typography>
-                    </Box>
+                      <Box>
+                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                          Offering Type
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          {product?.ProductsVariantions.at(0).OfferingType}
+                        </Typography>
+                      </Box>
                     )}
                     <Box>
-                      
+
                     </Box>
                     {product?.ModelName && (
                       <Box>
@@ -1413,76 +1413,76 @@ export default function ProductPreview() {
                                   )}
                                   {(String(offlineAddress.city || '').trim() ||
                                     String(offlineAddress.state || '').trim()) && (
-                                    <Typography variant="body1" color="text.secondary">
-                                      {[offlineAddress.city, offlineAddress.state]
-                                        .filter((v) => String(v || '').trim())
-                                        .join(', ')}
-                                    </Typography>
-                                  )}
+                                      <Typography variant="body1" color="text.secondary">
+                                        {[offlineAddress.city, offlineAddress.state]
+                                          .filter((v) => String(v || '').trim())
+                                          .join(', ')}
+                                      </Typography>
+                                    )}
                                 </Stack>
                               </Box>
                             )}
                             {(normalizedRedemptionType === 'offline' ||
                               normalizedRedemptionType === 'both') && (
-                              <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                                  Multiple Locations
-                                </Typography>
-                                {hasMultipleStoreLocations ? (
-                                  <Button
-                                    type="button"
-                                    variant="outlined"
-                                    size="small"
-                                    onClick={() => setStoreLocationsDialogOpen(true)}
-                                  >
-                                    Show multiple locations ({multipleStoreLocations.length})
-                                  </Button>
-                                ) : storeListUrl ? (
-                                  <Typography
-                                    component="a"
-                                    href={storeListUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    sx={{ color: '#1A56DB', textDecoration: 'underline' }}
-                                  >
-                                    Download uploaded store list
+                                <Box>
+                                  <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                    Multiple Locations
                                   </Typography>
-                                ) : (
-                                  <Typography variant="body1" color="text.secondary">
-                                    No multiple locations uploaded.
-                                  </Typography>
-                                )}
-                              </Box>
-                            )}
+                                  {hasMultipleStoreLocations ? (
+                                    <Button
+                                      type="button"
+                                      variant="outlined"
+                                      size="small"
+                                      onClick={() => setStoreLocationsDialogOpen(true)}
+                                    >
+                                      Show multiple locations ({multipleStoreLocations.length})
+                                    </Button>
+                                  ) : storeListUrl ? (
+                                    <Typography
+                                      component="a"
+                                      href={storeListUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                                    >
+                                      Download uploaded store list
+                                    </Typography>
+                                  ) : (
+                                    <Typography variant="body1" color="text.secondary">
+                                      No multiple locations uploaded.
+                                    </Typography>
+                                  )}
+                                </Box>
+                              )}
                           </Stack>
                         </Grid>
-                      {/* Tags at Bottom */}
-                      {voucherTags.length > 0 && (
-                        <Grid item>
-                        <Box >
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                            Tags
-                          </Typography>
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                            {voucherTags.map((tag, index) => (
-                              <Chip key={index} label={String(tag)} size="small" />
-                            ))}
-                          </Box>
-                        </Box>
-                        </Grid>
-                      )}
-                      {voucherValidity && voucherValidityUnit && (
-                        <Grid item>
-                          <Box>
-                            <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                              Validity
+                        {/* Tags at Bottom */}
+                        {voucherTags.length > 0 && (
+                          <Grid item>
+                            <Box >
+                              <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                Tags
+                              </Typography>
+                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                                {voucherTags.map((tag, index) => (
+                                  <Chip key={index} label={String(tag)} size="small" />
+                                ))}
+                              </Box>
+                            </Box>
+                          </Grid>
+                        )}
+                        {voucherValidity && voucherValidityUnit && (
+                          <Grid item>
+                            <Box>
+                              <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                Validity
+                              </Typography>
+                            </Box>
+                            <Typography variant="body1" color="text.secondary">
+                              {voucherValidity + ' ' + voucherValidityUnit}
                             </Typography>
-                          </Box>
-                          <Typography variant="body1" color="text.secondary">
-                            {voucherValidity + ' ' + voucherValidityUnit}
-                          </Typography>
-                        </Grid>
-                      )}
+                          </Grid>
+                        )}
                       </Grid>
 
                     </Stack>
@@ -1514,9 +1514,8 @@ export default function ProductPreview() {
                   const maxTs = pick(mv.maxTimeslotSeconds, v0.maxTimeslotSeconds);
                   const timeslotSummary =
                     minTs != null || maxTs != null
-                      ? `${minTs != null && String(minTs).trim() !== '' ? String(minTs) : '—'} - ${
-                          maxTs != null && String(maxTs).trim() !== '' ? String(maxTs) : '—'
-                        } seconds`
+                      ? `${minTs != null && String(minTs).trim() !== '' ? String(minTs) : '—'} - ${maxTs != null && String(maxTs).trim() !== '' ? String(maxTs) : '—'
+                      } seconds`
                       : null;
                   const loopSeconds =
                     product?.loopTimeSeconds != null && String(product.loopTimeSeconds).trim() !== ''
@@ -1525,6 +1524,7 @@ export default function ProductPreview() {
                         ? String(product.loopTimeMinutes).trim()
                         : null;
                   const geo = product?.GeographicalData || {};
+                  const tags = product?.tags || [];
                   const prevProfile = getMediaListingProfile(product || {});
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
@@ -1555,14 +1555,14 @@ export default function ProductPreview() {
                     ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', pick(mv.Timeline, v0.Timeline)],
                     ['Min order quantity', pickOrderQty()],
+                    ['Max order quantity', pickMaxOrderQty()],
+                    ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
                     [
                       'Min order (timeline)',
                       pick(mv.minOrderQuantitytimeline, v0.minOrderQuantitytimeline),
                     ],
-                    ['Max order quantity', pickMaxOrderQty()],
                     ['Max order (timeline)', pick(mv.maxOrderQuantitytimeline, v0.maxOrderQuantitytimeline)],
                     ['Order unit', pickUnit()],
-                    ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
                     ...(String(product?.estimatedFleets || '').trim()
                       ? [['Estimated fleets', String(product.estimatedFleets).trim()]]
                       : []),
@@ -1644,6 +1644,18 @@ export default function ProductPreview() {
                           </Grid>
                         </Box>
                       )}
+                      {tags.length > 0 && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Tags
+                          </Typography>
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                            {tags.map((tag, index) => (
+                              <Chip key={index} label={String(tag)} size="small" />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
                     </Stack>
                   );
                 }
@@ -1689,7 +1701,7 @@ export default function ProductPreview() {
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Redemption Type</Typography>
                         <Typography fontWeight="500">{product?.redemptionType}</Typography>
                       </Box>
-                    ) }
+                    )}
                     {(ti?.Height || ti?.Width || ti?.Length) && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Dimensions</Typography>
@@ -1733,7 +1745,7 @@ export default function ProductPreview() {
                                 </Typography>
                               </Box>
                             )}
-                            {ti?.WeightAfterPackingPerUnit &&  (
+                            {ti?.WeightAfterPackingPerUnit && (
                               <Box>
                                 <Typography variant="body2" color="text.secondary">
                                   After packaging
