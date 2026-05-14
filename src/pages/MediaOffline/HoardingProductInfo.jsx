@@ -107,7 +107,7 @@ export default function HoardingProductInfo() {
     toast.success('Opening official hoarding template…');
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -122,140 +122,151 @@ export default function HoardingProductInfo() {
     }
 
     setExcelFile(file);
-    parseExcelFile(file);
+    try {
+      const mappedData = await parseExcelFile(file);
+      await handleUploadExcel(file, mappedData);
+    } catch (error) {
+      // Errors are already handled/toasted in parseExcelFile or handleUploadExcel
+    }
   };
 
   const parseExcelFile = (file) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
 
-        if (jsonData.length === 0) {
-          toast.error('Excel file is empty');
-          return;
-        }
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-        const num = (v) => {
-          if (v === undefined || v === null || v === '') return 0;
-          const n = Number(String(v).replace(/,/g, '').trim());
-          return Number.isFinite(n) ? n : 0;
-        };
-        const str = (...vals) => {
-          for (const v of vals) {
-            if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+          if (jsonData.length === 0) {
+            toast.error('Excel file is empty');
+            reject(new Error('Excel file is empty'));
+            return;
           }
-          return '';
-        };
-        /** Match Excel column regardless of underscores/spaces/case (align with BXI Hoarding_Excel_Process). */
-        const normHeader = (h) =>
-          String(h || '')
-            .replace(/^\ufeff/, '')
-            .replace(/\u00a0/g, ' ')
-            .replace(/[\\／∕]/g, '/')
-            .replace(/_/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim()
-            .toLowerCase();
-        const buildNormRow = (row) => {
-          const map = {};
-          for (const [k, v] of Object.entries(row)) {
-            map[normHeader(k)] = v;
-          }
-          return map;
-        };
-        const cellByNorm = (row, ...aliases) => {
-          const map = buildNormRow(row);
-          for (const a of aliases) {
-            const v = map[normHeader(a)];
-            if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
-          }
-          return '';
-        };
-        const cellMediaName = (row) => {
-          const v = cellByNorm(row, 'Media', 'media', 'Name*', 'Name', 'media name');
-          if (v) return v;
-          const map = buildNormRow(row);
-          for (const [nk, val] of Object.entries(map)) {
-            if (nk === 'media' || nk === 'media name') {
-              if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
-            }
-          }
-          return '';
-        };
-        const cellSiteLocation = (row) => {
-          const v = cellByNorm(
-            row,
-            'Site_Name/Location',
-            'Site Name/Location',
-            'Site name / location',
-            'Area*',
-            'Area'
-          );
-          if (v) return v;
-          const map = buildNormRow(row);
-          for (const [nk, val] of Object.entries(map)) {
-            if (nk.includes('site') && nk.includes('location')) {
-              if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
-            }
-          }
-          return '';
-        };
-        // Map and validate data (legacy * columns + new template: Sr_No, Media, Site_Name/Location, …)
-        const mappedData = jsonData.map((row, index) => {
-          const w = num(row['Width (ft.)*'] ?? row['Width (ft.)'] ?? row.Width ?? row.width ?? row['Width']);
-          const h = num(row['Height (ft.)*'] ?? row['Height (ft.)'] ?? row.Height ?? row.height ?? row['Height']);
-          const totalSq = num(
-            row['Total Sq. ft'] ?? row['Total sq. ft'] ?? row['Size (Sq.Ft)*'] ?? row['Size'] ?? row.size
-          );
-          const sizeVal = totalSq > 0 ? totalSq : w > 0 && h > 0 ? w * h : 0;
-          return {
-            id: index + 1,
-            name: str(cellMediaName(row), row['Name*'], row.Name, row.Media, row.media),
-            area: str(cellSiteLocation(row), row['Area*'], row.Area, row['Site_Name/Location']),
-            landmark: str(row.Landmark, row.Traffic, row.traffic),
-            state: str(row['State*'], row.State, row.state) || selectedState,
-            city: str(row['City*'], row.City, row.city),
-            latitude: str(row.Latitude, row.Lat, row.lat),
-            longitude: str(row.Longitude, row.Long, row.long),
-            mediaVehicle: str(row['Media Vehicle*'], row['Media Vehicle'], row['Media vehicle']) || 'Hoarding',
-            mediaCategory: str(row['Media Category*'], row['Media Category'], row['Media category']) || 'Outdoor',
-            mediaType: str(row['Media Type*'], row['Media Type'], row.Type, row.type) || 'Static',
-            quantity: row['Quantity*'] ?? row['Quantity'] ?? row.quantity ?? 1,
-            size: sizeVal,
-            width: w,
-            height: h,
-            mrp: num(row['MRP*'] ?? row.MRP ?? row.mrp),
-            discountedPrice: num(
-              row['Discounted MRP*'] ??
-                row['Discounted MRP'] ??
-                row['Discounted_MRP'] ??
-                row['Counted_M'] ??
-                row.counted_m
-            ),
+
+          const num = (v) => {
+            if (v === undefined || v === null || v === '') return 0;
+            const n = Number(String(v).replace(/,/g, '').trim());
+            return Number.isFinite(n) ? n : 0;
           };
-        });
+          const str = (...vals) => {
+            for (const v of vals) {
+              if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+            }
+            return '';
+          };
+          /** Match Excel column regardless of underscores/spaces/case (align with BXI Hoarding_Excel_Process). */
+          const normHeader = (h) =>
+            String(h || '')
+              .replace(/^\ufeff/, '')
+              .replace(/\u00a0/g, ' ')
+              .replace(/[\\／∕]/g, '/')
+              .replace(/_/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .toLowerCase();
+          const buildNormRow = (row) => {
+            const map = {};
+            for (const [k, v] of Object.entries(row)) {
+              map[normHeader(k)] = v;
+            }
+            return map;
+          };
+          const cellByNorm = (row, ...aliases) => {
+            const map = buildNormRow(row);
+            for (const a of aliases) {
+              const v = map[normHeader(a)];
+              if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+            }
+            return '';
+          };
+          const cellMediaName = (row) => {
+            const v = cellByNorm(row, 'Media', 'media', 'Name*', 'Name', 'media name');
+            if (v) return v;
+            const map = buildNormRow(row);
+            for (const [nk, val] of Object.entries(map)) {
+              if (nk === 'media' || nk === 'media name') {
+                if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
+              }
+            }
+            return '';
+          };
+          const cellSiteLocation = (row) => {
+            const v = cellByNorm(
+              row,
+              'Site_Name/Location',
+              'Site Name/Location',
+              'Site name / location',
+              'Area*',
+              'Area'
+            );
+            if (v) return v;
+            const map = buildNormRow(row);
+            for (const [nk, val] of Object.entries(map)) {
+              if (nk.includes('site') && nk.includes('location')) {
+                if (val !== undefined && val !== null && String(val).trim() !== '') return String(val).trim();
+              }
+            }
+            return '';
+          };
+          // Map and validate data (legacy * columns + new template: Sr_No, Media, Site_Name/Location, …)
+          const mappedData = jsonData.map((row, index) => {
+            const w = num(row['Width (ft.)*'] ?? row['Width (ft.)'] ?? row.Width ?? row.width ?? row['Width']);
+            const h = num(row['Height (ft.)*'] ?? row['Height (ft.)'] ?? row.Height ?? row.height ?? row['Height']);
+            const totalSq = num(
+              row['Total Sq. ft'] ?? row['Total sq. ft'] ?? row['Size (Sq.Ft)*'] ?? row['Size'] ?? row.size
+            );
+            const sizeVal = totalSq > 0 ? totalSq : w > 0 && h > 0 ? w * h : 0;
+            return {
+              id: index + 1,
+              name: str(cellMediaName(row), row['Name*'], row.Name, row.Media, row.media),
+              area: str(cellSiteLocation(row), row['Area*'], row.Area, row['Site_Name/Location']),
+              landmark: str(row.Landmark, row.Traffic, row.traffic),
+              state: str(row['State*'], row.State, row.state) || selectedState,
+              city: str(row['City*'], row.City, row.city),
+              latitude: str(row.Latitude, row.Lat, row.lat),
+              longitude: str(row.Longitude, row.Long, row.long),
+              mediaVehicle: str(row['Media Vehicle*'], row['Media Vehicle'], row['Media vehicle']) || 'Hoarding',
+              mediaCategory: str(row['Media Category*'], row['Media Category'], row['Media category']) || 'Outdoor',
+              mediaType: str(row['Media Type*'], row['Media Type'], row.Type, row.type) || 'Static',
+              quantity: row['Quantity*'] ?? row['Quantity'] ?? row.quantity ?? 1,
+              size: sizeVal,
+              width: w,
+              height: h,
+              mrp: num(row['MRP*'] ?? row.MRP ?? row.mrp),
+              discountedPrice: num(
+                row['Discounted MRP*'] ??
+                  row['Discounted MRP'] ??
+                  row['Discounted_MRP'] ??
+                  row['Counted_M'] ??
+                  row.counted_m
+              ),
+            };
+          });
 
-        setHoardingData(mappedData);
-        toast.success(`${mappedData.length} hoardings loaded from Excel`);
-      } catch (error) {
-        toast.error('Failed to parse Excel file');
-      }
-    };
+          setHoardingData(mappedData);
+          toast.success(`${mappedData.length} hoardings loaded from Excel`);
+          resolve(mappedData);
+        } catch (error) {
+          toast.error('Failed to parse Excel file');
+          reject(error);
+        }
+      };
 
-    reader.onerror = () => {
-      toast.error('Failed to read file');
-    };
+      reader.onerror = () => {
+        toast.error('Failed to read file');
+        reject(new Error('Failed to read file'));
+      };
 
-    reader.readAsArrayBuffer(file);
+      reader.readAsArrayBuffer(file);
+    });
   };
 
-  const handleUploadExcel = async () => {
-    if (!excelFile || hoardingData.length === 0) {
+  const handleUploadExcel = async (fileToUpload = excelFile, dataToUpload = hoardingData) => {
+    if (!fileToUpload || dataToUpload.length === 0) {
       toast.error('Please upload a valid Excel file first');
       return;
     }
@@ -264,7 +275,7 @@ export default function HoardingProductInfo() {
     try {
       const formData = new FormData();
       // BXI multer expects field name "file" (see product_routes Hoarding_Excel_Process).
-      formData.append('file', excelFile);
+      formData.append('file', fileToUpload);
       formData.append('ProductId', id);
       formData.append('ProductType', 'Media');
       formData.append('ProductCategory', 'MediaOffline');
@@ -493,22 +504,11 @@ export default function HoardingProductInfo() {
                   Review the grid below, then upload to save this list to your product.
                 </p>
               </div>
-              {!hoardingListId && (
-                <Button
-                  type="button"
-                  onClick={handleUploadExcel}
-                  disabled={isUploading}
-                  className="shrink-0 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#C64091] hover:bg-[#A03375] text-white font-semibold rounded-lg px-5 py-2.5 shadow-sm"
-                >
-                  {isUploading ? (
-                    'Uploading...'
-                  ) : (
-                    <>
-                      Upload {hoardingData.length} hoardings
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </Button>
+              {isUploading && (
+                <div className="flex items-center gap-2 text-[#C64091] font-semibold">
+                  <div className="w-4 h-4 border-2 border-t-transparent border-[#C64091] rounded-full animate-spin"></div>
+                  Uploading...
+                </div>
               )}
             </div>
             <div className="rounded-lg border border-[#E5E8EB] overflow-hidden" style={{ height: 400, width: '100%' }}>
