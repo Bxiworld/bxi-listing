@@ -217,10 +217,7 @@ const MediaProductInfo = () => {
           FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951'
             ? z.string().min(1)
             : z.any(),
-        estimatedFleets: z
-          .union([z.string().max(500), z.literal('')])
-          .optional()
-          .transform((v) => (v == null ? '' : String(v))),
+
         loopTimeSeconds: z.any().optional(),
         mediaVariation: z.object({
           location: z.string().min(1, 'Location is required'),
@@ -307,7 +304,7 @@ const MediaProductInfo = () => {
       if (data?.mediaVariation) {
         setItems(data?.ProductFeatures);
         setValue('offerningbrandat', data?.offerningbrandat);
-        setValue('estimatedFleets', data?.estimatedFleets ?? '');
+
         setValue(
           'loopTimeSeconds',
           data?.loopTimeSeconds ?? data?.loopTimeMinutes ?? '',
@@ -638,7 +635,7 @@ const MediaProductInfo = () => {
       ...data,
       id: ProductId,
       ...loopTimePayload,
-      estimatedFleets: String(getValues('estimatedFleets') ?? '').trim(),
+
       OtherCost: OthercostFields,
       ProductFeatures: items,
       GeographicalData: {
@@ -3939,26 +3936,7 @@ const MediaProductInfo = () => {
                               Proceed to Add
                             </MuiButton>
 
-                            {listingProfile.key === 'airport' ? (
-                              <Box sx={{ width: '100%', mb: 2 }}>
-                                <Typography sx={{ ...CommonTextStyle, pb: 1 }}>
-                                  Estimated fleets
-                                </Typography>
-                                <TextField
-                                  fullWidth
-                                  variant="standard"
-                                  placeholder="e.g. daily footfall or fleet size (shown on product preview)"
-                                  {...register('estimatedFleets')}
-                                  sx={{
-                                    ...TextFieldStyle,
-                                    color: '#111827',
-                                    background: '#FFFFFF',
-                                    border: '1px solid #E5E8EB',
-                                  }}
-                                  InputProps={{ disableUnderline: true }}
-                                />
-                              </Box>
-                            ) : null}
+
 
                             <Typography
                               component="div"

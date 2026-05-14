@@ -173,6 +173,7 @@ export const FEATURE_ALLOWLIST_BY_KEY = {
     'DOOH',
     'Footfall',
     'Frequency',
+    'Estimated Fleets',
     'Location',
     'Visibility',
     'Reach',
