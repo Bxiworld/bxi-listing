@@ -433,6 +433,7 @@ export function getMediaListingProfile(product) {
   if (journey === 'television-ads') {
     return {
       ...base,
+      syncTimeslots: false,
       key: 'television',
       adTypeOptions: TELEVISION_AD_TYPES,
       featureBlocklist: TELEVISION_FEATURE_BLOCKLIST,
