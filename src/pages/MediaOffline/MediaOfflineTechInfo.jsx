@@ -2,7 +2,7 @@ import { Box, Typography, TextField } from '@mui/material';
 import { Stack } from '@mui/system';
 import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../../utils/api';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ import { ArrowLeft, ArrowRight, Info } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Label } from '../../components/ui/label';
 import { Checkbox } from '../../components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+
 import {
   Tooltip,
   TooltipContent,
@@ -42,8 +42,7 @@ export default function TechInfo() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dateArr, setDateArr] = useState([]);
-  const [BXISpace, setBXISpace] = useState(false);
-  const [content, setContent] = useState('checkbox');
+
   const [checkBoxes, setCheckBoxes] = useState({
     inspectionPass: false,
     LogReport: false,
@@ -53,37 +52,13 @@ export default function TechInfo() {
     Other: false,
   });
 
-  const contentRef = useRef(content);
-  const BXISpaceRef = useRef(BXISpace);
-  contentRef.current = content;
-  BXISpaceRef.current = BXISpace;
+
 
   const validationSchema = useMemo(
     () =>
-      z
-        .object({
-          Dimensions: z.string().min(1).max(500),
-          UploadLink: z.string().optional().default(''),
-        })
-        .superRefine((data, ctx) => {
-          if (contentRef.current === 'uploadLinkSet') {
-            const link = (data.UploadLink ?? '').trim();
-            if (link.length < 1) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'Required',
-                path: ['UploadLink'],
-              });
-            }
-          }
-          if (contentRef.current === 'checkbox' && !BXISpaceRef.current) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: 'Please confirm use of BXI Space',
-              path: ['UploadLink'],
-            });
-          }
-        }),
+      z.object({
+        Dimensions: z.string().min(1).max(500),
+      }),
     [],
   );
 
@@ -101,20 +76,7 @@ export default function TechInfo() {
     resolver,
   });
 
-  const handleContentModeChange = useCallback(
-    (value) => {
-      if (value === 'uploadLinkSet') {
-        setContent('uploadLinkSet');
-        setBXISpace(false);
-        setValue('UploadLink', '');
-      } else {
-        setContent('checkbox');
-        setBXISpace(true);
-        setValue('UploadLink', '');
-      }
-    },
-    [setValue],
-  );
+
 
   const FetchProduct = useCallback(async () => {
     if (!ProductId) {
@@ -126,12 +88,12 @@ export default function TechInfo() {
       const res = await api.get(`product/get_product_byId/${ProductId}`);
       const data = res?.data ?? res;
       setValue('Dimensions', data?.Dimensions);
-      setValue('UploadLink', data?.UploadLink);
+
       setCheckBoxes(
         supportingDocsToCheckboxState(data?.WhatSupportingYouWouldGiveToBuyer),
       );
       setDateArr(data?.calender ?? []);
-      setBXISpace(Boolean(data?.BXISpace));
+
     } catch {
       // keep defaults
     } finally {
@@ -153,7 +115,7 @@ export default function TechInfo() {
         WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
-        BXISpace,
+
       };
       const noneSelected = SUPPORTING_DOC_OPTIONS.every(
         (opt) => !checkBoxes[opt.key],
@@ -326,92 +288,7 @@ export default function TechInfo() {
                     )}
                   </Box>
 
-                  <div className="space-y-3 pt-1">
-                    <Label className="text-[#5c6b8a] font-medium text-sm">
-                      Content delivery
-                    </Label>
-                    <RadioGroup
-                      value={content}
-                      onValueChange={handleContentModeChange}
-                      className="flex flex-row flex-wrap gap-6"
-                    >
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem
-                          value="uploadLinkSet"
-                          id="content-upload-link"
-                          className={brandControlClass}
-                        />
-                        <Label
-                          htmlFor="content-upload-link"
-                          className="text-sm font-normal text-[#5c6b8a] cursor-pointer"
-                        >
-                          Upload Link
-                        </Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RadioGroupItem
-                          value="checkbox"
-                          id="content-bxi-space"
-                          className={brandControlClass}
-                        />
-                        <Label
-                          htmlFor="content-bxi-space"
-                          className="text-sm font-normal text-[#5c6b8a] cursor-pointer"
-                        >
-                          Click here to use BXI Space
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
 
-                  {content !== 'checkbox' ? (
-                    <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
-                      <Typography sx={CommonTextStyle}>
-                        Content Upload Link ( Share a link where buyer can drop a
-                        content ) <span style={{ color: 'red' }}>*</span>
-                      </Typography>
-                      <TextField
-                        multiline
-                        variant="standard"
-                        placeholder="Uploaded content has to go to seller with PO & Confirmation"
-                        {...register('UploadLink')}
-                        sx={standardMultilineFieldSx(
-                          !!errors.UploadLink?.message,
-                        )}
-                        InputProps={{
-                          disableUnderline: true,
-                        }}
-                      />
-                      {errors.UploadLink?.message && (
-                        <Typography sx={FieldErrorTextStyle}>
-                          {errors.UploadLink.message}
-                        </Typography>
-                      )}
-                    </Box>
-                  ) : (
-                    <div className="flex gap-3 items-start mt-2 rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] p-3">
-                      <Checkbox
-                        id="bxi-space"
-                        checked={BXISpace === true}
-                        onCheckedChange={(c) => {
-                          setBXISpace(c === true);
-                        }}
-                        className={brandControlClass}
-                      />
-                      <Label
-                        htmlFor="bxi-space"
-                        className="text-sm font-normal text-[#5c6b8a] cursor-pointer leading-relaxed"
-                      >
-                        Click here to use BXI Space from you can download ,
-                        though BXI does not take responsibility for the content
-                      </Label>
-                    </div>
-                  )}
-                  {content === 'checkbox' && errors.UploadLink?.message && (
-                    <Typography sx={FieldErrorTextStyle}>
-                      {errors.UploadLink.message}
-                    </Typography>
-                  )}
                 </Stack>
               </Box>
 
