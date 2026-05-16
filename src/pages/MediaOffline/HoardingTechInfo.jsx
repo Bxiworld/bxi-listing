@@ -747,11 +747,16 @@ export default function HoardingTechInfo() {
                                         )}
                                     </div>
                                     <div className="space-y-4">
-                                        <div>
-                                            <Label>Product features * (min 5, max 20)</Label>
-                                            <p className="text-xs text-[#6B7A99] mt-1">
-                                                Select the best features that describe your brand/media.
-                                            </p>
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <Label>Product features * (min 5, max 20)</Label>
+                                                <p className="text-xs text-[#6B7A99] mt-1">
+                                                    Select the best features that describe your brand/media.
+                                                </p>
+                                            </div>
+                                            <Badge variant="secondary" className="bg-[#C640911A] text-[#C64091] hover:bg-[#C6409126] border-none">
+                                                {items.length} Features Added
+                                            </Badge>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
@@ -814,7 +819,12 @@ export default function HoardingTechInfo() {
 
                                     <div className="space-y-4 pt-4 border-t border-[#E2E8F0]">
                                         <div className="space-y-2">
-                                            <Label>Other Information Buyer Must Know</Label>
+                                            <div className="flex justify-between items-center">
+                                                <Label>Other Information Buyer Must Know</Label>
+                                                <Badge variant="secondary" className="bg-gray-100 text-[#6B7A99] border-none">
+                                                    {OtherInfoArray?.length || 0} Items
+                                                </Badge>
+                                            </div>
                                             <div className="flex gap-2">
                                                 <Input
                                                     placeholder="e.g. Free installation for first 10 days"
@@ -839,7 +849,12 @@ export default function HoardingTechInfo() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label>Tags *</Label>
+                                            <div className="flex justify-between items-center">
+                                                <Label>Tags *</Label>
+                                                <Badge variant="secondary" className="bg-gray-100 text-[#6B7A99] border-none">
+                                                    {tags?.length || 0} Tags
+                                                </Badge>
+                                            </div>
                                             <div className="flex gap-2">
                                                 <Input
                                                     placeholder="Add tags and press enter"
