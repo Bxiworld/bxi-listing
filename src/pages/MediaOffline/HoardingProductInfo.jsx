@@ -76,23 +76,18 @@ export default function HoardingProductInfo() {
       .catch(() => {});
   }, [id]);
 
-  // DataGrid columns — titles aligned with hoarding Excel template (multiplex-style wording)
+  // DataGrid columns — aligned with hoarding Excel template
   const columns = [
     { field: 'id', headerName: 'Sr No', width: 70 },
-    { field: 'name', headerName: 'Media', width: 150 },
-    { field: 'area', headerName: 'Site name / location', width: 180 },
-    { field: 'width', headerName: 'Width (ft.)', width: 100 },
-    { field: 'height', headerName: 'Height (ft.)', width: 100 },
-    { field: 'size', headerName: 'Total sq. ft', width: 110 },
+    { field: 'name', headerName: 'Media Name', width: 150 },
+    { field: 'area', headerName: 'Site Name/Location', width: 180 },
+    { field: 'width', headerName: 'Width', width: 80 },
+    { field: 'height', headerName: 'Height', width: 80 },
+    { field: 'size', headerName: 'Total Sq. ft', width: 110 },
     { field: 'landmark', headerName: 'Traffic', width: 120 },
     { field: 'mediaType', headerName: 'Type', width: 110 },
-    { field: 'latitude', headerName: 'Latitude', width: 100 },
-    { field: 'longitude', headerName: 'Longitude', width: 100 },
-    { field: 'state', headerName: 'State', width: 120 },
-    { field: 'city', headerName: 'City', width: 120 },
-    { field: 'mediaVehicle', headerName: 'Media vehicle', width: 130 },
-    { field: 'mediaCategory', headerName: 'Media category', width: 130 },
-    { field: 'quantity', headerName: 'Quantity', width: 90 },
+    { field: 'latitude', headerName: 'Lat', width: 90 },
+    { field: 'longitude', headerName: 'Long', width: 90 },
     { field: 'mrp', headerName: 'MRP', width: 100 },
     { field: 'discountedPrice', headerName: 'Discounted MRP', width: 130 },
   ];
@@ -217,11 +212,11 @@ export default function HoardingProductInfo() {
             id: index + 1,
             name: str(cellMediaName(row), row['Name*'], row.Name, row.Media, row.media),
             area: str(cellSiteLocation(row), row['Area*'], row.Area, row['Site_Name/Location']),
-            landmark: str(row.Landmark, row.Traffic, row.traffic),
+            landmark: cellByNorm(row, 'landmark', 'traffic'),
             state: str(row['State*'], row.State, row.state) || selectedState,
             city: str(row['City*'], row.City, row.city),
-            latitude: str(row.Latitude, row.Lat, row.lat),
-            longitude: str(row.Longitude, row.Long, row.long),
+            latitude: cellByNorm(row, 'latitude', 'lat'),
+            longitude: cellByNorm(row, 'longitude', 'long'),
             mediaVehicle: str(row['Media Vehicle*'], row['Media Vehicle'], row['Media vehicle']) || 'Hoarding',
             mediaCategory: str(row['Media Category*'], row['Media Category'], row['Media category']) || 'Outdoor',
             mediaType: str(row['Media Type*'], row['Media Type'], row.Type, row.type) || 'Static',

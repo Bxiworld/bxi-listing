@@ -404,9 +404,7 @@ const MediaProductInfo = () => {
   const { mutate: updateProduct, isPending: isSubmitting } = useUpdateProductQuery();
 
   const SecondsFieldArr = [
-    5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95,
-    100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170,
-    175, 180,
+    10, 20, 30, 40, 50, 60,
   ];
 
   function filterMultiples(array, multiple) {
@@ -438,20 +436,24 @@ const MediaProductInfo = () => {
     [FetchedproductData],
   );
   const watchedMediaUnit = watch('mediaVariation.unit');
+  const isRadio = listingProfile?.key === 'radio';
+  const isMultiplex = listingProfile?.key === 'multiplex';
+  const timeslotOptions = useMemo(
+    () => isMultiplex ? SecondsFieldArr.filter((v) => v >= 60) : SecondsFieldArr,
+    [isMultiplex],
+  );
   /** Flat list for Unit dropdown; native <select> avoids MUI MenuItem direct-descendant quirks. */
   const unitSelectChoices = useMemo(() => {
     let choices;
-    if (listingProfile.unitOptions?.length) {
+    if (isRadio) {
+      choices = [{ value: 'Spot', label: 'Per Spot' }];
+    } else if (listingProfile.unitOptions?.length) {
       choices = listingProfile.unitOptions;
     } else {
-      const isRadio =
-        FetchedproductData?.ProductSubCategoryName === 'Radio' ||
-        String(FetchedproductData?.ProductSubCategory || '') ===
-          '65029534eaa5251874e8c6c1';
       choices = [
         { value: 'Screen', label: 'Per Screen' },
         { value: 'Unit', label: 'Per Unit' },
-        ...(isRadio ? [] : [{ value: 'Spot', label: 'Per Spot' }]),
+        { value: 'Spot', label: 'Per Spot' },
         { value: 'Sq cm', label: 'Per Sq cm' },
         { value: 'Display', label: 'Per Display' },
         { value: 'Location', label: 'Per Location' },
@@ -481,9 +483,8 @@ const MediaProductInfo = () => {
     const n = Number(minTimeslotWatch);
     if (!Number.isFinite(n)) return;
     setValue('mediaVariation.maxTimeslotSeconds', n);
-    const nextMaxOptions = filterMultiples(SecondsFieldArr, n);
-    /** Keep max dropdown usable: only [n] makes every option filtered out because max must be > min */
-    setMaxtimeslotArr(nextMaxOptions.length > 0 ? nextMaxOptions : SecondsFieldArr.filter((v) => v > n));
+    const nextMaxOptions = timeslotOptions.filter((v) => v >= n);
+    setMaxtimeslotArr(nextMaxOptions.length > 0 ? nextMaxOptions : timeslotOptions.filter((v) => v > n));
   }, [minTimeslotWatch, listingProfile.syncTimeslots, setValue]);
 
   /** When min/max are not synced, populate max timeslot choices after load (e.g. Media → Other) */
@@ -493,11 +494,11 @@ const MediaProductInfo = () => {
     if (profile.syncTimeslots) return;
     const minTs = Number(FetchedproductData.mediaVariation.minTimeslotSeconds);
     if (!Number.isFinite(minTs) || minTs <= 0) return;
-    const filteredArray = filterMultiples(SecondsFieldArr, minTs);
+    const filteredArray = timeslotOptions.filter((v) => v >= minTs);
     setMaxtimeslotArr(
       filteredArray.length > 0
         ? filteredArray
-        : SecondsFieldArr.filter((v) => v > minTs),
+        : timeslotOptions.filter((v) => v > minTs),
     );
   }, [FetchedproductData]);
 
@@ -1347,16 +1348,15 @@ const MediaProductInfo = () => {
                                           : '1px solid #E5E8EB',
                                       }}
                                     >
-                                      {SecondsFieldArr?.map((item, idx) => {
+                                      {timeslotOptions?.map((item, idx) => {
                                         return (
                                           <MenuItem
                                             sx={{
                                               border: '1px white solid',
                                             }}
                                             onClick={() => {
-                                              const filteredArray = filterMultiples(
-                                                SecondsFieldArr,
-                                                item,
+                                              const filteredArray = timeslotOptions.filter(
+                                                (v) => v >= item,
                                               );
                                               setMaxtimeslotArr(
                                                 filteredArray.length > 0
@@ -1459,7 +1459,7 @@ const MediaProductInfo = () => {
                                           : '1px solid #E5E8EB',
                                       }}
                                     >
-                                      {MaxtimeslotArr?.map((item, idx) => {
+                                      {timeslotOptions?.map((item, idx) => {
                                         if (
                                           Number(
                                             getValues()?.mediaVariation
@@ -1469,7 +1469,7 @@ const MediaProductInfo = () => {
                                           return null;
 
                                         return (
-                                          <MenuItem value={item}>{item}</MenuItem>
+                                          <MenuItem value={item} key={idx}>{item}</MenuItem>
                                         );
                                       })}
                                     </Select>
@@ -2089,44 +2089,63 @@ const MediaProductInfo = () => {
                                 </span>
                               ) : null}
                               </Typography>
-                              <Controller
-                                name="mediaVariation.unit"
-                                control={control}
-                                render={({ field }) => (
-                                  <Select
-                                    native
-                                    variant="standard"
-                                    disableUnderline
-                                    fullWidth
-                                    value={field.value ?? ''}
-                                    onChange={(e) =>
-                                      field.onChange(String(e.target.value ?? ''))
-                                    }
-                                    onBlur={field.onBlur}
-                                    name={field.name}
-                                    inputRef={field.ref}
-                                    inputProps={{
-                                      'aria-label': 'Unit',
-                                    }}
-                                    sx={{
-                                      ...inputStyles,
-                                      border: errors?.mediaVariation?.unit?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                      '& .MuiNativeSelect-select': {
-                                        paddingRight: '28px',
-                                      },
-                                    }}
-                                  >
-                                    <option value="">Select unit</option>
-                                    {unitSelectChoices.map((u) => (
-                                      <option key={u.value} value={u.value}>
-                                        {u.label}
-                                      </option>
-                                    ))}
-                                  </Select>
-                                )}
-                              />
+                              {isRadio ? (
+                                <Typography
+                                  sx={{
+                                    ...inputStyles,
+                                    border: '1px solid #E5E8EB',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    px: 1.5,
+                                    py: 1,
+                                    fontFamily: 'Inter, sans-serif',
+                                    fontSize: '0.9rem',
+                                    color: '#111827',
+                                    bgcolor: '#f9fafb',
+                                  }}
+                                >
+                                  Per Spot
+                                </Typography>
+                              ) : (
+                                <Controller
+                                  name="mediaVariation.unit"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <Select
+                                      native
+                                      variant="standard"
+                                      disableUnderline
+                                      fullWidth
+                                      value={field.value ?? ''}
+                                      onChange={(e) =>
+                                        field.onChange(String(e.target.value ?? ''))
+                                      }
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      inputRef={field.ref}
+                                      inputProps={{
+                                        'aria-label': 'Unit',
+                                      }}
+                                      sx={{
+                                        ...inputStyles,
+                                        border: errors?.mediaVariation?.unit?.message
+                                          ? '1px solid red'
+                                          : '1px solid #E5E8EB',
+                                        '& .MuiNativeSelect-select': {
+                                          paddingRight: '28px',
+                                        },
+                                      }}
+                                    >
+                                      <option value="">Select unit</option>
+                                      {unitSelectChoices.map((u) => (
+                                        <option key={u.value} value={u.value}>
+                                          {u.label}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  )}
+                                />
+                              )}
                               <Typography
                                 sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
                               >
@@ -3243,42 +3262,41 @@ const MediaProductInfo = () => {
                                     alignItems: 'stretch',
                                     gap: 1,
                                   }}
-                                >
-                                  <Select
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.maxTimeslotSeconds',
-                                    )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      width: '100%',
-                                      maxWidth: '100%',
-                                      border: errors?.mediaVariation
-                                        ?.maxTimeslotSeconds?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
                                   >
+                                    <Select
+                                      disableUnderline
+                                      {...register(
+                                        'mediaVariation.maxTimeslotSeconds',
+                                      )}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        width: '100%',
+                                        maxWidth: '100%',
+                                        border: errors?.mediaVariation
+                                          ?.maxTimeslotSeconds?.message
+                                          ? '1px solid red'
+                                          : '1px solid #E5E8EB',
+                                      }}
+                                    >
 
-                                    {SecondsFieldArr?.map((item, idx) => {
-                                      return (
-                                        <MenuItem
-                                          key={item ?? idx}
-                                          sx={{
-                                            border: '1px white solid',
-                                          }}
-                                          onClick={() => {
-                                            setMaxtimeslotArr(
-                                              filterMultiples(
-                                                SecondsFieldArr,
-                                                item,
-                                              ),
-                                            );
-                                          }}
-                                          value={item}
-                                        >
+                                      {timeslotOptions?.map((item, idx) => {
+                                        return (
+                                          <MenuItem
+                                            key={item ?? idx}
+                                            sx={{
+                                              border: '1px white solid',
+                                            }}
+                                            onClick={() => {
+                                              setMaxtimeslotArr(
+                                                timeslotOptions.filter(
+                                                  (v) => v >= item,
+                                                ),
+                                              );
+                                            }}
+                                            value={item}
+                                          >
                                           {item}
                                         </MenuItem>
                                       );

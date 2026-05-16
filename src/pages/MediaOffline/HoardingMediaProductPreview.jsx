@@ -386,35 +386,20 @@ export default function HoardingMediaProductPreview() {
 
   const hoardingColumns = [
     { field: 'srNo', headerName: 'Sr No', width: 75 },
-    { field: 'name', headerName: 'Name', width: 160 },
-    { field: 'area', headerName: 'Area', width: 120 },
-    { field: 'landmark', headerName: 'Landmark', width: 120 },
-    { field: 'state', headerName: 'State', width: 110 },
-    { field: 'city', headerName: 'City', width: 120 },
+    { field: 'name', headerName: 'Media Name', width: 160 },
+    { field: 'area', headerName: 'Site Name/Location', width: 180 },
+    { field: 'width', headerName: 'Width', width: 85,
+      valueGetter: (value, row) => row?.width ?? row?.Width ?? value ?? '',
+    },
+    { field: 'height', headerName: 'Height', width: 85,
+      valueGetter: (value, row) => row?.height ?? row?.Height ?? value ?? '',
+    },
+    { field: 'size', headerName: 'Total Sq. ft', width: 110 },
+    { field: 'landmark', headerName: 'Traffic', width: 130 },
+    { field: 'mediaType', headerName: 'Type', width: 120 },
     { field: 'latitude', headerName: 'Lat', width: 90 },
-    { field: 'longitude', headerName: 'Long', width: 90 },
-    { field: 'mediaVehicle', headerName: 'Media vehicle', width: 130 },
-    { field: 'mediaCategory', headerName: 'Media category', width: 130 },
-    { field: 'mediaType', headerName: 'Media type', width: 120 },
-    { field: 'quantity', headerName: 'Qty', width: 70 },
-    { field: 'size', headerName: 'Size (sq.ft)', width: 110 },
-    {
-      field: 'width',
-      headerName: 'W (ft)',
-      width: 85,
-      // MUI X Data Grid v6+: (value, row, column, apiRef) — not { row } params
-      valueGetter: (value, row) =>
-        row?.width ?? row?.Width ?? value ?? '',
-    },
-    {
-      field: 'height',
-      headerName: 'H (ft)',
-      width: 85,
-      valueGetter: (value, row) =>
-        row?.height ?? row?.Height ?? value ?? '',
-    },
     { field: 'mrp', headerName: 'MRP', width: 90 },
-    { field: 'DiscountedPrice', headerName: 'Discounted', width: 110 },
+    { field: 'DiscountedPrice', headerName: 'Discounted MRP', width: 120 },
     {
       field: 'rowImages',
       headerName: 'Images',
