@@ -126,6 +126,9 @@ export const RADIO_UNITS = [
   { value: 'Spot', label: 'Per Spot' },
 ];
 
+/** Television — unit dropdown (seller product info). */
+export const TELEVISION_UNITS = [{ value: 'Spot', label: 'Per Spot' }];
+
 export const HOARDING_AD_TYPES = ['Main Road', 'Highway', 'Parking'];
 
 export const BUS_WRAP_AD_TYPES = ['Wrap', 'Seatbacks', 'Handle', 'Window Panel'];
@@ -436,6 +439,8 @@ export function getMediaListingProfile(product) {
       syncTimeslots: false,
       key: 'television',
       adTypeOptions: TELEVISION_AD_TYPES,
+      unitOptions: TELEVISION_UNITS,
+      timelineOnlyDay: true,
       featureBlocklist: TELEVISION_FEATURE_BLOCKLIST,
       supportingDocKeys: TELEVISION_SUPPORTING_DOC_KEYS,
       offeringPlaceholder:

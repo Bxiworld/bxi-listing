@@ -297,7 +297,11 @@ const MediaProductInfo = () => {
         String(data?.medianame ?? data?.ProductName ?? '').trim(),
       );
 
-      if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
+      const fetchProfile = getMediaListingProfile(data);
+      if (fetchProfile.key === 'television') {
+        setValue('mediaVariation.unit', 'Spot');
+        setValue('mediaVariation.Timeline', 'Day');
+      } else if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
         setValue('mediaVariation.Timeline', 'Month');
       }
 
@@ -342,7 +346,9 @@ const MediaProductInfo = () => {
           data?.mediaVariation?.maxOrderQuantitytimeline,
         );
         setValue('mediaVariation.location', data?.mediaVariation?.location);
-        {
+        if (fetchProfile.key === 'television') {
+          setValue('mediaVariation.unit', 'Spot');
+        } else {
           const incoming = data?.mediaVariation?.unit;
           const hasIncoming =
             incoming != null && String(incoming).trim() !== '';
@@ -355,7 +361,9 @@ const MediaProductInfo = () => {
             }
           }
         }
-        setValue('mediaVariation.Timeline', data?.mediaVariation?.Timeline);
+        if (fetchProfile.key !== 'television') {
+          setValue('mediaVariation.Timeline', data?.mediaVariation?.Timeline);
+        }
         OthercostAppend(data?.OtherCost);
         setValue('GeographicalData', data?.GeographicalData);
         setValue(
@@ -464,16 +472,27 @@ const MediaProductInfo = () => {
     }
     const v =
       watchedMediaUnit != null ? String(watchedMediaUnit).trim() : '';
-    if (v && !choices.some((o) => String(o.value) === v)) {
+    if (
+      listingProfile.key !== 'television' &&
+      v &&
+      !choices.some((o) => String(o.value) === v)
+    ) {
       return [...choices, { value: v, label: v }];
     }
     return choices;
   }, [
     listingProfile.unitOptions,
+    listingProfile.key,
     FetchedproductData?.ProductSubCategoryName,
     FetchedproductData?.ProductSubCategory,
     watchedMediaUnit,
   ]);
+
+  useEffect(() => {
+    if (!listingProfile.timelineOnlyDay) return;
+    setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    setValue('mediaVariation.Timeline', 'Day', { shouldValidate: true, shouldDirty: true });
+  }, [listingProfile.timelineOnlyDay, listingProfile.key, setValue]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
 
@@ -619,6 +638,9 @@ const MediaProductInfo = () => {
           maxTimeslotSeconds: Number(getValues()?.mediaVariation?.minTimeslotSeconds) || 0,
           minTimeslotSeconds: Number(getValues()?.mediaVariation?.minTimeslotSeconds) || 0,
         }
+        : {}),
+      ...(submitProfile.key === 'television'
+        ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
     };
 
@@ -2191,67 +2213,77 @@ const MediaProductInfo = () => {
                                   </span>
                                 ) : null}
                                 </Typography>
-                                <Select
-                                  disableUnderline
-                                  {...register('mediaVariation.Timeline')}
-                                  sx={{
-                                    ...inputStyles,
-                                    border: errors?.mediaVariation?.Timeline
-                                      ?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                  disabled={FetchedproductData?.ProductSubCategory ===
-                                    '65029534eaa5251874e8c6b4'}
-                                >
-                                  <MenuItem
-                                    value="Day"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
-                                  >
-                                    {' '}
-                                    Per Day{' '}
-                                  </MenuItem>
-                                  <MenuItem
-                                    value="Week"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
-                                  >
-                                    {' '}
-                                    Per Week{' '}
-                                  </MenuItem>
-                                  <MenuItem
-                                    value="Month"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
-                                  >
-                                    {' '}
-                                    Per Month{' '}
-                                  </MenuItem>
-                                  {!listingProfile.timelineHideOneTime ? (
-                                    <MenuItem
-                                      value="One Time"
-                                      onClick={() => {
-                                        setOnlyState(!onlyState);
-                                      }}
-                                    >
-                                      {' '}
-                                      Per One Time{' '}
-                                    </MenuItem>
-                                  ) : null}
-                                  <MenuItem
-                                    value="Year"
-                                    onClick={() => {
-                                      setOnlyState(!onlyState);
-                                    }}
-                                  >
-                                    {' '}
-                                    Per Year{' '}
-                                  </MenuItem>
-                                </Select>
+                                <Controller
+                                  name="mediaVariation.Timeline"
+                                  control={control}
+                                  defaultValue={
+                                    listingProfile.timelineOnlyDay ? 'Day' : ''
+                                  }
+                                  render={({ field }) =>
+                                    listingProfile.timelineOnlyDay ? (
+                                      <Select
+                                        native
+                                        variant="standard"
+                                        disableUnderline
+                                        fullWidth
+                                        value={field.value === 'Day' ? 'Day' : 'Day'}
+                                        onChange={(e) =>
+                                          field.onChange(String(e.target.value || 'Day'))
+                                        }
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        inputRef={field.ref}
+                                        disabled
+                                        inputProps={{ 'aria-label': 'Timeline' }}
+                                        sx={{
+                                          ...inputStyles,
+                                          border: errors?.mediaVariation?.Timeline
+                                            ?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                          '& .MuiNativeSelect-select': {
+                                            paddingRight: '28px',
+                                          },
+                                        }}
+                                      >
+                                        <option value="Day">Per Day</option>
+                                      </Select>
+                                    ) : (
+                                      <Select
+                                        disableUnderline
+                                        value={field.value ?? ''}
+                                        onChange={(e) => {
+                                          field.onChange(e.target.value);
+                                          setOnlyState(!onlyState);
+                                        }}
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        inputRef={field.ref}
+                                        sx={{
+                                          ...inputStyles,
+                                          border: errors?.mediaVariation?.Timeline
+                                            ?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                        }}
+                                        disabled={
+                                          FetchedproductData?.ProductSubCategory ===
+                                          '65029534eaa5251874e8c6b4'
+                                        }
+                                      >
+                                        <MenuItem value="Day">Per Day</MenuItem>
+                                        <MenuItem value="Week">Per Week</MenuItem>
+                                        <MenuItem value="Month">Per Month</MenuItem>
+                                        {!listingProfile.timelineHideOneTime ? (
+                                          <MenuItem value="One Time">
+                                            Per One Time
+                                          </MenuItem>
+                                        ) : null}
+                                        <MenuItem value="Year">Per Year</MenuItem>
+                                      </Select>
+                                    )
+                                  }
+                                />
                                 <Typography
                                   sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
                                 >
