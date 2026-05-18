@@ -825,16 +825,22 @@ const MediaProductInfo = () => {
       navigate('/sellerhub');
     }
   };
-  // 1. Add useEffect to set GST value when FetchedproductData changes
+  // Set GST default (18) on mount
+  useEffect(() => {
+    setValue('mediaVariation.GST', 18);
+  }, [setValue]);
+
+  // Override GST from fetched data, and set radio unit default
   useEffect(() => {
     if (!FetchedproductData) return;
     const g = FetchedproductData?.mediaVariation?.GST;
     if (g !== null && g !== undefined && g !== 0 && g !== '') {
       setValue('mediaVariation.GST', g);
-    } else {
-      setValue('mediaVariation.GST', 18);
     }
-  }, [FetchedproductData, setValue]);
+    if (isRadio) {
+      setValue('mediaVariation.unit', 'Spot');
+    }
+  }, [FetchedproductData, isRadio, setValue]);
 
   // Show error if there's one
   if (fetchError) {
