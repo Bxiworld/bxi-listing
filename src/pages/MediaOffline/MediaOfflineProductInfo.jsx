@@ -584,7 +584,7 @@ const MediaProductInfo = () => {
 
   const OthercostFieldsarray = [
     'Applicable On',
-    'Other cost ',
+    'Additional cost',
     'HSN',
     'GST',
     'Reason Of Cost',
@@ -633,7 +633,7 @@ const MediaProductInfo = () => {
       setValue('mediaVariation.Timeline', 'Day');
       setValue('mediaVariation.maxOrderQuantityunit', '1');
       setValue('mediaVariation.maxOrderQuantitytimeline', '1');
-      setValue('mediaVariation.availableInsertions', '1');
+
       setValue('mediaVariation.MinOrderQuantity', '1');
     }
     if (OneUnitProduct) {
@@ -762,6 +762,12 @@ const MediaProductInfo = () => {
   useEffect(() => {
     setValue('mediaVariation.GST', GST);
   }, [GST]);
+
+  useEffect(() => {
+    if (isNewspaperJourney && !GST) {
+      setValue('mediaVariation.GST', 18);
+    }
+  }, [isNewspaperJourney, GST]);
 
   React.useEffect(() => {
     ProductData?.OtherCost.forEach((value) => {
@@ -1064,18 +1070,9 @@ const MediaProductInfo = () => {
                           <Input
                             disableUnderline
                             placeholder="28"
-                            disabled
-                            value={1}
                             {...register('mediaVariation.availableInsertions', {
                               onChange: (e) => {
-                                setValue(
-                                  'mediaVariation.maxOrderQuantityunit',
-                                  e.target.value,
-                                );
-                                setValue(
-                                  'mediaVariation.maxOrderQuantitytimeline',
-                                  e.target.value,
-                                );
+                                setValue('mediaVariation.maxOrderQuantityunit', e.target.value);
                               },
                             })}
                             sx={{
@@ -1112,7 +1109,7 @@ const MediaProductInfo = () => {
 
                         <Box sx={newspaperGridCellSx}>
                           <Typography sx={newspaperGridLabelSx}>
-                            Price per unit <span style={{ color: 'red' }}> *</span>
+                            Price per insertion <span style={{ color: 'red' }}> *</span>
                           </Typography>
                           <Box sx={{ position: 'relative', width: '100%' }}>
                             <Input
@@ -1120,12 +1117,10 @@ const MediaProductInfo = () => {
                               placeholder="3000"
                               {...register('mediaVariation.PricePerUnit', {
                                 onChange: (event) => {
-                                  event.target.value = parseInt(
-                                    event.target.value.replace(
-                                      /[^\d]+/gi,
-                                      '',
-                                    ) || 0,
-                                  ).toLocaleString('en-US');
+                                  let raw = event.target.value.replace(/[^0-9.]+/g, '');
+                                  const parts = raw.split('.');
+                                  if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+                                  event.target.value = raw;
                                 },
                               })}
                               sx={{
@@ -1175,12 +1170,10 @@ const MediaProductInfo = () => {
                               placeholder="2000"
                               {...register('mediaVariation.DiscountedPrice', {
                                 onChange: (event) => {
-                                  event.target.value = parseInt(
-                                    event.target.value.replace(
-                                      /[^\d]+/gi,
-                                      '',
-                                    ) || 0,
-                                  ).toLocaleString('en-US');
+                                  let raw = event.target.value.replace(/[^0-9.]+/g, '');
+                                  const parts = raw.split('.');
+                                  if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+                                  event.target.value = raw;
                                 },
                               })}
                               sx={{

@@ -112,6 +112,90 @@ export default function TextileProductInform(props) {
       </Typography>
       <Box
         sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          width: '100%',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1,
+            width: '100%',
+          }}
+        >
+          <Typography sx={{ ...CommonTextStyle }}>
+            Reason Of Cost <span style={{ color: 'red' }}> *</span>
+          </Typography>
+          <TextField
+            multiline
+            minRows={2}
+            maxRows={5}
+            {...register('ReasonOfCost')}
+            placeholder={
+              location.pathname?.includes('media')
+                ? 'e.g. content management, printing & mounting, conversion charges'
+                : 'Customized Packaging'
+            }
+            variant='standard'
+            InputProps={{
+              disableUnderline: true,
+              sx: {
+                fontSize: '14px',
+                px: 1.25,
+                py: 1.25,
+                alignItems: 'flex-start',
+                fontFamily: 'Inter, sans-serif',
+                color: ocColors.text,
+                boxSizing: 'border-box',
+                '& .MuiInputBase-input::placeholder': {
+                  color: ocColors.label,
+                  opacity: 0.55,
+                  WebkitTextFillColor: ocColors.label,
+                },
+              },
+            }}
+            sx={{
+              width: '100%',
+              background: '#FFFFFF',
+              borderRadius: '10px',
+              outline: 'none',
+              boxShadow: 'none',
+              border: '1px solid',
+              borderColor: errors['ReasonOfCost']
+                ? ocColors.borderError
+                : ocColors.border,
+              transition: 'border-color 0.15s ease',
+              '&:hover': {
+                borderColor: errors['ReasonOfCost']
+                  ? ocColors.borderError
+                  : ocColors.borderHover,
+              },
+              '&.Mui-focused': {
+                borderColor: errors['ReasonOfCost']
+                  ? ocColors.borderError
+                  : ocColors.borderFocus,
+                boxShadow: 'none',
+              },
+              '&:focus-within': {
+                borderColor: errors['ReasonOfCost']
+                  ? ocColors.borderError
+                  : ocColors.borderFocus,
+                outline: 'none',
+                boxShadow: 'none',
+              },
+            }}
+          />
+          {errors['ReasonOfCost'] && (
+            <Typography sx={FieldErrorTextStyle}>
+              {errors['ReasonOfCost']?.message}
+            </Typography>
+          )}
+        </Box>
+      <Box
+        sx={{
           display: 'grid',
           width: '100%',
           gap: { xs: 2, sm: 2.5 },
@@ -132,7 +216,7 @@ export default function TextileProductInform(props) {
           }}
         >
           <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
-            Applicable on
+            Applicable on (per insertion)
           </Typography>
           <Select
             defaultValue={'All'}
@@ -175,9 +259,10 @@ export default function TextileProductInform(props) {
               placeholder='Eg. 1000'
               {...register('CostPrice', {
                 onChange: event => {
-                  event.target.value = parseInt(
-                    event.target.value.replace(/[^\d]+/gi, '') || 0
-                  ).toLocaleString('en-US');
+                  let raw = event.target.value.replace(/[^0-9.]+/g, '');
+                  const parts = raw.split('.');
+                  if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+                  event.target.value = raw;
                 },
               })}
               inputProps={{ maxLength: 15 }}
@@ -329,92 +414,6 @@ export default function TextileProductInform(props) {
           )}
         </Box>
       </Box>
-      <Box
-        sx={{
-          display: 'flex',
-          gap: '10px',
-          width: '100%',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-            width: '100%',
-          }}
-        >
-          <Typography sx={{ ...CommonTextStyle }}>
-            Reason Of Cost <span style={{ color: 'red' }}> *</span>
-          </Typography>
-
-          <TextField
-            multiline
-            minRows={2}
-            maxRows={5}
-            {...register('ReasonOfCost')}
-            placeholder={
-              location.pathname?.includes('media')
-                ? 'e.g. content management, printing & mounting, conversion charges'
-                : 'Customized Packaging'
-            }
-            variant='standard'
-            InputProps={{
-              disableUnderline: true,
-              sx: {
-                fontSize: '14px',
-                px: 1.25,
-                py: 1.25,
-                alignItems: 'flex-start',
-                fontFamily: 'Inter, sans-serif',
-                color: ocColors.text,
-                boxSizing: 'border-box',
-                '& .MuiInputBase-input::placeholder': {
-                  color: ocColors.label,
-                  opacity: 0.55,
-                  WebkitTextFillColor: ocColors.label,
-                },
-              },
-            }}
-            sx={{
-              width: '100%',
-              background: '#FFFFFF',
-              borderRadius: '10px',
-              marginBottom: '20px',
-              outline: 'none',
-              boxShadow: 'none',
-              border: '1px solid',
-              borderColor: errors['ReasonOfCost']
-                ? ocColors.borderError
-                : ocColors.border,
-              transition: 'border-color 0.15s ease',
-              '&:hover': {
-                borderColor: errors['ReasonOfCost']
-                  ? ocColors.borderError
-                  : ocColors.borderHover,
-              },
-              '&.Mui-focused': {
-                borderColor: errors['ReasonOfCost']
-                  ? ocColors.borderError
-                  : ocColors.borderFocus,
-                boxShadow: 'none',
-              },
-              '&:focus-within': {
-                borderColor: errors['ReasonOfCost']
-                  ? ocColors.borderError
-                  : ocColors.borderFocus,
-                outline: 'none',
-                boxShadow: 'none',
-              },
-            }}
-          />
-
-          {errors['ReasonOfCost'] && (
-            <Typography sx={FieldErrorTextStyle}>
-              {errors['ReasonOfCost']?.message}
-            </Typography>
-          )}
-        </Box>
       </Box>
 
       <Box
