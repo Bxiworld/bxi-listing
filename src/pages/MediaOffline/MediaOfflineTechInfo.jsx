@@ -23,9 +23,19 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 import {
   supportingDocsToCheckboxState,
   checkboxStateToSupportingArray,
+  SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT,
 } from '../../utils/supportingBuyerDocs';
 
-const SUPPORTING_DOC_OPTIONS = [
+const NEWSPAPER_SUBCATEGORY_ID = '647713dcb530d22fce1f6c36';
+const PRINT_SUBCATEGORY_NAMES = [
+  'Newspaper',
+  'Magazines',
+  'Flyers',
+  'Electricity bills',
+  'Boarding Pass',
+];
+
+const DEFAULT_SUPPORTING_DOC_OPTIONS = [
   { key: 'inspectionPass', label: 'Inspection pass' },
   { key: 'LogReport', label: 'Log Report' },
   { key: 'Videos', label: 'Videos' },
@@ -33,6 +43,28 @@ const SUPPORTING_DOC_OPTIONS = [
   { key: 'ExhibitionCertificate', label: 'Exhibition Certificate' },
   { key: 'Other', label: 'Other' },
 ];
+
+const PRINT_SUPPORTING_DOC_OPTIONS = [
+  { key: 'Videos', label: 'Videos' },
+  { key: 'Pictures', label: 'Pictures' },
+  { key: 'Other', label: 'Other' },
+];
+
+const isPrintMediaProduct = (data, fromStorage) => {
+  if (fromStorage) return true;
+  if (!data) return false;
+  return (
+    data.mediaCategory === 'print' ||
+    data.mediaJourney === 'newspaper' ||
+    data.ProductSubCategory === NEWSPAPER_SUBCATEGORY_ID ||
+    data.ProductSubCategoryName === 'News Papers / Magazines' ||
+    data.ProductSubCategoryName === 'Newspaper' ||
+    (data.ProductSubCategoryName &&
+      PRINT_SUBCATEGORY_NAMES.includes(data.ProductSubCategoryName)) ||
+    (data.ProductSubCategory &&
+      PRINT_SUBCATEGORY_NAMES.includes(data.ProductSubCategory))
+  );
+};
 
 const brandControlClass =
   'border-[#C64091] text-[#C64091] data-[state=checked]:bg-[#C64091] data-[state=checked]:text-white';
@@ -42,6 +74,31 @@ export default function TechInfo() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dateArr, setDateArr] = useState([]);
+  const [fetchedProduct, setFetchedProduct] = useState(null);
+
+  const isPrintFromStorage = useMemo(() => {
+    try {
+      return (
+        sessionStorage.getItem('mediaCategory') === 'print' ||
+        sessionStorage.getItem('mediaJourney') === 'newspaper' ||
+        localStorage.getItem('mediaCategory') === 'print' ||
+        localStorage.getItem('mediaJourney') === 'newspaper'
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const isPrintMedia = useMemo(
+    () => isPrintMediaProduct(fetchedProduct, isPrintFromStorage),
+    [fetchedProduct, isPrintFromStorage],
+  );
+
+  const supportingDocOptions = useMemo(
+    () =>
+      isPrintMedia ? PRINT_SUPPORTING_DOC_OPTIONS : DEFAULT_SUPPORTING_DOC_OPTIONS,
+    [isPrintMedia],
+  );
 
   const [checkBoxes, setCheckBoxes] = useState({
     inspectionPass: false,
@@ -87,11 +144,24 @@ export default function TechInfo() {
     try {
       const res = await api.get(`product/get_product_byId/${ProductId}`);
       const data = res?.data ?? res;
+      setFetchedProduct(data);
       setValue('Dimensions', data?.Dimensions);
 
-      setCheckBoxes(
-        supportingDocsToCheckboxState(data?.WhatSupportingYouWouldGiveToBuyer),
+      const loadedSupporting = supportingDocsToCheckboxState(
+        data?.WhatSupportingYouWouldGiveToBuyer,
       );
+      if (isPrintMediaProduct(data, isPrintFromStorage)) {
+        setCheckBoxes({
+          inspectionPass: false,
+          LogReport: false,
+          Videos: !!loadedSupporting.Videos,
+          Pictures: !!loadedSupporting.Pictures,
+          ExhibitionCertificate: false,
+          Other: !!loadedSupporting.Other,
+        });
+      } else {
+        setCheckBoxes(loadedSupporting);
+      }
       setDateArr(data?.calender ?? []);
 
     } catch {
@@ -99,7 +169,7 @@ export default function TechInfo() {
     } finally {
       setLoading(false);
     }
-  }, [ProductId, setValue]);
+  }, [ProductId, setValue, isPrintFromStorage]);
 
   useEffect(() => {
     FetchProduct();
@@ -109,15 +179,19 @@ export default function TechInfo() {
 
   const updateProductTechinfostatus = handleSubmit((data) => {
     try {
+      const supportingForSubmit = isPrintMedia
+        ? SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT.filter((key) => checkBoxes[key])
+        : checkboxStateToSupportingArray(checkBoxes);
+
       const datatobesent = {
         ...data,
         id: ProductId,
-        WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
+        WhatSupportingYouWouldGiveToBuyer: supportingForSubmit,
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
 
       };
-      const noneSelected = SUPPORTING_DOC_OPTIONS.every(
+      const noneSelected = supportingDocOptions.every(
         (opt) => !checkBoxes[opt.key],
       );
       if (noneSelected) {
@@ -239,7 +313,7 @@ export default function TechInfo() {
                       Buyer? <span className="text-red-500">*</span>
                     </Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {SUPPORTING_DOC_OPTIONS.map(({ key, label }) => (
+                      {supportingDocOptions.map(({ key, label }) => (
                         <div
                           key={key}
                           className="flex items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] px-3 py-2.5 transition-colors hover:border-[#CBD5E1]"

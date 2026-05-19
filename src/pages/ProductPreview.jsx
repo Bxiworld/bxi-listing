@@ -1545,6 +1545,7 @@ export default function ProductPreview() {
                     ['Offering this media at', pick(mv.offerningbrandat, product?.offerningbrandat)],
                     ['Ad position', product?.adPosition],
                     ['Edition', pick(mv.edition, v0.edition)],
+                    ['Language', pick(mv.language, v0.language)],
                     ['Type', pick(mv.Type, v0.Type)],
                     ['Release details', pick(mv.releasedetails, v0.releasedetails)],
                     ...(hideInsertions
@@ -1654,6 +1655,16 @@ export default function ProductPreview() {
                               <Chip key={index} label={String(tag)} size="small" />
                             ))}
                           </Box>
+                        </Box>
+                      )}
+                      {product?.OtherInformationBuyerMustKnowOrRemarks && (
+                        <Box>
+                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            Other Information Buyer Must Know/ Remarks
+                          </Typography>
+                          <Typography variant="body1" color="text.secondary">{product?.OtherInformationBuyerMustKnowOrRemarks.map((remark, index) => (
+                            <Typography key={index}>{index + 1}. {remark}</Typography>
+                          ))}</Typography>
                         </Box>
                       )}
                     </Stack>

@@ -41,6 +41,9 @@ export const SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING = [
   'Other',
 ];
 
+/** Media offline print / newspaper tech step */
+export const SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT = ['Videos', 'Pictures', 'Other'];
+
 const LABEL_TO_KEY = Object.fromEntries(
   Object.entries(SUPPORTING_DOC_LABELS).map(([k, v]) => [v, k]),
 );

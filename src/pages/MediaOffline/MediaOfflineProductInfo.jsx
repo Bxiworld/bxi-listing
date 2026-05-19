@@ -87,6 +87,20 @@ const newspaperGridLabelSx = {
   minHeight: '2.7em',
 };
 
+const pickNewspaperMediaField = (mv = {}, v0 = {}, keys = []) => {
+  for (const key of keys) {
+    const fromMv = mv?.[key];
+    if (fromMv != null && String(fromMv).trim() !== '') {
+      return String(fromMv).trim();
+    }
+    const fromV0 = v0?.[key];
+    if (fromV0 != null && String(fromV0).trim() !== '') {
+      return String(fromV0).trim();
+    }
+  }
+  return '';
+};
+
 const ALL_OFFLINE_FEATURE_OPTIONS = [
   { name: 'AD Type' },
   { name: 'Audio' },
@@ -305,7 +319,11 @@ const MediaProductInfo = () => {
                 : z.coerce.string().min(1),
             edition:
               isNewspaperJourney
-                ? z.string().min(1)
+                ? z.string().min(1, 'Edition is required')
+                : z.any(),
+            language:
+              isNewspaperJourney
+                ? z.string().min(1, 'Language is required')
                 : z.any(),
             Type:
               isNewspaperJourney
@@ -437,6 +455,42 @@ const MediaProductInfo = () => {
           response?.data?.GeographicalData?.landmark,
         );
         setValue('tags', response?.data?.tags);
+      }
+
+      const mv = d?.mediaVariation || {};
+      const v0 = Array.isArray(d?.ProductsVariantions)
+        ? d.ProductsVariantions[0] || {}
+        : {};
+      const legacyEditionLanguage = pickNewspaperMediaField(mv, v0, [
+        'editionLanguage',
+      ]);
+      let edition = pickNewspaperMediaField(mv, v0, ['edition']);
+      const language = pickNewspaperMediaField(mv, v0, ['language']);
+      if (!edition && legacyEditionLanguage) {
+        edition = legacyEditionLanguage;
+      }
+      setValue('mediaVariation.edition', edition);
+      setValue('mediaVariation.language', language);
+      setValue(
+        'mediaVariation.Type',
+        pickNewspaperMediaField(mv, v0, ['Type', 'type']),
+      );
+      setValue(
+        'mediaVariation.releasedetails',
+        pickNewspaperMediaField(mv, v0, ['releasedetails', 'releaseDetails']),
+      );
+      const insertions =
+        mv.availableInsertions ??
+        v0.availableInsertions ??
+        mv.minOrderQuantityunit ??
+        v0.minOrderQuantityunit ??
+        '1';
+      setValue('mediaVariation.availableInsertions', String(insertions));
+      const newspaperAdType =
+        pickNewspaperMediaField(mv, v0, ['adType']) ||
+        String(d?.adType ?? '').trim();
+      if (newspaperAdType) {
+        setValue('mediaVariation.adType', newspaperAdType);
       }
     } catch (error) {
       console.error('❌ Error fetching product:', error);
@@ -942,12 +996,11 @@ const MediaProductInfo = () => {
                       <Box sx={newspaperPricingGridSx}>
                         <Box sx={newspaperGridCellSx}>
                           <Typography sx={newspaperGridLabelSx}>
-                            Edition (Language){' '}
-                            <span style={{ color: 'red' }}> *</span>
+                            Edition <span style={{ color: 'red' }}> *</span>
                           </Typography>
                           <Input
                             disableUnderline
-                            placeholder="Mumbai English"
+                            placeholder="Mumbai"
                             {...register('mediaVariation.edition')}
                             sx={{
                               ...inputStyles,
@@ -958,6 +1011,26 @@ const MediaProductInfo = () => {
                           />
                           <Typography sx={FieldErrorTextStyle}>
                             {errors?.mediaVariation?.edition?.message}
+                          </Typography>
+                        </Box>
+
+                        <Box sx={newspaperGridCellSx}>
+                          <Typography sx={newspaperGridLabelSx}>
+                            Language <span style={{ color: 'red' }}> *</span>
+                          </Typography>
+                          <Input
+                            disableUnderline
+                            placeholder="English"
+                            {...register('mediaVariation.language')}
+                            sx={{
+                              ...inputStyles,
+                              width: '100%',
+                              maxWidth: 'none',
+                              minWidth: 0,
+                            }}
+                          />
+                          <Typography sx={FieldErrorTextStyle}>
+                            {errors?.mediaVariation?.language?.message}
                           </Typography>
                         </Box>
 
