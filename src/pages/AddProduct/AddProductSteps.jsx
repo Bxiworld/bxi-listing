@@ -40,6 +40,10 @@ import {
 } from '../../components/ui/tooltip';
 import { Checkbox } from '../../components/ui/checkbox';
 import StateData from '../../utils/StateCityArray.json';
+import {
+  buildCitySelectOptions,
+  getCitiesForState,
+} from '../../utils/stateCityOptions';
 import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
 import { Divider } from '@mui/material';
 import { InfoIcon } from 'lucide-react';
@@ -1211,15 +1215,8 @@ export const ProductInfo = ({ category }) => {
 
   useEffect(() => {
     if (locationDetails.state && StateData?.length) {
-      const stateObj = StateData.find((s) => s.name === locationDetails.state);
-      const baseCities = stateObj?.data || [];
-      const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
-      const currentCity = locationDetails.city || '';
-      if (currentCity && !baseCities.some((c) => normalize(c) === normalize(currentCity))) {
-        setCityArray([currentCity, ...baseCities]);
-      } else {
-        setCityArray(baseCities);
-      }
+      const baseCities = getCitiesForState(locationDetails.state, StateData);
+      setCityArray(buildCitySelectOptions(baseCities, locationDetails.city));
     } else {
       setCityArray([]);
     }
@@ -1284,19 +1281,6 @@ export const ProductInfo = ({ category }) => {
           const nextCity = matchedCity || fallbackCity || cities?.[0] || '';
           const nextCityStr = String(nextCity || '').trim();
 
-
-          // Ensure the selected `nextCity` is present in the dropdown options.
-          const nextCityArray = (() => {
-            const arr = [nextCityStr, ...(Array.isArray(cities) ? cities : [])].filter(Boolean);
-            const seen = new Set();
-            return arr.filter((c) => {
-              const key = normalize(c);
-              if (!key || seen.has(key)) return false;
-              seen.add(key);
-              return true;
-            });
-          })();
-
           setLocationDetails((prev) => ({
             ...prev,
             pincode: String(pincode),
@@ -1305,7 +1289,7 @@ export const ProductInfo = ({ category }) => {
             city: nextCityStr,
             landmark: apiLandmark || prev.landmark,
           }));
-          setCityArray(nextCityArray);
+          setCityArray(buildCitySelectOptions(cities, nextCityStr));
           toast.success('Location auto-filled!');
         } else {
           toast.warning(`State "${apiStateName}" not found. Please select manually.`);

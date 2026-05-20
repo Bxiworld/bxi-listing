@@ -41,6 +41,10 @@ import {
 } from '../../components/ui/tooltip';
 import { Button as UiButton } from '../../components/ui/button';
 import StateData from '../../utils/StateCityArray.json';
+import {
+  buildCitySelectOptions,
+  getCitiesForState,
+} from '../../utils/stateCityOptions';
 import { resolveMediaOfflinePrintSubcategoryId } from '../../config/mediaSubcategories';
 import {
   FEATURE_ALLOWLIST_BY_KEY,
@@ -210,6 +214,7 @@ const MediaProductInfo = () => {
     handleSubmit,
     setValue,
     getValues,
+    watch,
     control,
     setError,
     reset,
@@ -454,6 +459,15 @@ const MediaProductInfo = () => {
           'GeographicalData.landmark',
           response?.data?.GeographicalData?.landmark,
         );
+        const geo = response?.data?.GeographicalData;
+        if (geo?.region) {
+          setIsDisabled(geo.region);
+        }
+        if (geo?.state) {
+          setStateArray(geo.state);
+          setState(geo.state);
+          setCity(geo.city || '');
+        }
         setValue('tags', response?.data?.tags);
       }
 
@@ -508,10 +522,12 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (stateArray) {
-      const stateData = StateData?.filter((item) => item?.name === stateArray);
-      setCityArray(stateData[0]?.data);
+      const base = getCitiesForState(stateArray, StateData);
+      setCityArray(buildCitySelectOptions(base, city));
+    } else {
+      setCityArray(undefined);
     }
-  }, [stateArray]);
+  }, [stateArray, city]);
 
   const {
     fields: OthercostFields,

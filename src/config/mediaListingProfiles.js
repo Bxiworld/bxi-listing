@@ -31,11 +31,9 @@ export const AIRPORT_AD_TYPES = [
   'Others',
 ];
 
-/** Airport units (values match legacy MenuItem value=). */
+/** Airport units (values match legacy MenuItem value=). Per Display / Per Unit removed per airport spec. */
 export const AIRPORT_UNITS = [
   { value: 'Screen', label: 'Per Screen' },
-  { value: 'Unit', label: 'Per Unit' },
-  { value: 'Display', label: 'Per Display' },
   { value: 'Location', label: 'Per Location' },
 ];
 
@@ -332,7 +330,7 @@ export const DOOH_AD_TYPE_OPTIONS_FILTERED = [
 
 /**
  * @param {object} product
- * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
+ * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, timelineOnlyDay: boolean | undefined, timelineOnlyMonth: boolean | undefined, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
  */
 export function getMediaListingProfile(product) {
   const mc = String(product?.mediaCategory || readStorage('mediaCategory') || '').toLowerCase();
@@ -365,6 +363,7 @@ export function getMediaListingProfile(product) {
     loopTimeField: false,
     supportingDocKeys: null,
     gstSelectWidthPx: null,
+    timelineOnlyMonth: false,
   };
 
   if (journey === 'display-video' && (mc === 'multiplex' || subName.includes('Multiplex'))) {
@@ -383,6 +382,7 @@ export function getMediaListingProfile(product) {
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.airport,
       adTypeOptions: AIRPORT_AD_TYPES,
       unitOptions: AIRPORT_UNITS,
+      timelineOnlyMonth: true,
       timelineHideOneTime: true,
       previewHideMediaNameFromTech: true,
       previewHideMediaMetaFromTech: true,
