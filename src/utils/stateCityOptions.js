@@ -1,11 +1,9 @@
-/** First option in state-dependent city dropdowns (product / media listing info). */
 export const ALL_CITIES_LABEL = 'All cities';
 
 export function normalizeCityOptionKey(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
-/** Cities array for a state from StateCityArray.json rows. */
 export function getCitiesForState(stateName, stateData = []) {
   if (!stateName) return [];
   const stateObj = (stateData || []).find((s) => s.name === stateName);
