@@ -40,6 +40,19 @@ import { getMediaListingProfile } from '../config/mediaListingProfiles';
 import * as XLSX from 'xlsx';
 import { isMediaListing } from '../utils/listingProductFields';
 
+function shouldHideMinMaxOrderQtyForMediaPreview(product) {
+  if (!isMediaListing(product)) return false;
+  const mc = String(product?.mediaCategory || '').toLowerCase().trim();
+  if (mc === 'print') return true;
+  const sub = String(
+    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '',
+  )
+    .toLowerCase()
+    .trim();
+  if (sub === 'static') return true;
+  return false;
+}
+
 const defaultImage =
   'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
 
@@ -289,9 +302,10 @@ function parseStoreLocationsFromWorkbook(workbook) {
 }
 
 /** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
-function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
+function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product) {
   if (!selectedVariantData) return [];
   const v = selectedVariantData;
+  const hideOrderQtyCols = shouldHideMinMaxOrderQtyForMediaPreview(product);
   const cols = [];
 
   const discRaw = v.DiscountedPrice;
@@ -325,7 +339,7 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
     });
   }
 
-  if (variantQtyHasValue(v.MinOrderQuantity)) {
+  if (!hideOrderQtyCols && variantQtyHasValue(v.MinOrderQuantity)) {
     cols.push({
       id: 'minQty',
       heading: 'Min QTY',
@@ -336,7 +350,7 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc) {
     });
   }
 
-  if (variantQtyHasValue(v.MaxOrderQuantity)) {
+  if (!hideOrderQtyCols && variantQtyHasValue(v.MaxOrderQuantity)) {
     cols.push({
       id: 'maxQty',
       heading: 'Max QTY',
@@ -624,7 +638,11 @@ export default function ProductPreview() {
       product?.ProductCategoryName
     ) || !product?.ProductCategoryName;
 
-  const variantPreviewColumns = getVariantPreviewTableColumns(selectedVariantData, BXIIcon);
+  const variantPreviewColumns = getVariantPreviewTableColumns(
+    selectedVariantData,
+    BXIIcon,
+    product,
+  );
   const variantTableMinTotal = variantPreviewColumns.reduce((sum, c) => sum + c.minWidth, 0);
 
   return (
@@ -1526,6 +1544,7 @@ export default function ProductPreview() {
                   const geo = product?.GeographicalData || {};
                   const tags = product?.tags || [];
                   const prevProfile = getMediaListingProfile(product || {});
+                  const hidePrintOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
                       ? 'AD Duration'
@@ -1555,8 +1574,12 @@ export default function ProductPreview() {
                     ['Ad type', pick(mv.adType, v0.adType)],
                     ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', pick(mv.Timeline, v0.Timeline)],
-                    ['Min order quantity', pickOrderQty()],
-                    ['Max order quantity', pickMaxOrderQty()],
+                    ...(hidePrintOrderQty
+                      ? []
+                      : [
+                          ['Min order quantity', pickOrderQty()],
+                          ['Max order quantity', pickMaxOrderQty()],
+                        ]),
                     ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
                     [
                       'Min order (timeline)',

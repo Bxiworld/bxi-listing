@@ -30,6 +30,10 @@ import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { toast } from 'sonner';
 import api, { productApi } from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
+import {
+  buildCitySelectOptions,
+  getCitiesForState,
+} from '../../utils/stateCityOptions';
 import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '../../components/ui/tooltip';
 import { Info } from 'lucide-react';
@@ -361,15 +365,8 @@ export default function VoucherTechInfo({ category }) {
   // Update cities when state changes
   useEffect(() => {
     if (offlineAddress.state) {
-      const stateObj = StateData.find((s) => s.name === offlineAddress.state);
-      const baseCities = stateObj?.data || [];
-      const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
-      const currentCity = offlineAddress.city || '';
-      if (currentCity && !baseCities.some((c) => normalize(c) === normalize(currentCity))) {
-        setCities([currentCity, ...baseCities]);
-      } else {
-        setCities(baseCities);
-      }
+      const baseCities = getCitiesForState(offlineAddress.state, StateData);
+      setCities(buildCitySelectOptions(baseCities, offlineAddress.city));
     } else {
       setCities([]);
     }
@@ -872,6 +869,53 @@ export default function VoucherTechInfo({ category }) {
                             }}
                           />
                           <p className="text-xs text-gray-500 text-right mt-1">{areaLetters} / 500</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Landmark <span className="text-red-500">*</span></Label>
+                          <Input
+                            placeholder="Eg. Juhu"
+                            value={offlineAddress.landmark}
+                            maxLength={500}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setOfflineAddress({ ...offlineAddress, landmark: val });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>State <span className="text-red-500">*</span></Label>
+                          <Select
+                            value={offlineAddress.state}
+                            onValueChange={(v) => {
+                              setOfflineAddress({ ...offlineAddress, state: v, city: '' });
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {StateData.map((s) => (
+                                <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>City <span className="text-red-500">*</span></Label>
+                          <Select
+                            value={offlineAddress.city}
+                            onValueChange={(v) => setOfflineAddress({ ...offlineAddress, city: v })}
+                            disabled={!offlineAddress.state}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select city" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {cities.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="onlineRedemptionUrl">

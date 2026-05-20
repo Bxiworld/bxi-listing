@@ -37,6 +37,10 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 import StateData from '../../utils/StateCityArray.json';
+import {
+  buildCitySelectOptions,
+  getCitiesForState,
+} from '../../utils/stateCityOptions';
 import { Stepper } from '../AddProduct/AddProductSteps';
 import { buildMediaOnlineGeneralInfoPath } from '../../utils/mediaOnlineListingPaths';
 import {
@@ -95,10 +99,12 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (stateArray) {
-      const stateData = StateData?.filter((item) => item?.name === stateArray);
-      setCityArray(stateData[0]?.data);
+      const base = getCitiesForState(stateArray, StateData);
+      setCityArray(buildCitySelectOptions(base, city));
+    } else {
+      setCityArray(undefined);
     }
-  }, [stateArray]);
+  }, [stateArray, city]);
 
   const [OthercostEditId, SetOthercostEditId] = useState(null);
   const [tags, setTags] = useState([]);
@@ -301,6 +307,8 @@ const MediaProductInfo = () => {
       if (fetchProfile.key === 'television') {
         setValue('mediaVariation.unit', 'Spot');
         setValue('mediaVariation.Timeline', 'Day');
+      } else if (fetchProfile.key === 'airport') {
+        setValue('mediaVariation.Timeline', 'Month');
       } else if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
         setValue('mediaVariation.Timeline', 'Month');
       }
@@ -348,6 +356,16 @@ const MediaProductInfo = () => {
         setValue('mediaVariation.location', data?.mediaVariation?.location);
         if (fetchProfile.key === 'television') {
           setValue('mediaVariation.unit', 'Spot');
+        } else if (fetchProfile.key === 'airport') {
+          const incoming = data?.mediaVariation?.unit;
+          const u = incoming != null ? String(incoming).trim() : '';
+          const allowedAirportUnits = ['Screen', 'Location'];
+          if (u && allowedAirportUnits.includes(u)) {
+            setValue('mediaVariation.unit', u);
+          } else {
+            setValue('mediaVariation.unit', '');
+          }
+          setValue('mediaVariation.Timeline', 'Month');
         } else {
           const incoming = data?.mediaVariation?.unit;
           const hasIncoming =
@@ -361,7 +379,11 @@ const MediaProductInfo = () => {
             }
           }
         }
-        if (fetchProfile.key !== 'television') {
+        if (fetchProfile.key === 'television') {
+          // set above
+        } else if (fetchProfile.key === 'airport') {
+          setValue('mediaVariation.Timeline', 'Month');
+        } else {
           setValue('mediaVariation.Timeline', data?.mediaVariation?.Timeline);
         }
         OthercostAppend(data?.OtherCost);
@@ -394,6 +416,14 @@ const MediaProductInfo = () => {
         setValue('GeographicalData.state', data?.GeographicalData.state);
         setValue('GeographicalData.city', data?.GeographicalData.city);
         setValue('GeographicalData.landmark', data?.GeographicalData.landmark);
+        if (data?.GeographicalData?.region) {
+          setIsDisabled(data.GeographicalData.region);
+        }
+        if (data?.GeographicalData?.state) {
+          setStateArray(data.GeographicalData.state);
+          setState(data.GeographicalData.state);
+          setCity(data.GeographicalData.city || '');
+        }
         setValue('tags', data?.tags);
       }
       setIsLoading(false);
@@ -474,6 +504,7 @@ const MediaProductInfo = () => {
       watchedMediaUnit != null ? String(watchedMediaUnit).trim() : '';
     if (
       listingProfile.key !== 'television' &&
+      listingProfile.key !== 'airport' &&
       v &&
       !choices.some((o) => String(o.value) === v)
     ) {
@@ -493,6 +524,14 @@ const MediaProductInfo = () => {
     setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
     setValue('mediaVariation.Timeline', 'Day', { shouldValidate: true, shouldDirty: true });
   }, [listingProfile.timelineOnlyDay, listingProfile.key, setValue]);
+
+  useEffect(() => {
+    if (listingProfile.key !== 'airport') return;
+    const u = String(watchedMediaUnit ?? '').trim();
+    if (u && !['Screen', 'Location'].includes(u)) {
+      setValue('mediaVariation.unit', '', { shouldValidate: true });
+    }
+  }, [listingProfile.key, watchedMediaUnit, setValue]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
 
@@ -642,6 +681,9 @@ const MediaProductInfo = () => {
       ...(submitProfile.key === 'television'
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
+      ...(submitProfile.key === 'airport'
+        ? { Timeline: 'Month' }
+        : {}),
     };
 
     let loopTimePayload = {};
@@ -705,6 +747,25 @@ const MediaProductInfo = () => {
       });
       toast.error('Please select a timeline');
       return;
+    }
+    if (submitProfile.key === 'airport') {
+      const u = String(data.mediaVariation.unit ?? '').trim();
+      if (u !== 'Screen' && u !== 'Location') {
+        setError('mediaVariation.unit', {
+          type: 'custom',
+          message: 'Please select Per Screen or Per Location',
+        });
+        toast.error('Please select Per Screen or Per Location');
+        return;
+      }
+      if (String(data.mediaVariation.Timeline ?? '').trim() !== 'Month') {
+        setError('mediaVariation.Timeline', {
+          type: 'custom',
+          message: 'Timeline must be Per Month for airport listings',
+        });
+        toast.error('Timeline must be Per Month for airport listings');
+        return;
+      }
     }
     if (
       submitProfile.repetitionRequired &&
@@ -2247,6 +2308,40 @@ const MediaProductInfo = () => {
                                         }}
                                       >
                                         <option value="Day">Per Day</option>
+                                      </Select>
+                                    ) : listingProfile.timelineOnlyMonth ? (
+                                      <Select
+                                        native
+                                        variant="standard"
+                                        disableUnderline
+                                        fullWidth
+                                        value={
+                                          field.value === 'Month'
+                                            ? 'Month'
+                                            : ''
+                                        }
+                                        onChange={(e) =>
+                                          field.onChange(
+                                            String(e.target.value ?? ''),
+                                          )
+                                        }
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        inputRef={field.ref}
+                                        inputProps={{ 'aria-label': 'Timeline' }}
+                                        sx={{
+                                          ...inputStyles,
+                                          border: errors?.mediaVariation?.Timeline
+                                            ?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                          '& .MuiNativeSelect-select': {
+                                            paddingRight: '28px',
+                                          },
+                                        }}
+                                      >
+                                        <option value="">Select timeline</option>
+                                        <option value="Month">Per Month</option>
                                       </Select>
                                     ) : (
                                       <Select
