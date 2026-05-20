@@ -31,7 +31,7 @@ export const AIRPORT_AD_TYPES = [
   'Others',
 ];
 
-/** Airport units (values match legacy MenuItem value=). Per Display / Per Unit removed per airport spec. */
+/** Airport units (values match legacy MenuItem value=). */
 export const AIRPORT_UNITS = [
   { value: 'Screen', label: 'Per Screen' },
   { value: 'Location', label: 'Per Location' },
