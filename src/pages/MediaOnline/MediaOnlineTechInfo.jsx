@@ -111,6 +111,8 @@ export default function TechInfo() {
     fetchproductData?.ProductSubCategory === '65029534eaa5251874e8c6c1';
 
   const techFormProfile = getMediaListingProfile(fetchproductData || {});
+  const isTelevisionMediaListing = techFormProfile.key === 'television';
+  const showContentUploadSection = !isTelevisionMediaListing;
   const supportingDocGridRows = useMemo(() => {
     if (techFormProfile.key === 'television') {
       return [
@@ -155,7 +157,10 @@ export default function TechInfo() {
         Dimensions: isRadioMediaListing
           ? z.string().max(500)
           : z.string().min(1).max(500),
-        UploadLink: BXISpace === true ? z.any() : z.string().min(1),
+        UploadLink:
+          isTelevisionMediaListing || BXISpace === true
+            ? z.any()
+            : z.string().min(1),
         BXISpace: z.boolean(),
       }),
     ),
@@ -252,7 +257,9 @@ export default function TechInfo() {
         WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
-        BXISpace: BXISpace,
+        ...(showContentUploadSection
+          ? { BXISpace: BXISpace, UploadLink: data.UploadLink }
+          : { BXISpace: false, UploadLink: '' }),
       };
       const selectedKeys = checkboxStateToSupportingArray(checkBoxes);
       const supportingOk =
@@ -268,6 +275,16 @@ export default function TechInfo() {
         })();
       if (!supportingOk) {
         toast.error('Please select at least one supporting document');
+        return;
+      }
+      if (
+        showContentUploadSection &&
+        !BXISpace &&
+        !String(data?.UploadLink ?? '').trim()
+      ) {
+        toast.error(
+          'Please provide a content upload link or select BXI Space',
+        );
         return;
       }
       let loopPayload = {};
@@ -498,6 +515,8 @@ export default function TechInfo() {
                     />
                   </Box>
                 ) : null}
+                {showContentUploadSection ? (
+                <>
                 <RadioGroup
                   row
                   aria-labelledby="demo-row-radio-buttons-group-label"
@@ -625,6 +644,8 @@ export default function TechInfo() {
                     </Typography>
                   </>
                 )}
+                </>
+                ) : null}
 
               </Stack>
             </Box>
