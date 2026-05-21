@@ -338,7 +338,7 @@ const MediaProductInfo = () => {
               isNewspaperJourney
                 ? z.string().min(1)
                 : z.any(),
-            availableInsertions: z.any(),
+            availableInsertions: z.coerce.number().min(1),
             adType: z.string().min(1, 'Ad type is required'),
           })
           .superRefine((value, ctx) => {
@@ -499,7 +499,7 @@ const MediaProductInfo = () => {
         mv.minOrderQuantityunit ??
         v0.minOrderQuantityunit ??
         '1';
-      setValue('mediaVariation.availableInsertions', String(insertions));
+      setValue('mediaVariation.availableInsertions', Number(insertions));
       const newspaperAdType =
         pickNewspaperMediaField(mv, v0, ['adType']) ||
         String(d?.adType ?? '').trim();
