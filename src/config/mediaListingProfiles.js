@@ -340,7 +340,7 @@ export const DOOH_AD_TYPE_OPTIONS_FILTERED = [
 
 /**
  * @param {object} product
- * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, timelineOnlyDay: boolean | undefined, timelineOnlyMonth: boolean | undefined, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
+ * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, timelineOnlyDay: boolean | undefined, timelineHidden: boolean | undefined, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
  */
 export function getMediaListingProfile(product) {
   const mc = String(product?.mediaCategory || readStorage('mediaCategory') || '').toLowerCase();
@@ -373,7 +373,7 @@ export function getMediaListingProfile(product) {
     loopTimeField: false,
     supportingDocKeys: null,
     gstSelectWidthPx: null,
-    timelineOnlyMonth: false,
+    timelineHidden: false,
   };
 
   if (journey === 'display-video' && (mc === 'multiplex' || subName.includes('Multiplex'))) {
@@ -392,7 +392,7 @@ export function getMediaListingProfile(product) {
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.airport,
       adTypeOptions: AIRPORT_AD_TYPES,
       unitOptions: AIRPORT_UNITS,
-      timelineOnlyMonth: true,
+      timelineHidden: true,
       timelineHideOneTime: true,
       previewHideMediaNameFromTech: true,
       previewHideMediaMetaFromTech: true,

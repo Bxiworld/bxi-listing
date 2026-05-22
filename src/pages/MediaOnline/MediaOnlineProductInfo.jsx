@@ -362,13 +362,12 @@ const MediaProductInfo = () => {
         } else if (fetchProfile.key === 'airport') {
           const incoming = data?.mediaVariation?.unit;
           const u = incoming != null ? String(incoming).trim() : '';
-          const allowedAirportUnits = ['Screen', 'Location'];
-          if (u && allowedAirportUnits.includes(u)) {
+          if (u === 'Screen') {
             setValue('mediaVariation.unit', u);
           } else {
             setValue('mediaVariation.unit', '');
           }
-          setValue('mediaVariation.Timeline', 'Month');
+          setValue('mediaVariation.Timeline', 'Days');
         } else {
           const incoming = data?.mediaVariation?.unit;
           const hasIncoming =
@@ -385,7 +384,7 @@ const MediaProductInfo = () => {
         if (fetchProfile.key === 'television') {
           // set above
         } else if (fetchProfile.key === 'airport') {
-          setValue('mediaVariation.Timeline', 'Month');
+          setValue('mediaVariation.Timeline', 'Days');
         } else {
           setValue('mediaVariation.Timeline', data?.mediaVariation?.Timeline);
         }
@@ -531,10 +530,17 @@ const MediaProductInfo = () => {
   useEffect(() => {
     if (listingProfile.key !== 'airport') return;
     const u = String(watchedMediaUnit ?? '').trim();
-    if (u && !['Screen', 'Location'].includes(u)) {
+    if (u && u !== 'Screen') {
       setValue('mediaVariation.unit', '', { shouldValidate: true });
     }
   }, [listingProfile.key, watchedMediaUnit, setValue]);
+
+  // Airport: Timeline has no dropdown — auto-set to 'Days' so downstream
+  // displays render a sensible suffix and validation passes.
+  useEffect(() => {
+    if (listingProfile.key !== 'airport') return;
+    setValue('mediaVariation.Timeline', 'Days', { shouldValidate: true, shouldDirty: true });
+  }, [listingProfile.key, setValue]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
 
@@ -761,13 +767,22 @@ const MediaProductInfo = () => {
         toast.error('Please select Per Screen');
         return;
       }
-      const t = String(data.mediaVariation.Timeline ?? '').trim();
-      if (!AIRPORT_TIMELINE_VALUES.includes(t)) {
-        setError('mediaVariation.Timeline', {
+      const minT = String(data.mediaVariation.minOrderQuantitytimeline ?? '').trim();
+      const maxT = String(data.mediaVariation.maxOrderQuantitytimeline ?? '').trim();
+      if (!AIRPORT_TIMELINE_VALUES.includes(minT)) {
+        setError('mediaVariation.minOrderQuantitytimeline', {
           type: 'custom',
           message: 'Please select 10, 20 or 30 Days',
         });
-        toast.error('Please select a timeline (10, 20 or 30 Days)');
+        toast.error('Min Order Timeline must be 10, 20 or 30 Days');
+        return;
+      }
+      if (!AIRPORT_TIMELINE_VALUES.includes(maxT)) {
+        setError('mediaVariation.maxOrderQuantitytimeline', {
+          type: 'custom',
+          message: 'Please select 10, 20 or 30 Days',
+        });
+        toast.error('Max Order Timeline must be 10, 20 or 30 Days');
         return;
       }
     }
@@ -2246,7 +2261,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                             {FetchedproductData?.ProductSubCategory ===
-                              '65029534eaa5251874e8c6b4' ? null : (
+                              '65029534eaa5251874e8c6b4' || listingProfile.timelineHidden ? null : (
                               <Box
                                 className="min-w-0 w-full"
                                 sx={{
@@ -2312,46 +2327,6 @@ const MediaProductInfo = () => {
                                         }}
                                       >
                                         <option value="Day">Per Day</option>
-                                      </Select>
-                                    ) : listingProfile.timelineOnlyMonth ? (
-                                      <Select
-                                        native
-                                        variant="standard"
-                                        disableUnderline
-                                        fullWidth
-                                        value={
-                                          AIRPORT_TIMELINE_VALUES.includes(
-                                            String(field.value ?? ''),
-                                          )
-                                            ? String(field.value)
-                                            : ''
-                                        }
-                                        onChange={(e) =>
-                                          field.onChange(
-                                            String(e.target.value ?? ''),
-                                          )
-                                        }
-                                        onBlur={field.onBlur}
-                                        name={field.name}
-                                        inputRef={field.ref}
-                                        inputProps={{ 'aria-label': 'Timeline' }}
-                                        sx={{
-                                          ...inputStyles,
-                                          border: errors?.mediaVariation?.Timeline
-                                            ?.message
-                                            ? '1px solid red'
-                                            : '1px solid #E5E8EB',
-                                          '& .MuiNativeSelect-select': {
-                                            paddingRight: '28px',
-                                          },
-                                        }}
-                                      >
-                                        <option value="">Select timeline</option>
-                                        {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                          </option>
-                                        ))}
                                       </Select>
                                     ) : (
                                       <Select
@@ -3049,7 +3024,9 @@ const MediaProductInfo = () => {
                                   lineHeight: 1.25,
                                 }}
                               >
-                                Min Order QTY Timeline{' '}
+                                {listingProfile.key === 'airport'
+                                  ? 'Min Order Timeline (Days)'
+                                  : 'Min Order QTY Timeline'}{' '}
                                 <span style={{ color: 'red' }}>*</span>
                               </Typography>
 
@@ -3062,73 +3039,120 @@ const MediaProductInfo = () => {
                                   minWidth: 0,
                                 }}
                               >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.minOrderQuantitytimeline?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.minOrderQuantitytimeline',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
+                                {listingProfile.key === 'airport' ? (
+                                  <Controller
+                                    name="mediaVariation.minOrderQuantitytimeline"
+                                    control={control}
+                                    render={({ field }) => (
+                                      <Select
+                                        native
+                                        variant="standard"
+                                        disableUnderline
+                                        fullWidth
+                                        value={
+                                          AIRPORT_TIMELINE_VALUES.includes(
+                                            String(field.value ?? ''),
+                                          )
+                                            ? String(field.value)
+                                            : ''
+                                        }
+                                        onChange={(e) =>
+                                          field.onChange(String(e.target.value ?? ''))
+                                        }
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        inputRef={field.ref}
+                                        inputProps={{ 'aria-label': 'Min Order Timeline (Days)' }}
+                                        sx={{
+                                          ...inputStyles,
+                                          height: '42px',
+                                          fontSize: '12px',
+                                          px: 1,
+                                          border: errors?.mediaVariation
+                                            ?.minOrderQuantitytimeline?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                          borderRadius: '10px',
+                                        }}
+                                      >
+                                        <option value="">Select</option>
+                                        {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
+                                          <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </option>
+                                        ))}
+                                      </Select>
                                     )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    placeholder={'Timeline'}
                                   />
-                                  <Input
-                                    disableUnderline
-                                    {...register('mediaVariation.Timeline')}
-                                    disabled
+                                ) : (
+                                  <Box
                                     sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
+                                      display: 'flex',
+                                      width: '100%',
                                       minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.minOrderQuantitytimeline?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
                                     }}
-                                  />
-                                </Box>
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      {...register(
+                                        'mediaVariation.minOrderQuantitytimeline',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      placeholder={'Timeline'}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      {...register('mediaVariation.Timeline')}
+                                      disabled
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                )}
                                 <Typography
                                   sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
                                 >
@@ -3156,7 +3180,9 @@ const MediaProductInfo = () => {
                                   lineHeight: 1.25,
                                 }}
                               >
-                                Max Order QTY Timeline{' '}
+                                {listingProfile.key === 'airport'
+                                  ? 'Max Order Timeline (Days)'
+                                  : 'Max Order QTY Timeline'}{' '}
                                 <span style={{ color: 'red' }}>*</span>
                               </Typography>
 
@@ -3169,73 +3195,120 @@ const MediaProductInfo = () => {
                                   minWidth: 0,
                                 }}
                               >
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    width: '100%',
-                                    minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.maxOrderQuantitytimeline?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
-                                  }}
-                                >
-                                  <Input
-                                    disableUnderline
-                                    {...register(
-                                      'mediaVariation.maxOrderQuantitytimeline',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
+                                {listingProfile.key === 'airport' ? (
+                                  <Controller
+                                    name="mediaVariation.maxOrderQuantitytimeline"
+                                    control={control}
+                                    render={({ field }) => (
+                                      <Select
+                                        native
+                                        variant="standard"
+                                        disableUnderline
+                                        fullWidth
+                                        value={
+                                          AIRPORT_TIMELINE_VALUES.includes(
+                                            String(field.value ?? ''),
+                                          )
+                                            ? String(field.value)
+                                            : ''
+                                        }
+                                        onChange={(e) =>
+                                          field.onChange(String(e.target.value ?? ''))
+                                        }
+                                        onBlur={field.onBlur}
+                                        name={field.name}
+                                        inputRef={field.ref}
+                                        inputProps={{ 'aria-label': 'Max Order Timeline (Days)' }}
+                                        sx={{
+                                          ...inputStyles,
+                                          height: '42px',
+                                          fontSize: '12px',
+                                          px: 1,
+                                          border: errors?.mediaVariation
+                                            ?.maxOrderQuantitytimeline?.message
+                                            ? '1px solid red'
+                                            : '1px solid #E5E8EB',
+                                          borderRadius: '10px',
+                                        }}
+                                      >
+                                        <option value="">Select</option>
+                                        {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
+                                          <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </option>
+                                        ))}
+                                      </Select>
                                     )}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                    placeholder={'Timeline'}
                                   />
-                                  <Input
-                                    disableUnderline
-                                    {...register('mediaVariation.Timeline')}
-                                    disabled
+                                ) : (
+                                  <Box
                                     sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
+                                      display: 'flex',
+                                      width: '100%',
                                       minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.maxOrderQuantitytimeline?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
                                     }}
-                                  />
-                                </Box>
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      {...register(
+                                        'mediaVariation.maxOrderQuantitytimeline',
+                                        {
+                                          onChange: (event) => {
+                                            event.target.value = parseInt(
+                                              event.target.value.replace(
+                                                /[^\d]+/gi,
+                                                '',
+                                              ) || 0,
+                                            ).toLocaleString('en-US');
+                                          },
+                                        },
+                                      )}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                      placeholder={'Timeline'}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      {...register('mediaVariation.Timeline')}
+                                      disabled
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                )}
                                 <Typography
                                   sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
                                 >
