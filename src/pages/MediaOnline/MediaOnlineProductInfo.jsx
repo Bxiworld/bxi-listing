@@ -47,7 +47,10 @@ import {
   getMediaListingProfile,
   filterFeatureDropdownRows,
   isTirupatiAirportSubcategory,
+  AIRPORT_TIMELINE_OPTIONS,
 } from '../../config/mediaListingProfiles';
+
+const AIRPORT_TIMELINE_VALUES = AIRPORT_TIMELINE_OPTIONS.map((o) => o.value);
 
 const LocationArr = [
   'Specific',
@@ -308,7 +311,7 @@ const MediaProductInfo = () => {
         setValue('mediaVariation.unit', 'Spot');
         setValue('mediaVariation.Timeline', 'Day');
       } else if (fetchProfile.key === 'airport') {
-        setValue('mediaVariation.Timeline', 'Month');
+        setValue('mediaVariation.Timeline', 'Days');
       } else if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
         setValue('mediaVariation.Timeline', 'Month');
       }
@@ -682,7 +685,7 @@ const MediaProductInfo = () => {
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
       ...(submitProfile.key === 'airport'
-        ? { Timeline: 'Month' }
+        ? { Timeline: 'Days' }
         : {}),
     };
 
@@ -750,20 +753,21 @@ const MediaProductInfo = () => {
     }
     if (submitProfile.key === 'airport') {
       const u = String(data.mediaVariation.unit ?? '').trim();
-      if (u !== 'Screen' && u !== 'Location') {
+      if (u !== 'Screen') {
         setError('mediaVariation.unit', {
           type: 'custom',
-          message: 'Please select Per Screen or Per Location',
+          message: 'Please select Per Screen',
         });
-        toast.error('Please select Per Screen or Per Location');
+        toast.error('Please select Per Screen');
         return;
       }
-      if (String(data.mediaVariation.Timeline ?? '').trim() !== 'Month') {
+      const t = String(data.mediaVariation.Timeline ?? '').trim();
+      if (!AIRPORT_TIMELINE_VALUES.includes(t)) {
         setError('mediaVariation.Timeline', {
           type: 'custom',
-          message: 'Timeline must be Per Month for airport listings',
+          message: 'Please select 10, 20 or 30 Days',
         });
-        toast.error('Timeline must be Per Month for airport listings');
+        toast.error('Please select a timeline (10, 20 or 30 Days)');
         return;
       }
     }
@@ -2316,8 +2320,10 @@ const MediaProductInfo = () => {
                                         disableUnderline
                                         fullWidth
                                         value={
-                                          field.value === 'Month'
-                                            ? 'Month'
+                                          AIRPORT_TIMELINE_VALUES.includes(
+                                            String(field.value ?? ''),
+                                          )
+                                            ? String(field.value)
                                             : ''
                                         }
                                         onChange={(e) =>
@@ -2341,7 +2347,11 @@ const MediaProductInfo = () => {
                                         }}
                                       >
                                         <option value="">Select timeline</option>
-                                        <option value="Month">Per Month</option>
+                                        {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
+                                          <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </option>
+                                        ))}
                                       </Select>
                                     ) : (
                                       <Select

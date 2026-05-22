@@ -31,10 +31,20 @@ export const AIRPORT_AD_TYPES = [
   'Others',
 ];
 
-/** Airport units (values match legacy MenuItem value=). */
+/** Airport units — Per Screen only (Per Location removed per product spec). */
 export const AIRPORT_UNITS = [
   { value: 'Screen', label: 'Per Screen' },
-  { value: 'Location', label: 'Per Location' },
+];
+
+/**
+ * Airport timeline options. Stored value is a numeric-string ("10"/"20"/"30")
+ * representing the fixed slot duration in days; used by the Airport buy formula's
+ * timelineFactor (value >= 10 ? value/10 : value).
+ */
+export const AIRPORT_TIMELINE_OPTIONS = [
+  { value: '10', label: '10 Days' },
+  { value: '20', label: '20 Days' },
+  { value: '30', label: '30 Days' },
 ];
 
 export const RADIO_AD_TYPES = ['On Air', 'On Screen', 'Others'];
