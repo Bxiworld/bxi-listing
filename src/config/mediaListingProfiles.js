@@ -423,6 +423,7 @@ export function getMediaListingProfile(product) {
     return {
       ...base,
       key: 'radio',
+      syncTimeslots: false,
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.radio,
       adTypeOptions: RADIO_AD_TYPES,
       unitOptions: RADIO_UNITS,
