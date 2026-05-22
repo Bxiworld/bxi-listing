@@ -334,7 +334,9 @@ export const DOOH_AD_TYPE_OPTIONS_FILTERED = [
  */
 export function getMediaListingProfile(product) {
   const mc = String(product?.mediaCategory || readStorage('mediaCategory') || '').toLowerCase();
-  const journey = getMediaJourney(mc);
+  const journey =
+    String(product?.mediaJourney || readStorage('mediaJourney') || '').trim() ||
+    getMediaJourney(mc);
   
   const subName = String(
     product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? ''
@@ -379,6 +381,7 @@ export function getMediaListingProfile(product) {
     return {
       ...base,
       key: 'airport',
+      syncTimeslots: false,
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.airport,
       adTypeOptions: AIRPORT_AD_TYPES,
       unitOptions: AIRPORT_UNITS,
