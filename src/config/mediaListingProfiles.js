@@ -31,10 +31,20 @@ export const AIRPORT_AD_TYPES = [
   'Others',
 ];
 
-/** Airport units (values match legacy MenuItem value=). */
+/** Airport units — Per Screen only (Per Location removed per product spec). */
 export const AIRPORT_UNITS = [
   { value: 'Screen', label: 'Per Screen' },
-  { value: 'Location', label: 'Per Location' },
+];
+
+/**
+ * Airport timeline options. Stored value is a numeric-string ("10"/"20"/"30")
+ * representing the fixed slot duration in days; used by the Airport buy formula's
+ * timelineFactor (value >= 10 ? value/10 : value).
+ */
+export const AIRPORT_TIMELINE_OPTIONS = [
+  { value: '10', label: '10 Days' },
+  { value: '20', label: '20 Days' },
+  { value: '30', label: '30 Days' },
 ];
 
 export const RADIO_AD_TYPES = ['On Air', 'On Screen', 'Others'];
@@ -330,7 +340,7 @@ export const DOOH_AD_TYPE_OPTIONS_FILTERED = [
 
 /**
  * @param {object} product
- * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, timelineOnlyDay: boolean | undefined, timelineOnlyMonth: boolean | undefined, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
+ * @returns {{ key: string, featureAllowlist: string[] | null, adTypeOptions: string[] | null, unitOptions: {value:string,label:string}[] | null, timelineHideOneTime: boolean, timelineOnlyDay: boolean | undefined, timelineHidden: boolean | undefined, dimensionLabel: string, dimensionRequired: boolean, repetitionRequired: boolean, offeringPlaceholder: string, syncTimeslots: boolean, defaultGstIfEmpty: number, previewHideMediaNameFromTech: boolean, previewHideMediaMetaFromTech: boolean, buyerUnitLabelOverride: string | null, loopTimeField: boolean, supportingDocKeys: string[] | null }}
  */
 export function getMediaListingProfile(product) {
   const mc = String(product?.mediaCategory || readStorage('mediaCategory') || '').toLowerCase();
@@ -365,7 +375,7 @@ export function getMediaListingProfile(product) {
     loopTimeField: false,
     supportingDocKeys: null,
     gstSelectWidthPx: null,
-    timelineOnlyMonth: false,
+    timelineHidden: false,
   };
 
   if (journey === 'display-video' && (mc === 'multiplex' || subName.includes('Multiplex'))) {
@@ -385,7 +395,7 @@ export function getMediaListingProfile(product) {
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.airport,
       adTypeOptions: AIRPORT_AD_TYPES,
       unitOptions: AIRPORT_UNITS,
-      timelineOnlyMonth: true,
+      timelineHidden: true,
       timelineHideOneTime: true,
       previewHideMediaNameFromTech: true,
       previewHideMediaMetaFromTech: true,

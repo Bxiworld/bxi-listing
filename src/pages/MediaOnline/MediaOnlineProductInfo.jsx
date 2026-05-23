@@ -47,7 +47,10 @@ import {
   getMediaListingProfile,
   filterFeatureDropdownRows,
   isTirupatiAirportSubcategory,
+  AIRPORT_TIMELINE_OPTIONS,
 } from '../../config/mediaListingProfiles';
+
+const AIRPORT_TIMELINE_VALUES = AIRPORT_TIMELINE_OPTIONS.map((o) => o.value);
 
 const LocationArr = [
   'Specific',
@@ -320,7 +323,7 @@ const MediaProductInfo = () => {
         setValue('mediaVariation.unit', 'Spot');
         setValue('mediaVariation.Timeline', 'Day');
       } else if (fetchProfile.key === 'airport') {
-        setValue('mediaVariation.Timeline', 'Month');
+        setValue('mediaVariation.Timeline', 'Days');
       } else if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
         setValue('mediaVariation.Timeline', 'Month');
       }
@@ -371,13 +374,12 @@ const MediaProductInfo = () => {
         } else if (fetchProfile.key === 'airport') {
           const incoming = data?.mediaVariation?.unit;
           const u = incoming != null ? String(incoming).trim() : '';
-          const allowedAirportUnits = ['Screen', 'Location'];
-          if (u && allowedAirportUnits.includes(u)) {
+          if (u === 'Screen') {
             setValue('mediaVariation.unit', u);
           } else {
             setValue('mediaVariation.unit', '');
           }
-          setValue('mediaVariation.Timeline', 'Month');
+          setValue('mediaVariation.Timeline', 'Days');
           const airportTotalQty =
             data?.mediaVariation?.maxOrderQuantityunit ??
             data?.mediaVariation?.minOrderQuantityunit;
@@ -401,7 +403,7 @@ const MediaProductInfo = () => {
         if (fetchProfile.key === 'television') {
           // set above
         } else if (fetchProfile.key === 'airport') {
-          setValue('mediaVariation.Timeline', 'Month');
+          setValue('mediaVariation.Timeline', 'Days');
         } else {
           setValue('mediaVariation.Timeline', data?.mediaVariation?.Timeline);
         }
@@ -547,10 +549,17 @@ const MediaProductInfo = () => {
   useEffect(() => {
     if (listingProfile.key !== 'airport') return;
     const u = String(watchedMediaUnit ?? '').trim();
-    if (u && !['Screen', 'Location'].includes(u)) {
+    if (u && u !== 'Screen') {
       setValue('mediaVariation.unit', '', { shouldValidate: true });
     }
   }, [listingProfile.key, watchedMediaUnit, setValue]);
+
+  // Airport: Timeline has no dropdown — auto-set to 'Days' so downstream
+  // displays render a sensible suffix and validation passes.
+  useEffect(() => {
+    if (listingProfile.key !== 'airport') return;
+    setValue('mediaVariation.Timeline', 'Days', { shouldValidate: true, shouldDirty: true });
+  }, [listingProfile.key, setValue]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
   const watchedMediaTimeline = watch('mediaVariation.Timeline');
@@ -925,7 +934,7 @@ const MediaProductInfo = () => {
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
       ...(submitProfile.key === 'airport'
-        ? { Timeline: 'Month' }
+        ? { Timeline: 'Days' }
         : {}),
     };
 
@@ -993,20 +1002,30 @@ const MediaProductInfo = () => {
     }
     if (submitProfile.key === 'airport') {
       const u = String(data.mediaVariation.unit ?? '').trim();
-      if (u !== 'Screen' && u !== 'Location') {
+      if (u !== 'Screen') {
         setError('mediaVariation.unit', {
           type: 'custom',
-          message: 'Please select Per Screen or Per Location',
+          message: 'Please select Per Screen',
         });
-        toast.error('Please select Per Screen or Per Location');
+        toast.error('Please select Per Screen');
         return;
       }
-      if (String(data.mediaVariation.Timeline ?? '').trim() !== 'Month') {
-        setError('mediaVariation.Timeline', {
+      const minT = String(data.mediaVariation.minOrderQuantitytimeline ?? '').trim();
+      const maxT = String(data.mediaVariation.maxOrderQuantitytimeline ?? '').trim();
+      if (!AIRPORT_TIMELINE_VALUES.includes(minT)) {
+        setError('mediaVariation.minOrderQuantitytimeline', {
           type: 'custom',
-          message: 'Timeline must be Per Month for airport listings',
+          message: 'Please select 10, 20 or 30 Days',
         });
-        toast.error('Timeline must be Per Month for airport listings');
+        toast.error('Min Order Timeline must be 10, 20 or 30 Days');
+        return;
+      }
+      if (!AIRPORT_TIMELINE_VALUES.includes(maxT)) {
+        setError('mediaVariation.maxOrderQuantitytimeline', {
+          type: 'custom',
+          message: 'Please select 10, 20 or 30 Days',
+        });
+        toast.error('Max Order Timeline must be 10, 20 or 30 Days');
         return;
       }
       const totalQty = Number(
@@ -2359,7 +2378,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                             {FetchedproductData?.ProductSubCategory ===
-                              '65029534eaa5251874e8c6b4' ? null : (
+                              '65029534eaa5251874e8c6b4' || listingProfile.timelineHidden ? null : (
                               <Box
                                 className="min-w-0 w-full"
                                 sx={{
@@ -2425,40 +2444,6 @@ const MediaProductInfo = () => {
                                         }}
                                       >
                                         <option value="Day">Per Day</option>
-                                      </Select>
-                                    ) : listingProfile.timelineOnlyMonth ? (
-                                      <Select
-                                        native
-                                        variant="standard"
-                                        disableUnderline
-                                        fullWidth
-                                        value={
-                                          field.value === 'Month'
-                                            ? 'Month'
-                                            : ''
-                                        }
-                                        onChange={(e) =>
-                                          field.onChange(
-                                            String(e.target.value ?? ''),
-                                          )
-                                        }
-                                        onBlur={field.onBlur}
-                                        name={field.name}
-                                        inputRef={field.ref}
-                                        inputProps={{ 'aria-label': 'Timeline' }}
-                                        sx={{
-                                          ...inputStyles,
-                                          border: errors?.mediaVariation?.Timeline
-                                            ?.message
-                                            ? '1px solid red'
-                                            : '1px solid #E5E8EB',
-                                          '& .MuiNativeSelect-select': {
-                                            paddingRight: '28px',
-                                          },
-                                        }}
-                                      >
-                                        <option value="">Select timeline</option>
-                                        <option value="Month">Per Month</option>
                                       </Select>
                                     ) : (
                                       <Select
