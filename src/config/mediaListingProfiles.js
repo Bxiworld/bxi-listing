@@ -127,10 +127,8 @@ export const TELEVISION_FEATURE_BLOCKLIST = [
   'Estimated Fleets',
 ];
 
+/** Radio — unit dropdown locked to Per Spot per product spec. */
 export const RADIO_UNITS = [
-  { value: 'Annoucment', label: 'Per Announcement' },
-  { value: 'Release', label: 'Per Release' },
-  { value: 'Video', label: 'Per Video' },
   { value: 'Spot', label: 'Per Spot' },
 ];
 
@@ -438,6 +436,7 @@ export function getMediaListingProfile(product) {
       adTypeOptions: RADIO_AD_TYPES,
       unitOptions: RADIO_UNITS,
       timelineHideOneTime: true,
+      timelineOnlyDay: true,
       dimensionLabel: 'AD Duration',
       dimensionRequired: true,
       repetitionRequired: true,

@@ -8,6 +8,8 @@ export const SUPPORTING_DOC_KEYS = [
   'estimatedFleets',
   'broadcastCertificate',
   'telecastCertificate',
+  'DigitalCopy',
+  'HardCopy',
   'Other',
 ];
 
@@ -20,6 +22,8 @@ export const SUPPORTING_DOC_LABELS = {
   estimatedFleets: 'Estimated Fleets',
   broadcastCertificate: 'Broadcast Certificate',
   telecastCertificate: 'Telecast Certificate',
+  DigitalCopy: 'Digital Copy',
+  HardCopy: 'Hard Copy',
   Other: 'Other',
 };
 
@@ -42,7 +46,13 @@ export const SUPPORTING_DOC_KEYS_FORM_ORDER_HOARDING = [
 ];
 
 /** Media offline print / newspaper tech step */
-export const SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT = ['Videos', 'Pictures', 'Other'];
+export const SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT = [
+  'Videos',
+  'Pictures',
+  'DigitalCopy',
+  'HardCopy',
+  'Other',
+];
 
 const LABEL_TO_KEY = Object.fromEntries(
   Object.entries(SUPPORTING_DOC_LABELS).map(([k, v]) => [v, k]),
@@ -68,6 +78,8 @@ function normalizeDocKey(input) {
     estimatedfleets: 'estimatedFleets',
     broadcastcertificate: 'broadcastCertificate',
     telecastcertificate: 'telecastCertificate',
+    digitalcopy: 'DigitalCopy',
+    hardcopy: 'HardCopy',
     other: 'Other',
   }[compact];
   return byCompact || null;

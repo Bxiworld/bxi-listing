@@ -52,6 +52,8 @@ const DEFAULT_SUPPORTING_DOC_OPTIONS = [
 const PRINT_SUPPORTING_DOC_OPTIONS = [
   { key: 'Videos', label: 'Videos' },
   { key: 'Pictures', label: 'Pictures' },
+  { key: 'DigitalCopy', label: 'Digital Copy' },
+  { key: 'HardCopy', label: 'Hard Copy' },
   { key: 'Other', label: 'Other' },
 ];
 
@@ -113,6 +115,8 @@ export default function TechInfo() {
     Videos: false,
     Pictures: false,
     ExhibitionCertificate: false,
+    DigitalCopy: false,
+    HardCopy: false,
     Other: false,
   });
 
@@ -164,6 +168,8 @@ export default function TechInfo() {
           Videos: !!loadedSupporting.Videos,
           Pictures: !!loadedSupporting.Pictures,
           ExhibitionCertificate: false,
+          DigitalCopy: !!loadedSupporting.DigitalCopy,
+          HardCopy: !!loadedSupporting.HardCopy,
           Other: !!loadedSupporting.Other,
         });
       } else {
