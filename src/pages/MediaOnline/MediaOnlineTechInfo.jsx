@@ -36,7 +36,10 @@ import {
   checkboxStateToSupportingArray,
   emptySupportingCheckboxState,
 } from '../../utils/supportingBuyerDocs';
-import { getMediaListingProfile } from '../../config/mediaListingProfiles';
+import {
+  getMediaListingProfile,
+  RADIO_SUPPORTING_DOC_KEYS,
+} from '../../config/mediaListingProfiles';
 const options = { day: '2-digit', month: 'short', year: 'numeric' };
 
 /** Row-major pairs for a stable 2-column grid (left | right). */
@@ -106,13 +109,21 @@ export default function TechInfo() {
     }
   };
   const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
+  const techFormProfile = getMediaListingProfile(fetchproductData || {});
   const isRadioMediaListing =
+    techFormProfile.key === 'radio' ||
     fetchproductData?.ProductSubCategoryName === 'Radio' ||
     fetchproductData?.ProductSubCategory === '65029534eaa5251874e8c6c1';
-
-  const techFormProfile = getMediaListingProfile(fetchproductData || {});
   const isTelevisionMediaListing = techFormProfile.key === 'television';
   const showContentUploadSection = !isTelevisionMediaListing;
+  const radioSupportingDocKeys = useMemo(
+    () =>
+      Array.isArray(techFormProfile.supportingDocKeys) &&
+      techFormProfile.supportingDocKeys.length
+        ? techFormProfile.supportingDocKeys
+        : RADIO_SUPPORTING_DOC_KEYS,
+    [techFormProfile.supportingDocKeys],
+  );
   const supportingDocGridRows = useMemo(() => {
     if (techFormProfile.key === 'television') {
       return [
@@ -121,19 +132,34 @@ export default function TechInfo() {
         ['Other', null],
       ];
     }
+    if (techFormProfile.key === 'radio') {
+      return [
+        ['broadcastCertificate', 'LogReport'],
+        ['Videos', 'Pictures'],
+        ['Other', null],
+      ];
+    }
     return SUPPORTING_DOC_PAIR_ROWS;
   }, [techFormProfile.key]);
   const [loopTimeMinutes, setLoopTimeMinutes] = useState('');
 
   function showSupportingDocKey(key) {
+    if (isRadioMediaListing) {
+      return radioSupportingDocKeys.includes(key);
+    }
     if (Array.isArray(techFormProfile.supportingDocKeys) && techFormProfile.supportingDocKeys.length) {
       return techFormProfile.supportingDocKeys.includes(key);
     }
-    if (isRadioMediaListing) {
-      return ['broadcastCertificate', 'LogReport'].includes(key);
-    }
     return true;
   }
+
+  const sanitizeSupportingCheckboxState = (rawState, allowedKeys) => {
+    const next = { ...emptySupportingCheckboxState(), ...rawState };
+    Object.keys(next).forEach((k) => {
+      if (!allowedKeys.includes(k)) next[k] = false;
+    });
+    return next;
+  };
 
   const validationSchema = useMemo(
     () =>
@@ -204,8 +230,22 @@ export default function TechInfo() {
         setfetchProductData(data);
         setValue('Dimensions', data?.Dimensions);
         setValue('UploadLink', data?.UploadLink);
+        const profile = getMediaListingProfile(data || {});
+        const loadedSupporting = supportingDocsToCheckboxState(
+          data?.WhatSupportingYouWouldGiveToBuyer,
+        );
+        const isRadio =
+          profile.key === 'radio' ||
+          data?.ProductSubCategoryName === 'Radio' ||
+          data?.ProductSubCategory === '65029534eaa5251874e8c6c1';
+        const allowedRadio =
+          Array.isArray(profile.supportingDocKeys) && profile.supportingDocKeys.length
+            ? profile.supportingDocKeys
+            : RADIO_SUPPORTING_DOC_KEYS;
         setCheckBoxes(
-          supportingDocsToCheckboxState(data?.WhatSupportingYouWouldGiveToBuyer),
+          isRadio
+            ? sanitizeSupportingCheckboxState(loadedSupporting, allowedRadio)
+            : loadedSupporting,
         );
         setLoopTimeMinutes(
           data?.loopTimeMinutes != null && data?.loopTimeMinutes !== ''
@@ -268,30 +308,36 @@ export default function TechInfo() {
         return (Totaldays += getDaysBetweenDates(item.startDate, item.endDate));
       });
 
+      const allowedSupportingKeys = isRadioMediaListing
+        ? radioSupportingDocKeys
+        : Array.isArray(techFormProfile.supportingDocKeys) &&
+            techFormProfile.supportingDocKeys.length
+          ? techFormProfile.supportingDocKeys
+          : null;
+      const selectedKeys = checkboxStateToSupportingArray(checkBoxes).filter((k) =>
+        allowedSupportingKeys ? allowedSupportingKeys.includes(k) : true,
+      );
       const datatobesent = {
         ...data,
         id: ProductId,
-        WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
+        WhatSupportingYouWouldGiveToBuyer: selectedKeys,
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
         ...(showContentUploadSection
           ? { BXISpace: BXISpace, UploadLink: data.UploadLink }
           : { BXISpace: false, UploadLink: '' }),
       };
-      const selectedKeys = checkboxStateToSupportingArray(checkBoxes);
       const supportingOk =
         selectedKeys.length > 0 &&
-        (() => {
-          if (Array.isArray(techFormProfile.supportingDocKeys) && techFormProfile.supportingDocKeys.length) {
-            return selectedKeys.some((k) => techFormProfile.supportingDocKeys.includes(k));
-          }
-          if (isRadioMediaListing) {
-            return selectedKeys.some((k) => k === 'broadcastCertificate' || k === 'LogReport');
-          }
-          return true;
-        })();
+        (allowedSupportingKeys
+          ? selectedKeys.some((k) => allowedSupportingKeys.includes(k))
+          : true);
       if (!supportingOk) {
-        toast.error('Please select at least one supporting document');
+        toast.error(
+          isRadioMediaListing
+            ? 'Please select at least one supporting document (broadcast certificate, log report, videos, pictures, or other)'
+            : 'Please select at least one supporting document',
+        );
         return;
       }
       if (

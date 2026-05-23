@@ -58,6 +58,15 @@ export const TELEVISION_AD_TYPES = [
   'Scroller',
 ];
 
+/** Radio — supporting docs (no inspection pass or exhibition certificate). */
+export const RADIO_SUPPORTING_DOC_KEYS = [
+  'broadcastCertificate',
+  'LogReport',
+  'Videos',
+  'Pictures',
+  'Other',
+];
+
 /** Television — supporting docs on Media Online technical information (checkbox keys). */
 export const TELEVISION_SUPPORTING_DOC_KEYS = [
   'Videos',
@@ -441,9 +450,11 @@ export function getMediaListingProfile(product) {
       adTypeOptions: RADIO_AD_TYPES,
       unitOptions: RADIO_UNITS,
       timelineHideOneTime: true,
+      timelineOnlyDay: true,
       dimensionLabel: 'AD Duration',
       dimensionRequired: true,
       repetitionRequired: true,
+      supportingDocKeys: RADIO_SUPPORTING_DOC_KEYS,
     };
   }
 

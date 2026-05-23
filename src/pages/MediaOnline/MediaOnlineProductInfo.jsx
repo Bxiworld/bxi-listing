@@ -322,6 +322,8 @@ const MediaProductInfo = () => {
       if (fetchProfile.key === 'television') {
         setValue('mediaVariation.unit', 'Spot');
         setValue('mediaVariation.Timeline', 'Day');
+      } else if (fetchProfile.key === 'radio') {
+        setValue('mediaVariation.Timeline', 'Day');
       } else if (fetchProfile.key === 'airport') {
         setValue('mediaVariation.Timeline', 'Days');
       } else if (data?.ProductSubCategory === '65029534eaa5251874e8c6b4') {
@@ -400,8 +402,8 @@ const MediaProductInfo = () => {
             }
           }
         }
-        if (fetchProfile.key === 'television') {
-          // set above
+        if (fetchProfile.key === 'television' || fetchProfile.key === 'radio') {
+          setValue('mediaVariation.Timeline', 'Day');
         } else if (fetchProfile.key === 'airport') {
           setValue('mediaVariation.Timeline', 'Days');
         } else {
@@ -542,7 +544,9 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (!listingProfile.timelineOnlyDay) return;
-    setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    if (listingProfile.key === 'television') {
+      setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    }
     setValue('mediaVariation.Timeline', 'Day', { shouldValidate: true, shouldDirty: true });
   }, [listingProfile.timelineOnlyDay, listingProfile.key, setValue]);
 
@@ -933,6 +937,7 @@ const MediaProductInfo = () => {
       ...(submitProfile.key === 'television'
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
+      ...(submitProfile.key === 'radio' ? { Timeline: 'Day' } : {}),
       ...(submitProfile.key === 'airport'
         ? { Timeline: 'Days' }
         : {}),
@@ -999,6 +1004,18 @@ const MediaProductInfo = () => {
       });
       toast.error('Please select a timeline');
       return;
+    }
+    if (submitProfile.key === 'radio') {
+      const radioTimeline = String(data.mediaVariation.Timeline ?? '').trim();
+      if (radioTimeline !== 'Day') {
+        setError('mediaVariation.Timeline', {
+          type: 'custom',
+          message: 'Timeline must be Per Day for radio listings',
+        });
+        toast.error('Timeline must be Per Day for radio listings');
+        return;
+      }
+      mergedMediaVariation.Timeline = 'Day';
     }
     if (submitProfile.key === 'airport') {
       const u = String(data.mediaVariation.unit ?? '').trim();
