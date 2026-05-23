@@ -52,6 +52,14 @@ import {
 
 const AIRPORT_TIMELINE_VALUES = AIRPORT_TIMELINE_OPTIONS.map((o) => o.value);
 
+function normalizeAirportTimelineValue(value) {
+  const s = String(value ?? '').trim();
+  if (AIRPORT_TIMELINE_VALUES.includes(s)) return s;
+  const n = Number(s);
+  if (n === 10 || n === 20 || n === 30) return String(n);
+  return '';
+}
+
 const LocationArr = [
   'Specific',
   'Position',
@@ -389,6 +397,27 @@ const MediaProductInfo = () => {
             setValue('mediaVariation.minOrderQuantityunit', airportTotalQty);
             setValue('mediaVariation.maxOrderQuantityunit', airportTotalQty);
           }
+          const minTs = normalizeAirportTimelineValue(
+            data?.mediaVariation?.minOrderQuantitytimeline,
+          );
+          const maxTs = normalizeAirportTimelineValue(
+            data?.mediaVariation?.maxOrderQuantitytimeline,
+          );
+          if (minTs) {
+            setValue('mediaVariation.minOrderQuantitytimeline', minTs);
+          }
+          if (maxTs) {
+            setValue('mediaVariation.maxOrderQuantitytimeline', maxTs);
+          } else if (minTs) {
+            setValue('mediaVariation.maxOrderQuantitytimeline', minTs);
+          }
+          if (
+            minTs &&
+            maxTs &&
+            Number(maxTs) < Number(minTs)
+          ) {
+            setValue('mediaVariation.maxOrderQuantitytimeline', minTs);
+          }
         } else {
           const incoming = data?.mediaVariation?.unit;
           const hasIncoming =
@@ -567,6 +596,14 @@ const MediaProductInfo = () => {
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
   const watchedMediaTimeline = watch('mediaVariation.Timeline');
+  const watchedMinOrderQtyTimeline = watch('mediaVariation.minOrderQuantitytimeline');
+  const watchedMaxOrderQtyTimeline = watch('mediaVariation.maxOrderQuantitytimeline');
+  const airportMaxTimelineOptions = useMemo(() => {
+    if (listingProfile.key !== 'airport') return AIRPORT_TIMELINE_OPTIONS;
+    const minN = Number(watchedMinOrderQtyTimeline);
+    if (!Number.isFinite(minN) || minN <= 0) return AIRPORT_TIMELINE_OPTIONS;
+    return AIRPORT_TIMELINE_OPTIONS.filter((o) => Number(o.value) >= minN);
+  }, [listingProfile.key, watchedMinOrderQtyTimeline]);
 
   const formatQtyInputEvent = (event) => {
     const formatted = parseInt(
@@ -625,6 +662,24 @@ const MediaProductInfo = () => {
     maxOrderQtyTimelineField.onChange(event);
   };
 
+  const handleAirportMinTimelineChange = (event) => {
+    minOrderQtyTimelineField.onChange(event);
+    const next = String(event.target.value ?? '').trim();
+    if (!next) return;
+    const minN = Number(next);
+    const maxCur = Number(getValues('mediaVariation.maxOrderQuantitytimeline'));
+    if (Number.isFinite(maxCur) && maxCur > 0 && maxCur < minN) {
+      setValue('mediaVariation.maxOrderQuantitytimeline', next, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const handleAirportMaxTimelineChange = (event) => {
+    maxOrderQtyTimelineField.onChange(event);
+  };
+
   const formatTimelineUnitLabel = (timeline) => {
     const t = String(timeline ?? '').trim();
     if (!t) return '—';
@@ -637,13 +692,25 @@ const MediaProductInfo = () => {
   };
 
   const renderMinMaxOrderQtyTimelineField = (options = {}) => {
-    const { wrapperClassName = '', compactLabel = false } = options;
+    const {
+      wrapperClassName = '',
+      compactLabel = false,
+      airportTimelineDropdown = false,
+    } = options;
     const minTimelineError =
       errors?.mediaVariation?.minOrderQuantitytimeline?.message;
     const maxTimelineError =
       errors?.mediaVariation?.maxOrderQuantitytimeline?.message;
     const hasTimelineError = Boolean(minTimelineError || maxTimelineError);
-    const timelineUnitLabel = formatTimelineUnitLabel(watchedMediaTimeline);
+    const timelineUnitLabel = airportTimelineDropdown
+      ? 'Days'
+      : formatTimelineUnitLabel(watchedMediaTimeline);
+    const airportMinTimelineValue = normalizeAirportTimelineValue(
+      watchedMinOrderQtyTimeline,
+    );
+    const airportMaxTimelineValue = normalizeAirportTimelineValue(
+      watchedMaxOrderQtyTimeline,
+    );
 
     return (
       <Box
@@ -689,30 +756,63 @@ const MediaProductInfo = () => {
               border: hasTimelineError ? '1px solid red' : '1px solid #E5E8EB',
             }}
           >
-            <Input
-              disableUnderline
-              name={minOrderQtyTimelineField.name}
-              onBlur={minOrderQtyTimelineField.onBlur}
-              inputRef={minOrderQtyTimelineField.ref}
-              onChange={handleMinOrderQtyTimelineChange}
-              onKeyDown={(e) => {
-                if (e.key === ' ' && e.target.selectionStart === 0) {
-                  e.preventDefault();
-                }
-              }}
-              placeholder="Min"
-              sx={{
-                ...inputStyles,
-                flex: '1 1 56px',
-                minWidth: 56,
-                maxWidth: 96,
-                border: 'none',
-                borderRadius: 0,
-                height: '42px',
-                fontSize: '12px',
-                px: 1,
-              }}
-            />
+            {airportTimelineDropdown ? (
+              <Select
+                disableUnderline
+                displayEmpty
+                name={minOrderQtyTimelineField.name}
+                inputRef={minOrderQtyTimelineField.ref}
+                onBlur={minOrderQtyTimelineField.onBlur}
+                value={airportMinTimelineValue}
+                onChange={handleAirportMinTimelineChange}
+                renderValue={(selected) => (selected ? String(selected) : 'Min')}
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 72px',
+                  minWidth: 72,
+                  maxWidth: 120,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 0.5,
+                }}
+              >
+                <MenuItem value="" disabled>
+                  Min
+                </MenuItem>
+                {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
+                  <MenuItem key={`min-ts-${opt.value}`} value={opt.value}>
+                    {opt.value}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                disableUnderline
+                name={minOrderQtyTimelineField.name}
+                onBlur={minOrderQtyTimelineField.onBlur}
+                inputRef={minOrderQtyTimelineField.ref}
+                onChange={handleMinOrderQtyTimelineChange}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' && e.target.selectionStart === 0) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="Min"
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 56px',
+                  minWidth: 56,
+                  maxWidth: 96,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 1,
+                }}
+              />
+            )}
             <Box
               sx={{
                 display: 'flex',
@@ -730,30 +830,63 @@ const MediaProductInfo = () => {
             >
               -
             </Box>
-            <Input
-              disableUnderline
-              name={maxOrderQtyTimelineField.name}
-              onBlur={maxOrderQtyTimelineField.onBlur}
-              inputRef={maxOrderQtyTimelineField.ref}
-              onChange={handleMaxOrderQtyTimelineChange}
-              onKeyDown={(e) => {
-                if (e.key === ' ' && e.target.selectionStart === 0) {
-                  e.preventDefault();
-                }
-              }}
-              placeholder="Max"
-              sx={{
-                ...inputStyles,
-                flex: '1 1 56px',
-                minWidth: 56,
-                maxWidth: 96,
-                border: 'none',
-                borderRadius: 0,
-                height: '42px',
-                fontSize: '12px',
-                px: 1,
-              }}
-            />
+            {airportTimelineDropdown ? (
+              <Select
+                disableUnderline
+                displayEmpty
+                name={maxOrderQtyTimelineField.name}
+                inputRef={maxOrderQtyTimelineField.ref}
+                onBlur={maxOrderQtyTimelineField.onBlur}
+                value={airportMaxTimelineValue}
+                onChange={handleAirportMaxTimelineChange}
+                renderValue={(selected) => (selected ? String(selected) : 'Max')}
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 72px',
+                  minWidth: 72,
+                  maxWidth: 120,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 0.5,
+                }}
+              >
+                <MenuItem value="" disabled>
+                  Max
+                </MenuItem>
+                {airportMaxTimelineOptions.map((opt) => (
+                  <MenuItem key={`max-ts-${opt.value}`} value={opt.value}>
+                    {opt.value}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                disableUnderline
+                name={maxOrderQtyTimelineField.name}
+                onBlur={maxOrderQtyTimelineField.onBlur}
+                inputRef={maxOrderQtyTimelineField.ref}
+                onChange={handleMaxOrderQtyTimelineChange}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' && e.target.selectionStart === 0) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="Max"
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 56px',
+                  minWidth: 56,
+                  maxWidth: 96,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 1,
+                }}
+              />
+            )}
             <Box
               title={timelineUnitLabel}
               sx={{
@@ -3243,7 +3376,11 @@ const MediaProductInfo = () => {
                             )}
                             {renderMinMaxOrderQtyTimelineField(
                               listingProfile.key === 'airport'
-                                ? { wrapperClassName: 'lg:col-span-2', compactLabel: true }
+                                ? {
+                                    wrapperClassName: 'lg:col-span-2',
+                                    compactLabel: true,
+                                    airportTimelineDropdown: true,
+                                  }
                                 : {},
                             )}
                             <Box
