@@ -135,6 +135,28 @@ export default function TechInfo() {
     return true;
   }
 
+  const validationSchema = useMemo(
+    () =>
+      z.object({
+        Dimensions: isRadioMediaListing
+          ? z.string().max(500)
+          : z.string().min(1).max(500),
+        UploadLink:
+          isTelevisionMediaListing || BXISpace === true
+            ? z.any().optional()
+            : z.string().min(1),
+        BXISpace: isTelevisionMediaListing
+          ? z.any().optional()
+          : z.boolean(),
+      }),
+    [isRadioMediaListing, isTelevisionMediaListing, BXISpace],
+  );
+
+  const resolver = useMemo(
+    () => zodResolver(validationSchema),
+    [validationSchema],
+  );
+
   const {
     register,
     handleSubmit,
@@ -143,7 +165,7 @@ export default function TechInfo() {
     control,
     reset,
     setError,
-
+    clearErrors,
     formState: { errors, isValid },
   } = useForm({
     Values: {
@@ -152,19 +174,14 @@ export default function TechInfo() {
       WhatSupportingYouWouldGiveToBuyer:
         fetchproductData?.whatSupportingYouWouldGiveToBuyer,
     },
-    resolver: zodResolver(
-      z.object({
-        Dimensions: isRadioMediaListing
-          ? z.string().max(500)
-          : z.string().min(1).max(500),
-        UploadLink:
-          isTelevisionMediaListing || BXISpace === true
-            ? z.any()
-            : z.string().min(1),
-        BXISpace: z.boolean(),
-      }),
-    ),
+    resolver,
   });
+
+  useEffect(() => {
+    if (isTelevisionMediaListing) {
+      clearErrors(['UploadLink', 'BXISpace']);
+    }
+  }, [isTelevisionMediaListing, clearErrors]);
 
   const ContentChange = (event) => {
     if (event.target.value === 'uploadLinkSet') {

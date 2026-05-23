@@ -167,7 +167,7 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, price
           </Typography>
         )}
         <Typography variant="caption" color="text.secondary">
-          Media listing prices are exclusive of GST. GST is charged additionally as applicable.
+          Media Listing prices are exclusive of GST.
         </Typography>
       </Stack>
     );
@@ -229,6 +229,15 @@ function getVariantSizesDisplay(v) {
 
 function variantQtyHasValue(q) {
   return q != null && q !== '' && !Number.isNaN(Number(q));
+}
+
+function formatMinMaxOrderQtySummary(minVal, maxVal) {
+  const hasMin = minVal != null && String(minVal).trim() !== '';
+  const hasMax = maxVal != null && String(maxVal).trim() !== '';
+  if (!hasMin && !hasMax) return null;
+  const minPart = hasMin ? String(minVal).trim() : '—';
+  const maxPart = hasMax ? String(maxVal).trim() : '—';
+  return `${minPart} - ${maxPart}`;
 }
 
 function getVoucherOfflineAddress(product) {
@@ -339,26 +348,21 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
     });
   }
 
-  if (!hideOrderQtyCols && variantQtyHasValue(v.MinOrderQuantity)) {
-    cols.push({
-      id: 'minQty',
-      heading: 'Min QTY',
-      minWidth: 96,
-      cell: (
-        <Chip label={v.MinOrderQuantity} size="small" color="primary" variant="outlined" />
-      ),
-    });
-  }
-
-  if (!hideOrderQtyCols && variantQtyHasValue(v.MaxOrderQuantity)) {
-    cols.push({
-      id: 'maxQty',
-      heading: 'Max QTY',
-      minWidth: 96,
-      cell: (
-        <Chip label={v.MaxOrderQuantity} size="small" color="primary" variant="outlined" />
-      ),
-    });
+  if (!hideOrderQtyCols) {
+    const minMaxOrderQty = formatMinMaxOrderQtySummary(
+      v.MinOrderQuantity,
+      v.MaxOrderQuantity,
+    );
+    if (minMaxOrderQty) {
+      cols.push({
+        id: 'minMaxQty',
+        heading: 'Min - Max QTY',
+        minWidth: 120,
+        cell: (
+          <Chip label={minMaxOrderQty} size="small" color="primary" variant="outlined" />
+        ),
+      });
+    }
   }
 
   if (v.GST != null && v.GST !== '' && !(typeof v.GST === 'number' && Number.isNaN(v.GST))) {
@@ -1527,6 +1531,10 @@ export default function ProductPreview() {
                     );
                   const pickMaxOrderQty = () =>
                     pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit ?? v0.MaxOrderQuantity);
+                  const orderQtySummary = formatMinMaxOrderQtySummary(
+                    pickOrderQty(),
+                    pickMaxOrderQty(),
+                  );
                   const pickUnit = () => pick(mv.unit, v0.unit);
                   const minTs = pick(mv.minTimeslotSeconds, v0.minTimeslotSeconds);
                   const maxTs = pick(mv.maxTimeslotSeconds, v0.maxTimeslotSeconds);
@@ -1534,6 +1542,19 @@ export default function ProductPreview() {
                     minTs != null || maxTs != null
                       ? `${minTs != null && String(minTs).trim() !== '' ? String(minTs) : '—'} - ${maxTs != null && String(maxTs).trim() !== '' ? String(maxTs) : '—'
                       } seconds`
+                      : null;
+                  const minOrderTimeline = pick(
+                    mv.minOrderQuantitytimeline,
+                    v0.minOrderQuantitytimeline,
+                  );
+                  const maxOrderTimeline = pick(
+                    mv.maxOrderQuantitytimeline,
+                    v0.maxOrderQuantitytimeline,
+                  );
+                  const timelineUnit = pick(mv.Timeline, v0.Timeline);
+                  const orderTimelineSummary =
+                    minOrderTimeline != null || maxOrderTimeline != null
+                      ? `${minOrderTimeline != null && String(minOrderTimeline).trim() !== '' ? String(minOrderTimeline) : '—'} - ${maxOrderTimeline != null && String(maxOrderTimeline).trim() !== '' ? String(maxOrderTimeline) : '—'}${timelineUnit ? ` / ${timelineUnit}` : ''}`
                       : null;
                   const loopSeconds =
                     product?.loopTimeSeconds != null && String(product.loopTimeSeconds).trim() !== ''
@@ -1573,20 +1594,13 @@ export default function ProductPreview() {
                     [dimLabel, pick(mv.dimensionSize, v0.dimensionSize)],
                     ['Ad type', pick(mv.adType, v0.adType)],
                     ['Placement / ad type', pick(mv.location, v0.location)],
-                    ['Timeline', pick(mv.Timeline, v0.Timeline)],
+                    ['Timeline', `Per ${pick(mv.Timeline, v0.Timeline)}`],
                     ...(hidePrintOrderQty
                       ? []
-                      : [
-                          ['Min order quantity', pickOrderQty()],
-                          ['Max order quantity', pickMaxOrderQty()],
-                        ]),
+                      : [['Min - Max Order Qty', orderQtySummary]]),
                     ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
-                    [
-                      'Min order (timeline)',
-                      pick(mv.minOrderQuantitytimeline, v0.minOrderQuantitytimeline),
-                    ],
-                    ['Max order (timeline)', pick(mv.maxOrderQuantitytimeline, v0.maxOrderQuantitytimeline)],
-                    ['Order unit', pickUnit()],
+                    ['Min - Max order (timeline)', orderTimelineSummary],
+                    ['Order unit', 'Per '+pickUnit()],
                     ...(String(product?.estimatedFleets || '').trim()
                       ? [['Estimated fleets', String(product.estimatedFleets).trim()]]
                       : []),
