@@ -52,6 +52,14 @@ import {
 
 const AIRPORT_TIMELINE_VALUES = AIRPORT_TIMELINE_OPTIONS.map((o) => o.value);
 
+function normalizeAirportTimelineValue(value) {
+  const s = String(value ?? '').trim();
+  if (AIRPORT_TIMELINE_VALUES.includes(s)) return s;
+  const n = Number(s);
+  if (n === 10 || n === 20 || n === 30) return String(n);
+  return '';
+}
+
 const LocationArr = [
   'Specific',
   'Position',
@@ -255,12 +263,24 @@ const MediaProductInfo = () => {
           minOrderQuantityunit:
             FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951'
               ? z.any()
-              : z.coerce.number().positive('Min order quantity must be greater than 0').min(1, 'Min order quantity must be greater than 0'),
+              : getMediaListingProfile(FetchedproductData || {})?.key === 'airport'
+                ? z.coerce
+                    .number()
+                    .positive('Total quantity must be greater than 0')
+                    .min(1, 'Total quantity must be greater than 0')
+                : z.coerce
+                    .number()
+                    .positive('Min order quantity must be greater than 0')
+                    .min(1, 'Min order quantity must be greater than 0'),
 
           maxOrderQuantityunit:
-            FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951'
+            FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951' ||
+            getMediaListingProfile(FetchedproductData || {})?.key === 'airport'
               ? z.any()
-              : z.coerce.number().positive('Max order quantity must be greater than 0').min(1, 'Max order quantity must be greater than 0'),
+              : z.coerce
+                  .number()
+                  .positive('Max order quantity must be greater than 0')
+                  .min(1, 'Max order quantity must be greater than 0'),
 
           minOrderQuantitytimeline:
             z.coerce.number().positive('Min order timeline must be greater than 0').min(1, 'Min order timeline must be greater than 0'),
@@ -309,6 +329,8 @@ const MediaProductInfo = () => {
       const fetchProfile = getMediaListingProfile(data);
       if (fetchProfile.key === 'television') {
         setValue('mediaVariation.unit', 'Spot');
+        setValue('mediaVariation.Timeline', 'Day');
+      } else if (fetchProfile.key === 'radio') {
         setValue('mediaVariation.Timeline', 'Day');
       } else if (fetchProfile.key === 'airport') {
         setValue('mediaVariation.Timeline', 'Days');
@@ -368,6 +390,34 @@ const MediaProductInfo = () => {
             setValue('mediaVariation.unit', '');
           }
           setValue('mediaVariation.Timeline', 'Days');
+          const airportTotalQty =
+            data?.mediaVariation?.maxOrderQuantityunit ??
+            data?.mediaVariation?.minOrderQuantityunit;
+          if (airportTotalQty != null && airportTotalQty !== '') {
+            setValue('mediaVariation.minOrderQuantityunit', airportTotalQty);
+            setValue('mediaVariation.maxOrderQuantityunit', airportTotalQty);
+          }
+          const minTs = normalizeAirportTimelineValue(
+            data?.mediaVariation?.minOrderQuantitytimeline,
+          );
+          const maxTs = normalizeAirportTimelineValue(
+            data?.mediaVariation?.maxOrderQuantitytimeline,
+          );
+          if (minTs) {
+            setValue('mediaVariation.minOrderQuantitytimeline', minTs);
+          }
+          if (maxTs) {
+            setValue('mediaVariation.maxOrderQuantitytimeline', maxTs);
+          } else if (minTs) {
+            setValue('mediaVariation.maxOrderQuantitytimeline', minTs);
+          }
+          if (
+            minTs &&
+            maxTs &&
+            Number(maxTs) < Number(minTs)
+          ) {
+            setValue('mediaVariation.maxOrderQuantitytimeline', minTs);
+          }
         } else {
           const incoming = data?.mediaVariation?.unit;
           const hasIncoming =
@@ -381,8 +431,8 @@ const MediaProductInfo = () => {
             }
           }
         }
-        if (fetchProfile.key === 'television') {
-          // set above
+        if (fetchProfile.key === 'television' || fetchProfile.key === 'radio') {
+          setValue('mediaVariation.Timeline', 'Day');
         } else if (fetchProfile.key === 'airport') {
           setValue('mediaVariation.Timeline', 'Days');
         } else {
@@ -523,7 +573,9 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (!listingProfile.timelineOnlyDay) return;
-    setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    if (listingProfile.key === 'television') {
+      setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    }
     setValue('mediaVariation.Timeline', 'Day', { shouldValidate: true, shouldDirty: true });
   }, [listingProfile.timelineOnlyDay, listingProfile.key, setValue]);
 
@@ -543,6 +595,334 @@ const MediaProductInfo = () => {
   }, [listingProfile.key, setValue]);
   const adTypeOptions = listingProfile.adTypeOptions || LocationArr;
   const minTimeslotWatch = watch('mediaVariation.minTimeslotSeconds');
+  const watchedMediaTimeline = watch('mediaVariation.Timeline');
+  const watchedMinOrderQtyTimeline = watch('mediaVariation.minOrderQuantitytimeline');
+  const watchedMaxOrderQtyTimeline = watch('mediaVariation.maxOrderQuantitytimeline');
+  const airportMaxTimelineOptions = useMemo(() => {
+    if (listingProfile.key !== 'airport') return AIRPORT_TIMELINE_OPTIONS;
+    const minN = Number(watchedMinOrderQtyTimeline);
+    if (!Number.isFinite(minN) || minN <= 0) return AIRPORT_TIMELINE_OPTIONS;
+    return AIRPORT_TIMELINE_OPTIONS.filter((o) => Number(o.value) >= minN);
+  }, [listingProfile.key, watchedMinOrderQtyTimeline]);
+
+  const formatQtyInputEvent = (event) => {
+    const formatted = parseInt(
+      event.target.value.replace(/[^\d]+/gi, '') || 0,
+    ).toLocaleString('en-US');
+    event.target.value = formatted;
+    return formatted;
+  };
+
+  const minOrderQtyUnitField = register('mediaVariation.minOrderQuantityunit');
+  const maxOrderQtyUnitField = register('mediaVariation.maxOrderQuantityunit');
+  const minOrderQtyTimelineField = register(
+    'mediaVariation.minOrderQuantitytimeline',
+    {
+      onChange: (event) => {
+        formatQtyInputEvent(event);
+      },
+    },
+  );
+  const maxOrderQtyTimelineField = register(
+    'mediaVariation.maxOrderQuantitytimeline',
+    {
+      onChange: (event) => {
+        formatQtyInputEvent(event);
+      },
+    },
+  );
+
+  const handleAirportTotalQtyChange = (event) => {
+    const formatted = formatQtyInputEvent(event);
+    minOrderQtyUnitField.onChange(event);
+    setValue('mediaVariation.maxOrderQuantityunit', formatted, {
+      shouldValidate: false,
+    });
+  };
+
+  const handleMinOrderQtyUnitChange = (event) => {
+    const formatted = formatQtyInputEvent(event);
+    minOrderQtyUnitField.onChange(event);
+    if (
+      FetchedproductData?.ProductSubCategory === '65029534eaa5251874e8c6b4'
+    ) {
+      setValue('mediaVariation.maxOrderQuantityunit', formatted, {
+        shouldValidate: false,
+      });
+    }
+  };
+
+  const handleMinOrderQtyTimelineChange = (event) => {
+    formatQtyInputEvent(event);
+    minOrderQtyTimelineField.onChange(event);
+  };
+
+  const handleMaxOrderQtyTimelineChange = (event) => {
+    formatQtyInputEvent(event);
+    maxOrderQtyTimelineField.onChange(event);
+  };
+
+  const handleAirportMinTimelineChange = (event) => {
+    minOrderQtyTimelineField.onChange(event);
+    const next = String(event.target.value ?? '').trim();
+    if (!next) return;
+    const minN = Number(next);
+    const maxCur = Number(getValues('mediaVariation.maxOrderQuantitytimeline'));
+    if (Number.isFinite(maxCur) && maxCur > 0 && maxCur < minN) {
+      setValue('mediaVariation.maxOrderQuantitytimeline', next, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+  };
+
+  const handleAirportMaxTimelineChange = (event) => {
+    maxOrderQtyTimelineField.onChange(event);
+  };
+
+  const formatTimelineUnitLabel = (timeline) => {
+    const t = String(timeline ?? '').trim();
+    if (!t) return '—';
+    if (t === 'Month') return 'Month';
+    if (t === 'Day') return 'Day';
+    if (t === 'Week') return 'Week';
+    if (t === 'Year') return 'Year';
+    if (t === 'One Time') return 'One time';
+    return t;
+  };
+
+  const renderMinMaxOrderQtyTimelineField = (options = {}) => {
+    const {
+      wrapperClassName = '',
+      compactLabel = false,
+      airportTimelineDropdown = false,
+    } = options;
+    const minTimelineError =
+      errors?.mediaVariation?.minOrderQuantitytimeline?.message;
+    const maxTimelineError =
+      errors?.mediaVariation?.maxOrderQuantitytimeline?.message;
+    const hasTimelineError = Boolean(minTimelineError || maxTimelineError);
+    const timelineUnitLabel = airportTimelineDropdown
+      ? 'Days'
+      : formatTimelineUnitLabel(watchedMediaTimeline);
+    const airportMinTimelineValue = normalizeAirportTimelineValue(
+      watchedMinOrderQtyTimeline,
+    );
+    const airportMaxTimelineValue = normalizeAirportTimelineValue(
+      watchedMaxOrderQtyTimeline,
+    );
+
+    return (
+      <Box
+        className={`min-w-0 w-full ${wrapperClassName}`.trim()}
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
+          mt: 0,
+          minWidth: { xs: 0, sm: 200 },
+        }}
+      >
+        <Typography
+          sx={{
+            ...CommonTextStyle,
+            fontSize: '12px',
+            lineHeight: 1.25,
+            whiteSpace: compactLabel ? { xs: 'normal', md: 'nowrap' } : 'normal',
+          }}
+        >
+          {compactLabel ? 'Min – Max order (timeline)' : 'Min - Max Order QTY Timeline'}{' '}
+          <span style={{ color: 'red' }}>*</span>
+        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0.5,
+            width: '100%',
+            minWidth: { xs: '100%', sm: 220 },
+            maxWidth: { xs: '100%', lg: 300 },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              width: '100%',
+              minWidth: { xs: '100%', sm: 220 },
+              alignItems: 'stretch',
+              background: '#fff',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              border: hasTimelineError ? '1px solid red' : '1px solid #E5E8EB',
+            }}
+          >
+            {airportTimelineDropdown ? (
+              <Select
+                disableUnderline
+                displayEmpty
+                name={minOrderQtyTimelineField.name}
+                inputRef={minOrderQtyTimelineField.ref}
+                onBlur={minOrderQtyTimelineField.onBlur}
+                value={airportMinTimelineValue}
+                onChange={handleAirportMinTimelineChange}
+                renderValue={(selected) => (selected ? String(selected) : 'Min')}
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 72px',
+                  minWidth: 72,
+                  maxWidth: 120,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 0.5,
+                }}
+              >
+                <MenuItem value="" disabled>
+                  Min
+                </MenuItem>
+                {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
+                  <MenuItem key={`min-ts-${opt.value}`} value={opt.value}>
+                    {opt.value}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                disableUnderline
+                name={minOrderQtyTimelineField.name}
+                onBlur={minOrderQtyTimelineField.onBlur}
+                inputRef={minOrderQtyTimelineField.ref}
+                onChange={handleMinOrderQtyTimelineChange}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' && e.target.selectionStart === 0) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="Min"
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 56px',
+                  minWidth: 56,
+                  maxWidth: 96,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 1,
+                }}
+              />
+            )}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                px: 0.75,
+                color: '#6B7A99',
+                fontSize: '12px',
+                fontFamily: 'Inter, sans-serif',
+                borderLeft: '1px solid #E5E8EB',
+                borderRight: '1px solid #E5E8EB',
+                flex: '0 0 auto',
+                minWidth: 28,
+              }}
+            >
+              -
+            </Box>
+            {airportTimelineDropdown ? (
+              <Select
+                disableUnderline
+                displayEmpty
+                name={maxOrderQtyTimelineField.name}
+                inputRef={maxOrderQtyTimelineField.ref}
+                onBlur={maxOrderQtyTimelineField.onBlur}
+                value={airportMaxTimelineValue}
+                onChange={handleAirportMaxTimelineChange}
+                renderValue={(selected) => (selected ? String(selected) : 'Max')}
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 72px',
+                  minWidth: 72,
+                  maxWidth: 120,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 0.5,
+                }}
+              >
+                <MenuItem value="" disabled>
+                  Max
+                </MenuItem>
+                {airportMaxTimelineOptions.map((opt) => (
+                  <MenuItem key={`max-ts-${opt.value}`} value={opt.value}>
+                    {opt.value}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                disableUnderline
+                name={maxOrderQtyTimelineField.name}
+                onBlur={maxOrderQtyTimelineField.onBlur}
+                inputRef={maxOrderQtyTimelineField.ref}
+                onChange={handleMaxOrderQtyTimelineChange}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' && e.target.selectionStart === 0) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="Max"
+                sx={{
+                  ...inputStyles,
+                  flex: '1 1 56px',
+                  minWidth: 56,
+                  maxWidth: 96,
+                  border: 'none',
+                  borderRadius: 0,
+                  height: '42px',
+                  fontSize: '12px',
+                  px: 1,
+                }}
+              />
+            )}
+            <Box
+              title={timelineUnitLabel}
+              sx={{
+                flex: '0 0 auto',
+                minWidth: 72,
+                px: 1.25,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderLeft: '1px solid #E5E8EB',
+                fontSize: '12px',
+                fontFamily: 'Inter, sans-serif',
+                color: '#6B7A99',
+                whiteSpace: 'nowrap',
+                overflow: 'visible',
+                height: '42px',
+                bgcolor: '#F9FAFB',
+              }}
+            >
+              {timelineUnitLabel}
+            </Box>
+          </Box>
+          {minTimelineError ? (
+            <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+              {minTimelineError}
+            </Typography>
+          ) : null}
+          {maxTimelineError ? (
+            <Typography sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}>
+              {maxTimelineError}
+            </Typography>
+          ) : null}
+        </Box>
+      </Box>
+    );
+  };
 
   useEffect(() => {
     if (!listingProfile.syncTimeslots) return;
@@ -690,6 +1070,7 @@ const MediaProductInfo = () => {
       ...(submitProfile.key === 'television'
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
+      ...(submitProfile.key === 'radio' ? { Timeline: 'Day' } : {}),
       ...(submitProfile.key === 'airport'
         ? { Timeline: 'Days' }
         : {}),
@@ -757,6 +1138,18 @@ const MediaProductInfo = () => {
       toast.error('Please select a timeline');
       return;
     }
+    if (submitProfile.key === 'radio') {
+      const radioTimeline = String(data.mediaVariation.Timeline ?? '').trim();
+      if (radioTimeline !== 'Day') {
+        setError('mediaVariation.Timeline', {
+          type: 'custom',
+          message: 'Timeline must be Per Day for radio listings',
+        });
+        toast.error('Timeline must be Per Day for radio listings');
+        return;
+      }
+      mergedMediaVariation.Timeline = 'Day';
+    }
     if (submitProfile.key === 'airport') {
       const u = String(data.mediaVariation.unit ?? '').trim();
       if (u !== 'Screen') {
@@ -783,6 +1176,42 @@ const MediaProductInfo = () => {
           message: 'Please select 10, 20 or 30 Days',
         });
         toast.error('Max Order Timeline must be 10, 20 or 30 Days');
+        return;
+      }
+      const totalQty = Number(
+        String(data?.mediaVariation?.minOrderQuantityunit ?? '').replace(/,/g, ''),
+      );
+      if (!Number.isFinite(totalQty) || totalQty < 1) {
+        setError('mediaVariation.minOrderQuantityunit', {
+          type: 'custom',
+          message: 'Total quantity must be greater than 0',
+        });
+        toast.error('Total quantity must be greater than 0');
+        return;
+      }
+      setValue('mediaVariation.minOrderQuantityunit', totalQty);
+      setValue('mediaVariation.maxOrderQuantityunit', totalQty);
+      mergedMediaVariation.minOrderQuantityunit = totalQty;
+      mergedMediaVariation.maxOrderQuantityunit = totalQty;
+    }
+    if (!submitProfile.syncTimeslots) {
+      const minTs = Number(mergedMediaVariation.minTimeslotSeconds);
+      const maxTs = Number(mergedMediaVariation.maxTimeslotSeconds);
+      if (
+        !Number.isFinite(minTs) ||
+        !Number.isFinite(maxTs) ||
+        minTs < 1 ||
+        maxTs < 1
+      ) {
+        toast.error('Please select min and max order timeslots');
+        return;
+      }
+      if (maxTs < minTs) {
+        setError('mediaVariation.maxTimeslotSeconds', {
+          type: 'custom',
+          message: 'Max timeslot cannot be less than min timeslot',
+        });
+        toast.error('Max timeslot cannot be less than min timeslot');
         return;
       }
     }
@@ -838,8 +1267,9 @@ const MediaProductInfo = () => {
     }
 
     if (
+      submitProfile.key !== 'airport' &&
       Number(data?.mediaVariation?.minOrderQuantityunit) >
-      Number(data?.mediaVariation?.maxOrderQuantityunit)
+        Number(data?.mediaVariation?.maxOrderQuantityunit)
     ) {
       setError('mediaVariation.maxOrderQuantityunit', {
         type: 'custom',
@@ -860,12 +1290,22 @@ const MediaProductInfo = () => {
     if (Number(data?.mediaVariation?.minOrderQuantityunit) === 0) {
       setError('mediaVariation.minOrderQuantityunit', {
         type: 'custom',
-        message: 'Min Order Quantity cannot be zero',
+        message:
+          submitProfile.key === 'airport'
+            ? 'Total quantity cannot be zero'
+            : 'Min Order Quantity cannot be zero',
       });
-      return toast.error('Min Order Quantity cannot be zero');
+      return toast.error(
+        submitProfile.key === 'airport'
+          ? 'Total quantity cannot be zero'
+          : 'Min Order Quantity cannot be zero',
+      );
     }
 
-    if (Number(data?.mediaVariation?.maxOrderQuantityunit) === 0) {
+    if (
+      submitProfile.key !== 'airport' &&
+      Number(data?.mediaVariation?.maxOrderQuantityunit) === 0
+    ) {
       setError('mediaVariation.maxOrderQuantityunit', {
         type: 'custom',
         message: 'Max Order Quantity cannot be zero',
@@ -1648,180 +2088,7 @@ const MediaProductInfo = () => {
                               </Box>
                             ) : null}
 
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '10px',
-                                mt: 1,
-                              }}
-                            >
-                              <Typography
-                                sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                              >
-                                Min Order QTY Timeline{' '}
-                                <span style={{ color: 'red' }}> *</span>
-                              </Typography>
-
-                              <Box sx={{ display: 'flex', gap: '10px' }}>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    gap: '10px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      background: '#fff',
-                                      display: 'flex',
-                                      borderRadius: '10px',
-                                      border: errors?.mediaVariation
-                                        ?.minOrderQuantitytimeline?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
-                                  >
-                                    <Input
-                                      disableUnderline
-                                      {...register(
-                                        'mediaVariation.minOrderQuantitytimeline',
-                                        {
-                                          onChange: (event) => {
-                                            event.target.value = parseInt(
-                                              event.target.value.replace(
-                                                /[^\d]+/gi,
-                                                '',
-                                              ) || 0,
-                                            ).toLocaleString('en-US');
-                                          },
-                                        },
-                                      )}
-                                      sx={{
-                                        ...inputStyles,
-                                        width: '64px',
-                                        padding: '5px',
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (
-                                          e.key === ' ' &&
-                                          e.target.selectionStart === 0
-                                        ) {
-                                          e.preventDefault();
-                                        }
-                                      }}
-                                      placeholder={'Timeline'}
-                                    />
-                                    <Input
-                                      disableUnderline
-                                      {...register('mediaVariation.Timeline')}
-                                      disabled
-                                      sx={{
-                                        ...inputStyles,
-                                        width: '65px',
-                                        padding: '0px',
-                                      }}
-                                    />
-                                  </Box>
-                                  <Typography
-                                    sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                  >
-                                    {
-                                      errors?.mediaVariation
-                                        ?.minOrderQuantitytimeline?.message
-                                    }
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </Box>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '10px',
-                                mt: 1,
-                              }}
-                            >
-                              <Typography
-                                sx={{ ...CommonTextStyle, fontSize: '12px' }}
-                              >
-                                Max Order QTY Timeline{' '}
-                                <span style={{ color: 'red' }}> *</span>
-                              </Typography>
-
-                              <Box sx={{ display: 'flex', gap: '10px' }}>
-                                <Box
-                                  sx={{
-                                    display: 'flex',
-                                    gap: '10px',
-                                    flexDirection: 'column',
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      background: '#fff',
-                                      display: 'flex',
-                                      borderRadius: '10px',
-                                      border: errors?.mediaVariation
-                                        ?.maxOrderQuantitytimeline?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
-                                  >
-                                    <Input
-                                      disableUnderline
-                                      {...register(
-                                        'mediaVariation.maxOrderQuantitytimeline',
-                                        {
-                                          onChange: (event) => {
-                                            event.target.value = parseInt(
-                                              event.target.value.replace(
-                                                /[^\d]+/gi,
-                                                '',
-                                              ) || 0,
-                                            ).toLocaleString('en-US');
-                                          },
-                                        },
-                                      )}
-                                      onKeyDown={(e) => {
-                                        if (
-                                          e.key === ' ' &&
-                                          e.target.selectionStart === 0
-                                        ) {
-                                          e.preventDefault();
-                                        }
-                                      }}
-                                      sx={{
-                                        ...inputStyles,
-                                        width: '64px',
-                                        padding: '0px',
-                                        ml: 1,
-                                      }}
-                                      placeholder={'Timeline'}
-                                    />
-                                    <Input
-                                      disableUnderline
-                                      {...register('mediaVariation.Timeline')}
-                                      disabled
-                                      sx={{
-                                        ...inputStyles,
-                                        width: '50px',
-                                        padding: '0px',
-                                      }}
-                                    />
-                                  </Box>
-                                  <Typography
-                                    sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                  >
-                                    {
-                                      errors?.mediaVariation
-                                        ?.maxOrderQuantitytimeline?.message
-                                    }
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </Box>
+                            {renderMinMaxOrderQtyTimelineField()}
                             <Box
                               sx={{
                                 display: 'flex',
@@ -2778,547 +3045,344 @@ const MediaProductInfo = () => {
                             </Box>
                           </Box>
                           <Box
-                            className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+                            className={
+                              listingProfile.key === 'airport'
+                                ? 'mt-6 grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6'
+                                : 'mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6'
+                            }
                             sx={{ alignItems: 'flex-start' }}
                           >
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Min Order QTY Unit{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
+                            {listingProfile.key === 'airport' ? (
                               <Box
+                                className="min-w-0 w-full"
                                 sx={{
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
+                                  gap: 1,
+                                  mt: 0,
                                   minWidth: 0,
                                 }}
                               >
+                                <Typography
+                                  sx={{
+                                    ...CommonTextStyle,
+                                    fontSize: '12px',
+                                    lineHeight: 1.25,
+                                  }}
+                                >
+                                  Total quantity{' '}
+                                  <span style={{ color: 'red' }}>*</span>
+                                </Typography>
                                 <Box
                                   sx={{
                                     display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 0.5,
                                     width: '100%',
                                     minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.minOrderQuantityunit?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
                                   }}
                                 >
-                                  <Input
-                                    disableUnderline
-                                    placeholder="100"
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      width: '100%',
+                                      minWidth: 0,
+                                      alignItems: 'stretch',
+                                      background: '#fff',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      border: errors?.mediaVariation
+                                        ?.minOrderQuantityunit?.message
+                                        ? '1px solid red'
+                                        : '1px solid #E5E8EB',
                                     }}
-                                    {...register(
-                                      'mediaVariation.minOrderQuantityunit',
-                                      {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
+                                  >
+                                    <Input
+                                      disableUnderline
+                                      placeholder="100"
+                                      name={minOrderQtyUnitField.name}
+                                      onBlur={minOrderQtyUnitField.onBlur}
+                                      inputRef={minOrderQtyUnitField.ref}
+                                      onChange={handleAirportTotalQtyChange}
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === ' ' &&
+                                          e.target.selectionStart === 0
+                                        ) {
+                                          e.preventDefault();
+                                        }
+                                      }}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                    <Input
+                                      disableUnderline
+                                      disabled
+                                      inputProps={{ readOnly: true }}
+                                      value={String(
+                                        watch('mediaVariation.unit') ?? '',
+                                      )}
+                                      sx={{
+                                        ...inputStyles,
+                                        flex: '1 1 0',
+                                        minWidth: 0,
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        borderLeft: '1px solid #E5E8EB',
+                                        height: '42px',
+                                        fontSize: '12px',
+                                        px: 1,
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    sx={{
+                                      color: 'red',
+                                      fontFamily: 'Inter, sans-serif',
+                                    }}
+                                  >
+                                    {
+                                      errors?.mediaVariation
+                                        ?.minOrderQuantityunit?.message
+                                    }
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            ) : (
+                              <>
+                                <Box
+                                  className="min-w-0 w-full"
+                                  sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    mt: 0,
+                                    minWidth: 0,
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      ...CommonTextStyle,
+                                      fontSize: '12px',
+                                      lineHeight: 1.25,
+                                    }}
+                                  >
+                                    Min Order QTY Unit{' '}
+                                    <span style={{ color: 'red' }}>*</span>
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 0.5,
+                                      width: '100%',
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        width: '100%',
+                                        minWidth: 0,
+                                        alignItems: 'stretch',
+                                        background: '#fff',
+                                        borderRadius: '10px',
+                                        overflow: 'hidden',
+                                        border: errors?.mediaVariation
+                                          ?.minOrderQuantityunit?.message
+                                          ? '1px solid red'
+                                          : '1px solid #E5E8EB',
+                                      }}
+                                    >
+                                      <Input
+                                        disableUnderline
+                                        placeholder="100"
+                                        name={minOrderQtyUnitField.name}
+                                        onBlur={minOrderQtyUnitField.onBlur}
+                                        inputRef={minOrderQtyUnitField.ref}
+                                        onChange={handleMinOrderQtyUnitChange}
+                                        onKeyDown={(e) => {
                                           if (
-                                            FetchedproductData?.ProductSubCategory ===
-                                            '65029534eaa5251874e8c6b4'
+                                            e.key === ' ' &&
+                                            e.target.selectionStart === 0
                                           ) {
-                                            setValue(
-                                              'mediaVariation.maxOrderQuantityunit',
-                                              event.target.value,
-                                            );
+                                            e.preventDefault();
                                           }
-                                        },
-                                      },
-                                    )}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    disabled
-                                    inputProps={{ readOnly: true }}
-                                    value={String(watch('mediaVariation.unit') ?? '')}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
+                                        }}
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '1 1 0',
+                                          minWidth: 0,
+                                          border: 'none',
+                                          borderRadius: 0,
+                                          height: '42px',
+                                          fontSize: '12px',
+                                          px: 1,
+                                        }}
+                                      />
+                                      <Input
+                                        disableUnderline
+                                        disabled
+                                        inputProps={{ readOnly: true }}
+                                        value={String(
+                                          watch('mediaVariation.unit') ?? '',
+                                        )}
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '1 1 0',
+                                          minWidth: 0,
+                                          border: 'none',
+                                          borderRadius: 0,
+                                          borderLeft: '1px solid #E5E8EB',
+                                          height: '42px',
+                                          fontSize: '12px',
+                                          px: 1,
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography
+                                      sx={{
+                                        color: 'red',
+                                        fontFamily: 'Inter, sans-serif',
+                                      }}
+                                    >
+                                      {
+                                        errors?.mediaVariation
+                                          ?.minOrderQuantityunit?.message
+                                      }
+                                    </Typography>
+                                  </Box>
                                 </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation?.minOrderQuantityunit
-                                      ?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                Max Order QTY Unit{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
                                 <Box
+                                  className="min-w-0 w-full"
                                   sx={{
                                     display: 'flex',
-                                    width: '100%',
+                                    flexDirection: 'column',
+                                    gap: 1,
+                                    mt: 0,
                                     minWidth: 0,
-                                    alignItems: 'stretch',
-                                    background: '#fff',
-                                    borderRadius: '10px',
-                                    overflow: 'hidden',
-                                    border: errors?.mediaVariation
-                                      ?.maxOrderQuantityunit?.message
-                                      ? '1px solid red'
-                                      : '1px solid #E5E8EB',
                                   }}
                                 >
-                                  <Input
-                                    disableUnderline
-                                    placeholder="200"
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.key === ' ' &&
-                                        e.target.selectionStart === 0
-                                      ) {
-                                        e.preventDefault();
-                                      }
+                                  <Typography
+                                    sx={{
+                                      ...CommonTextStyle,
+                                      fontSize: '12px',
+                                      lineHeight: 1.25,
                                     }}
-                                    {...register(
-                                      'mediaVariation.maxOrderQuantityunit',
+                                  >
+                                    Max Order QTY Unit{' '}
+                                    <span style={{ color: 'red' }}>*</span>
+                                  </Typography>
+
+                                  <Box
+                                    sx={{
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 0.5,
+                                      width: '100%',
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        width: '100%',
+                                        minWidth: 0,
+                                        alignItems: 'stretch',
+                                        background: '#fff',
+                                        borderRadius: '10px',
+                                        overflow: 'hidden',
+                                        border: errors?.mediaVariation
+                                          ?.maxOrderQuantityunit?.message
+                                          ? '1px solid red'
+                                          : '1px solid #E5E8EB',
+                                      }}
+                                    >
+                                      <Input
+                                        disableUnderline
+                                        placeholder="200"
+                                        name={maxOrderQtyUnitField.name}
+                                        onBlur={maxOrderQtyUnitField.onBlur}
+                                        inputRef={maxOrderQtyUnitField.ref}
+                                        onChange={(event) => {
+                                          formatQtyInputEvent(event);
+                                          maxOrderQtyUnitField.onChange(event);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (
+                                            e.key === ' ' &&
+                                            e.target.selectionStart === 0
+                                          ) {
+                                            e.preventDefault();
+                                          }
+                                        }}
+                                        disabled={
+                                          FetchedproductData?.ProductSubCategory ===
+                                          '65029534eaa5251874e8c6b4'
+                                        }
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '1 1 0',
+                                          minWidth: 0,
+                                          border: 'none',
+                                          borderRadius: 0,
+                                          height: '42px',
+                                          fontSize: '12px',
+                                          px: 1,
+                                        }}
+                                      />
+                                      <Input
+                                        disableUnderline
+                                        disabled
+                                        inputProps={{ readOnly: true }}
+                                        value={String(
+                                          watch('mediaVariation.unit') ?? '',
+                                        )}
+                                        sx={{
+                                          ...inputStyles,
+                                          flex: '1 1 0',
+                                          minWidth: 0,
+                                          border: 'none',
+                                          borderRadius: 0,
+                                          borderLeft: '1px solid #E5E8EB',
+                                          height: '42px',
+                                          fontSize: '12px',
+                                          px: 1,
+                                        }}
+                                      />
+                                    </Box>
+                                    <Typography
+                                      sx={{
+                                        color: 'red',
+                                        fontFamily: 'Inter, sans-serif',
+                                      }}
+                                    >
                                       {
-                                        onChange: (event) => {
-                                          event.target.value = parseInt(
-                                            event.target.value.replace(
-                                              /[^\d]+/gi,
-                                              '',
-                                            ) || 0,
-                                          ).toLocaleString('en-US');
-                                        },
-                                      },
-                                    )}
-                                    disabled={FetchedproductData?.ProductSubCategory ===
-                                      '65029534eaa5251874e8c6b4'}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
-                                  <Input
-                                    disableUnderline
-                                    disabled
-                                    inputProps={{ readOnly: true }}
-                                    value={String(watch('mediaVariation.unit') ?? '')}
-                                    sx={{
-                                      ...inputStyles,
-                                      flex: '1 1 0',
-                                      minWidth: 0,
-                                      border: 'none',
-                                      borderRadius: 0,
-                                      borderLeft: '1px solid #E5E8EB',
-                                      height: '42px',
-                                      fontSize: '12px',
-                                      px: 1,
-                                    }}
-                                  />
+                                        errors?.mediaVariation
+                                          ?.maxOrderQuantityunit?.message
+                                      }
+                                    </Typography>
+                                  </Box>
                                 </Box>
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation?.maxOrderQuantityunit
-                                      ?.message
+                              </>
+                            )}
+                            {renderMinMaxOrderQtyTimelineField(
+                              listingProfile.key === 'airport'
+                                ? {
+                                    wrapperClassName: 'lg:col-span-2',
+                                    compactLabel: true,
+                                    airportTimelineDropdown: true,
                                   }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                {listingProfile.key === 'airport'
-                                  ? 'Min Order Timeline (Days)'
-                                  : 'Min Order QTY Timeline'}{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                {listingProfile.key === 'airport' ? (
-                                  <Controller
-                                    name="mediaVariation.minOrderQuantitytimeline"
-                                    control={control}
-                                    render={({ field }) => (
-                                      <Select
-                                        native
-                                        variant="standard"
-                                        disableUnderline
-                                        fullWidth
-                                        value={
-                                          AIRPORT_TIMELINE_VALUES.includes(
-                                            String(field.value ?? ''),
-                                          )
-                                            ? String(field.value)
-                                            : ''
-                                        }
-                                        onChange={(e) =>
-                                          field.onChange(String(e.target.value ?? ''))
-                                        }
-                                        onBlur={field.onBlur}
-                                        name={field.name}
-                                        inputRef={field.ref}
-                                        inputProps={{ 'aria-label': 'Min Order Timeline (Days)' }}
-                                        sx={{
-                                          ...inputStyles,
-                                          height: '42px',
-                                          fontSize: '12px',
-                                          px: 1,
-                                          border: errors?.mediaVariation
-                                            ?.minOrderQuantitytimeline?.message
-                                            ? '1px solid red'
-                                            : '1px solid #E5E8EB',
-                                          borderRadius: '10px',
-                                        }}
-                                      >
-                                        <option value="">Select</option>
-                                        {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                          </option>
-                                        ))}
-                                      </Select>
-                                    )}
-                                  />
-                                ) : (
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      width: '100%',
-                                      minWidth: 0,
-                                      alignItems: 'stretch',
-                                      background: '#fff',
-                                      borderRadius: '10px',
-                                      overflow: 'hidden',
-                                      border: errors?.mediaVariation
-                                        ?.minOrderQuantitytimeline?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
-                                  >
-                                    <Input
-                                      disableUnderline
-                                      {...register(
-                                        'mediaVariation.minOrderQuantitytimeline',
-                                        {
-                                          onChange: (event) => {
-                                            event.target.value = parseInt(
-                                              event.target.value.replace(
-                                                /[^\d]+/gi,
-                                                '',
-                                              ) || 0,
-                                            ).toLocaleString('en-US');
-                                          },
-                                        },
-                                      )}
-                                      sx={{
-                                        ...inputStyles,
-                                        flex: '1 1 0',
-                                        minWidth: 0,
-                                        border: 'none',
-                                        borderRadius: 0,
-                                        height: '42px',
-                                        fontSize: '12px',
-                                        px: 1,
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (
-                                          e.key === ' ' &&
-                                          e.target.selectionStart === 0
-                                        ) {
-                                          e.preventDefault();
-                                        }
-                                      }}
-                                      placeholder={'Timeline'}
-                                    />
-                                    <Input
-                                      disableUnderline
-                                      {...register('mediaVariation.Timeline')}
-                                      disabled
-                                      sx={{
-                                        ...inputStyles,
-                                        flex: '1 1 0',
-                                        minWidth: 0,
-                                        border: 'none',
-                                        borderRadius: 0,
-                                        borderLeft: '1px solid #E5E8EB',
-                                        height: '42px',
-                                        fontSize: '12px',
-                                        px: 1,
-                                      }}
-                                    />
-                                  </Box>
-                                )}
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation
-                                      ?.minOrderQuantitytimeline?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box
-                              className="min-w-0 w-full"
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 1,
-                                mt: 0,
-                                minWidth: 0,
-                              }}
-                            >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
-                                {listingProfile.key === 'airport'
-                                  ? 'Max Order Timeline (Days)'
-                                  : 'Max Order QTY Timeline'}{' '}
-                                <span style={{ color: 'red' }}>*</span>
-                              </Typography>
-
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 0.5,
-                                  width: '100%',
-                                  minWidth: 0,
-                                }}
-                              >
-                                {listingProfile.key === 'airport' ? (
-                                  <Controller
-                                    name="mediaVariation.maxOrderQuantitytimeline"
-                                    control={control}
-                                    render={({ field }) => (
-                                      <Select
-                                        native
-                                        variant="standard"
-                                        disableUnderline
-                                        fullWidth
-                                        value={
-                                          AIRPORT_TIMELINE_VALUES.includes(
-                                            String(field.value ?? ''),
-                                          )
-                                            ? String(field.value)
-                                            : ''
-                                        }
-                                        onChange={(e) =>
-                                          field.onChange(String(e.target.value ?? ''))
-                                        }
-                                        onBlur={field.onBlur}
-                                        name={field.name}
-                                        inputRef={field.ref}
-                                        inputProps={{ 'aria-label': 'Max Order Timeline (Days)' }}
-                                        sx={{
-                                          ...inputStyles,
-                                          height: '42px',
-                                          fontSize: '12px',
-                                          px: 1,
-                                          border: errors?.mediaVariation
-                                            ?.maxOrderQuantitytimeline?.message
-                                            ? '1px solid red'
-                                            : '1px solid #E5E8EB',
-                                          borderRadius: '10px',
-                                        }}
-                                      >
-                                        <option value="">Select</option>
-                                        {AIRPORT_TIMELINE_OPTIONS.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                          </option>
-                                        ))}
-                                      </Select>
-                                    )}
-                                  />
-                                ) : (
-                                  <Box
-                                    sx={{
-                                      display: 'flex',
-                                      width: '100%',
-                                      minWidth: 0,
-                                      alignItems: 'stretch',
-                                      background: '#fff',
-                                      borderRadius: '10px',
-                                      overflow: 'hidden',
-                                      border: errors?.mediaVariation
-                                        ?.maxOrderQuantitytimeline?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
-                                    }}
-                                  >
-                                    <Input
-                                      disableUnderline
-                                      {...register(
-                                        'mediaVariation.maxOrderQuantitytimeline',
-                                        {
-                                          onChange: (event) => {
-                                            event.target.value = parseInt(
-                                              event.target.value.replace(
-                                                /[^\d]+/gi,
-                                                '',
-                                              ) || 0,
-                                            ).toLocaleString('en-US');
-                                          },
-                                        },
-                                      )}
-                                      onKeyDown={(e) => {
-                                        if (
-                                          e.key === ' ' &&
-                                          e.target.selectionStart === 0
-                                        ) {
-                                          e.preventDefault();
-                                        }
-                                      }}
-                                      sx={{
-                                        ...inputStyles,
-                                        flex: '1 1 0',
-                                        minWidth: 0,
-                                        border: 'none',
-                                        borderRadius: 0,
-                                        height: '42px',
-                                        fontSize: '12px',
-                                        px: 1,
-                                      }}
-                                      placeholder={'Timeline'}
-                                    />
-                                    <Input
-                                      disableUnderline
-                                      {...register('mediaVariation.Timeline')}
-                                      disabled
-                                      sx={{
-                                        ...inputStyles,
-                                        flex: '1 1 0',
-                                        minWidth: 0,
-                                        border: 'none',
-                                        borderRadius: 0,
-                                        borderLeft: '1px solid #E5E8EB',
-                                        height: '42px',
-                                        fontSize: '12px',
-                                        px: 1,
-                                      }}
-                                    />
-                                  </Box>
-                                )}
-                                <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
-                                >
-                                  {
-                                    errors?.mediaVariation
-                                      ?.maxOrderQuantitytimeline?.message
-                                  }
-                                </Typography>
-                              </Box>
-                            </Box>
+                                : {},
+                            )}
                             <Box
                               className="min-w-0 w-full"
                               sx={{

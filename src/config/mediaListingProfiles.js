@@ -58,6 +58,15 @@ export const TELEVISION_AD_TYPES = [
   'Scroller',
 ];
 
+/** Radio — supporting docs (no inspection pass or exhibition certificate). */
+export const RADIO_SUPPORTING_DOC_KEYS = [
+  'broadcastCertificate',
+  'LogReport',
+  'Videos',
+  'Pictures',
+  'Other',
+];
+
 /** Television — supporting docs on Media Online technical information (checkbox keys). */
 export const TELEVISION_SUPPORTING_DOC_KEYS = [
   'Videos',
@@ -342,7 +351,9 @@ export const DOOH_AD_TYPE_OPTIONS_FILTERED = [
  */
 export function getMediaListingProfile(product) {
   const mc = String(product?.mediaCategory || readStorage('mediaCategory') || '').toLowerCase();
-  const journey = getMediaJourney(mc);
+  const journey =
+    String(product?.mediaJourney || readStorage('mediaJourney') || '').trim() ||
+    getMediaJourney(mc);
   
   const subName = String(
     product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? ''
@@ -387,6 +398,7 @@ export function getMediaListingProfile(product) {
     return {
       ...base,
       key: 'airport',
+      syncTimeslots: false,
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.airport,
       adTypeOptions: AIRPORT_AD_TYPES,
       unitOptions: AIRPORT_UNITS,
@@ -440,6 +452,7 @@ export function getMediaListingProfile(product) {
       dimensionLabel: 'AD Duration',
       dimensionRequired: true,
       repetitionRequired: true,
+      supportingDocKeys: RADIO_SUPPORTING_DOC_KEYS,
     };
   }
 
