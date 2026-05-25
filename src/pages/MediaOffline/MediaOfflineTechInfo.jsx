@@ -20,10 +20,6 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 
-const COPY_OPTIONS = [
-  { value: 'digital', label: 'Digital Copy' },
-  { value: 'hard', label: 'Hard Copy' },
-];
 import { Stepper } from '../AddProduct/AddProductSteps';
 import {
   supportingDocsToCheckboxState,
@@ -359,36 +355,6 @@ export default function TechInfo() {
                       ))}
                     </div>
                   </div>
-
-                  <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
-                    <Typography sx={CommonTextStyle}>
-                      Copy Type <span className="text-red-500">*</span>
-                    </Typography>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {COPY_OPTIONS.map(({ value, label }) => (
-                        <div
-                          key={value}
-                          className="flex items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] px-3 py-2.5 transition-colors hover:border-[#CBD5E1] cursor-pointer"
-                          onClick={() => setCopyType(value)}
-                        >
-                          <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              copyType === value
-                                ? 'border-[#C64091]'
-                                : 'border-[#CBD5E1]'
-                            }`}
-                          >
-                            {copyType === value && (
-                              <div className="w-2 h-2 rounded-full bg-[#C64091]" />
-                            )}
-                          </div>
-                          <Label className="text-sm font-normal text-[#5c6b8a] cursor-pointer leading-snug">
-                            {label}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </Box>
 
                   <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
                     <Typography sx={CommonTextStyle}>

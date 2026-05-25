@@ -44,6 +44,8 @@ function shouldHideMinMaxOrderQtyForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
   const mc = String(product?.mediaCategory || '').toLowerCase().trim();
   if (mc === 'print') return true;
+  const journey = String(product?.mediaJourney || '').toLowerCase().trim();
+  if (journey === 'newspaper') return true;
   const sub = String(
     product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '',
   )
@@ -51,6 +53,14 @@ function shouldHideMinMaxOrderQtyForMediaPreview(product) {
     .trim();
   if (sub === 'static') return true;
   return false;
+}
+
+function shouldHideMinMaxOrderTimelineForMediaPreview(product) {
+  if (!isMediaListing(product)) return false;
+  const mc = String(product?.mediaCategory || '').toLowerCase().trim();
+  if (mc === 'print') return true;
+  const journey = String(product?.mediaJourney || '').toLowerCase().trim();
+  return journey === 'newspaper';
 }
 
 const defaultImage =
@@ -1565,7 +1575,9 @@ export default function ProductPreview() {
                   const geo = product?.GeographicalData || {};
                   const tags = product?.tags || [];
                   const prevProfile = getMediaListingProfile(product || {});
-                  const hidePrintOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
+                  const hideOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
+                  const hideOrderTimeline =
+                    shouldHideMinMaxOrderTimelineForMediaPreview(product);
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
                       ? 'AD Duration'
@@ -1595,11 +1607,13 @@ export default function ProductPreview() {
                     ['Ad type', pick(mv.adType, v0.adType)],
                     ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', `Per ${pick(mv.Timeline, v0.Timeline)}`],
-                    ...(hidePrintOrderQty
+                    ...(hideOrderQty
                       ? []
                       : [['Min - Max Order Qty', orderQtySummary]]),
                     ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
-                    ['Min - Max order (timeline)', orderTimelineSummary],
+                    ...(hideOrderTimeline
+                      ? []
+                      : [['Min - Max order (timeline)', orderTimelineSummary]]),
                     ['Order unit', 'Per '+pickUnit()],
                     ...(String(product?.estimatedFleets || '').trim()
                       ? [['Estimated fleets', String(product.estimatedFleets).trim()]]

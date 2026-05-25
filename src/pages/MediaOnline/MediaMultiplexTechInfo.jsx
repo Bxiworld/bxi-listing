@@ -27,7 +27,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button as UiButton } from '../../components/ui/button';
 import { useUpdateProductQuery } from './ProductHooksQuery';
 import { useNavigate, useParams } from 'react-router-dom';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../utils/api';
 import {
   supportingDocsToCheckboxState,
@@ -36,6 +36,9 @@ import {
   SUPPORTING_DOC_KEYS_FORM_ORDER,
   SUPPORTING_DOC_LABELS,
 } from '../../utils/supportingBuyerDocs';
+import {
+  filterFeatureDropdownRows,
+} from '../../config/mediaListingProfiles';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -163,12 +166,26 @@ export default function MediaMultiplexTechInfo() {
   const [OtherInfoArray, setOtherInfoArray] = useState([]);
   const [onlyState, setOnlyState] = useState(false);
   const [MediaOnlineFeaturesData, setMediaOnlineFeaturesData] = useState([]);
-  const [traits, setTraits] = useState([]);
   const [description, setDescription] = useState('');
   const otherInputRef = useRef(null);
   const [name, setName] = useState('');
   const [storeHSN, setStoreHSN] = useState('');
   const tagInputRef = useRef(null);
+  const repeatableFeatureNames = useMemo(
+    () => new Set(['other', 'others']),
+    []
+  );
+  const multiplexFeatureOptions = useMemo(
+    () =>
+      filterFeatureDropdownRows(
+        MediaOnlineFeaturesData,
+        undefined,
+        items
+          .map(item => String(item?.name ?? '').trim())
+          .filter(featureName => !repeatableFeatureNames.has(featureName.toLowerCase()))
+      ),
+    [MediaOnlineFeaturesData, items, repeatableFeatureNames]
+  );
 
   const [storeMediaAllData, setStoreMediaAllData] = useState({
     offerningbrandat: '',
@@ -420,24 +437,31 @@ export default function MediaMultiplexTechInfo() {
     if (items.length >= 20) {
       return toast.error('Features cannot be more than 20');
     }
-    if (description === '') {
+    const trimmedDescription = String(description ?? '').trim();
+    const trimmedName = String(name ?? '').trim();
+    const isRepeatableFeature = repeatableFeatureNames.has(trimmedName.toLowerCase());
+    if (trimmedDescription === '') {
       toast.error('Please fill the proper features and description');
-    } else if (description.length > 75) {
+    } else if (trimmedDescription.length > 75) {
       return toast.error('feature discription less than 75 letters');
-    } else if (name === '') {
+    } else if (trimmedName === '') {
       return toast.error('Please fill the feature name');
-    } else if (name !== 'Other' && items.some(res => res.name === name)) {
+    } else if (
+      !isRepeatableFeature &&
+      items.some(res => String(res?.name ?? '').trim() === trimmedName)
+    ) {
       setName('');
       return toast.error('Please fill the unique key feature');
     } else if (items.length >= 20) {
       return toast.error('Features cannot be more than 20');
     } else {
-      const newItem = { name, description };
-      if (name.trim() || description.trim() !== '') {
+      const newItem = { name: trimmedName, description: trimmedDescription };
+      if (trimmedName || trimmedDescription !== '') {
         setItems([...items, newItem]);
       }
     }
     setDescription('');
+    setName('');
   };
 
   const handleDelete = index => {
@@ -1532,6 +1556,8 @@ export default function MediaMultiplexTechInfo() {
                             </Typography>
 
                             <Select
+                              value={name}
+                              displayEmpty
                               onChange={e => setName(e.target.value)}
                               sx={{
                                 width: '100%',
@@ -1551,9 +1577,11 @@ export default function MediaMultiplexTechInfo() {
                                 fontSize: '12px',
                                 color: '#c64091',
                               }}
-                              key={traits}
                             >
-                              {MediaOnlineFeaturesData?.map((el, idx) => {
+                              <MenuItem value="" sx={CommonTextStyle}>
+                                Select feature
+                              </MenuItem>
+                              {multiplexFeatureOptions?.map((el, idx) => {
                                 if (el?.IsHead) {
                                   return (
                                     <MenuItem
