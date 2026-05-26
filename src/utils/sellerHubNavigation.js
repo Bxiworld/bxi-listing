@@ -4,6 +4,7 @@
  */
 import { getVoucherJourneyType, VOUCHER_JOURNEY_TYPE } from './voucherType';
 import { getMediaJourney } from '../constants/mediaMapping';
+import { buildMediaOnlineGeneralInfoPath } from './mediaOnlineListingPaths';
 import {
   getProductType,
   getProductCategoryName,
@@ -401,7 +402,20 @@ const resolveEditRoute = ({
       return `/mediaoffline/${steps[reviewKey] || 'mediaofflinehoardinginfo'}/${productId}`;
     }
 
-    if (effectiveMediaJourney === 'newspaper' || effectiveMediaJourney === 'airport' || effectiveMediaJourney === 'btl') {
+    if (effectiveMediaJourney === 'airport') {
+      const steps = {
+        generalinformation: null,
+        productinformation: 'product-info',
+        technicalinformation: 'tech-info',
+        golive: 'go-live',
+      };
+      if (reviewKey === 'generalinformation') {
+        return buildMediaOnlineGeneralInfoPath(productId, product);
+      }
+      return `/mediaonline/${steps[reviewKey] || 'product-info'}/${productId}`;
+    }
+
+    if (effectiveMediaJourney === 'newspaper' || effectiveMediaJourney === 'btl') {
       if (reviewKey === 'generalinformation') return `/mediaoffline/general-info/${productId}`;
       return `/mediaoffline/product-info/${productId}`;
     }
