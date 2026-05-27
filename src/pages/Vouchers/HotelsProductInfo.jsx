@@ -34,6 +34,7 @@ const GST_OPTIONS = [3, 5, 12, 18, 28];
 
 const FEATURE_MIN = 5;
 const FEATURE_MAX = 20;
+const MAX_VARIANT_NAME_LENGTH = 120;
 
 const OTHER_COST_APPLICABLE = [
   { value: 'All', label: 'One Time Cost' },
@@ -46,6 +47,12 @@ const isOfferSpecific = () => getVoucherJourneyTypeFromStorage() === VOUCHER_JOU
 const HSN_VALID = /^\d{4}$|^\d{6}$|^\d{8}$/;
 const validateVariant = (v, isOffer) => {
   const err = {};
+  const variantName = String(v.VariantName ?? '').trim();
+  if (!variantName) err.VariantName = 'Variant name is required';
+  else if (variantName.length > MAX_VARIANT_NAME_LENGTH) {
+    err.VariantName = `Variant name must be at most ${MAX_VARIANT_NAME_LENGTH} characters`;
+  }
+
   const price = parseFloat(String(v.PricePerUnit || '').replace(/,/g, ''));
   if (!v.PricePerUnit || isNaN(price) || price <= 0) err.PricePerUnit = 'Price must be greater than 0';
   else if (String(v.PricePerUnit).length > 10) err.PricePerUnit = 'Price must be at most 10 characters';
@@ -140,6 +147,7 @@ export default function HotelsProductInfo({ category }) {
 
   // New variant row form state (for "Add" before appending)
   const [newVariant, setNewVariant] = useState({
+    VariantName: '',
     PricePerUnit: '',
     TotalAvailableQty: '',
     HSN: '',
@@ -228,7 +236,11 @@ export default function HotelsProductInfo({ category }) {
     }
     const totalUploadedValue =
       Number(v.PricePerUnit || 0) * Number(v.TotalAvailableQty || 0);
+    const existingRow =
+      editVariantIndex !== null ? variantFields[editVariantIndex] : null;
     const payload = {
+      ...(existingRow?._id ? { _id: existingRow._id } : {}),
+      VariantName: String(v.VariantName || '').trim(),
       PricePerUnit: String(v.PricePerUnit).trim(),
       TotalAvailableQty: String(v.TotalAvailableQty).trim(),
       HSN: String(v.HSN).trim(),
@@ -250,6 +262,7 @@ export default function HotelsProductInfo({ category }) {
       appendVariant(payload);
     }
     setNewVariant({
+      VariantName: '',
       PricePerUnit: '',
       TotalAvailableQty: '',
       HSN: '',
@@ -269,6 +282,7 @@ export default function HotelsProductInfo({ category }) {
     const row = variantFields[index];
     if (row) {
       setNewVariant({
+        VariantName: row.VariantName ?? '',
         PricePerUnit: row.PricePerUnit ?? '',
         TotalAvailableQty: row.TotalAvailableQty ?? '',
         HSN: row.HSN ?? '',
@@ -430,6 +444,7 @@ export default function HotelsProductInfo({ category }) {
 
   const tableColumnDefs = isOfferSpecific()
     ? [
+        { label: 'Variant name', key: 'VariantName' },
         { label: 'Price/Voucher', key: 'PricePerUnit' },
         { label: 'Total QTY', key: 'TotalAvailableQty' },
         { label: 'HSN', key: 'HSN' },
@@ -441,6 +456,7 @@ export default function HotelsProductInfo({ category }) {
         { label: 'Validity', key: 'validityOfVoucherValue' },
       ]
     : [
+        { label: 'Variant name', key: 'VariantName' },
         { label: 'Price/Voucher', key: 'PricePerUnit' },
         { label: 'Total QTY', key: 'TotalAvailableQty' },
         { label: 'HSN', key: 'HSN' },
@@ -485,6 +501,28 @@ export default function HotelsProductInfo({ category }) {
               <p className="text-sm text-red-500 bg-red-50 p-2 rounded">{submitSectionErrors}</p>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2 md:col-span-2">
+                <Label>
+                  Variant Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  maxLength={MAX_VARIANT_NAME_LENGTH}
+                  value={newVariant.VariantName}
+                  onChange={(e) => {
+                    setNewVariant((p) => ({ ...p, VariantName: e.target.value }));
+                    setVariantErrors((prev) => ({ ...prev, VariantName: undefined }));
+                  }}
+                  placeholder="e.g. Deluxe Room, Weekend Package"
+                  className={variantErrors.VariantName ? 'border-red-500' : ''}
+                />
+                {variantErrors.VariantName && (
+                  <p className="text-xs text-red-500 mt-0.5">{variantErrors.VariantName}</p>
+                )}
+                <p className="text-xs text-gray-500">
+                  Required when adding a variation. Max {MAX_VARIANT_NAME_LENGTH} characters.
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label>Price/Voucher <span className="text-red-500">*</span></Label>
                 <div className="relative">
@@ -665,6 +703,8 @@ export default function HotelsProductInfo({ category }) {
                               cell = row.validityOfVoucherValue
                                 ? `${row.validityOfVoucherValue} ${row.validityOfVoucherUnit || 'Months'}`.trim()
                                 : '—';
+                            } else if (col.key === 'VariantName') {
+                              cell = row.VariantName?.trim() || '—';
                             } else if (col.key === 'PricePerUnit') {
                               cell = row.PricePerUnit
                                 ? `${Number(row.PricePerUnit).toLocaleString('en-IN')}`
