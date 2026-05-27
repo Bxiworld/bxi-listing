@@ -106,6 +106,12 @@ export const productApi = {
   getProductById: (id) =>
     api.get(`product/get_product_byId/${id}`),
 
+  getPendingAdminListingChangeRequests: () =>
+    api.get('product/pending-admin-listing-change-requests'),
+
+  respondToAdminListingChangeRequest: (id, status) =>
+    api.put(`product/pending-admin-listing-change-requests/${id}/respond`, { status }),
+
   // General delete (live/rejected etc.) – BXI: DELETE product/deleteProduct/:id
   deleteProduct: (id) =>
     api.delete(`product/deleteProduct/${id}`),

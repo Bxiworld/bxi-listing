@@ -63,6 +63,11 @@ const initialState = {
     loading: false,
     error: null,
   },
+  pendingAdminListingChanges: {
+    data: [],
+    loading: false,
+    error: null,
+  },
   // Active tab
   activeTab: 'Live',
   // Refresh trigger
@@ -180,6 +185,60 @@ export const fetchProductById = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch product');
+    }
+  }
+);
+
+export const fetchPendingAdminListingChanges = createAsyncThunk(
+  'products/fetchPendingAdminListingChanges',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await productApi.getPendingAdminListingChangeRequests();
+      return response.data || [];
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch pending admin listing changes'
+      );
+    }
+  }
+);
+
+export const acceptAdminListingChange = createAsyncThunk(
+  'products/acceptAdminListingChange',
+  async (requestId, { rejectWithValue }) => {
+    try {
+      const response = await productApi.respondToAdminListingChangeRequest(
+        requestId,
+        'Accepted'
+      );
+      return {
+        requestId,
+        response: response.data,
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to accept admin listing change'
+      );
+    }
+  }
+);
+
+export const rejectAdminListingChange = createAsyncThunk(
+  'products/rejectAdminListingChange',
+  async (requestId, { rejectWithValue }) => {
+    try {
+      const response = await productApi.respondToAdminListingChangeRequest(
+        requestId,
+        'Rejected'
+      );
+      return {
+        requestId,
+        response: response.data,
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to reject admin listing change'
+      );
     }
   }
 );
@@ -363,6 +422,31 @@ const productSlice = createSlice({
         state.currentProduct.loading = false;
         state.currentProduct.error = action.payload;
       })
+    // Pending admin listing changes
+      .addCase(fetchPendingAdminListingChanges.pending, (state) => {
+        state.pendingAdminListingChanges.loading = true;
+        state.pendingAdminListingChanges.error = null;
+      })
+      .addCase(fetchPendingAdminListingChanges.fulfilled, (state, action) => {
+        state.pendingAdminListingChanges.loading = false;
+        state.pendingAdminListingChanges.data = action.payload;
+      })
+      .addCase(fetchPendingAdminListingChanges.rejected, (state, action) => {
+        state.pendingAdminListingChanges.loading = false;
+        state.pendingAdminListingChanges.error = action.payload;
+      })
+      .addCase(acceptAdminListingChange.fulfilled, (state, action) => {
+        const { requestId } = action.payload;
+        state.pendingAdminListingChanges.data = state.pendingAdminListingChanges.data.filter(
+          (request) => request?._id !== requestId
+        );
+      })
+      .addCase(rejectAdminListingChange.fulfilled, (state, action) => {
+        const { requestId } = action.payload;
+        state.pendingAdminListingChanges.data = state.pendingAdminListingChanges.data.filter(
+          (request) => request?._id !== requestId
+        );
+      })
     // Delete product
       .addCase(deleteProduct.fulfilled, (state, action) => {
         const id = action.payload;
@@ -382,6 +466,9 @@ const productSlice = createSlice({
         const { productId } = action.payload;
         state.liveProducts.data = state.liveProducts.data.filter(p => p._id !== productId);
         state.allProducts.data = state.allProducts.data.filter(p => p._id !== productId);
+        state.pendingAdminListingChanges.data = state.pendingAdminListingChanges.data.filter(
+          (request) => request?.productId !== productId
+        );
       });
   },
 });

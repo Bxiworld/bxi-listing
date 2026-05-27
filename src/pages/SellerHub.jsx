@@ -14,6 +14,7 @@ import {
 import { ProductCard } from '../components/products/ProductCard';
 import { TabCard } from '../components/products/TabCard';
 import { DeleteDialog } from '../components/products/DeleteDialog';
+import AdminListingChangeDialog from '../components/products/AdminListingChangeDialog';
 import {
   Pagination,
   PaginationContent,
@@ -30,6 +31,9 @@ import {
   fetchRejectedProducts,
   fetchDelistProducts,
   fetchPendingProducts,
+  fetchPendingAdminListingChanges,
+  acceptAdminListingChange,
+  rejectAdminListingChange,
   deleteProduct,
   deleteDraftProduct,
   relistProduct,
@@ -96,6 +100,9 @@ export default function SellerHub() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingChangeDialogOpen, setPendingChangeDialogOpen] = useState(false);
+  const [selectedPendingChange, setSelectedPendingChange] = useState(null);
+  const [isSubmittingPendingChange, setIsSubmittingPendingChange] = useState(false);
   const [selectedType, setSelectedType] = useState('');
   const [selectedListingType, setSelectedListingType] = useState('');
   const [hubSearch, setHubSearch] = useState('');
@@ -108,6 +115,7 @@ export default function SellerHub() {
     rejectedProducts,
     delistProducts,
     pendingProducts,
+    pendingAdminListingChanges,
     activeTab,
     refreshTrigger,
   } = useSelector((state) => state.products);
@@ -148,6 +156,13 @@ export default function SellerHub() {
     fetchAllTabsData(selectedType);
     setCurrentPage(1);
   }, [dispatch, refreshTrigger, authLoading, isAuthenticated, selectedType]);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) {
+      return;
+    }
+    dispatch(fetchPendingAdminListingChanges());
+  }, [dispatch, refreshTrigger, authLoading, isAuthenticated]);
 
   // Fetch current tab data when page changes
   useEffect(() => {
@@ -244,6 +259,18 @@ export default function SellerHub() {
       );
     });
   }, [tabProducts, selectedType]);
+
+  const pendingAdminChangeByProductId = useMemo(() => {
+    const requestMap = {};
+    (pendingAdminListingChanges?.data || []).forEach((request) => {
+      const productId = String(request?.productId || request?.productId?._id || '');
+      if (productId) {
+        requestMap[productId] = request;
+      }
+    });
+    return requestMap;
+  }, [pendingAdminListingChanges?.data]);
+
   const fullyFilteredProducts = useMemo(() => {
     if (!selectedListingType) return filteredProducts;
 
@@ -358,6 +385,55 @@ export default function SellerHub() {
       fetchCurrentTabData(currentPage, selectedType);
     } catch (error) {
       toast.error(error || 'Failed to delist product');
+    }
+  };
+
+  const handleReviewPendingChange = (product, request) => {
+    if (!request?._id) return;
+    setSelectedPendingChange({
+      ...request,
+      product,
+    });
+    setPendingChangeDialogOpen(true);
+  };
+
+  const handlePendingChangeDialogOpenChange = (open) => {
+    if (isSubmittingPendingChange) return;
+    setPendingChangeDialogOpen(open);
+    if (!open) {
+      setSelectedPendingChange(null);
+    }
+  };
+
+  const handleAcceptPendingChange = async () => {
+    if (!selectedPendingChange?._id) return;
+    setIsSubmittingPendingChange(true);
+    try {
+      await dispatch(acceptAdminListingChange(selectedPendingChange._id)).unwrap();
+      toast.success('Admin changes accepted successfully');
+      setPendingChangeDialogOpen(false);
+      setSelectedPendingChange(null);
+      dispatch(triggerRefresh());
+    } catch (error) {
+      toast.error(error || 'Failed to accept admin changes');
+    } finally {
+      setIsSubmittingPendingChange(false);
+    }
+  };
+
+  const handleRejectPendingChange = async () => {
+    if (!selectedPendingChange?._id) return;
+    setIsSubmittingPendingChange(true);
+    try {
+      await dispatch(rejectAdminListingChange(selectedPendingChange._id)).unwrap();
+      toast.success('Admin changes rejected successfully');
+      setPendingChangeDialogOpen(false);
+      setSelectedPendingChange(null);
+      dispatch(triggerRefresh());
+    } catch (error) {
+      toast.error(error || 'Failed to reject admin changes');
+    } finally {
+      setIsSubmittingPendingChange(false);
     }
   };
 
@@ -547,6 +623,8 @@ export default function SellerHub() {
                 product={product}
                 companyType={companyType}
                 tabType={activeTab}
+                pendingAdminChange={pendingAdminChangeByProductId[String(product?._id)]}
+                onReviewPendingChange={handleReviewPendingChange}
                 onDelete={handleDeleteClick}
                 onRelist={handleRelist}
                 onDelist={handleDelist}
@@ -638,6 +716,15 @@ export default function SellerHub() {
         onConfirm={handleDeleteConfirm}
         productName={productToDelete?.ProductName}
         isDeleting={isDeleting}
+      />
+
+      <AdminListingChangeDialog
+        open={pendingChangeDialogOpen}
+        onOpenChange={handlePendingChangeDialogOpenChange}
+        request={selectedPendingChange}
+        onAccept={handleAcceptPendingChange}
+        onReject={handleRejectPendingChange}
+        isSubmitting={isSubmittingPendingChange}
       />
     </div>
   );
