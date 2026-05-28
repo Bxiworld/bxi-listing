@@ -53,6 +53,12 @@ const PRINT_SUPPORTING_DOC_OPTIONS = [
   { key: 'Other', label: 'Other' },
 ];
 
+const OFFLINE_BTL_SUPPORTING_DOC_OPTIONS = [
+  { key: 'Videos', label: 'Videos' },
+  { key: 'Pictures', label: 'Pictures' },
+  { key: 'Other', label: 'Other' },
+];
+
 const isPrintMediaProduct = (data, fromStorage) => {
   if (fromStorage) return true;
   if (!data) return false;
@@ -67,6 +73,12 @@ const isPrintMediaProduct = (data, fromStorage) => {
     (data.ProductSubCategory &&
       PRINT_SUBCATEGORY_NAMES.includes(data.ProductSubCategory))
   );
+};
+
+const isOfflineBtlMediaProduct = (data, fromStorage) => {
+  if (fromStorage) return true;
+  if (!data) return false;
+  return data.mediaCategory === 'offlinebtl' || data.mediaJourney === 'btl';
 };
 
 const brandControlClass =
@@ -92,15 +104,37 @@ export default function TechInfo() {
     }
   }, []);
 
+  const isOfflineBtlFromStorage = useMemo(() => {
+    try {
+      return (
+        sessionStorage.getItem('mediaCategory') === 'offlinebtl' ||
+        sessionStorage.getItem('mediaJourney') === 'btl' ||
+        localStorage.getItem('mediaCategory') === 'offlinebtl' ||
+        localStorage.getItem('mediaJourney') === 'btl'
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
   const isPrintMedia = useMemo(
     () => isPrintMediaProduct(fetchedProduct, isPrintFromStorage),
     [fetchedProduct, isPrintFromStorage],
   );
 
+  const isOfflineBtlMedia = useMemo(
+    () => isOfflineBtlMediaProduct(fetchedProduct, isOfflineBtlFromStorage),
+    [fetchedProduct, isOfflineBtlFromStorage],
+  );
+
   const supportingDocOptions = useMemo(
     () =>
-      isPrintMedia ? PRINT_SUPPORTING_DOC_OPTIONS : DEFAULT_SUPPORTING_DOC_OPTIONS,
-    [isPrintMedia],
+      isPrintMedia
+        ? PRINT_SUPPORTING_DOC_OPTIONS
+        : isOfflineBtlMedia
+          ? OFFLINE_BTL_SUPPORTING_DOC_OPTIONS
+          : DEFAULT_SUPPORTING_DOC_OPTIONS,
+    [isPrintMedia, isOfflineBtlMedia],
   );
 
   const [copyType, setCopyType] = useState('digital');
@@ -168,6 +202,17 @@ export default function TechInfo() {
           HardCopy: !!loadedSupporting.HardCopy,
           Other: !!loadedSupporting.Other,
         });
+      } else if (isOfflineBtlMediaProduct(data, isOfflineBtlFromStorage)) {
+        setCheckBoxes({
+          inspectionPass: false,
+          LogReport: false,
+          Videos: !!loadedSupporting.Videos,
+          Pictures: !!loadedSupporting.Pictures,
+          ExhibitionCertificate: false,
+          DigitalCopy: false,
+          HardCopy: false,
+          Other: !!loadedSupporting.Other,
+        });
       } else {
         setCheckBoxes(loadedSupporting);
       }
@@ -179,7 +224,7 @@ export default function TechInfo() {
     } finally {
       setLoading(false);
     }
-  }, [ProductId, setValue, isPrintFromStorage]);
+  }, [ProductId, setValue, isPrintFromStorage, isOfflineBtlFromStorage]);
 
   useEffect(() => {
     FetchProduct();
@@ -191,6 +236,10 @@ export default function TechInfo() {
     try {
       const supportingForSubmit = isPrintMedia
         ? SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT.filter((key) => checkBoxes[key])
+        : isOfflineBtlMedia
+          ? OFFLINE_BTL_SUPPORTING_DOC_OPTIONS
+              .map((opt) => opt.key)
+              .filter((key) => checkBoxes[key])
         : checkboxStateToSupportingArray(checkBoxes);
 
       const datatobesent = {

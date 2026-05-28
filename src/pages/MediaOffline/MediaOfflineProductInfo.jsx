@@ -220,6 +220,7 @@ const MediaProductInfo = () => {
       ),
     [FetchedproductData, isOfflineBtlFromStorage],
   );
+  const isOfflineBtlJourney = Boolean(offlineBtlProfile);
 
   const productInfoSchema = useMemo(
     () =>
@@ -642,6 +643,14 @@ const MediaProductInfo = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (isOfflineBtlJourney) {
+      setValue('mediaVariation.unit', 'Unit');
+      setUnit('Unit');
+      setValue('mediaVariation.Timeline', 'Day');
+    }
+  }, [isOfflineBtlJourney, setValue]);
+
   async function FetchAddedProduct() {
     try {
       const res = await api.get(`/product/get_product_byId/${ProductId}`);
@@ -706,6 +715,22 @@ const MediaProductInfo = () => {
           .filter(Boolean),
       ),
     );
+
+    if (isOfflineBtlJourney && data?.mediaVariation?.unit !== 'Unit') {
+      setError('mediaVariation.unit', {
+        type: 'custom',
+        message: 'Unit must be Per Unit for Offline BTL media',
+      });
+      return toast.error('Unit must be Per Unit for Offline BTL media');
+    }
+
+    if (isOfflineBtlJourney && data?.mediaVariation?.Timeline !== 'Day') {
+      setError('mediaVariation.Timeline', {
+        type: 'custom',
+        message: 'Timeline must be Per Day for Offline BTL media',
+      });
+      return toast.error('Timeline must be Per Day for Offline BTL media');
+    }
 
     if (isNewspaperJourney) {
       setValue('mediaVariation.Timeline', 'Day');
@@ -1654,22 +1679,28 @@ const MediaProductInfo = () => {
                                 ),
                               }}
                             >
-                              <MenuItem value="Screen">Per Screen</MenuItem>
-                              <MenuItem value="Unit"> Per Unit </MenuItem>
-                              <MenuItem value="Spot"> Per Spot </MenuItem>
-                              <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
-                              <MenuItem value="Display"> Per Display </MenuItem>
-                              <MenuItem value="Location"> Per Location </MenuItem>
-                              <MenuItem value="Release"> Per Release </MenuItem>
-
-                              {FetchedproductData?.ProductCategoryName ===
-                                'MediaOffline' ? null : (
+                              {isOfflineBtlJourney ? (
+                                <MenuItem value="Unit"> Per Unit </MenuItem>
+                              ) : (
                                 <>
-                                  <MenuItem value="Annoucment">
-                                    {' '}
-                                    Per Annoucment{' '}
-                                  </MenuItem>
-                                  <MenuItem value="Video"> Per Video</MenuItem>
+                                  <MenuItem value="Screen">Per Screen</MenuItem>
+                                  <MenuItem value="Unit"> Per Unit </MenuItem>
+                                  <MenuItem value="Spot"> Per Spot </MenuItem>
+                                  <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
+                                  <MenuItem value="Display"> Per Display </MenuItem>
+                                  <MenuItem value="Location"> Per Location </MenuItem>
+                                  <MenuItem value="Release"> Per Release </MenuItem>
+
+                                  {FetchedproductData?.ProductCategoryName ===
+                                    'MediaOffline' ? null : (
+                                    <>
+                                      <MenuItem value="Annoucment">
+                                        {' '}
+                                        Per Annoucment{' '}
+                                      </MenuItem>
+                                      <MenuItem value="Video"> Per Video</MenuItem>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </Select>
@@ -1743,11 +1774,17 @@ const MediaProductInfo = () => {
                               ),
                             }}
                           >
-                            <MenuItem value="Day"> Per Day </MenuItem>
-                            <MenuItem value="Week"> Per Week </MenuItem>
-                            <MenuItem value="Month"> Per Month </MenuItem>
-                            <MenuItem value="One Time"> Per One Time </MenuItem>
-                            <MenuItem value="Year"> Per Year </MenuItem>
+                            {isOfflineBtlJourney ? (
+                              <MenuItem value="Day"> Per Day </MenuItem>
+                            ) : (
+                              <>
+                                <MenuItem value="Day"> Per Day </MenuItem>
+                                <MenuItem value="Week"> Per Week </MenuItem>
+                                <MenuItem value="Month"> Per Month </MenuItem>
+                                <MenuItem value="One Time"> Per One Time </MenuItem>
+                                <MenuItem value="Year"> Per Year </MenuItem>
+                              </>
+                            )}
                           </Select>
                           <Typography
                             sx={FieldErrorTextStyle}
