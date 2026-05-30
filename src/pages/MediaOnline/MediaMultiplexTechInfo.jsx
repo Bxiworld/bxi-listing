@@ -142,11 +142,23 @@ function checkIfDateExists(dateArr, newStartDate, newEndDate) {
   return false;
 }
 
-const SecondsFieldArr = [
-  5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95,
-  100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170,
-  175, 180,
-];
+const MULTIPLEX_TIMESLOT_OPTIONS = [10, 20, 30, 40, 50, 60];
+
+function getMaxTimeslotOptions(minValue) {
+  const min = Number(minValue);
+  if (!Number.isFinite(min) || min <= 0) {
+    return [...MULTIPLEX_TIMESLOT_OPTIONS];
+  }
+  return MULTIPLEX_TIMESLOT_OPTIONS.filter((v) => v >= min);
+}
+
+function normalizeMultiplexTimeslot(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  if (MULTIPLEX_TIMESLOT_OPTIONS.includes(n)) return n;
+  const stepped = Math.round(n / 10) * 10;
+  return Math.min(60, Math.max(10, stepped));
+}
 
 export default function MediaMultiplexTechInfo() {
   const ProductId = useParams().id;
@@ -159,7 +171,9 @@ export default function MediaMultiplexTechInfo() {
   const [storeUploadLink, setStoreUploadLink] = useState();
   const [tags, setTags] = useState([]);
   const [FetchedproductData, setFetchedpProuctData] = useState();
-  const [MaxtimeslotArr, setMaxtimeslotArr] = useState([]);
+  const [MaxtimeslotArr, setMaxtimeslotArr] = useState([
+    ...MULTIPLEX_TIMESLOT_OPTIONS,
+  ]);
   const [OthercostEditId, SetOthercostEditId] = useState(null);
   // const [OthercostFields, setOthercostFields] = useState([]);
   const [items, setItems] = useState([]);
@@ -202,6 +216,20 @@ export default function MediaMultiplexTechInfo() {
 
   const handleInputChange = e => {
     const { name, value } = e.target;
+    if (name === 'minOrderTimeslot') {
+      const minNum = Number(value);
+      const nextMaxOptions = getMaxTimeslotOptions(minNum);
+      setMaxtimeslotArr(nextMaxOptions);
+      setStoreMediaAllData(prev => {
+        const prevMax = Number(prev.maxOrderTimeslot);
+        const nextMax =
+          Number.isFinite(prevMax) && prevMax >= minNum
+            ? prev.maxOrderTimeslot
+            : String(minNum);
+        return { ...prev, minOrderTimeslot: value, maxOrderTimeslot: nextMax };
+      });
+      return;
+    }
     setStoreMediaAllData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -316,17 +344,32 @@ export default function MediaMultiplexTechInfo() {
         setfetchProductData(data);
         setFetchedpProuctData(data);
 
+        const loadedMinTimeslot = normalizeMultiplexTimeslot(
+          data?.minOrderTimeslot ??
+            data?.mediaVariation?.minTimeslotSeconds ??
+            '',
+        );
+        const loadedMaxTimeslotRaw = normalizeMultiplexTimeslot(
+          data?.maxOrderTimeslot ??
+            data?.mediaVariation?.maxTimeslotSeconds ??
+            '',
+        );
+        const loadedMaxTimeslot =
+          loadedMinTimeslot &&
+          loadedMaxTimeslotRaw &&
+          loadedMaxTimeslotRaw < loadedMinTimeslot
+            ? loadedMinTimeslot
+            : loadedMaxTimeslotRaw || loadedMinTimeslot;
+
         setStoreMediaAllData(prev => ({
           ...prev,
           offerningbrandat: data?.offerningbrandat ?? '',
-          minOrderTimeslot:
-            data?.minOrderTimeslot ??
-            data?.mediaVariation?.minTimeslotSeconds ??
-            '',
-          maxOrderTimeslot:
-            data?.maxOrderTimeslot ??
-            data?.mediaVariation?.maxTimeslotSeconds ??
-            '',
+          minOrderTimeslot: loadedMinTimeslot
+            ? String(loadedMinTimeslot)
+            : '',
+          maxOrderTimeslot: loadedMaxTimeslot
+            ? String(loadedMaxTimeslot)
+            : '',
           repetition: data?.repetition ?? '',
           dimensionSize: data?.dimensionSize ?? '',
           minOrderQtyTimeline:
@@ -408,15 +451,10 @@ export default function MediaMultiplexTechInfo() {
           data.OtherCost.forEach(row => OthercostAppend(row));
         }
 
-        const minTimeslot =
-          data?.minOrderTimeslot ??
-          data?.mediaVariation?.minTimeslotSeconds ??
-          5;
-        if (minTimeslot) {
-          const filteredArray = filterMultiples(SecondsFieldArr, minTimeslot);
-          setMaxtimeslotArr(
-            filteredArray.length > 0 ? filteredArray : SecondsFieldArr
-          );
+        if (loadedMinTimeslot) {
+          setMaxtimeslotArr(getMaxTimeslotOptions(loadedMinTimeslot));
+        } else {
+          setMaxtimeslotArr([...MULTIPLEX_TIMESLOT_OPTIONS]);
         }
 
         setStoreUploadLink(data?.UploadLink ?? '');
@@ -687,12 +725,6 @@ export default function MediaMultiplexTechInfo() {
     }
   });
 
-  function filterMultiples(array, multiple) {
-    return array.filter(function (value) {
-      return value >= multiple;
-    });
-  }
-
   useEffect(() => {
     fetchMediaOnlineFeatures();
   }, []);
@@ -939,33 +971,15 @@ export default function MediaMultiplexTechInfo() {
                                             : null,
                                         }}
                                       >
-                                        {SecondsFieldArr?.map((item, idx) => {
-                                          return (
-                                            <MenuItem
-                                              sx={{
-                                                border: '1px white solid',
-                                              }}
-                                              onClick={() => {
-                                                const filteredArray =
-                                                  filterMultiples(
-                                                    SecondsFieldArr,
-                                                    item
-                                                  );
-                                                setMaxtimeslotArr(
-                                                  filteredArray.length > 0
-                                                    ? filteredArray
-                                                    : FetchedproductData
-                                                      ?.mediaVariation
-                                                      ?.minTimeslotSeconds
-                                                );
-                                              }}
-                                              value={item}
-                                              key={idx}
-                                            >
-                                              {item}
-                                            </MenuItem>
-                                          );
-                                        })}
+                                        {MULTIPLEX_TIMESLOT_OPTIONS.map((item) => (
+                                          <MenuItem
+                                            key={`min-ts-${item}`}
+                                            sx={{ border: '1px white solid' }}
+                                            value={item}
+                                          >
+                                            {item}
+                                          </MenuItem>
+                                        ))}
                                       </Select>
                                       <Input
                                         disableUnderline
@@ -1053,21 +1067,19 @@ export default function MediaMultiplexTechInfo() {
                                             : null,
                                         }}
                                       >
-                                        {MaxtimeslotArr?.map((item, idx) => {
-                                          if (
-                                            Number(
-                                              getValues()?.mediaVariation
-                                                ?.minTimeslotSeconds
-                                            ) > Number(item)
-                                          )
-                                            return null;
-
-                                          return (
-                                            <MenuItem value={item}>
-                                              {item}
-                                            </MenuItem>
-                                          );
-                                        })}
+                                        {(MaxtimeslotArr.length > 0
+                                          ? MaxtimeslotArr
+                                          : getMaxTimeslotOptions(
+                                              storeMediaAllData.minOrderTimeslot,
+                                            )
+                                        ).map((item) => (
+                                          <MenuItem
+                                            key={`max-ts-${item}`}
+                                            value={item}
+                                          >
+                                            {item}
+                                          </MenuItem>
+                                        ))}
                                       </Select>
                                       <Input
                                         disableUnderline

@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
 import { getMediaListingProfile } from '../config/mediaListingProfiles';
+import { formatCampaignDurationPreview } from '../utils/digitalAdsCampaignDuration';
 import * as XLSX from 'xlsx';
 import { isMediaListing } from '../utils/listingProductFields';
 
@@ -1561,9 +1562,12 @@ export default function ProductPreview() {
                     mv.maxOrderQuantitytimeline,
                     v0.maxOrderQuantitytimeline,
                   );
-                  const timelineUnit = pick(mv.Timeline, v0.Timeline);
-                  const orderTimelineSummary =
-                    minOrderTimeline != null || maxOrderTimeline != null
+                  const timelineUnit = pick(mv.Timeline, v0.Timeline, product?.timeline);
+                  const isDigitalAdsPreview =
+                    String(product?.mediaJourney || '').toLowerCase() === 'digital-ads';
+                  const orderTimelineSummary = isDigitalAdsPreview
+                    ? formatCampaignDurationPreview(product, mv, v0)
+                    : minOrderTimeline != null || maxOrderTimeline != null
                       ? `${minOrderTimeline != null && String(minOrderTimeline).trim() !== '' ? String(minOrderTimeline) : '—'} - ${maxOrderTimeline != null && String(maxOrderTimeline).trim() !== '' ? String(maxOrderTimeline) : '—'}${timelineUnit ? ` / ${timelineUnit}` : ''}`
                       : null;
                   const loopSeconds =
@@ -1613,7 +1617,14 @@ export default function ProductPreview() {
                     ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
                     ...(hideOrderTimeline
                       ? []
-                      : [['Min - Max order (timeline)', orderTimelineSummary]]),
+                      : [
+                          [
+                            isDigitalAdsPreview
+                              ? 'Campaign duration'
+                              : 'Min - Max order (timeline)',
+                            orderTimelineSummary,
+                          ],
+                        ]),
                     ['Order unit', 'Per '+pickUnit()],
                     ...(String(product?.estimatedFleets || '').trim()
                       ? [['Estimated fleets', String(product.estimatedFleets).trim()]]

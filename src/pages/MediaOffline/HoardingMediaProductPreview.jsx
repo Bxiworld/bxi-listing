@@ -20,6 +20,7 @@ import { DataGrid } from '@mui/x-data-grid';
 import BXITokenIcon from '../../assets/bxi-token.svg';
 import api, { productApi, keyFeatureApi } from '../../utils/api';
 import { getSupportingDocsDisplayLabels } from '../../utils/supportingBuyerDocs';
+import { formatCampaignDurationPreview } from '../../utils/digitalAdsCampaignDuration';
 
 
 const fontFamily =
@@ -1214,22 +1215,22 @@ export default function HoardingMediaProductPreview() {
                     {GetProductByIdData?.minOrderQtyTimeline &&  <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
                         <Typography sx={tableHeader}>
                           {' '}
-                          Min - Max Order Quantity Timeline 
+                          Campaign Duration
                         </Typography>
                         <Typography sx={fetchValue}>
-                          {GetProductByIdData?.ProductsVariantions.at(0)
-                            ?.minOrderQuantitytimeline
-                            ? `${GetProductByIdData?.ProductsVariantions.at(0)
+                          {formatCampaignDurationPreview(
+                            GetProductByIdData,
+                            GetProductByIdData?.mediaVariation || {},
+                            GetProductByIdData?.ProductsVariantions?.at(0) || {},
+                          ) ||
+                            (GetProductByIdData?.ProductsVariantions.at(0)
                               ?.minOrderQuantitytimeline
-                            } - ${GetProductByIdData?.ProductsVariantions?.at(0)
-                              ?.maxOrderQuantitytimeline
-                            }`
-                            : 'N/A'}{' '}
-                          {''} {' '} {'(Days)'}
-                          {
-                            GetProductByIdData?.ProductsVariantions.at(0)
-                              ?.Timeline
-                          }
+                              ? `${GetProductByIdData?.ProductsVariantions.at(0)
+                                  ?.minOrderQuantitytimeline
+                                } - ${GetProductByIdData?.ProductsVariantions?.at(0)
+                                  ?.maxOrderQuantitytimeline
+                                }`
+                              : 'N/A')}
                         </Typography>
                       </Grid>}
 
