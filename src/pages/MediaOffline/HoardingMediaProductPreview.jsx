@@ -37,6 +37,18 @@ const radiusLg = 16;
 const shadowCard = '0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 24px rgba(15, 23, 42, 0.06)';
 const contentMaxWidth = 1500;
 
+function normalizePreviewText(value) {
+  return String(value ?? '').trim();
+}
+
+function shouldShowSubtitleSeparately(subtitle, description) {
+  const s = normalizePreviewText(subtitle);
+  const d = normalizePreviewText(description);
+  if (!s) return false;
+  if (!d) return true;
+  return s.toLowerCase() !== d.toLowerCase();
+}
+
 function CommaSeprator({ Price }) {
   const formatted = useMemo(() => {
     const n = Number(Price);
@@ -519,6 +531,18 @@ export default function HoardingMediaProductPreview() {
 
   const gridColumns = isDoohListing ? doohDigitalColumns : hoardingColumns;
 
+  const productSubtitleText = normalizePreviewText(
+    GetProductByIdData?.ProductSubtitle,
+  );
+  const productDescriptionText = normalizePreviewText(
+    GetProductByIdData?.ProductDescription,
+  );
+  const showSubtitleInDescription = shouldShowSubtitleSeparately(
+    productSubtitleText,
+    productDescriptionText,
+  );
+  const siteListSectionTitle = isDoohListing ? 'Digital screens' : 'Hoarding sites';
+
   useEffect(() => {
     if (!GetProductByIdData) return;
     if (isDoohListing) {
@@ -794,89 +818,112 @@ export default function HoardingMediaProductPreview() {
           </Box>
 
             {TabValue === '1' && (
-            <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
-              <Grid container>
-                <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
-                  <Box>
-                    <Typography sx={TypographyTitleText}>
-                      {GetProductByIdData?.ProductSubtitle}
-                    </Typography>
-                    <Typography sx={DescriptionAnswerText}>
-                      {GetProductByIdData?.ProductDescription}
-                    </Typography>
-                    <Box
-                      sx={{
-                        width: '100%',
-                        mx: 'auto',
-                        display: 'flex',
-                        alignItems: 'center',
-                        flexDirection: 'row',
-                        gap: '5px',
-                      }}
-                    >
+            <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 }, width: '100%' }}>
+              <Stack spacing={3} sx={{ width: '100%' }}>
+                <Box
+                  sx={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    p: { xs: 2, sm: 2.5 },
+                    borderRadius: `${radiusMd}px`,
+                    border: `1px solid ${borderSubtle}`,
+                    bgcolor: surfaceMuted,
+                  }}
+                >
+                  {showSubtitleInDescription ? (
+                    <Box sx={{ mb: 2.5 }}>
+                      <Typography sx={descriptionSectionLabel}>Subtitle</Typography>
+                      <Typography sx={descriptionBodyText}>
+                        {productSubtitleText}
+                      </Typography>
                     </Box>
+                  ) : null}
+                  <Typography sx={descriptionSectionLabel}>
+                    Product description
+                  </Typography>
+                  <Typography
+                    component="div"
+                    sx={{
+                      ...descriptionBodyText,
+                      ...(productDescriptionText
+                        ? {}
+                        : { fontStyle: 'italic', color: textMuted }),
+                    }}
+                  >
+                    {productDescriptionText || 'No description provided.'}
+                  </Typography>
+                </Box>
 
+                {dataGridrows.length > 0 ? (
+                  <Box>
+                    <Typography
+                      component="h3"
+                      sx={{ ...descriptionSectionLabel, mb: 0.5 }}
+                    >
+                      {siteListSectionTitle}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: textMuted, display: 'block', mb: 1.5 }}
+                    >
+                      {dataGridrows.length}{' '}
+                      {dataGridrows.length === 1 ? 'row' : 'rows'} in this listing
+                    </Typography>
                     <Box
-                      mt={1}
                       sx={{
                         width: '100%',
-                        mx: 'auto',
+                        overflowX: 'auto',
+                        borderRadius: `${radiusMd}px`,
+                        border: `1px solid ${borderSubtle}`,
+                        bgcolor: surface,
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                       }}
                     >
-                      <Grid container sx={{ width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                        <Box
-                          sx={{
-                            width: '100%',
-                            mt: 1,
-                            borderRadius: `${radiusMd}px`,
-                            border: `1px solid ${borderSubtle}`,
-                            overflow: 'hidden',
-                            bgcolor: surface,
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                          }}
-                        >
-                          <DataGrid
-                            rows={dataGridrows}
-                            columns={gridColumns}
-                            disableSelectionOnClick
-                            hideFooterSelectedRowCount
-                            disableColumnMenu
-                            autoHeight
-                            columnHeaderHeight={40}
-                            rowHeight={44}
-                            sx={{
-                              border: 'none',
-                              fontSize: '0.8125rem',
-                              '& .MuiDataGrid-columnHeaders': {
-                                fontSize: '0.6875rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.04em',
-                                textTransform: 'uppercase',
-                                color: textMuted,
-                                bgcolor: surfaceMuted,
-                                borderBottom: `1px solid ${borderSubtle}`,
-                              },
-                              '& .MuiDataGrid-columnSeparator': { display: 'none' },
-                              '& .MuiDataGrid-cell': {
-                                fontSize: '0.8125rem',
-                                color: textPrimary,
-                                borderColor: borderSubtle,
-                              },
-                              '& .MuiDataGrid-row:hover': {
-                                bgcolor: 'rgba(198, 64, 145, 0.03)',
-                              },
-                              '& .MuiDataGrid-footerContainer': {
-                                borderTop: `1px solid ${borderSubtle}`,
-                                bgcolor: surfaceMuted,
-                                minHeight: 48,
-                              },
-                              '& .MuiTablePagination-root': { color: textMuted },
-                            }}
-                          />
-                        </Box>
-                      </Grid>
+                      <DataGrid
+                        rows={dataGridrows}
+                        columns={gridColumns}
+                        disableSelectionOnClick
+                        hideFooterSelectedRowCount
+                        disableColumnMenu
+                        autoHeight
+                        columnHeaderHeight={40}
+                        rowHeight={44}
+                        sx={{
+                          border: 'none',
+                          minWidth: isDoohListing ? 920 : 1040,
+                          fontSize: '0.8125rem',
+                          '& .MuiDataGrid-columnHeaders': {
+                            fontSize: '0.6875rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: textMuted,
+                            bgcolor: surfaceMuted,
+                            borderBottom: `1px solid ${borderSubtle}`,
+                          },
+                          '& .MuiDataGrid-columnSeparator': { display: 'none' },
+                          '& .MuiDataGrid-cell': {
+                            fontSize: '0.8125rem',
+                            color: textPrimary,
+                            borderColor: borderSubtle,
+                            wordBreak: 'break-word',
+                          },
+                          '& .MuiDataGrid-row:hover': {
+                            bgcolor: 'rgba(198, 64, 145, 0.03)',
+                          },
+                          '& .MuiDataGrid-footerContainer': {
+                            borderTop: `1px solid ${borderSubtle}`,
+                            bgcolor: surfaceMuted,
+                            minHeight: 48,
+                          },
+                          '& .MuiTablePagination-root': { color: textMuted },
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                ) : null}
 
-                      <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
+                <Grid container spacing={2}>
                         {/* {GetProductByIdData?.ProductsVariantions?.at(0)
                           ?.minTimeslotSeconds ? (
                             <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
@@ -913,10 +960,9 @@ export default function HoardingMediaProductPreview() {
                               </Typography>
                             </Grid>
                           ) : null}
-                      </Grid>
-                    </Box>
+                </Grid>
 
-                    {GetProductByIdData?.OtherCost &&
+                {GetProductByIdData?.OtherCost &&
                       GetProductByIdData?.OtherCost?.length !== 0 ? (
                         <Box mt={2}>
                           <Typography
@@ -1069,9 +1115,7 @@ export default function HoardingMediaProductPreview() {
                           </Box>
                         </>
                       )}
-                  </Box>
-                </Grid>
-              </Grid>{' '}
+              </Stack>
             </Box>
             )}
             {TabValue === '2' && (
@@ -1884,25 +1928,35 @@ const TabTextStyle = {
   textTransform: 'none',
 };
 
-const TypographyTitleText = {
+const descriptionSectionLabel = {
   fontFamily: fontFamily,
   fontStyle: 'normal',
-  fontWeight: 700,
-  fontSize: { xs: '1.05rem', sm: '1.15rem', md: '1.25rem' },
-  letterSpacing: '-0.02em',
-  color: textPrimary,
+  fontWeight: 600,
+  fontSize: '0.75rem',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: textMuted,
 };
 
-const DescriptionAnswerText = {
+const descriptionBodyText = {
   fontFamily: fontFamily,
   fontStyle: 'normal',
   fontWeight: 400,
-  fontSize: { xs: '0.875rem', sm: '0.9375rem', md: '1rem' },
+  fontSize: { xs: '0.875rem', sm: '0.9375rem' },
   textAlign: 'left',
+  color: textPrimary,
+  lineHeight: 1.7,
+  width: '100%',
+  maxWidth: '100%',
+  wordBreak: 'break-word',
+  overflowWrap: 'break-word',
+  whiteSpace: 'pre-wrap',
+};
+
+const DescriptionAnswerText = {
+  ...descriptionBodyText,
   color: textMuted,
-  lineHeight: 1.65,
   py: { xs: 1.5, sm: 2 },
-  maxWidth: '72ch',
 };
 
 const semi = {

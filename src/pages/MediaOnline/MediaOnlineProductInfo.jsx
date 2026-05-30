@@ -381,7 +381,7 @@ const MediaProductInfo = () => {
       );
 
       const fetchProfile = getMediaListingProfile(data);
-      if (fetchProfile.key === 'television') {
+      if (fetchProfile.key === 'television' || fetchProfile.key === 'otherMedia') {
         setValue('mediaVariation.unit', 'Spot');
         setValue('mediaVariation.Timeline', 'Day');
       } else if (fetchProfile.key === 'radio') {
@@ -433,7 +433,7 @@ const MediaProductInfo = () => {
           data?.mediaVariation?.maxOrderQuantitytimeline,
         );
         setValue('mediaVariation.location', data?.mediaVariation?.location);
-        if (fetchProfile.key === 'television') {
+        if (fetchProfile.key === 'television' || fetchProfile.key === 'otherMedia') {
           setValue('mediaVariation.unit', 'Spot');
         } else if (fetchProfile.key === 'airport') {
           const incoming = data?.mediaVariation?.unit;
@@ -485,7 +485,11 @@ const MediaProductInfo = () => {
             }
           }
         }
-        if (fetchProfile.key === 'television' || fetchProfile.key === 'radio') {
+        if (
+          fetchProfile.key === 'television' ||
+          fetchProfile.key === 'radio' ||
+          fetchProfile.key === 'otherMedia'
+        ) {
           setValue('mediaVariation.Timeline', 'Day');
         } else if (fetchProfile.key === 'airport') {
           setValue('mediaVariation.Timeline', 'Days');
@@ -581,6 +585,7 @@ const MediaProductInfo = () => {
   );
   const watchedMediaUnit = watch('mediaVariation.unit');
   const isRadio = listingProfile?.key === 'radio';
+  const isOtherMedia = listingProfile?.key === 'otherMedia';
   const isMultiplex = listingProfile?.key === 'multiplex';
   const timeslotOptions = useMemo(
     () => isMultiplex ? SecondsFieldArr.filter((v) => v >= 60) : SecondsFieldArr,
@@ -589,7 +594,7 @@ const MediaProductInfo = () => {
   /** Flat list for Unit dropdown; native <select> avoids MUI MenuItem direct-descendant quirks. */
   const unitSelectChoices = useMemo(() => {
     let choices;
-    if (isRadio) {
+    if (isRadio || isOtherMedia) {
       choices = [{ value: 'Spot', label: 'Per Spot' }];
     } else if (listingProfile.unitOptions?.length) {
       choices = listingProfile.unitOptions;
@@ -611,6 +616,7 @@ const MediaProductInfo = () => {
     if (
       listingProfile.key !== 'television' &&
       listingProfile.key !== 'airport' &&
+      listingProfile.key !== 'otherMedia' &&
       v &&
       !choices.some((o) => String(o.value) === v)
     ) {
@@ -620,6 +626,7 @@ const MediaProductInfo = () => {
   }, [
     listingProfile.unitOptions,
     listingProfile.key,
+    isOtherMedia,
     FetchedproductData?.ProductSubCategoryName,
     FetchedproductData?.ProductSubCategory,
     watchedMediaUnit,
@@ -627,11 +634,19 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (!listingProfile.timelineOnlyDay) return;
-    if (listingProfile.key === 'television') {
+    if (listingProfile.key === 'television' || listingProfile.key === 'otherMedia') {
       setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
     }
     setValue('mediaVariation.Timeline', 'Day', { shouldValidate: true, shouldDirty: true });
   }, [listingProfile.timelineOnlyDay, listingProfile.key, setValue]);
+
+  useEffect(() => {
+    if (!isOtherMedia) return;
+    const u = String(watchedMediaUnit ?? '').trim();
+    if (u !== 'Spot') {
+      setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    }
+  }, [isOtherMedia, watchedMediaUnit, setValue]);
 
   useEffect(() => {
     if (listingProfile.key !== 'airport') return;
@@ -1115,7 +1130,7 @@ const MediaProductInfo = () => {
           minTimeslotSeconds: Number(getValues()?.mediaVariation?.minTimeslotSeconds) || 0,
         }
         : {}),
-      ...(submitProfile.key === 'television'
+      ...(submitProfile.key === 'television' || submitProfile.key === 'otherMedia'
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
       ...(submitProfile.key === 'radio' ? { Timeline: 'Day' } : {}),
@@ -1196,6 +1211,28 @@ const MediaProductInfo = () => {
         toast.error('Timeline must be Per Day for radio listings');
         return;
       }
+      mergedMediaVariation.Timeline = 'Day';
+    }
+    if (submitProfile.key === 'otherMedia') {
+      const otherUnit = String(data.mediaVariation.unit ?? '').trim();
+      if (otherUnit !== 'Spot') {
+        setError('mediaVariation.unit', {
+          type: 'custom',
+          message: 'Unit must be Per Spot for Other media',
+        });
+        toast.error('Unit must be Per Spot for Other media');
+        return;
+      }
+      const otherTimeline = String(data.mediaVariation.Timeline ?? '').trim();
+      if (otherTimeline !== 'Day') {
+        setError('mediaVariation.Timeline', {
+          type: 'custom',
+          message: 'Timeline must be Per Day for Other media',
+        });
+        toast.error('Timeline must be Per Day for Other media');
+        return;
+      }
+      mergedMediaVariation.unit = 'Spot';
       mergedMediaVariation.Timeline = 'Day';
     }
     if (submitProfile.key === 'airport') {
@@ -2512,7 +2549,7 @@ const MediaProductInfo = () => {
                                 </span>
                               ) : null}
                               </Typography>
-                              {isRadio ? (
+                              {isRadio || isOtherMedia ? (
                                 <Typography
                                   sx={{
                                     ...inputStyles,
