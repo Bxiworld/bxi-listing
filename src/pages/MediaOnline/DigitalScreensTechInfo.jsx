@@ -41,88 +41,36 @@ import {
   FEATURE_ALLOWLIST_BY_KEY,
   filterFeatureDropdownRows,
 } from '../../config/mediaListingProfiles';
-
-/** Listing duration; API still receives min/max timeline as day counts. */
-const TIMELINE_DURATION_OPTIONS = [
-  { value: 'Day', label: 'Day' },
-  { value: 'Week', label: 'Week' },
-  { value: 'Month', label: 'Month' },
-];
-
-/** Days per one unit of the selected duration. */
-function daysPerTimelineUnit(duration) {
-  switch (duration) {
-    case 'Day':
-      return 1;
-    case 'Week':
-      return 7;
-    case 'Month':
-      return 30;
-    default:
-      return 0;
-  }
-}
-
-/** Total booking length in days for API (min/max timeline fields). */
-function timelineDurationQuantityToTotalDays(duration, quantity) {
-  const q = Number(quantity);
-  const per = daysPerTimelineUnit(duration);
-  if (!per || !Number.isFinite(q) || q < 1) return 0;
-  return Math.round(q * per);
-}
-
-/** Derive quantity from stored total days and known duration unit. */
-function resolveTimelineQuantityFromTotalDays(totalDays, duration) {
-  const d = Number(totalDays);
-  if (!Number.isFinite(d) || d < 1) return '1';
-  if (!duration || !['Day', 'Week', 'Month'].includes(duration)) {
-    return String(Math.max(1, Math.round(d)));
-  }
-  const per = daysPerTimelineUnit(duration);
-  if (!per) return '1';
-  const q = Math.max(1, Math.round(d / per));
-  return String(q);
-}
-
-/** Restore select value from API (string or legacy day counts). */
-function resolveTimelineDurationFromProduct(mv, data) {
-  const normalize = (raw) => {
-    if (raw == null || raw === '') return '';
-    const s = String(raw).trim();
-    const lower = s.toLowerCase();
-    if (lower === 'day') return 'Day';
-    if (lower === 'week') return 'Week';
-    if (lower === 'month') return 'Month';
-    return '';
-  };
-
-  const fromStrings =
-    normalize(mv?.Timeline) ||
-    normalize(mv?.timeline) ||
-    normalize(data?.timeline);
-  if (fromStrings) return fromStrings;
-
-  const n = Number(mv?.minOrderQuantitytimeline);
-  if (n === 1) return 'Day';
-  if (n === 7) return 'Week';
-  if (n === 30 || n === 31) return 'Month';
-  return '';
-}
-
-function resolveTimelineQuantityForFetch(mv, data, timelineDuration) {
-  const totalDays = Number(
-    mv?.minOrderQuantitytimeline ??
-      mv?.maxOrderQuantitytimeline ??
-      data?.minOrderQtyTimeline ??
-      data?.maxOrderQtyTimeline,
-  );
-  return resolveTimelineQuantityFromTotalDays(totalDays, timelineDuration);
-}
+import {
+  TIMELINE_DURATION_OPTIONS,
+  resolveTimelineDurationFromProduct,
+  resolveTimelineQuantityForFetch,
+  timelineDurationQuantityToTotalDays,
+} from '../../utils/digitalAdsCampaignDuration';
 
 const GST_OPTIONS = ['5', '10', '12', '18', '28'];
-const TIMESLOT_SECOND_OPTIONS = Array.from({ length: 18 }, (_, idx) =>
+const LOOPTIME_SECOND_OPTIONS = Array.from({ length: 18 }, (_, idx) =>
   String((idx + 1) * 10),
 );
+
+const MIN_MAX_TIMESLOT_OPTIONS = LOOPTIME_SECOND_OPTIONS.filter(
+  (sec) => Number(sec) <= 60,
+);
+
+function getMaxTimeslotOptions(minValue) {
+  const min = Number(minValue);
+  if (!Number.isFinite(min) || min < 10) {
+    return [...MIN_MAX_TIMESLOT_OPTIONS];
+  }
+  return MIN_MAX_TIMESLOT_OPTIONS.filter((sec) => Number(sec) >= min);
+}
+
+function normalizeMinMaxTimeslot(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  const stepped = Math.min(60, Math.max(10, Math.round(n / 10) * 10));
+  return String(stepped);
+}
 
 const OthercostFieldsarray = [
   'Applicable On',
@@ -183,16 +131,9 @@ export default function DigitalScreensTechInfo() {
     defaultValues: { OtherCost: [] },
   });
 
-  const minSecondsNumber = Number(storeMediaAllData.minTimeSeconds);
   const isDigitalAdsJourney =
     String(productData?.mediaJourney || '').toLowerCase() === 'digital-ads';
-  const maxTimeOptions = TIMESLOT_SECOND_OPTIONS.filter((sec) => {
-    const secNumber = Number(sec);
-    if (!Number.isFinite(minSecondsNumber) || minSecondsNumber < 10) {
-      return secNumber >= 10;
-    }
-    return secNumber >= minSecondsNumber * 2;
-  });
+  const maxTimeOptions = getMaxTimeslotOptions(storeMediaAllData.minTimeSeconds);
 
   const {
     fields: OthercostFields,
@@ -241,8 +182,18 @@ export default function DigitalScreensTechInfo() {
       const mv = data?.mediaVariation || {};
       const loopTimeSecondsRaw =
         mv.loopTimeSeconds ?? data?.loopTimeSeconds ?? mv.minTimeslotSeconds ?? data?.minOrderTimeslot ?? '';
-      const minTimeSecondsRaw = mv.minTimeslotSeconds ?? data?.minOrderTimeslot ?? '';
-      const maxTimeSecondsRaw = mv.maxTimeslotSeconds ?? data?.maxOrderTimeslot ?? '';
+      const minTimeSecondsNorm = normalizeMinMaxTimeslot(
+        mv.minTimeslotSeconds ?? data?.minOrderTimeslot ?? '',
+      );
+      const maxTimeSecondsNormRaw = normalizeMinMaxTimeslot(
+        mv.maxTimeslotSeconds ?? data?.maxOrderTimeslot ?? '',
+      );
+      const maxTimeSecondsNorm =
+        minTimeSecondsNorm &&
+        maxTimeSecondsNormRaw &&
+        Number(maxTimeSecondsNormRaw) < Number(minTimeSecondsNorm)
+          ? minTimeSecondsNorm
+          : maxTimeSecondsNormRaw || minTimeSecondsNorm;
       const timelineDuration = resolveTimelineDurationFromProduct(mv, data);
       const timelineQuantity = resolveTimelineQuantityForFetch(mv, data, timelineDuration);
 
@@ -264,14 +215,8 @@ export default function DigitalScreensTechInfo() {
           loopTimeSecondsRaw != null && loopTimeSecondsRaw !== ''
             ? String(loopTimeSecondsRaw)
             : '',
-        minTimeSeconds:
-          minTimeSecondsRaw != null && minTimeSecondsRaw !== ''
-            ? String(minTimeSecondsRaw)
-            : '',
-        maxTimeSeconds:
-          maxTimeSecondsRaw != null && maxTimeSecondsRaw !== ''
-            ? String(maxTimeSecondsRaw)
-            : '',
+        minTimeSeconds: minTimeSecondsNorm,
+        maxTimeSeconds: maxTimeSecondsNorm,
         timeline: timelineDuration,
         timelineQuantity,
         UploadLink: data?.UploadLink ?? '',
@@ -408,17 +353,17 @@ export default function DigitalScreensTechInfo() {
       return;
     }
     const minTimeSeconds = Number(storeMediaAllData.minTimeSeconds);
-    if (!Number.isFinite(minTimeSeconds) || minTimeSeconds < 10 || minTimeSeconds > 180) {
-      toast.error('Min Time Seconds must be between 10 and 180');
+    if (!Number.isFinite(minTimeSeconds) || minTimeSeconds < 10 || minTimeSeconds > 60) {
+      toast.error('Min Time Seconds must be between 10 and 60');
       return;
     }
     const maxTimeSeconds = Number(storeMediaAllData.maxTimeSeconds);
-    if (!Number.isFinite(maxTimeSeconds) || maxTimeSeconds < 10 || maxTimeSeconds > 180) {
-      toast.error('Max Time Seconds must be between 10 and 180');
+    if (!Number.isFinite(maxTimeSeconds) || maxTimeSeconds < 10 || maxTimeSeconds > 60) {
+      toast.error('Max Time Seconds must be between 10 and 60');
       return;
     }
-    if (maxTimeSeconds < minTimeSeconds * 2) {
-      toast.error('Max Time Seconds must be at least 2x of Min Time Seconds');
+    if (maxTimeSeconds < minTimeSeconds) {
+      toast.error('Max Time Seconds cannot be less than Min Time Seconds');
       return;
     }
     const qtyRaw = storeMediaAllData.timelineQuantity;
@@ -466,12 +411,15 @@ export default function DigitalScreensTechInfo() {
       ? { ...productData.mediaVariation }
       : {};
 
+    const campaignDurationQuantity = Math.max(1, Math.round(Number(qty)));
+
     const mediaVariation = {
       ...baseMv,
       minOrderQuantityunit: 1,
       maxOrderQuantityunit: 1,
       minOrderQuantitytimeline: t,
       maxOrderQuantitytimeline: t,
+      campaignDurationQuantity,
       minTimeslotSeconds: minTimeSeconds,
       maxTimeslotSeconds: maxTimeSeconds,
       loopTimeSeconds: loopTimeSeconds,
@@ -518,6 +466,8 @@ export default function DigitalScreensTechInfo() {
       maxOrderTimeslot: maxTimeSeconds,
       loopTimeSeconds: loopTimeSeconds,
       timeline: duration,
+      Timeline: duration,
+      campaignDurationQuantity,
       UploadLink: storeMediaAllData.UploadLink?.trim() || '',
     };
 
@@ -601,7 +551,7 @@ export default function DigitalScreensTechInfo() {
                         }
                       >
                         <option value="">Select loop time</option>
-                        {TIMESLOT_SECOND_OPTIONS.map((sec) => (
+                        {LOOPTIME_SECOND_OPTIONS.map((sec) => (
                           <option key={`loop-${sec}`} value={sec}>
                             {sec}
                           </option>
@@ -616,24 +566,30 @@ export default function DigitalScreensTechInfo() {
                           <select
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             value={storeMediaAllData.minTimeSeconds}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const nextMin = e.target.value;
+                              const nextMinNumber = Number(nextMin);
                               setStoreMediaAllData((p) => {
-                                const nextMin = e.target.value;
-                                const nextMax = Number(p.maxTimeSeconds);
-                                const nextMinNumber = Number(nextMin);
+                                const prevMax = Number(p.maxTimeSeconds);
+                                let nextMax = p.maxTimeSeconds;
+                                if (!nextMin) {
+                                  nextMax = '';
+                                } else if (
+                                  !Number.isFinite(prevMax) ||
+                                  prevMax < nextMinNumber
+                                ) {
+                                  nextMax = nextMin;
+                                }
                                 return {
                                   ...p,
                                   minTimeSeconds: nextMin,
-                                  maxTimeSeconds:
-                                    Number.isFinite(nextMax) && nextMax >= nextMinNumber * 2
-                                      ? p.maxTimeSeconds
-                                      : '',
+                                  maxTimeSeconds: nextMax,
                                 };
-                              })
-                            }
+                              });
+                            }}
                           >
                             <option value="">Select min seconds</option>
-                            {TIMESLOT_SECOND_OPTIONS.map((sec) => (
+                            {MIN_MAX_TIMESLOT_OPTIONS.map((sec) => (
                               <option key={sec} value={sec}>
                                 {sec}
                               </option>

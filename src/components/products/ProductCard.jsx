@@ -39,6 +39,8 @@ export const ProductCard = ({
   onDelete,
   onRelist,
   onDelist,
+  pendingAdminChange,
+  onReviewPendingChange,
   showActions = true,
   tabType = 'Live'
 }) => {
@@ -131,6 +133,17 @@ export const ProductCard = ({
             </Badge>
           </div>
         )}
+        {tabType === 'Live' && pendingAdminChange && onReviewPendingChange ? (
+          <button
+            type="button"
+            onClick={() => onReviewPendingChange(product, pendingAdminChange)}
+            className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full border border-[#C64091]/30 bg-white/95 p-2 text-[#C64091] shadow-sm transition hover:bg-[#FFF5FB]"
+            title="Review admin suggested changes"
+            data-testid={`pending-admin-change-btn-${_id}`}
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+        ) : null}
       </div>
 
       {/* Content */}

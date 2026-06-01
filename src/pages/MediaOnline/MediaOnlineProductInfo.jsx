@@ -60,6 +60,60 @@ function normalizeAirportTimelineValue(value) {
   return '';
 }
 
+const mediaPricingGridSx = {
+  mt: 3,
+  display: 'grid',
+  gridTemplateColumns: {
+    xs: '1fr',
+    sm: 'repeat(2, minmax(0, 1fr))',
+    lg: 'repeat(3, minmax(0, 1fr))',
+    xl: 'repeat(5, minmax(0, 1fr))',
+  },
+  gap: 2,
+  alignItems: 'flex-start',
+  width: '100%',
+};
+
+const mediaOrderFieldsGridSx = {
+  mt: 3,
+  display: 'grid',
+  gridTemplateColumns: {
+    xs: '1fr',
+    sm: 'repeat(2, minmax(0, 1fr))',
+    lg: 'repeat(6, minmax(0, 1fr))',
+    xl: 'repeat(12, minmax(0, 1fr))',
+  },
+  gap: 2,
+  alignItems: 'flex-start',
+  width: '100%',
+};
+
+const mediaGridColQty = {
+  gridColumn: { xs: 'span 1', sm: 'span 1', lg: 'span 2', xl: 'span 2' },
+  minWidth: 0,
+};
+
+const mediaGridColTimeline = {
+  gridColumn: { xs: 'span 1', sm: 'span 2', lg: '1 / -1', xl: 'span 4' },
+  minWidth: 0,
+};
+
+const mediaGridColTimeslot = {
+  gridColumn: { xs: 'span 1', sm: 'span 1', lg: 'span 3', xl: 'span 2' },
+  minWidth: 0,
+};
+
+const mediaFieldLabelSx = {
+  fontFamily: 'Inter, sans-serif',
+  fontStyle: 'normal',
+  fontWeight: 600,
+  fontSize: '12px',
+  lineHeight: 1.25,
+  color: '#374151',
+  whiteSpace: 'normal',
+  wordBreak: 'break-word',
+};
+
 const LocationArr = [
   'Specific',
   'Position',
@@ -327,7 +381,7 @@ const MediaProductInfo = () => {
       );
 
       const fetchProfile = getMediaListingProfile(data);
-      if (fetchProfile.key === 'television') {
+      if (fetchProfile.key === 'television' || fetchProfile.key === 'otherMedia') {
         setValue('mediaVariation.unit', 'Spot');
         setValue('mediaVariation.Timeline', 'Day');
       } else if (fetchProfile.key === 'radio') {
@@ -379,7 +433,7 @@ const MediaProductInfo = () => {
           data?.mediaVariation?.maxOrderQuantitytimeline,
         );
         setValue('mediaVariation.location', data?.mediaVariation?.location);
-        if (fetchProfile.key === 'television') {
+        if (fetchProfile.key === 'television' || fetchProfile.key === 'otherMedia') {
           setValue('mediaVariation.unit', 'Spot');
         } else if (fetchProfile.key === 'airport') {
           const incoming = data?.mediaVariation?.unit;
@@ -431,7 +485,11 @@ const MediaProductInfo = () => {
             }
           }
         }
-        if (fetchProfile.key === 'television' || fetchProfile.key === 'radio') {
+        if (
+          fetchProfile.key === 'television' ||
+          fetchProfile.key === 'radio' ||
+          fetchProfile.key === 'otherMedia'
+        ) {
           setValue('mediaVariation.Timeline', 'Day');
         } else if (fetchProfile.key === 'airport') {
           setValue('mediaVariation.Timeline', 'Days');
@@ -527,6 +585,7 @@ const MediaProductInfo = () => {
   );
   const watchedMediaUnit = watch('mediaVariation.unit');
   const isRadio = listingProfile?.key === 'radio';
+  const isOtherMedia = listingProfile?.key === 'otherMedia';
   const isMultiplex = listingProfile?.key === 'multiplex';
   const timeslotOptions = useMemo(
     () => isMultiplex ? SecondsFieldArr.filter((v) => v >= 60) : SecondsFieldArr,
@@ -535,7 +594,7 @@ const MediaProductInfo = () => {
   /** Flat list for Unit dropdown; native <select> avoids MUI MenuItem direct-descendant quirks. */
   const unitSelectChoices = useMemo(() => {
     let choices;
-    if (isRadio) {
+    if (isRadio || isOtherMedia) {
       choices = [{ value: 'Spot', label: 'Per Spot' }];
     } else if (listingProfile.unitOptions?.length) {
       choices = listingProfile.unitOptions;
@@ -557,6 +616,7 @@ const MediaProductInfo = () => {
     if (
       listingProfile.key !== 'television' &&
       listingProfile.key !== 'airport' &&
+      listingProfile.key !== 'otherMedia' &&
       v &&
       !choices.some((o) => String(o.value) === v)
     ) {
@@ -566,6 +626,7 @@ const MediaProductInfo = () => {
   }, [
     listingProfile.unitOptions,
     listingProfile.key,
+    isOtherMedia,
     FetchedproductData?.ProductSubCategoryName,
     FetchedproductData?.ProductSubCategory,
     watchedMediaUnit,
@@ -573,11 +634,19 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (!listingProfile.timelineOnlyDay) return;
-    if (listingProfile.key === 'television') {
+    if (listingProfile.key === 'television' || listingProfile.key === 'otherMedia') {
       setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
     }
     setValue('mediaVariation.Timeline', 'Day', { shouldValidate: true, shouldDirty: true });
   }, [listingProfile.timelineOnlyDay, listingProfile.key, setValue]);
+
+  useEffect(() => {
+    if (!isOtherMedia) return;
+    const u = String(watchedMediaUnit ?? '').trim();
+    if (u !== 'Spot') {
+      setValue('mediaVariation.unit', 'Spot', { shouldValidate: true });
+    }
+  }, [isOtherMedia, watchedMediaUnit, setValue]);
 
   useEffect(() => {
     if (listingProfile.key !== 'airport') return;
@@ -693,9 +762,9 @@ const MediaProductInfo = () => {
 
   const renderMinMaxOrderQtyTimelineField = (options = {}) => {
     const {
-      wrapperClassName = '',
       compactLabel = false,
       airportTimelineDropdown = false,
+      gridColumnSx,
     } = options;
     const minTimelineError =
       errors?.mediaVariation?.minOrderQuantitytimeline?.message;
@@ -714,23 +783,18 @@ const MediaProductInfo = () => {
 
     return (
       <Box
-        className={`min-w-0 w-full ${wrapperClassName}`.trim()}
+        className="min-w-0 w-full"
         sx={{
           display: 'flex',
           flexDirection: 'column',
           gap: 1,
           mt: 0,
-          minWidth: { xs: 0, sm: 200 },
+          minWidth: 0,
+          width: '100%',
+          ...(gridColumnSx || {}),
         }}
       >
-        <Typography
-          sx={{
-            ...CommonTextStyle,
-            fontSize: '12px',
-            lineHeight: 1.25,
-            whiteSpace: compactLabel ? { xs: 'normal', md: 'nowrap' } : 'normal',
-          }}
-        >
+        <Typography sx={mediaFieldLabelSx}>
           {compactLabel ? 'Min – Max order (timeline)' : 'Min - Max Order QTY Timeline'}{' '}
           <span style={{ color: 'red' }}>*</span>
         </Typography>
@@ -740,15 +804,14 @@ const MediaProductInfo = () => {
             flexDirection: 'column',
             gap: 0.5,
             width: '100%',
-            minWidth: { xs: '100%', sm: 220 },
-            maxWidth: { xs: '100%', lg: 300 },
+            minWidth: 0,
           }}
         >
           <Box
             sx={{
               display: 'flex',
               width: '100%',
-              minWidth: { xs: '100%', sm: 220 },
+              minWidth: 0,
               alignItems: 'stretch',
               background: '#fff',
               borderRadius: '10px',
@@ -1067,7 +1130,7 @@ const MediaProductInfo = () => {
           minTimeslotSeconds: Number(getValues()?.mediaVariation?.minTimeslotSeconds) || 0,
         }
         : {}),
-      ...(submitProfile.key === 'television'
+      ...(submitProfile.key === 'television' || submitProfile.key === 'otherMedia'
         ? { unit: 'Spot', Timeline: 'Day' }
         : {}),
       ...(submitProfile.key === 'radio' ? { Timeline: 'Day' } : {}),
@@ -1148,6 +1211,28 @@ const MediaProductInfo = () => {
         toast.error('Timeline must be Per Day for radio listings');
         return;
       }
+      mergedMediaVariation.Timeline = 'Day';
+    }
+    if (submitProfile.key === 'otherMedia') {
+      const otherUnit = String(data.mediaVariation.unit ?? '').trim();
+      if (otherUnit !== 'Spot') {
+        setError('mediaVariation.unit', {
+          type: 'custom',
+          message: 'Unit must be Per Spot for Other media',
+        });
+        toast.error('Unit must be Per Spot for Other media');
+        return;
+      }
+      const otherTimeline = String(data.mediaVariation.Timeline ?? '').trim();
+      if (otherTimeline !== 'Day') {
+        setError('mediaVariation.Timeline', {
+          type: 'custom',
+          message: 'Timeline must be Per Day for Other media',
+        });
+        toast.error('Timeline must be Per Day for Other media');
+        return;
+      }
+      mergedMediaVariation.unit = 'Spot';
       mergedMediaVariation.Timeline = 'Day';
     }
     if (submitProfile.key === 'airport') {
@@ -2464,7 +2549,7 @@ const MediaProductInfo = () => {
                                 </span>
                               ) : null}
                               </Typography>
-                              {isRadio ? (
+                              {isRadio || isOtherMedia ? (
                                 <Typography
                                   sx={{
                                     ...inputStyles,
@@ -2683,10 +2768,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                           </Box>
-                          <Box
-                            className="mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
-                            sx={{ alignItems: 'flex-start' }}
-                          >
+                          <Box sx={mediaPricingGridSx}>
                             <Box
                               className="min-w-0 w-full"
                               sx={{
@@ -2694,11 +2776,10 @@ const MediaProductInfo = () => {
                                 flexDirection: 'column',
                                 gap: 1,
                                 mt: 0,
+                                minWidth: 0,
                               }}
                             >
-                              <Typography
-                                sx={{ ...CommonTextStyle, fontSize: '12px', lineHeight: 1.25 }}
-                              >
+                              <Typography sx={mediaFieldLabelSx}>
                                 {listingProfile.dimensionLabel}{' '}
                                 {listingProfile.dimensionRequired ? (
                                   <span style={{ color: 'red' }}> *</span>
@@ -3044,14 +3125,7 @@ const MediaProductInfo = () => {
                               </Typography>
                             </Box>
                           </Box>
-                          <Box
-                            className={
-                              listingProfile.key === 'airport'
-                                ? 'mt-6 grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6'
-                                : 'mt-6 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6'
-                            }
-                            sx={{ alignItems: 'flex-start' }}
-                          >
+                          <Box sx={mediaOrderFieldsGridSx}>
                             {listingProfile.key === 'airport' ? (
                               <Box
                                 className="min-w-0 w-full"
@@ -3060,7 +3134,7 @@ const MediaProductInfo = () => {
                                   flexDirection: 'column',
                                   gap: 1,
                                   mt: 0,
-                                  minWidth: 0,
+                                  ...mediaGridColQty,
                                 }}
                               >
                                 <Typography
@@ -3165,16 +3239,10 @@ const MediaProductInfo = () => {
                                     flexDirection: 'column',
                                     gap: 1,
                                     mt: 0,
-                                    minWidth: 0,
+                                    ...mediaGridColQty,
                                   }}
                                 >
-                                  <Typography
-                                    sx={{
-                                      ...CommonTextStyle,
-                                      fontSize: '12px',
-                                      lineHeight: 1.25,
-                                    }}
-                                  >
+                                  <Typography sx={mediaFieldLabelSx}>
                                     Min Order QTY Unit{' '}
                                     <span style={{ color: 'red' }}>*</span>
                                   </Typography>
@@ -3268,16 +3336,10 @@ const MediaProductInfo = () => {
                                     flexDirection: 'column',
                                     gap: 1,
                                     mt: 0,
-                                    minWidth: 0,
+                                    ...mediaGridColQty,
                                   }}
                                 >
-                                  <Typography
-                                    sx={{
-                                      ...CommonTextStyle,
-                                      fontSize: '12px',
-                                      lineHeight: 1.25,
-                                    }}
-                                  >
+                                  <Typography sx={mediaFieldLabelSx}>
                                     Max Order QTY Unit{' '}
                                     <span style={{ color: 'red' }}>*</span>
                                   </Typography>
@@ -3377,11 +3439,11 @@ const MediaProductInfo = () => {
                             {renderMinMaxOrderQtyTimelineField(
                               listingProfile.key === 'airport'
                                 ? {
-                                    wrapperClassName: 'lg:col-span-2',
                                     compactLabel: true,
                                     airportTimelineDropdown: true,
+                                    gridColumnSx: mediaGridColTimeline,
                                   }
-                                : {},
+                                : { gridColumnSx: mediaGridColTimeline },
                             )}
                             <Box
                               className="min-w-0 w-full"
@@ -3390,16 +3452,10 @@ const MediaProductInfo = () => {
                                 flexDirection: 'column',
                                 gap: 1,
                                 mt: 0,
-                                minWidth: 0,
+                                ...mediaGridColTimeslot,
                               }}
                             >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
+                              <Typography sx={mediaFieldLabelSx}>
                                 Min Order Timeslot{' '}
                                 <span style={{ color: 'red' }}>*</span>
                               </Typography>
@@ -3419,7 +3475,13 @@ const MediaProductInfo = () => {
                                     width: '100%',
                                     minWidth: 0,
                                     alignItems: 'stretch',
-                                    gap: 1,
+                                    background: '#fff',
+                                    borderRadius: '10px',
+                                    overflow: 'hidden',
+                                    border: errors?.mediaVariation
+                                      ?.minTimeslotSeconds?.message
+                                      ? '1px solid red'
+                                      : '1px solid #E5E8EB',
                                   }}
                                 >
                                   <Select
@@ -3438,10 +3500,10 @@ const MediaProductInfo = () => {
                                       minWidth: 0,
                                       width: '100%',
                                       maxWidth: '100%',
-                                      border: errors?.mediaVariation
-                                        ?.minTimeslotSeconds?.message
-                                        ? '1px solid red'
-                                        : '1px solid #E5E8EB',
+                                      border: 'none',
+                                      borderRadius: 0,
+                                      height: '42px',
+                                      fontSize: '12px',
                                     }}
                                   >
                                     {SecondsFieldArr?.map((item, idx) => {
@@ -3470,14 +3532,19 @@ const MediaProductInfo = () => {
                                     disableUnderline
                                     value={'seconds'}
                                     disabled
+                                    inputProps={{ readOnly: true }}
                                     sx={{
                                       ...inputStyles,
                                       flex: '0 0 76px',
                                       width: '76px',
                                       minWidth: '76px',
                                       maxWidth: '76px',
-                                      paddingY: '0.5px',
+                                      border: 'none',
+                                      borderRadius: 0,
+                                      borderLeft: '1px solid #E5E8EB',
+                                      height: '42px',
                                       fontSize: '12px',
+                                      px: 1,
                                     }}
                                   />
                                 </Box>
@@ -3512,16 +3579,10 @@ const MediaProductInfo = () => {
                                 flexDirection: 'column',
                                 gap: 1,
                                 mt: 0,
-                                minWidth: 0,
+                                ...mediaGridColTimeslot,
                               }}
                             >
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  lineHeight: 1.25,
-                                }}
-                              >
+                              <Typography sx={mediaFieldLabelSx}>
                                 Max Order Timeslot{' '}
                                 <span style={{ color: 'red' }}>*</span>
                               </Typography>
@@ -3540,9 +3601,15 @@ const MediaProductInfo = () => {
                                     width: '100%',
                                     minWidth: 0,
                                     alignItems: 'stretch',
-                                    gap: 1,
+                                    background: '#fff',
+                                    borderRadius: '10px',
+                                    overflow: 'hidden',
+                                    border: errors?.mediaVariation
+                                      ?.maxTimeslotSeconds?.message
+                                      ? '1px solid red'
+                                      : '1px solid #E5E8EB',
                                   }}
-                                  >
+                                >
                                     <Select
                                       disableUnderline
                                       {...register(
@@ -3554,10 +3621,10 @@ const MediaProductInfo = () => {
                                         minWidth: 0,
                                         width: '100%',
                                         maxWidth: '100%',
-                                        border: errors?.mediaVariation
-                                          ?.maxTimeslotSeconds?.message
-                                          ? '1px solid red'
-                                          : '1px solid #E5E8EB',
+                                        border: 'none',
+                                        borderRadius: 0,
+                                        height: '42px',
+                                        fontSize: '12px',
                                       }}
                                     >
 
@@ -3586,14 +3653,19 @@ const MediaProductInfo = () => {
                                     disableUnderline
                                     value={'seconds'}
                                     disabled
+                                    inputProps={{ readOnly: true }}
                                     sx={{
                                       ...inputStyles,
                                       flex: '0 0 76px',
                                       width: '76px',
                                       minWidth: '76px',
                                       maxWidth: '76px',
-                                      paddingY: '0.5px',
+                                      border: 'none',
+                                      borderRadius: 0,
+                                      borderLeft: '1px solid #E5E8EB',
+                                      height: '42px',
                                       fontSize: '12px',
+                                      px: 1,
                                     }}
                                   />
                                 </Box>

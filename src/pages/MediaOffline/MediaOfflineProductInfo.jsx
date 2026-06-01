@@ -49,6 +49,7 @@ import { resolveMediaOfflinePrintSubcategoryId } from '../../config/mediaSubcate
 import {
   FEATURE_ALLOWLIST_BY_KEY,
   filterOfflineFeatureOptions,
+  resolveOfflineBtlProfile,
 } from '../../config/mediaListingProfiles';
 
 const NEWSPAPER_SUBCATEGORY_ID = '647713dcb530d22fce1f6c36';
@@ -175,6 +176,19 @@ const MediaProductInfo = () => {
     }
   }, []);
 
+  const isOfflineBtlFromStorage = useMemo(() => {
+    try {
+      return (
+        sessionStorage.getItem('mediaCategory') === 'offlinebtl' ||
+        sessionStorage.getItem('mediaJourney') === 'btl' ||
+        localStorage.getItem('mediaCategory') === 'offlinebtl' ||
+        localStorage.getItem('mediaJourney') === 'btl'
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
   const [HSNStore, setHSNStore] = useState();
   const [ProductData, setProductData] = useState();
   const [hsnCode, setHsnCode] = useState();
@@ -196,6 +210,134 @@ const MediaProductInfo = () => {
     // Legacy: ProductSubCategory mistakenly stored as display name
     (FetchedproductData?.ProductSubCategory &&
       PRINT_SUBCATEGORY_NAMES.includes(FetchedproductData.ProductSubCategory));
+
+  const offlineBtlProfile = useMemo(
+    () =>
+      resolveOfflineBtlProfile(
+        FetchedproductData || {
+          mediaCategory: isOfflineBtlFromStorage ? 'offlinebtl' : '',
+        },
+      ),
+    [FetchedproductData, isOfflineBtlFromStorage],
+  );
+  const isOfflineBtlJourney = Boolean(offlineBtlProfile);
+
+  const productInfoSchema = useMemo(
+    () =>
+      z.object({
+        medianame: z.string().min(1),
+        offerningbrandat:
+          isNewspaperJourney
+            ? z.any()
+            : z.string().min(1),
+        adPosition:
+          isNewspaperJourney
+            ? z.string().min(1)
+            : z.any(),
+        mediaVariation: z.object({
+          location: z.any(),
+          unit: z.any(),
+          Timeline: z.any(),
+          repetition:
+            isNewspaperJourney
+              ? z.any()
+              : z.string().min(0),
+          dimensionSize:
+            offlineBtlProfile?.dimensionRequired === false
+              ? z.any()
+              : z.string().min(1),
+          PricePerUnit: z.preprocess(
+            (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
+            z
+              .number({
+                required_error: 'Price per unit is required',
+                invalid_type_error: 'Price per unit is required',
+              })
+              .gt(0, 'Price per unit must be greater than 0'),
+          ),
+          DiscountedPrice: z.preprocess(
+            (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
+            z
+              .number({
+                required_error: 'Discounted price is required',
+                invalid_type_error: 'Discounted price is required',
+              })
+              .gt(0, 'Discounted price must be greater than 0'),
+          ),
+          GST: z
+            .coerce
+            .number()
+            .gte(5, 'GST must be between 5% and 28%')
+            .lte(28, 'GST must be between 5% and 28%'),
+          HSN: z.preprocess(
+            (value) => String(value ?? '').trim(),
+            z
+              .string()
+              .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
+                message: 'HSN must be 4, 6, or 8 digits',
+              })
+              .refine((value) => !/^0+$/.test(String(value || '')), {
+                message: 'HSN cannot be all zeros',
+              })
+              .transform((value) => value?.trim()),
+          ),
+          minOrderQuantityunit:
+            OneUnitProduct ||
+              isNewspaperJourney
+              ? z.any()
+              : z.coerce.string().min(1),
+          minOrderQuantitytimeline:
+            isNewspaperJourney
+              ? z.any()
+              : z.coerce.string().min(1),
+          maxOrderQuantityunit:
+            OneUnitProduct ||
+              isNewspaperJourney
+              ? z.any()
+              : z.coerce.string().min(1),
+          maxOrderQuantitytimeline:
+            isNewspaperJourney
+              ? z.any()
+              : z.coerce.string().min(1),
+          edition:
+            isNewspaperJourney
+              ? z.string().min(1, 'Edition is required')
+              : z.any(),
+          language:
+            isNewspaperJourney
+              ? z.string().min(1, 'Language is required')
+              : z.any(),
+          Type:
+            isNewspaperJourney
+              ? z.string().min(1)
+              : z.any(),
+          releasedetails:
+            isNewspaperJourney
+              ? z.string().min(1)
+              : z.any(),
+          availableInsertions: isNewspaperJourney
+            ? z.coerce.number().min(1)
+            : z.any(),
+          adType: z.string().min(1, 'Ad type is required'),
+        })
+          .superRefine((value, ctx) => {
+            if (Number(value?.DiscountedPrice) > Number(value?.PricePerUnit)) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['DiscountedPrice'],
+                message: 'Discounted Price can not be greater than Price Per Unit',
+              });
+            }
+          }),
+        GeographicalData: z.object({
+          region: z.string().min(1),
+          state: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
+          city: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
+          landmark: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
+        }),
+      }),
+    [isNewspaperJourney, OneUnitProduct, IsDisabled, offlineBtlProfile],
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -221,143 +363,7 @@ const MediaProductInfo = () => {
 
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(
-      z.object({
-        medianame: z.string().min(1),
-        offerningbrandat:
-          isNewspaperJourney
-            ? z.any()
-            : z.string().min(1),
-        adPosition:
-          isNewspaperJourney
-            ? z.string().min(1)
-            : z.any(),
-        mediaVariation: z.object({
-          location: z.any(),
-          unit: z.any(),
-          Timeline: z.any(),
-          repetition:
-            isNewspaperJourney
-              ? z.any()
-              : z.string().min(0),
-          dimensionSize: z.string().min(1),
-          PricePerUnit: z.coerce
-            .string()
-            .min(1, { message: 'Price is required' })
-            .refine((value) => parseFloat(String(value).replace(/,/g, '')) > 0, {
-              message: 'Price cannot be zero',
-            }),
-          DiscountedPrice: z.coerce
-            .string()
-            .min(1, { message: 'Discounted price is required' })
-            .refine((value) => parseFloat(String(value).replace(/,/g, '')) > 0, {
-              message: 'Discounted price cannot be zero',
-            }),
-          GST: z.coerce
-            .number({ invalid_type_error: 'GST is required' })
-            .gte(5, 'GST must be between 5% and 28%')
-            .lte(28, 'GST must be between 5% and 28%'),
-          HSN: z
-            .string()
-            .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
-              message: 'HSN must be 4, 6, or 8 digits',
-            })
-            .refine((value) => !/^0+$/.test(String(value || '')), {
-              message: 'HSN cannot be all zeros',
-            })
-            .transform((value) => value?.trim()),
-          minOrderQuantityunit:
-            OneUnitProduct ||
-              isNewspaperJourney
-                ? z.any()
-                : z.string().min(0),
-            dimensionSize: z.string().min(1),
-            PricePerUnit: z.preprocess(
-              (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
-              z
-                .number({
-                  required_error: 'Price per unit is required',
-                  invalid_type_error: 'Price per unit is required',
-                })
-                .gt(0, 'Price per unit must be greater than 0'),
-            ),
-            DiscountedPrice: z.preprocess(
-              (value) => Number(String(value ?? '').replace(/,/g, '').trim()),
-              z
-                .number({
-                  required_error: 'Discounted price is required',
-                  invalid_type_error: 'Discounted price is required',
-                })
-                .gt(0, 'Discounted price must be greater than 0'),
-            ),
-            GST: z
-              .coerce
-              .number()
-              .gte(5, 'GST must be between 5% and 28%')
-              .lte(28, 'GST must be between 5% and 28%'),
-            HSN: z.preprocess(
-              (value) => String(value ?? '').trim(),
-              z
-                .string()
-                .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
-                  message: 'HSN must be 4, 6, or 8 digits',
-                })
-                .transform((value) => value?.trim()),
-            ),
-            minOrderQuantityunit:
-              OneUnitProduct ||
-                isNewspaperJourney
-                ? z.any()
-                : z.coerce.string().min(1),
-            minOrderQuantitytimeline:
-              isNewspaperJourney
-                ? z.any()
-                : z.coerce.string().min(1),
-            maxOrderQuantityunit:
-              OneUnitProduct ||
-                isNewspaperJourney
-                ? z.any()
-                : z.coerce.string().min(1),
-            maxOrderQuantitytimeline:
-              isNewspaperJourney
-                ? z.any()
-                : z.coerce.string().min(1),
-            edition:
-              isNewspaperJourney
-                ? z.string().min(1, 'Edition is required')
-                : z.any(),
-            language:
-              isNewspaperJourney
-                ? z.string().min(1, 'Language is required')
-                : z.any(),
-            Type:
-              isNewspaperJourney
-                ? z.string().min(1)
-                : z.any(),
-            releasedetails:
-              isNewspaperJourney
-                ? z.string().min(1)
-                : z.any(),
-            availableInsertions: z.coerce.number().min(1),
-            adType: z.string().min(1, 'Ad type is required'),
-          })
-          .superRefine((value, ctx) => {
-            if (Number(value?.DiscountedPrice) > Number(value?.PricePerUnit)) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['DiscountedPrice'],
-                message: 'Discounted Price can not be greater than Price Per Unit',
-              });
-            }
-          }),
-        GeographicalData: z.object({
-          region: z.string().min(1),
-          state: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
-          city: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
-          landmark: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
-        }),
-      }),
-    ),
+    resolver: zodResolver(productInfoSchema),
     defaultValues: {
       mediaVariation: {
         Timeline: 'Day',
@@ -637,6 +643,14 @@ const MediaProductInfo = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (isOfflineBtlJourney) {
+      setValue('mediaVariation.unit', 'Unit');
+      setUnit('Unit');
+      setValue('mediaVariation.Timeline', 'Day');
+    }
+  }, [isOfflineBtlJourney, setValue]);
+
   async function FetchAddedProduct() {
     try {
       const res = await api.get(`/product/get_product_byId/${ProductId}`);
@@ -667,8 +681,11 @@ const MediaProductInfo = () => {
     if (isNewspaperJourney) {
       return FEATURE_ALLOWLIST_BY_KEY.print.map((n) => ({ name: n }));
     }
+    if (offlineBtlProfile?.featureAllowlist?.length) {
+      return offlineBtlProfile.featureAllowlist.map((n) => ({ name: n }));
+    }
     return ALL_OFFLINE_FEATURE_OPTIONS;
-  }, [isNewspaperJourney]);
+  }, [isNewspaperJourney, offlineBtlProfile]);
 
   const ConvertPriceToperDay = (price, timeline) => {
     if (timeline === 'Day') {
@@ -698,6 +715,22 @@ const MediaProductInfo = () => {
           .filter(Boolean),
       ),
     );
+
+    if (isOfflineBtlJourney && data?.mediaVariation?.unit !== 'Unit') {
+      setError('mediaVariation.unit', {
+        type: 'custom',
+        message: 'Unit must be Per Unit for Offline BTL media',
+      });
+      return toast.error('Unit must be Per Unit for Offline BTL media');
+    }
+
+    if (isOfflineBtlJourney && data?.mediaVariation?.Timeline !== 'Day') {
+      setError('mediaVariation.Timeline', {
+        type: 'custom',
+        message: 'Timeline must be Per Day for Offline BTL media',
+      });
+      return toast.error('Timeline must be Per Day for Offline BTL media');
+    }
 
     if (isNewspaperJourney) {
       setValue('mediaVariation.Timeline', 'Day');
@@ -1646,22 +1679,28 @@ const MediaProductInfo = () => {
                                 ),
                               }}
                             >
-                              <MenuItem value="Screen">Per Screen</MenuItem>
-                              <MenuItem value="Unit"> Per Unit </MenuItem>
-                              <MenuItem value="Spot"> Per Spot </MenuItem>
-                              <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
-                              <MenuItem value="Display"> Per Display </MenuItem>
-                              <MenuItem value="Location"> Per Location </MenuItem>
-                              <MenuItem value="Release"> Per Release </MenuItem>
-
-                              {FetchedproductData?.ProductCategoryName ===
-                                'MediaOffline' ? null : (
+                              {isOfflineBtlJourney ? (
+                                <MenuItem value="Unit"> Per Unit </MenuItem>
+                              ) : (
                                 <>
-                                  <MenuItem value="Annoucment">
-                                    {' '}
-                                    Per Annoucment{' '}
-                                  </MenuItem>
-                                  <MenuItem value="Video"> Per Video</MenuItem>
+                                  <MenuItem value="Screen">Per Screen</MenuItem>
+                                  <MenuItem value="Unit"> Per Unit </MenuItem>
+                                  <MenuItem value="Spot"> Per Spot </MenuItem>
+                                  <MenuItem value="Sq cm"> Per Sq cm </MenuItem>
+                                  <MenuItem value="Display"> Per Display </MenuItem>
+                                  <MenuItem value="Location"> Per Location </MenuItem>
+                                  <MenuItem value="Release"> Per Release </MenuItem>
+
+                                  {FetchedproductData?.ProductCategoryName ===
+                                    'MediaOffline' ? null : (
+                                    <>
+                                      <MenuItem value="Annoucment">
+                                        {' '}
+                                        Per Annoucment{' '}
+                                      </MenuItem>
+                                      <MenuItem value="Video"> Per Video</MenuItem>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </Select>
@@ -1735,11 +1774,17 @@ const MediaProductInfo = () => {
                               ),
                             }}
                           >
-                            <MenuItem value="Day"> Per Day </MenuItem>
-                            <MenuItem value="Week"> Per Week </MenuItem>
-                            <MenuItem value="Month"> Per Month </MenuItem>
-                            <MenuItem value="One Time"> Per One Time </MenuItem>
-                            <MenuItem value="Year"> Per Year </MenuItem>
+                            {isOfflineBtlJourney ? (
+                              <MenuItem value="Day"> Per Day </MenuItem>
+                            ) : (
+                              <>
+                                <MenuItem value="Day"> Per Day </MenuItem>
+                                <MenuItem value="Week"> Per Week </MenuItem>
+                                <MenuItem value="Month"> Per Month </MenuItem>
+                                <MenuItem value="One Time"> Per One Time </MenuItem>
+                                <MenuItem value="Year"> Per Year </MenuItem>
+                              </>
+                            )}
                           </Select>
                           <Typography
                             sx={FieldErrorTextStyle}
@@ -3045,7 +3090,9 @@ const MediaProductInfo = () => {
                         >
                           {filterOfflineFeatureOptions(
                             featureChoices,
-                            isNewspaperJourney ? FEATURE_ALLOWLIST_BY_KEY.print : null,
+                            isNewspaperJourney
+                              ? FEATURE_ALLOWLIST_BY_KEY.print
+                              : offlineBtlProfile?.featureAllowlist || null,
                             items.map((i) => i.name),
                           )?.map((el, idx) => {
                             return (

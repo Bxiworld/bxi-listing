@@ -20,10 +20,6 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 
-const COPY_OPTIONS = [
-  { value: 'digital', label: 'Digital Copy' },
-  { value: 'hard', label: 'Hard Copy' },
-];
 import { Stepper } from '../AddProduct/AddProductSteps';
 import {
   supportingDocsToCheckboxState,
@@ -57,6 +53,12 @@ const PRINT_SUPPORTING_DOC_OPTIONS = [
   { key: 'Other', label: 'Other' },
 ];
 
+const OFFLINE_BTL_SUPPORTING_DOC_OPTIONS = [
+  { key: 'Videos', label: 'Videos' },
+  { key: 'Pictures', label: 'Pictures' },
+  { key: 'Other', label: 'Other' },
+];
+
 const isPrintMediaProduct = (data, fromStorage) => {
   if (fromStorage) return true;
   if (!data) return false;
@@ -71,6 +73,12 @@ const isPrintMediaProduct = (data, fromStorage) => {
     (data.ProductSubCategory &&
       PRINT_SUBCATEGORY_NAMES.includes(data.ProductSubCategory))
   );
+};
+
+const isOfflineBtlMediaProduct = (data, fromStorage) => {
+  if (fromStorage) return true;
+  if (!data) return false;
+  return data.mediaCategory === 'offlinebtl' || data.mediaJourney === 'btl';
 };
 
 const brandControlClass =
@@ -96,15 +104,37 @@ export default function TechInfo() {
     }
   }, []);
 
+  const isOfflineBtlFromStorage = useMemo(() => {
+    try {
+      return (
+        sessionStorage.getItem('mediaCategory') === 'offlinebtl' ||
+        sessionStorage.getItem('mediaJourney') === 'btl' ||
+        localStorage.getItem('mediaCategory') === 'offlinebtl' ||
+        localStorage.getItem('mediaJourney') === 'btl'
+      );
+    } catch {
+      return false;
+    }
+  }, []);
+
   const isPrintMedia = useMemo(
     () => isPrintMediaProduct(fetchedProduct, isPrintFromStorage),
     [fetchedProduct, isPrintFromStorage],
   );
 
+  const isOfflineBtlMedia = useMemo(
+    () => isOfflineBtlMediaProduct(fetchedProduct, isOfflineBtlFromStorage),
+    [fetchedProduct, isOfflineBtlFromStorage],
+  );
+
   const supportingDocOptions = useMemo(
     () =>
-      isPrintMedia ? PRINT_SUPPORTING_DOC_OPTIONS : DEFAULT_SUPPORTING_DOC_OPTIONS,
-    [isPrintMedia],
+      isPrintMedia
+        ? PRINT_SUPPORTING_DOC_OPTIONS
+        : isOfflineBtlMedia
+          ? OFFLINE_BTL_SUPPORTING_DOC_OPTIONS
+          : DEFAULT_SUPPORTING_DOC_OPTIONS,
+    [isPrintMedia, isOfflineBtlMedia],
   );
 
   const [copyType, setCopyType] = useState('digital');
@@ -172,6 +202,17 @@ export default function TechInfo() {
           HardCopy: !!loadedSupporting.HardCopy,
           Other: !!loadedSupporting.Other,
         });
+      } else if (isOfflineBtlMediaProduct(data, isOfflineBtlFromStorage)) {
+        setCheckBoxes({
+          inspectionPass: false,
+          LogReport: false,
+          Videos: !!loadedSupporting.Videos,
+          Pictures: !!loadedSupporting.Pictures,
+          ExhibitionCertificate: false,
+          DigitalCopy: false,
+          HardCopy: false,
+          Other: !!loadedSupporting.Other,
+        });
       } else {
         setCheckBoxes(loadedSupporting);
       }
@@ -183,7 +224,7 @@ export default function TechInfo() {
     } finally {
       setLoading(false);
     }
-  }, [ProductId, setValue, isPrintFromStorage]);
+  }, [ProductId, setValue, isPrintFromStorage, isOfflineBtlFromStorage]);
 
   useEffect(() => {
     FetchProduct();
@@ -195,6 +236,10 @@ export default function TechInfo() {
     try {
       const supportingForSubmit = isPrintMedia
         ? SUPPORTING_DOC_KEYS_FORM_ORDER_PRINT.filter((key) => checkBoxes[key])
+        : isOfflineBtlMedia
+          ? OFFLINE_BTL_SUPPORTING_DOC_OPTIONS
+              .map((opt) => opt.key)
+              .filter((key) => checkBoxes[key])
         : checkboxStateToSupportingArray(checkBoxes);
 
       const datatobesent = {
@@ -359,36 +404,6 @@ export default function TechInfo() {
                       ))}
                     </div>
                   </div>
-
-                  <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
-                    <Typography sx={CommonTextStyle}>
-                      Copy Type <span className="text-red-500">*</span>
-                    </Typography>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {COPY_OPTIONS.map(({ value, label }) => (
-                        <div
-                          key={value}
-                          className="flex items-center gap-3 rounded-[10px] border border-[#E2E8F0] bg-[#FAFBFC] px-3 py-2.5 transition-colors hover:border-[#CBD5E1] cursor-pointer"
-                          onClick={() => setCopyType(value)}
-                        >
-                          <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              copyType === value
-                                ? 'border-[#C64091]'
-                                : 'border-[#CBD5E1]'
-                            }`}
-                          >
-                            {copyType === value && (
-                              <div className="w-2 h-2 rounded-full bg-[#C64091]" />
-                            )}
-                          </div>
-                          <Label className="text-sm font-normal text-[#5c6b8a] cursor-pointer leading-snug">
-                            {label}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </Box>
 
                   <Box sx={{ display: 'grid', gap: '8px', py: '4px' }}>
                     <Typography sx={CommonTextStyle}>

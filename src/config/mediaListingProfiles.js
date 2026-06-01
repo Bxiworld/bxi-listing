@@ -471,6 +471,17 @@ export function getMediaListingProfile(product) {
     };
   }
 
+  if (mc === 'other') {
+    return {
+      ...base,
+      key: 'otherMedia',
+      unitOptions: [{ value: 'Spot', label: 'Per Spot' }],
+      timelineOnlyDay: true,
+      timelineHideOneTime: true,
+      featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.othersOnline,
+    };
+  }
+
   return base;
 }
 

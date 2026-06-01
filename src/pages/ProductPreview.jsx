@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
 import { getMediaListingProfile } from '../config/mediaListingProfiles';
+import { formatCampaignDurationPreview } from '../utils/digitalAdsCampaignDuration';
 import * as XLSX from 'xlsx';
 import { isMediaListing } from '../utils/listingProductFields';
 
@@ -44,6 +45,8 @@ function shouldHideMinMaxOrderQtyForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
   const mc = String(product?.mediaCategory || '').toLowerCase().trim();
   if (mc === 'print') return true;
+  const journey = String(product?.mediaJourney || '').toLowerCase().trim();
+  if (journey === 'newspaper') return true;
   const sub = String(
     product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '',
   )
@@ -51,6 +54,14 @@ function shouldHideMinMaxOrderQtyForMediaPreview(product) {
     .trim();
   if (sub === 'static') return true;
   return false;
+}
+
+function shouldHideMinMaxOrderTimelineForMediaPreview(product) {
+  if (!isMediaListing(product)) return false;
+  const mc = String(product?.mediaCategory || '').toLowerCase().trim();
+  if (mc === 'print') return true;
+  const journey = String(product?.mediaJourney || '').toLowerCase().trim();
+  return journey === 'newspaper';
 }
 
 const defaultImage =
@@ -1551,9 +1562,12 @@ export default function ProductPreview() {
                     mv.maxOrderQuantitytimeline,
                     v0.maxOrderQuantitytimeline,
                   );
-                  const timelineUnit = pick(mv.Timeline, v0.Timeline);
-                  const orderTimelineSummary =
-                    minOrderTimeline != null || maxOrderTimeline != null
+                  const timelineUnit = pick(mv.Timeline, v0.Timeline, product?.timeline);
+                  const isDigitalAdsPreview =
+                    String(product?.mediaJourney || '').toLowerCase() === 'digital-ads';
+                  const orderTimelineSummary = isDigitalAdsPreview
+                    ? formatCampaignDurationPreview(product, mv, v0)
+                    : minOrderTimeline != null || maxOrderTimeline != null
                       ? `${minOrderTimeline != null && String(minOrderTimeline).trim() !== '' ? String(minOrderTimeline) : '—'} - ${maxOrderTimeline != null && String(maxOrderTimeline).trim() !== '' ? String(maxOrderTimeline) : '—'}${timelineUnit ? ` / ${timelineUnit}` : ''}`
                       : null;
                   const loopSeconds =
@@ -1565,7 +1579,9 @@ export default function ProductPreview() {
                   const geo = product?.GeographicalData || {};
                   const tags = product?.tags || [];
                   const prevProfile = getMediaListingProfile(product || {});
-                  const hidePrintOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
+                  const hideOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
+                  const hideOrderTimeline =
+                    shouldHideMinMaxOrderTimelineForMediaPreview(product);
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
                       ? 'AD Duration'
@@ -1595,11 +1611,20 @@ export default function ProductPreview() {
                     ['Ad type', pick(mv.adType, v0.adType)],
                     ['Placement / ad type', pick(mv.location, v0.location)],
                     ['Timeline', `Per ${pick(mv.Timeline, v0.Timeline)}`],
-                    ...(hidePrintOrderQty
+                    ...(hideOrderQty
                       ? []
                       : [['Min - Max Order Qty', orderQtySummary]]),
                     ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
-                    ['Min - Max order (timeline)', orderTimelineSummary],
+                    ...(hideOrderTimeline
+                      ? []
+                      : [
+                          [
+                            isDigitalAdsPreview
+                              ? 'Campaign duration'
+                              : 'Min - Max order (timeline)',
+                            orderTimelineSummary,
+                          ],
+                        ]),
                     ['Order unit', 'Per '+pickUnit()],
                     ...(String(product?.estimatedFleets || '').trim()
                       ? [['Estimated fleets', String(product.estimatedFleets).trim()]]
