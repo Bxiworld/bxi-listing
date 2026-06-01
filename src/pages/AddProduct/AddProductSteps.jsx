@@ -44,6 +44,7 @@ import {
   buildCitySelectOptions,
   getCitiesForState,
 } from '../../utils/stateCityOptions';
+import { resolveLocationFromPincode } from '../../utils/pincodeLookup';
 import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
 import { Divider } from '@mui/material';
 import { InfoIcon } from 'lucide-react';
@@ -1231,72 +1232,28 @@ export const ProductInfo = ({ category }) => {
   const handlePincodeLookup = async (pincode) => {
     if (String(pincode).length !== 6) return;
     try {
-      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-      const data = await res.json();
-      if (data?.[0]?.Status === 'Success' && data?.[0]?.PostOffice?.length > 0) {
-        const postOffices = data?.[0]?.PostOffice || [];
-        const firstPo = postOffices?.[0];
-        const normalize = (s) => (s || '').toLowerCase().replace(/\s+/g, '') || '';
-
-        const apiStateName = firstPo?.State;
-        const apiDistrict = firstPo?.District || firstPo?.Block;
-        const apiLandmark = firstPo?.Name;
-
-        const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
-        if (matchedState) {
-          const cities = matchedState.data || [];
-
-          const findMatchingCity = (candidate) => {
-            const candNorm = normalize(candidate);
-            if (!candNorm) return null;
-
-            const exact = cities.find((c) => normalize(c) === candNorm);
-            if (exact) return exact;
-
-            const partial = cities.find(
-              (c) =>
-                normalize(c).includes(candNorm) ||
-                candNorm.includes(normalize(c))
-            );
-            return partial || null;
-          };
-
-          // Use all PostOffice entries for city selection because the API can return
-          // multiple records for the same pincode.
-          const candidateStrings = Array.from(
-            new Set(
-              postOffices
-                .flatMap((po) => [po?.District, po?.Block, po?.Region])
-                .filter(Boolean)
-            )
-          );
-
-          const matchedCity =
-            candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
-
-          const fallbackCity =
-            apiDistrict || apiStateName || candidateStrings[0] || '';
-
-          // Prefer exact/partial matched city, otherwise use fallback, then first city in state.
-          const nextCity = matchedCity || fallbackCity || cities?.[0] || '';
-          const nextCityStr = String(nextCity || '').trim();
-
-          setLocationDetails((prev) => ({
-            ...prev,
-            pincode: String(pincode),
-            region: STATE_REGION_MAP[matchedState.name] || 'North',
-            state: matchedState.name,
-            city: nextCityStr,
-            landmark: apiLandmark || prev.landmark,
-          }));
-          setCityArray(buildCitySelectOptions(cities, nextCityStr));
-          toast.success('Location auto-filled!');
-        } else {
-          toast.warning(`State "${apiStateName}" not found. Please select manually.`);
-        }
-      } else {
+      const resolved = await resolveLocationFromPincode(pincode, {
+        StateData,
+        STATE_REGION_MAP,
+      });
+      if (!resolved) {
         toast.error('Invalid pincode or no data found');
+        return;
       }
+      if (resolved.unmatchedState) {
+        toast.warning(`State "${resolved.unmatchedState}" not found. Please select manually.`);
+        return;
+      }
+      setLocationDetails((prev) => ({
+        ...prev,
+        pincode: String(pincode),
+        region: resolved.region || 'North',
+        state: resolved.state,
+        city: resolved.city,
+        landmark: resolved.landmark || prev.landmark,
+      }));
+      setCityArray(resolved.cityOptions || []);
+      toast.success('Location auto-filled!');
     } catch {
       toast.error('Failed to fetch location data');
     }
