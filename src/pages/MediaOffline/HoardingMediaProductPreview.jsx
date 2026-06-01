@@ -418,32 +418,6 @@ export default function HoardingMediaProductPreview() {
     },
     { field: 'mrp', headerName: 'MRP', width: 90 },
     { field: 'DiscountedPrice', headerName: 'Discounted MRP', width: 120 },
-    {
-      field: 'rowImages',
-      headerName: 'Images',
-      width: 72,
-      sortable: false,
-      renderCell: (params) => {
-        const raw = params?.row?.images;
-        const arr = Array.isArray(raw) ? raw : [];
-        const urls = arr
-          .map((img) =>
-            typeof img === 'string' ? img : img?.url || img?.URL || '',
-          )
-          .filter(Boolean);
-        if (!urls.length) return null;
-        return (
-          <IconButton
-            size="small"
-            aria-label="View row images"
-            onClick={() => setRowImagePreview(urls)}
-            sx={{ color: accent }}
-          >
-            <Eye size={18} />
-          </IconButton>
-        );
-      },
-    },
   ];
 
   const doohDigitalColumns = [
