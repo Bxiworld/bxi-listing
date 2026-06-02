@@ -41,12 +41,18 @@ import {
   FEATURE_ALLOWLIST_BY_KEY,
   filterFeatureDropdownRows,
 } from '../../config/mediaListingProfiles';
-import {
-  TIMELINE_DURATION_OPTIONS,
-  resolveTimelineDurationFromProduct,
-  resolveTimelineQuantityForFetch,
-  timelineDurationQuantityToTotalDays,
-} from '../../utils/digitalAdsCampaignDuration';
+// DOOH timeline is locked to whole-day blocks of 10 / 20 / 30 days (per the
+// "per 10/20/30 days" pricing spec). No Week/Month; min & max are day dropdowns.
+const DOOH_DAY_OPTIONS = ['10', '20', '30'];
+
+/** Snap a stored timeline value to the nearest 10/20/30-day block (handles legacy data). */
+function normalizeDoohDays(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 10) return '';
+  if (n >= 30) return '30';
+  if (n >= 20) return '20';
+  return '10';
+}
 
 const GST_OPTIONS = ['5', '10', '12', '18', '28'];
 const LOOPTIME_SECOND_OPTIONS = Array.from({ length: 18 }, (_, idx) =>
@@ -118,8 +124,8 @@ export default function DigitalScreensTechInfo() {
     loopTimeSeconds: '',
     minTimeSeconds: '',
     maxTimeSeconds: '',
-    timeline: '',
-    timelineQuantity: '1',
+    minOrderDays: '',
+    maxOrderDays: '',
     UploadLink: '',
     HSN: '',
     adType: '',
@@ -194,9 +200,6 @@ export default function DigitalScreensTechInfo() {
         Number(maxTimeSecondsNormRaw) < Number(minTimeSecondsNorm)
           ? minTimeSecondsNorm
           : maxTimeSecondsNormRaw || minTimeSecondsNorm;
-      const timelineDuration = resolveTimelineDurationFromProduct(mv, data);
-      const timelineQuantity = resolveTimelineQuantityForFetch(mv, data, timelineDuration);
-
       setStoreMediaAllData({
         mediaName:
           (data?.mediaName ??
@@ -217,8 +220,10 @@ export default function DigitalScreensTechInfo() {
             : '',
         minTimeSeconds: minTimeSecondsNorm,
         maxTimeSeconds: maxTimeSecondsNorm,
-        timeline: timelineDuration,
-        timelineQuantity,
+        minOrderDays: normalizeDoohDays(mv.minOrderQuantitytimeline),
+        maxOrderDays:
+          normalizeDoohDays(mv.maxOrderQuantitytimeline) ||
+          normalizeDoohDays(mv.minOrderQuantitytimeline),
         UploadLink: data?.UploadLink ?? '',
         HSN: mv.HSN ?? mv.hsn ?? '',
         adType: mv.adType ?? data?.adType ?? '',
@@ -330,9 +335,14 @@ export default function DigitalScreensTechInfo() {
       toast.error('Select at least one supporting document for the buyer');
       return;
     }
-    const duration = storeMediaAllData.timeline;
-    if (!duration || !['Day', 'Week', 'Month'].includes(duration)) {
-      toast.error('Select Timeline (Duration): Day, Week, or Month');
+    const minDays = Number(storeMediaAllData.minOrderDays);
+    const maxDays = Number(storeMediaAllData.maxOrderDays);
+    if (![10, 20, 30].includes(minDays) || ![10, 20, 30].includes(maxDays)) {
+      toast.error('Select Min and Max Days (10, 20, or 30)');
+      return;
+    }
+    if (maxDays < minDays) {
+      toast.error('Max Days cannot be less than Min Days');
       return;
     }
     if (!storeMediaAllData.adType) {
@@ -364,17 +374,6 @@ export default function DigitalScreensTechInfo() {
     }
     if (maxTimeSeconds < minTimeSeconds) {
       toast.error('Max Time Seconds cannot be less than Min Time Seconds');
-      return;
-    }
-    const qtyRaw = storeMediaAllData.timelineQuantity;
-    const qty = Number(qtyRaw);
-    if (!Number.isFinite(qty) || qty < 1 || !Number.isInteger(qty)) {
-      toast.error('Enter a whole number (1 or more) for how many days, weeks, or months');
-      return;
-    }
-    const t = timelineDurationQuantityToTotalDays(duration, qty);
-    if (!t) {
-      toast.error('Invalid timeline duration');
       return;
     }
     if (!storeMediaAllData.mediaName?.trim()) {
@@ -411,22 +410,22 @@ export default function DigitalScreensTechInfo() {
       ? { ...productData.mediaVariation }
       : {};
 
-    const campaignDurationQuantity = Math.max(1, Math.round(Number(qty)));
+    const campaignDurationQuantity = maxDays;
 
     const mediaVariation = {
       ...baseMv,
       minOrderQuantityunit: 1,
       maxOrderQuantityunit: 1,
-      minOrderQuantitytimeline: t,
-      maxOrderQuantitytimeline: t,
+      minOrderQuantitytimeline: minDays,
+      maxOrderQuantitytimeline: maxDays,
       campaignDurationQuantity,
       minTimeslotSeconds: minTimeSeconds,
       maxTimeslotSeconds: maxTimeSeconds,
       loopTimeSeconds: loopTimeSeconds,
       GST: storeMediaAllData.GST,
       HSN: storeMediaAllData.HSN.trim(),
-      Timeline: duration,
-      timeline: duration,
+      Timeline: 'Day',
+      timeline: 'Day',
       repetition: rep,
       dimensionSize: storeMediaAllData.dimensionSize.trim(),
       adType: storeMediaAllData.adType,
@@ -460,13 +459,13 @@ export default function DigitalScreensTechInfo() {
       minOrderQuantityunit: 1,
       maxOrderQuantityunit: 1,
       dimensionSize: storeMediaAllData.dimensionSize.trim(),
-      minOrderQtyTimeline: t,
-      maxOrderQtyTimeline: t,
+      minOrderQtyTimeline: minDays,
+      maxOrderQtyTimeline: maxDays,
       minOrderTimeslot: minTimeSeconds,
       maxOrderTimeslot: maxTimeSeconds,
       loopTimeSeconds: loopTimeSeconds,
-      timeline: duration,
-      Timeline: duration,
+      timeline: 'Day',
+      Timeline: 'Day',
       campaignDurationQuantity,
       UploadLink: storeMediaAllData.UploadLink?.trim() || '',
     };
@@ -621,45 +620,52 @@ export default function DigitalScreensTechInfo() {
                       </div>
                     </div>
                     <div className="space-y-2" style={{ marginTop: "10px" }}>
-                      <Label>Timeline (Duration) *</Label>
+                      <Label>Min Days *</Label>
                       <select
                         className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        value={storeMediaAllData.timeline}
+                        value={storeMediaAllData.minOrderDays}
                         onChange={(e) =>
-                          setStoreMediaAllData((p) => ({ ...p, timeline: e.target.value }))
+                          setStoreMediaAllData((p) => {
+                            const next = { ...p, minOrderDays: e.target.value };
+                            // keep max >= min
+                            if (Number(p.maxOrderDays) < Number(e.target.value)) {
+                              next.maxOrderDays = e.target.value;
+                            }
+                            return next;
+                          })
                         }
                       >
-                        <option value="">Select duration</option>
-                        {TIMELINE_DURATION_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
+                        <option value="">Select min days</option>
+                        {DOOH_DAY_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt} Days
                           </option>
                         ))}
                       </select>
                     </div>
-                    <div className="space-y-2 md:col-span-2 lg:col-span-1" style={{ marginTop: "10px" }}>
-                      <Label>Campaign duration *</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={storeMediaAllData.timelineQuantity}
+                    <div className="space-y-2" style={{ marginTop: "10px" }}>
+                      <Label>Max Days *</Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={storeMediaAllData.maxOrderDays}
                         onChange={(e) =>
-                          setStoreMediaAllData((p) => ({ ...p, timelineQuantity: e.target.value }))
+                          setStoreMediaAllData((p) => ({ ...p, maxOrderDays: e.target.value }))
                         }
-                        placeholder={
-                          storeMediaAllData.timeline === 'Week'
-                            ? 'e.g. 2'
-                            : storeMediaAllData.timeline === 'Month'
-                              ? 'e.g. 3'
-                              : 'e.g. 14'
-                        }
-                        disabled={!storeMediaAllData.timeline}
-                      />
+                        disabled={!storeMediaAllData.minOrderDays}
+                      >
+                        <option value="">
+                          {storeMediaAllData.minOrderDays ? 'Select max days' : 'Select min days first'}
+                        </option>
+                        {DOOH_DAY_OPTIONS.filter(
+                          (opt) => Number(opt) >= Number(storeMediaAllData.minOrderDays || 0),
+                        ).map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt} Days
+                          </option>
+                        ))}
+                      </select>
                       <p className="text-xs text-[#6B7A99]">
-                        {storeMediaAllData.timeline
-                          ? 'Total length is sent to the listing API using the unit you selected (month = 30 days).'
-                          : 'Choose Day, Week, or Month first.'}
+                        DOOH is sold in 10 / 20 / 30 day blocks.
                       </p>
                     </div>
                   </div>
