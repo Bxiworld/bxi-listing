@@ -1257,32 +1257,6 @@ export default function HoardingMediaProductPreview() {
                         </Typography>
                       </Grid>}
 
-                      {GetProductByIdData?.ProductSubCategory ===
-                        '643cda0c53068696706e3951' ? null : (
-                          <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
-                            <Typography sx={tableHeader}>
-                              {' '}
-                            Min - Max Order Quantity Unit
-                            </Typography>
-                            <Typography sx={fetchValue}>
-                              {
-                                GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.minOrderQuantityunit
-                              }{' '}
-                            -
-                              {
-                                GetProductByIdData?.ProductsVariantions?.at(0)
-                                  ?.maxOrderQuantityunit
-                              }
-                            {' '} {'(Unit)'}
-                              {
-                                GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.unit
-                              }
-                            </Typography>
-                          </Grid>
-                        )}
-
                       {GetProductByIdData?.ProductsVariantions?.at(0)
                         ?.minTimeslotSeconds ? (
                           <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>

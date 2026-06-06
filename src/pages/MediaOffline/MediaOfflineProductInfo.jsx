@@ -220,7 +220,10 @@ const MediaProductInfo = () => {
       ),
     [FetchedproductData, isOfflineBtlFromStorage],
   );
-  const isOfflineBtlJourney = Boolean(offlineBtlProfile);
+  const isOfflineBtlJourney =
+    isOfflineBtlFromStorage ||
+    FetchedproductData?.mediaCategory === 'offlinebtl' ||
+    FetchedproductData?.mediaJourney === 'btl';
 
   const productInfoSchema = useMemo(
     () =>
@@ -239,7 +242,7 @@ const MediaProductInfo = () => {
           unit: z.any(),
           Timeline: z.any(),
           repetition:
-            isNewspaperJourney
+            isNewspaperJourney || isOfflineBtlJourney
               ? z.any()
               : z.string().min(0),
           dimensionSize:
@@ -336,7 +339,7 @@ const MediaProductInfo = () => {
           landmark: IsDisabled === 'PAN India' ? z.any() : z.string().min(1),
         }),
       }),
-    [isNewspaperJourney, OneUnitProduct, IsDisabled, offlineBtlProfile],
+    [isNewspaperJourney, isOfflineBtlJourney, OneUnitProduct, IsDisabled, offlineBtlProfile],
   );
 
   useEffect(() => {
@@ -1792,6 +1795,7 @@ const MediaProductInfo = () => {
                             {errors?.mediaVariation?.Timeline?.message}
                           </Typography>
                         </Box>
+                        {!isOfflineBtlJourney ? (
                         <Box
                           sx={{
                             display: 'flex',
@@ -1832,6 +1836,7 @@ const MediaProductInfo = () => {
                             {errors?.mediaVariation?.repetition?.message}
                           </Typography>
                         </Box>
+                        ) : null}
                       </Box>
                       <Box
                         sx={{

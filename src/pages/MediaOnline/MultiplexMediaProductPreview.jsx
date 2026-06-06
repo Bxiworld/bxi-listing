@@ -288,6 +288,46 @@ export default function MultiplexMediaProductPreview() {
 
   const ImageDataArray = GetProductByIdData?.ProductImages;
 
+  const multiplexLocation = useMemo(() => {
+    const product = GetProductByIdData;
+    if (!product) return '';
+    const fromMediaVariation = Array.isArray(product.MediaVariation)
+      ? product.MediaVariation.find((row) => String(row?.location ?? '').trim())
+          ?.location
+      : '';
+    return (
+      String(product.Location ?? '').trim() ||
+      String(product.location ?? '').trim() ||
+      String(product.ProductsVariantions?.at(0)?.location ?? '').trim() ||
+      String(product.mediaVariation?.location ?? '').trim() ||
+      String(fromMediaVariation ?? '').trim()
+    );
+  }, [GetProductByIdData]);
+
+  const multiplexHsn = useMemo(() => {
+    const product = GetProductByIdData;
+    if (!product) return '';
+    return (
+      String(product.mediaVariation?.HSN ?? '').trim() ||
+      String(product.ProductsVariantions?.[0]?.HSN ?? '').trim()
+    );
+  }, [GetProductByIdData]);
+
+  const multiplexTags = useMemo(() => {
+    const product = GetProductByIdData;
+    if (!product) return [];
+    if (Array.isArray(product.tags) && product.tags.length > 0) {
+      return product.tags;
+    }
+    if (
+      Array.isArray(product.ProductTechInfo?.tags) &&
+      product.ProductTechInfo.tags.length > 0
+    ) {
+      return product.ProductTechInfo.tags;
+    }
+    return [];
+  }, [GetProductByIdData]);
+
   async function GetProductByid() {
     if (!id) return;
     try {
@@ -1165,15 +1205,11 @@ export default function MultiplexMediaProductPreview() {
                       </Grid>
                     </Grid>
                     <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                      {GetProductByIdData?.ProductsVariantions.at(0)
-                        ?.location ? (
+                      {multiplexLocation ? (
                           <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                            <Typography sx={tableHeader}>Ad Type</Typography>
+                            <Typography sx={tableHeader}>Location</Typography>
                             <Typography sx={fetchValue}>
-                              {GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.location ||
-                              GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.adType}
+                              {multiplexLocation}
                             </Typography>
                           </Grid>
                         ) : null}
@@ -1245,6 +1281,12 @@ export default function MultiplexMediaProductPreview() {
                         {GetProductByIdData?.mediaVariation?.GST} %
                         </Typography>
                       </Grid>
+                      {multiplexHsn ? (
+                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                          <Typography sx={tableHeader}>HSN</Typography>
+                          <Typography sx={fetchValue}>{multiplexHsn}</Typography>
+                        </Grid>
+                      ) : null}
                     </Grid>
                     <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
                       <Grid item xl={4} lg={4} md={6} sm={12} xs={12}>
@@ -1378,6 +1420,20 @@ export default function MultiplexMediaProductPreview() {
                     </Grid>
                   </Box>
 
+                  {multiplexTags.length > 0 ? (
+                    <Box sx={{ mt: 3, width: { xs: '100%', md: '95%', lg: '90%' } }}>
+                      <Typography sx={cost}>Tags</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                        {multiplexTags.map((tag, idx) => (
+                          <Chip
+                            key={`${String(tag)}-${idx}`}
+                            label={String(tag)}
+                            size="small"
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : null}
 
                   {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks
                     .length === 0 ? null : (
@@ -1414,6 +1470,19 @@ export default function MultiplexMediaProductPreview() {
             {TabValue === '2' && (
   <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
     <Box>
+
+      {multiplexHsn ? (
+        <Typography
+          sx={{
+            ...tableHeader,
+            fontWeight: 600,
+            fontSize: '16px',
+            mb: 2,
+          }}
+        >
+          HSN: {multiplexHsn}
+        </Typography>
+      ) : null}
 
       {/* Supporting Section */}
       <Box
