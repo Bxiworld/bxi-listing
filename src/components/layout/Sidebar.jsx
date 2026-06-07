@@ -20,7 +20,7 @@ import useListingEntryContext from '../../hooks/useListingEntryContext';
 import { getAllowedCategories, getAllowedVouchers } from '../../config/categories';
 
 const DASHBOARD_BASE_URL = (
-  process.env.REACT_APP_DASHBOARD_URL || 'https://dashboard.bxiworld.in'
+  process.env.REACT_APP_DASHBOARD_URL || 'https://app.bxiworld.com'
 ).replace(/\/+$/, '');
 
 export const Sidebar = ({ isOpen, onClose }) => {
