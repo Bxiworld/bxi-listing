@@ -3,6 +3,39 @@ import axios from 'axios';
 const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://bxi-api-development.bxiworld.in').replace(/\/+$/, '');
 
+// Seller auth token handed off from the dashboard (app.bxiworld.com) via URL,
+// because sessionStorage is per-origin and the cross-site (.com <-> .in) cookie
+// cannot be shared. On first load we read `sellertoken` from the URL, persist it
+// to this origin's sessionStorage, and strip it from the address bar.
+const SELLER_TOKEN_KEY = 'bxi_auth_token';
+const captureSellerTokenFromUrl = () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get('sellertoken');
+    if (tokenFromUrl) {
+      sessionStorage.setItem(SELLER_TOKEN_KEY, tokenFromUrl);
+      // Remove the token from the visible URL (avoid it lingering in history/logs).
+      params.delete('sellertoken');
+      const newQuery = params.toString();
+      const newUrl =
+        window.location.pathname + (newQuery ? `?${newQuery}` : '') + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  } catch (e) {
+    console.error('[API] Error capturing seller token:', e);
+  }
+};
+if (typeof window !== 'undefined') {
+  captureSellerTokenFromUrl();
+}
+const getSellerToken = () => {
+  try {
+    return sessionStorage.getItem(SELLER_TOKEN_KEY);
+  } catch (e) {
+    return null;
+  }
+};
+
 // Admin token: URL first, then sessionStorage only (never localStorage).
 // localStorage on the listing origin persists across users/sessions and caused sellers to inherit admin context.
 const getAdminToken = () => {
@@ -38,6 +71,11 @@ api.interceptors.request.use(
     const token = getAdminToken();
     if (token) {
       config.headers['x-admin-token'] = token;
+    }
+    // Seller auth (handed off from dashboard) — backend accepts Authorization: Bearer.
+    const sellerToken = getSellerToken();
+    if (sellerToken && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${sellerToken}`;
     }
     // When sending FormData, do not send Content-Type so the browser sets multipart/form-data with boundary.
     // Otherwise the default application/json causes the server to not parse files and req.files stays empty.
