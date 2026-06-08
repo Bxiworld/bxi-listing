@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
-const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://bxi-api-development.bxiworld.in').replace(/\/+$/, '');
+const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://apiv1production.bxiworld.com').replace(/\/+$/, '');
 
 // Seller auth token handed off from the dashboard (app.bxiworld.com) via URL,
 // because sessionStorage is per-origin and the cross-site (.com <-> .in) cookie
