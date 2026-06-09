@@ -20,7 +20,6 @@ import { DataGrid } from '@mui/x-data-grid';
 import BXITokenIcon from '../../assets/bxi-token.svg';
 import api, { productApi, keyFeatureApi } from '../../utils/api';
 import { getSupportingDocsDisplayLabels } from '../../utils/supportingBuyerDocs';
-import { formatCampaignDurationPreview } from '../../utils/digitalAdsCampaignDuration';
 
 
 const fontFamily =
@@ -47,6 +46,80 @@ function shouldShowSubtitleSeparately(subtitle, description) {
   if (!s) return false;
   if (!d) return true;
   return s.toLowerCase() !== d.toLowerCase();
+}
+
+function pickFirstFilled(...values) {
+  for (const value of values) {
+    if (value != null && String(value).trim() !== '') {
+      return String(value).trim();
+    }
+  }
+  return null;
+}
+
+function resolveHoardingTags(product) {
+  if (!product || typeof product !== 'object') return [];
+  const sources = [
+    product.tags,
+    product.Tags,
+    product.ProductTechInfo?.tags,
+    product.ProductTechInfo?.Tags,
+  ];
+  for (const source of sources) {
+    if (Array.isArray(source)) {
+      return source.map((tag) => String(tag).trim()).filter(Boolean);
+    }
+    if (source != null && String(source).trim()) {
+      return [String(source).trim()];
+    }
+  }
+  return [];
+}
+
+function resolveHoardingOfferingAt(product) {
+  if (!product) return null;
+  return pickFirstFilled(
+    product.offeringbrandat,
+    product.offerningbrandat,
+    product.mediaVariation?.offeringbrandat,
+  );
+}
+
+function resolveHoardingAdType(product) {
+  if (!product) return null;
+  const mv = product.mediaVariation || {};
+  const v0 = product.ProductsVariantions?.[0] || {};
+  return pickFirstFilled(product.adType, mv.adType, v0.adType, v0.location);
+}
+
+function resolveHoardingHsn(product) {
+  if (!product) return null;
+  const mv = product.mediaVariation || {};
+  const v0 = product.ProductsVariantions?.[0] || {};
+  return pickFirstFilled(mv.HSN, mv.hsn, v0.HSN, v0.hsn, product.HSN);
+}
+
+function resolveHoardingGst(product) {
+  if (!product) return null;
+  const mv = product.mediaVariation || {};
+  const v0 = product.ProductsVariantions?.[0] || {};
+  return pickFirstFilled(mv.GST, v0.GST, product.GST);
+}
+
+function resolveHoardingTimeline(product) {
+  if (!product) return null;
+  const mv = product.mediaVariation || {};
+  const v0 = product.ProductsVariantions?.[0] || {};
+  const raw = pickFirstFilled(mv.timeline, v0.timeline, mv.Timeline, v0.Timeline);
+  if (!raw) return null;
+  if (/day/i.test(raw)) return raw;
+  if (/^\d+$/.test(raw)) return `${raw} days`;
+  return raw;
+}
+
+function resolveHoardingMediaName(product) {
+  if (!product) return null;
+  return pickFirstFilled(product.mediaName, product.medianame, product.ProductName);
 }
 
 function CommaSeprator({ Price }) {
@@ -294,6 +367,41 @@ export default function HoardingMediaProductPreview() {
   const [rowImagePreview, setRowImagePreview] = useState(null);
 
   const ImageDataArray = GetProductByIdData?.ProductImages;
+
+  const hoardingTags = useMemo(
+    () => resolveHoardingTags(GetProductByIdData),
+    [GetProductByIdData],
+  );
+
+  const hoardingMediaName = useMemo(
+    () => resolveHoardingMediaName(GetProductByIdData),
+    [GetProductByIdData],
+  );
+
+  const hoardingOfferingAt = useMemo(
+    () => resolveHoardingOfferingAt(GetProductByIdData),
+    [GetProductByIdData],
+  );
+
+  const hoardingAdType = useMemo(
+    () => resolveHoardingAdType(GetProductByIdData),
+    [GetProductByIdData],
+  );
+
+  const hoardingHsn = useMemo(
+    () => resolveHoardingHsn(GetProductByIdData),
+    [GetProductByIdData],
+  );
+
+  const hoardingGst = useMemo(
+    () => resolveHoardingGst(GetProductByIdData),
+    [GetProductByIdData],
+  );
+
+  const hoardingTimeline = useMemo(
+    () => resolveHoardingTimeline(GetProductByIdData),
+    [GetProductByIdData],
+  );
 
   async function GetProductByid() {
     if (!id) return;
@@ -1125,70 +1233,48 @@ export default function HoardingMediaProductPreview() {
                     }}
                   >
                     <Grid container sx={{ width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                      {GetProductByIdData?.medianame ? (
+                      {hoardingMediaName ? (
                         <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                          <Typography sx={tableHeader}>Brand Name</Typography>
+                          <Typography sx={tableHeader}>Media name</Typography>
                           <Typography
                             sx={{ ...fetchValue, wordBreak: 'break-all' }}
                           >
-                            {GetProductByIdData?.medianame}
+                            {hoardingMediaName}
                           </Typography>
                         </Grid>
                       ) : null}
-                      {GetProductByIdData?.mediaName ? (
+                      {hoardingOfferingAt ? (
                         <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
                           <Typography sx={tableHeader}>
-                            Media name
+                            Offering this Branding at
                           </Typography>
-                          <Typography sx={fetchValue}>
-                            {GetProductByIdData?.mediaName}
+                          <Typography
+                            sx={{ ...fetchValue, wordBreak: 'break-all' }}
+                          >
+                            {hoardingOfferingAt}
                           </Typography>
                         </Grid>
                       ) : null}
-                      <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                        {GetProductByIdData?.offerningbrandat ? (
-                          <>
-                            <Typography sx={tableHeader}>
-                              {' '}
-                              Offering At
-                            </Typography>
-                            <Typography
-                              sx={{ ...fetchValue, wordBreak: 'break-all' }}
-                            >
-                              {GetProductByIdData?.offerningbrandat}
-                            </Typography>
-                          </>
-                        ) : (
-                          <>
-                            <Typography sx={tableHeader}>
-                              {' '}
-                              Position of the Ad
-                            </Typography>
-                            <Typography
-                              sx={{
-                                ...fetchValue,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
-                              {GetProductByIdData?.adType || '-'}
-                            </Typography>
-                          </>
-                        )}
-                      </Grid>
+                      {hoardingAdType ? (
+                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                          <Typography sx={tableHeader}>Ad Type</Typography>
+                          <Typography sx={fetchValue}>{hoardingAdType}</Typography>
+                        </Grid>
+                      ) : null}
                     </Grid>
                     <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                      {GetProductByIdData?.ProductsVariantions.at(0)
-                        ?.location ? (
-                          <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                            <Typography sx={tableHeader}>Ad Type</Typography>
-                            <Typography sx={fetchValue}>
-                              {GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.location ||
-                              GetProductByIdData?.ProductsVariantions.at(0)
-                                ?.adType}
-                            </Typography>
-                          </Grid>
-                        ) : null}
+                      {hoardingHsn ? (
+                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                          <Typography sx={tableHeader}>HSN</Typography>
+                          <Typography sx={fetchValue}>{hoardingHsn}</Typography>
+                        </Grid>
+                      ) : null}
+                      {hoardingTimeline ? (
+                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                          <Typography sx={tableHeader}>Timeline</Typography>
+                          <Typography sx={fetchValue}>{hoardingTimeline}</Typography>
+                        </Grid>
+                      ) : null}
                       {GetProductByIdData?.ProductsVariantions.at(0)?.Type ? (
                         <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
                           <Typography sx={tableHeader}>Type</Typography>
@@ -1227,36 +1313,14 @@ export default function HoardingMediaProductPreview() {
                           }
                         </Typography>
                       </Grid>}
-                      <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
-                        <Typography sx={tableHeader}>GST</Typography>
-                        <Typography sx={fetchValue}>
-                          {GetProductByIdData?.ProductsVariantions.at(0)?.GST} %
-                        </Typography>
-                      </Grid>
+                      {hoardingGst ? (
+                        <Grid item xl={2} lg={2} md={3} sm={6} xs={12}>
+                          <Typography sx={tableHeader}>GST</Typography>
+                          <Typography sx={fetchValue}>{hoardingGst} %</Typography>
+                        </Grid>
+                      ) : null}
                     </Grid>
                     <Grid container sx={{ mt: 4, width: { xs: '100%', md: '95%', lg: '90%' } }}>
-                    {GetProductByIdData?.minOrderQtyTimeline &&  <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
-                        <Typography sx={tableHeader}>
-                          {' '}
-                          Campaign Duration
-                        </Typography>
-                        <Typography sx={fetchValue}>
-                          {formatCampaignDurationPreview(
-                            GetProductByIdData,
-                            GetProductByIdData?.mediaVariation || {},
-                            GetProductByIdData?.ProductsVariantions?.at(0) || {},
-                          ) ||
-                            (GetProductByIdData?.ProductsVariantions.at(0)
-                              ?.minOrderQuantitytimeline
-                              ? `${GetProductByIdData?.ProductsVariantions.at(0)
-                                  ?.minOrderQuantitytimeline
-                                } - ${GetProductByIdData?.ProductsVariantions?.at(0)
-                                  ?.maxOrderQuantitytimeline
-                                }`
-                              : 'N/A')}
-                        </Typography>
-                      </Grid>}
-
                       {GetProductByIdData?.ProductsVariantions?.at(0)
                         ?.minTimeslotSeconds ? (
                           <Grid item xl={3} lg={3} md={6} sm={12} xs={12}>
@@ -1333,6 +1397,21 @@ export default function HoardingMediaProductPreview() {
                           </Grid>
                         )}
                     </Grid>
+
+                    {hoardingTags.length > 0 ? (
+                      <Box sx={{ mt: 3, width: { xs: '100%', md: '95%', lg: '90%' } }}>
+                        <Typography sx={cost}>Tags</Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                          {hoardingTags.map((tag, idx) => (
+                            <Chip
+                              key={`${String(tag)}-${idx}`}
+                              label={String(tag)}
+                              size="small"
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    ) : null}
                   </Box>
 
                   {GetProductByIdData?.OtherCost &&

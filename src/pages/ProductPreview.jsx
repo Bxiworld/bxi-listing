@@ -59,9 +59,13 @@ function shouldHideMinMaxOrderQtyForMediaPreview(product) {
 function shouldHideMinMaxOrderTimelineForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
   const mc = String(product?.mediaCategory || '').toLowerCase().trim();
-  if (mc === 'print') return true;
+  if (mc === 'print' || mc === 'hoarding') return true;
   const journey = String(product?.mediaJourney || '').toLowerCase().trim();
-  return journey === 'newspaper';
+  if (journey === 'newspaper' || journey === 'hoarding') return true;
+  if (product?.Hoarding_list_id) return true;
+  const sub = String(product?.ProductSubCategoryName || '').toLowerCase();
+  if (sub.includes('hoarding')) return true;
+  return false;
 }
 
 const defaultImage =
@@ -1581,7 +1585,8 @@ export default function ProductPreview() {
                   const prevProfile = getMediaListingProfile(product || {});
                   const hideOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
                   const hideOrderTimeline =
-                    shouldHideMinMaxOrderTimelineForMediaPreview(product);
+                    shouldHideMinMaxOrderTimelineForMediaPreview(product) ||
+                    prevProfile.hideMinMaxOrderQtyTimelineInPreview === true;
                   const dimLabel =
                     prevProfile.dimensionLabel === 'AD Duration'
                       ? 'AD Duration'
