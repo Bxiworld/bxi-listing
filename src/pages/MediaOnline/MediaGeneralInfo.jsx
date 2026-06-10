@@ -117,7 +117,7 @@ export default function MediaGeneralInfo() {
     [mediaCategory]
   );
   // const useStaticSubcategories = staticSubcategories.length > 0;
-  const useStaticSubcategories = false;
+  const useStaticSubcategories = true;
 
   const {
     register,
