@@ -5,10 +5,10 @@ import GoBackWhite from "../../assets/GoBackWhite.svg";
 import { Link } from "react-router-dom";
 
 const ADMIN_BASE_URL = (
-  process.env.REACT_APP_ADMIN_URL || "https://development-admin.bxiworld.in"
+  process.env.REACT_APP_ADMIN_URL || "https://admin.bxiworld.com"
 ).replace(/\/+$/, "");
 const DASHBOARD_BASE_URL = (
-  process.env.REACT_APP_DASHBOARD_URL || "https://dashboard.bxiworld.in"
+  process.env.REACT_APP_DASHBOARD_URL || "https://app.bxiworld.com"
 ).replace(/\/+$/, "");
 const ADMIN_PANEL_URL = `${ADMIN_BASE_URL}/admindashboard/userdashboard`;
 const USER_MARKETPLACE_HOME_URL = `${DASHBOARD_BASE_URL}/home`;

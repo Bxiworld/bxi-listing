@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthUser } from '../hooks/useAuthUser';
 
-const LOGIN_URL = process.env.REACT_APP_LOGIN_URL || '';
+const LOGIN_URL = process.env.REACT_APP_LOGIN_URL || 'https://app.bxiworld.com';
 
 /**
  * Optional auth guard: if REACT_APP_LOGIN_URL is set and user is not authenticated, redirect to login.
