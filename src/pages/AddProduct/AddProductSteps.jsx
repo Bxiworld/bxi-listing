@@ -1898,6 +1898,10 @@ export const ProductInfo = ({ category }) => {
       toast.error(`Maximum ${PRODUCT_FEATURE_MAX} features allowed.`);
       return;
     }
+    if (isVoucherCategory && tags.length < 1) {
+      toast.error('Please add at least one tag');
+      return;
+    }
 
     if (productsVariations.length > 0) {
       clearErrors(['selectedSize']);
@@ -1942,7 +1946,7 @@ export const ProductInfo = ({ category }) => {
         ...(hasFeatures && { ProductFeatures: featureList }),
         ...(hasOtherCosts && { OtherCost: otherCosts }),
         ...(hasLocationDetails && { LocationDetails: locationDetails }),
-        ...(isVoucherCategory && tags.length > 0 && { ProductTags: tags }),
+        ...(isVoucherCategory && { ProductTags: tags }),
         ...(category === 'airlineVoucher' && {
           fromLocation,
           destinationLocation,
@@ -3373,6 +3377,9 @@ export const ProductInfo = ({ category }) => {
                     <Tag className="w-4 h-4 mr-1" /> Add
                   </Button>
                 </div>
+                {tags.length === 0 && (
+                  <p className="text-sm text-[#6B7A99]">Add at least one tag to continue.</p>
+                )}
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                   {tags.map((t, i) => (
@@ -3413,6 +3420,7 @@ export const ProductInfo = ({ category }) => {
                   isSubmitting || 
                   productsVariations.length === 0 || 
                   (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) ||
+                  (isVoucherCategory && tags.length < 1) ||
                   (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
                     !watch('registrationDetails')?.trim() || 
                     !watch('insuranceDetails')?.trim() || 
