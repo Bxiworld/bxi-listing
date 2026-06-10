@@ -423,6 +423,7 @@ export function getMediaListingProfile(product) {
       featureAllowlist: FEATURE_ALLOWLIST_BY_KEY.hoarding,
       previewHideMediaMetaFromTech: true,
       hideAvailableInsertionsInTechPreview: true,
+      hideMinMaxOrderQtyTimelineInPreview: true,
     };
   }
 

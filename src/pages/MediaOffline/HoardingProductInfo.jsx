@@ -207,6 +207,26 @@ export default function HoardingProductInfo() {
             }
             return '';
           };
+          const cellHoardingType = (row) => {
+            const v = cellByNorm(
+              row,
+              'Type',
+              'type',
+              'Media Type',
+              'Media Type*',
+              'Media type',
+            );
+            if (v) return v;
+            const map = buildNormRow(row);
+            for (const [nk, val] of Object.entries(map)) {
+              if (nk === 'type' || nk === 'media type') {
+                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                  return String(val).trim();
+                }
+              }
+            }
+            return '';
+          };
           // Map and validate data (legacy * columns + new template: Sr_No, Media, Site_Name/Location, …)
           const mappedData = jsonData.map((row, index) => {
             const w = num(row['Width (ft.)*'] ?? row['Width (ft.)'] ?? row.Width ?? row.width ?? row['Width']);
@@ -226,18 +246,38 @@ export default function HoardingProductInfo() {
               longitude: str(cellByNorm(row, 'Longitude', 'Long', 'long', 'Longitude*', 'Long*', 'long*'), row.Longitude, row.Long, row.long),
               mediaVehicle: str(row['Media Vehicle*'], row['Media Vehicle'], row['Media vehicle']) || 'Hoarding',
               mediaCategory: str(row['Media Category*'], row['Media Category'], row['Media category']) || 'Outdoor',
-              mediaType: str(row['Media Type*'], row['Media Type'], row.Type, row.type) || 'Static',
+              mediaType:
+                str(
+                  cellHoardingType(row),
+                  row.Type,
+                  row.type,
+                  row['Media Type*'],
+                  row['Media Type'],
+                ) || 'Static',
               quantity: row['Quantity*'] ?? row['Quantity'] ?? row.quantity ?? 1,
               size: sizeVal,
               width: w,
               height: h,
               mrp: num(row['MRP*'] ?? row.MRP ?? row.mrp),
               discountedPrice: num(
-                row['Discounted MRP*'] ??
-                  row['Discounted MRP'] ??
-                  row['Discounted_MRP'] ??
-                  row['Counted_M'] ??
-                  row.counted_m
+                cellByNorm(
+                  row,
+                  'Discounted MRP',
+                  'Discounted_MRP',
+                  'Discounted MRP*',
+                  'counted_MRP',
+                  'counted mrp',
+                  'Counted_MRP',
+                  'Counted_M',
+                  'counted_m',
+                ),
+                row['Discounted MRP*'],
+                row['Discounted MRP'],
+                row['Discounted_MRP'],
+                row['Counted_MRP'],
+                row.counted_mrp,
+                row['Counted_M'],
+                row.counted_m,
               ),
             };
           });
@@ -442,6 +482,9 @@ export default function HoardingProductInfo() {
               <Download className="w-4 h-4 mr-2" />
               Download Hoarding Template
             </Button>
+            <p className="text-sm text-[#6B7A99] mt-4">
+              Note: Inside uploaded excel rates should be as per day.
+            </p>
           </div>
         )}
 
