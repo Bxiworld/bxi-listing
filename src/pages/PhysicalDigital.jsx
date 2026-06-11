@@ -133,6 +133,17 @@ const DeliveryCompanyType = [
 const GENERIC_LISTING_INFO_TOOLTIP =
   "Choose Product if you're listing a physical item that gets shipped or delivered.\nChoose Voucher if buyers redeem it using a code, gift card, or similar.\nPick the option that best matches your listing.";
 
+const VOUCHER_ONLY_COMPANY_TYPES = new Set([
+  "Hotel",
+  "Hotels",
+  "Airline Tickets",
+  "Airlines Tickets",
+]);
+
+function isVoucherOnlyCompanyType(companyType) {
+  return VOUCHER_ONLY_COMPANY_TYPES.has(companyType);
+}
+
 export default function PhysicalDigital() {
   const navigate = useNavigate();
   const { companyType, isAdmin } = useAuthUser();
@@ -150,16 +161,19 @@ export default function PhysicalDigital() {
   const [openView, setOpenView] = useState(0);
 
   const showAdminView = adminContext;
+  const isVoucherOnly = isVoucherOnlyCompanyType(effectiveCompanyType);
+  const scopeAccessToCompanyType = isVoucherOnly || Boolean(adminContext && entryCompanyType);
   const allowedCategories = getAllowedCategories(
     effectiveCompanyType,
-    showAdminView
+    showAdminView && !scopeAccessToCompanyType
   );
   const allowedVouchers = getAllowedVouchers(
     effectiveCompanyType,
-    showAdminView
+    showAdminView && !scopeAccessToCompanyType
   );
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
+  const pageHeaderText = isVoucherOnly ? "Voucher" : "Add Product";
   const voucherSubtitle =
     "Select the Best Voucher Type that describes your voucher offering";
   const genericOneLineTitle =
@@ -175,20 +189,14 @@ export default function PhysicalDigital() {
         ? "Select Product below. You will then choose how your item is delivered or fulfilled."
         : "Select Voucher below. You will then choose the type of voucher you are offering.";
 
-  const isVoucherOnly = [
-    "Hotel",
-    "Hotels",
-    "Airline Tickets",
-    "Airlines Tickets",
-  ].includes(effectiveCompanyType);
   useEffect(() => {
     if (isVoucherOnly) {
       setSelectedVoucher(true);
       setSelectedProduct(false);
       setOpenView(1);
-      setDigitalData(DIGITAL_OPTIONS[0]);
+      setDigitalData((current) => current ?? DIGITAL_OPTIONS[0]);
     }
-  }, [isVoucherOnly]);
+  }, [isVoucherOnly, effectiveCompanyType]);
 
   if (!hasProductAccess && !hasVoucherAccess) {
     return <Navigate to="/sellerhub" replace />;
@@ -247,8 +255,12 @@ export default function PhysicalDigital() {
     toast.error("Please select Product or Voucher.");
   };
 
-  const showProductStepCopy = selectedProduct && openView === 0;
-  const showVoucherStepCopy = selectedVoucher && openView === 1;
+  const showProductStepCopy = !isVoucherOnly && selectedProduct && openView === 0;
+  const showVoucherStepCopy =
+    isVoucherOnly || (selectedVoucher && openView === 1);
+  const showListingTypeCards = !isVoucherOnly;
+  const showVoucherOptions =
+    hasVoucherAccess && (isVoucherOnly || (openView === 1 && selectedVoucher));
 
   return (
     <div
@@ -256,7 +268,7 @@ export default function PhysicalDigital() {
       data-testid="physical-digital-page"
     >
       <div className="max-w-5xl mx-auto">
-        <BreadCrumbHeader MainText="Add Product" showbreadcrumb={true} />
+        <BreadCrumbHeader MainText={pageHeaderText} showbreadcrumb={true} />
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-8">
           {/* Back Button */}
@@ -318,8 +330,9 @@ export default function PhysicalDigital() {
           </div>
 
           {/* Product/Voucher Selection Cards */}
+          {showListingTypeCards ? (
           <div className="flex flex-wrap justify-center gap-8 mb-12">
-            {!isVoucherOnly && hasProductAccess && (
+            {hasProductAccess && (
               <button
                 type="button"
                 onClick={() => {
@@ -383,6 +396,7 @@ export default function PhysicalDigital() {
               </button>
             )}
           </div>
+          ) : null}
 
           {/* Physical Product Options */}
           {openView === 0 && selectedProduct && hasProductAccess && (
@@ -424,7 +438,7 @@ export default function PhysicalDigital() {
           )}
 
           {/* Voucher Type Options */}
-          {openView === 1 && selectedVoucher && hasVoucherAccess && (
+          {showVoucherOptions && (
             <div className="mb-12">
               <div className="relative mb-8">
                 <div className="absolute inset-0 flex items-center">
@@ -465,9 +479,9 @@ export default function PhysicalDigital() {
               className="bg-[#C64091] hover:bg-[#a53575] text-white font-semibold px-12 py-6 rounded-xl text-base shadow-md"
               onClick={handleList}
             >
-              {selectedProduct
+              {selectedProduct && !isVoucherOnly
                 ? "List Product"
-                : selectedVoucher
+                : selectedVoucher || isVoucherOnly
                   ? "List Voucher"
                   : "Continue"}
             </Button>
