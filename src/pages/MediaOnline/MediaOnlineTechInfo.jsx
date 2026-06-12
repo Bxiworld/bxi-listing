@@ -3,7 +3,6 @@ import {
   Typography,
   TextField,
   Button as MuiButton,
-  Checkbox,
   Dialog,
 } from '@mui/material';
 import { Stack } from '@mui/system';
@@ -28,8 +27,6 @@ import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import addItemCartIcon from '../../assets/CartPage/addItemIcon.svg';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import defaultIcon from '../../assets/CartPage/defaultCheckBoxIcon.svg';
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
 import { Stepper } from '../AddProduct/AddProductSteps';
 import {
   supportingDocsToCheckboxState,
@@ -74,8 +71,6 @@ export default function TechInfo() {
   const [fetchproductData, setfetchProductData] = useState();
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(null);
-  const [BXISpace, setBXISpace] = useState(false);
-  const [content, setContent] = useState('checkbox');
   const onChange = (dates) => {
     const [start, end] = dates;
     setStartDate(start);
@@ -108,14 +103,11 @@ export default function TechInfo() {
       return value;
     }
   };
-  const label = { inputProps: { 'aria-label': 'Checkbox demo' } };
   const techFormProfile = getMediaListingProfile(fetchproductData || {});
   const isRadioMediaListing =
     techFormProfile.key === 'radio' ||
     fetchproductData?.ProductSubCategoryName === 'Radio' ||
     fetchproductData?.ProductSubCategory === '65029534eaa5251874e8c6c1';
-  const isTelevisionMediaListing = techFormProfile.key === 'television';
-  const showContentUploadSection = !isTelevisionMediaListing;
   const radioSupportingDocKeys = useMemo(
     () =>
       Array.isArray(techFormProfile.supportingDocKeys) &&
@@ -167,15 +159,8 @@ export default function TechInfo() {
         Dimensions: isRadioMediaListing
           ? z.string().max(500)
           : z.string().min(1).max(500),
-        UploadLink:
-          isTelevisionMediaListing || BXISpace === true
-            ? z.any().optional()
-            : z.string().min(1),
-        BXISpace: isTelevisionMediaListing
-          ? z.any().optional()
-          : z.boolean(),
       }),
-    [isRadioMediaListing, isTelevisionMediaListing, BXISpace],
+    [isRadioMediaListing],
   );
 
   const resolver = useMemo(
@@ -196,31 +181,11 @@ export default function TechInfo() {
   } = useForm({
     Values: {
       Dimensions: fetchproductData?.dimensions,
-      UploadLink: fetchproductData?.uploadLink,
       WhatSupportingYouWouldGiveToBuyer:
         fetchproductData?.whatSupportingYouWouldGiveToBuyer,
     },
     resolver,
   });
-
-  useEffect(() => {
-    if (isTelevisionMediaListing) {
-      clearErrors(['UploadLink', 'BXISpace']);
-    }
-  }, [isTelevisionMediaListing, clearErrors]);
-
-  const ContentChange = (event) => {
-    if (event.target.value === 'uploadLinkSet') {
-      setContent('uploadLinkSet');
-      setBXISpace('');
-    } else {
-      setContent(event.target.value);
-    }
-    reset({
-      UploadLink: '',
-      BXISpace: false,
-    });
-  };
 
   const FetchProduct = async () => {
     await api
@@ -229,7 +194,6 @@ export default function TechInfo() {
         const data = res?.data ?? res;
         setfetchProductData(data);
         setValue('Dimensions', data?.Dimensions);
-        setValue('UploadLink', data?.UploadLink);
         const profile = getMediaListingProfile(data || {});
         const loadedSupporting = supportingDocsToCheckboxState(
           data?.WhatSupportingYouWouldGiveToBuyer,
@@ -253,8 +217,6 @@ export default function TechInfo() {
             : '',
         );
         setDateArr(data?.calender ?? []);
-        setValue('BXISpace', data?.BXISpace);
-        setBXISpace(data?.BXISpace);
       })
       .catch(() => { });
   };
@@ -323,9 +285,8 @@ export default function TechInfo() {
         WhatSupportingYouWouldGiveToBuyer: selectedKeys,
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
-        ...(showContentUploadSection
-          ? { BXISpace: BXISpace, UploadLink: data.UploadLink }
-          : { BXISpace: false, UploadLink: '' }),
+        BXISpace: false,
+        UploadLink: '',
       };
       const supportingOk =
         selectedKeys.length > 0 &&
@@ -337,16 +298,6 @@ export default function TechInfo() {
           isRadioMediaListing
             ? 'Please select at least one supporting document (broadcast certificate, log report, videos, pictures, or other)'
             : 'Please select at least one supporting document',
-        );
-        return;
-      }
-      if (
-        showContentUploadSection &&
-        !BXISpace &&
-        !String(data?.UploadLink ?? '').trim()
-      ) {
-        toast.error(
-          'Please provide a content upload link or select BXI Space',
         );
         return;
       }
@@ -577,137 +528,6 @@ export default function TechInfo() {
                       InputProps={{ disableUnderline: true }}
                     />
                   </Box>
-                ) : null}
-                {showContentUploadSection ? (
-                <>
-                <RadioGroup
-                  row
-                  aria-labelledby="demo-row-radio-buttons-group-label"
-                  name="row-radio-buttons-group"
-                  value={content}
-                  onChange={ContentChange}
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    columnGap: 3,
-                    rowGap: 1,
-                    mt: 0.5,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.75,
-                    }}
-                  >
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: '12px', color: '#6B7A99', whiteSpace: 'nowrap' }}
-                    >
-                      Upload Link
-                    </Typography>
-                    <Radio value="uploadLinkSet" size="small" sx={{ p: 0.5 }} />
-                  </Box>
-                  <Box
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.75,
-                      maxWidth: { xs: '100%', sm: 'none' },
-                    }}
-                  >
-                    <Typography
-                      component="span"
-                      sx={{
-                        fontSize: '12px',
-                        color: '#6B7A99',
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      Click here to use BXI Space
-                    </Typography>
-                    <Radio value="checkbox" size="small" sx={{ p: 0.5, flexShrink: 0 }} />
-                  </Box>
-                </RadioGroup>
-                {content !== 'checkbox' ? (
-                  <>
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gap: 1,
-                        py: 0.5,
-                        width: '100%',
-                        maxWidth: '100%',
-                      }}
-                    >
-                      <Typography sx={{ ...CommonTextStyle, lineHeight: 1.35 }}>
-                        Content Upload Link ( Share a link where buyer can
-                        drop a content ){' '}
-                        <span style={{ color: 'red' }}> *</span>
-                      </Typography>
-
-                      <TextField
-                        multiline
-                        variant="standard"
-                        placeholder="Uploaded content has to go to seller with PO & Confirmation"
-                        {...register('UploadLink')}
-                        sx={{
-                          ...borderlessTextFieldSx,
-                          minHeight: 47,
-                          bgcolor: errors['UploadLink']?.message
-                            ? 'rgba(254, 226, 226, 0.35)'
-                            : 'transparent',
-                        }}
-                        InputProps={{
-                          disableUnderline: true,
-                        }}
-                      />
-                    </Box>
-                    <Typography sx={ErrorStyle}>
-                      {errors['UploadLink']?.message}
-                    </Typography>
-                  </>
-                ) : (
-                  <>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1.5,
-                        mt: 2,
-                        width: '100%',
-                        maxWidth: '100%',
-                      }}
-                    >
-                      <Checkbox
-                        {...label}
-                        {...register('BXISpace')}
-                        checked={BXISpace === true ? true : false}
-                        onChange={(e) => setBXISpace(e.target.checked)}
-                        sx={{ p: 0, mt: 0.25 }}
-                      />
-                      <Typography
-                        sx={{
-                          ...CommonTextStyle,
-                          flex: 1,
-                          minWidth: 0,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        Click here to use BXI Space from you can download ,
-                        though BXI does not take responsibility for the
-                        content{' '}
-                      </Typography>
-                    </Box>
-                    <Typography sx={ErrorStyle}>
-                      {errors['UploadLink']?.message}
-                    </Typography>
-                  </>
-                )}
-                </>
                 ) : null}
 
               </Stack>
