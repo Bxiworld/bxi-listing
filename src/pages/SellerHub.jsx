@@ -46,6 +46,19 @@ import useListingEntryContext from '../hooks/useListingEntryContext';
 import { getAllowedCategories, getAllowedVouchers } from '../config/categories';
 import { PRODUCT_TYPE_BY_CATEGORY } from '../config/categoryFormConfig';
 import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing } from '../utils/listingProductFields';
+import { productApi } from '../utils/api';
+
+const HUB_PAGE_SIZE = 20;
+const HUB_SEARCH_CATALOG_MAX = 5000;
+
+const TAB_PRODUCT_FETCHERS = {
+  Live: productApi.getLiveProducts,
+  'In Draft': productApi.getDraftProducts,
+  'Admin Review': productApi.getPendingProducts,
+  Delist: productApi.getDelistProducts,
+  Rejected: productApi.getRejectedProducts,
+  All: productApi.getAllProducts,
+};
 
 const TABS = ['Live', 'In Draft', 'Admin Review', 'Delist', 'Rejected', 'All'];
 const CATEGORY_FILTER_OPTIONS = Array.from(
@@ -85,6 +98,90 @@ const productMatchesHubSearch = (product, rawQuery) => {
   return words.every((w) => haystack.includes(w));
 };
 
+function filterSellerHubProducts(
+  source,
+  { activeTab, selectedType, selectedListingType }
+) {
+  let list =
+    activeTab !== 'In Draft'
+      ? source || []
+      : (source || []).filter(passesSellerHubDraftTabListing);
+
+  if (selectedType) {
+    if (selectedType === 'Media') {
+      list = list.filter((product) => isMediaListing(product));
+    } else {
+      const selectedNorm = normalizeCategory(selectedType);
+      const aliasPool = new Set([
+        selectedNorm,
+        ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) =>
+          normalizeCategory(a)
+        ),
+      ]);
+
+      list = list.filter((product) => {
+        if (isMediaListing(product)) {
+          return false;
+        }
+
+        const categoryCandidates = [
+          product?.ProductCategoryName,
+          product?.ProductType,
+          product?.Type,
+        ]
+          .map((v) => normalizeCategory(v))
+          .filter(Boolean);
+
+        return categoryCandidates.some((candidate) =>
+          [...aliasPool].some(
+            (alias) =>
+              candidate === alias ||
+              candidate.includes(alias) ||
+              alias.includes(candidate)
+          )
+        );
+      });
+    }
+  }
+
+  if (selectedListingType) {
+    list = list.filter((product) => {
+      const isMedia = isMediaListing(product);
+      const isVoucher = isVoucherListing(product);
+
+      switch (selectedListingType) {
+        case 'Product':
+          return !isVoucher && !isMedia;
+        case 'Voucher':
+          return isVoucher;
+        case 'Media':
+          return isMedia;
+        default:
+          return true;
+      }
+    });
+  }
+
+  return list;
+}
+
+function getVisiblePages(currentPage, totalPages, maxVisible = 7) {
+  if (!totalPages || totalPages < 1) return [];
+  if (totalPages <= maxVisible) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const half = Math.floor(maxVisible / 2);
+  let start = Math.max(1, currentPage - half);
+  let end = Math.min(totalPages, start + maxVisible - 1);
+
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
 export default function SellerHub() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -106,6 +203,9 @@ export default function SellerHub() {
   const [selectedType, setSelectedType] = useState('');
   const [selectedListingType, setSelectedListingType] = useState('');
   const [hubSearch, setHubSearch] = useState('');
+  const [debouncedHubSearch, setDebouncedHubSearch] = useState('');
+  const [searchCatalog, setSearchCatalog] = useState([]);
+  const [searchCatalogLoading, setSearchCatalogLoading] = useState(false);
 
   // Redux state
   const {
@@ -164,14 +264,22 @@ export default function SellerHub() {
     dispatch(fetchPendingAdminListingChanges());
   }, [dispatch, refreshTrigger, authLoading, isAuthenticated]);
 
-  // Fetch current tab data when page changes
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedHubSearch(hubSearch), 400);
+    return () => clearTimeout(timer);
+  }, [hubSearch]);
+
+  // Fetch current tab data when page changes (skip while cross-tab search is active)
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       return;
     }
+    if (debouncedHubSearch.trim()) {
+      return;
+    }
     fetchCurrentTabData(currentPage, selectedType);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, activeTab, authLoading, isAuthenticated, selectedType]);
+  }, [currentPage, activeTab, authLoading, isAuthenticated, selectedType, debouncedHubSearch]);
 
   const fetchCurrentTabData = (page, type = '') => {
     switch (activeTab) {
@@ -225,40 +333,110 @@ export default function SellerHub() {
     return (products || []).filter(passesSellerHubDraftTabListing);
   }, [activeTab, products]);
 
-  const filteredProducts = useMemo(() => {
-    if (!selectedType) return tabProducts || [];
+  const hubFilterOptions = useMemo(
+    () => ({ activeTab, selectedType, selectedListingType }),
+    [activeTab, selectedType, selectedListingType]
+  );
 
-    // "Media" in the category dropdown (mediaonline + mediaoffline both map to label `Media` in PRODUCT_TYPE_BY_CATEGORY).
-    // Do not use substring matching — rows use "Multiplex ADs" / "Hoardings", not the word "Media" in every field.
-    if (selectedType === 'Media') {
-      return (tabProducts || []).filter((product) => isMediaListing(product));
+  const fullyFilteredProducts = useMemo(
+    () => filterSellerHubProducts(tabProducts, hubFilterOptions),
+    [tabProducts, hubFilterOptions]
+  );
+
+  const isSearchActive = Boolean(debouncedHubSearch.trim());
+
+  // Tab counts
+  const tabCounts = useMemo(() => ({
+    'Live': liveProducts.totalProducts || liveProducts.data?.length || 0,
+    'In Draft': draftProducts.totalProducts || draftProducts.data?.length || 0,
+    'Admin Review': pendingProducts.totalProducts || pendingProducts.data?.length || 0,
+    'Delist': delistProducts.totalProducts || delistProducts.data?.length || 0,
+    'Rejected': rejectedProducts.totalProducts || rejectedProducts.data?.length || 0,
+    'All': allProducts.totalProducts || allProducts.data?.length || 0,
+  }), [liveProducts, draftProducts, pendingProducts, delistProducts, rejectedProducts, allProducts]);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) {
+      return undefined;
     }
 
-    const selectedNorm = normalizeCategory(selectedType);
-    const aliasPool = new Set([
-      selectedNorm,
-      ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) => normalizeCategory(a)),
-    ]);
+    const query = debouncedHubSearch.trim();
+    if (!query) {
+      setSearchCatalog([]);
+      setSearchCatalogLoading(false);
+      return undefined;
+    }
 
-    return (tabProducts || []).filter((product) => {
-      // Media lines often have ProductType "Others" (API default) — do not let them match the product vertical "Others" or any non-Media category.
-      if (isMediaListing(product)) {
-        return false;
+    const fetcher = TAB_PRODUCT_FETCHERS[activeTab];
+    if (!fetcher) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setSearchCatalogLoading(true);
+      try {
+        const catalogLimit = Math.min(
+          Math.max(tabCounts[activeTab] || HUB_PAGE_SIZE, HUB_PAGE_SIZE),
+          HUB_SEARCH_CATALOG_MAX
+        );
+        const response = await fetcher(1, selectedType, catalogLimit);
+        if (cancelled) return;
+        const items = response.data?.products || response.data?.product || [];
+        setSearchCatalog(Array.isArray(items) ? items : []);
+        setCurrentPage(1);
+      } catch {
+        if (!cancelled) {
+          setSearchCatalog([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setSearchCatalogLoading(false);
+        }
       }
+    })();
 
-      const categoryCandidates = [
-        product?.ProductCategoryName,
-        product?.ProductType,
-        product?.Type,
-      ]
-        .map((v) => normalizeCategory(v))
-        .filter(Boolean);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    debouncedHubSearch,
+    activeTab,
+    selectedType,
+    authLoading,
+    isAuthenticated,
+    refreshTrigger,
+    tabCounts,
+  ]);
 
-      return categoryCandidates.some((candidate) =>
-        [...aliasPool].some((alias) => candidate === alias || candidate.includes(alias) || alias.includes(candidate))
-      );
-    });
-  }, [tabProducts, selectedType]);
+  const matchedProducts = useMemo(() => {
+    const source = isSearchActive ? searchCatalog : tabProducts;
+    const filtered = filterSellerHubProducts(source, hubFilterOptions);
+    const query = isSearchActive ? debouncedHubSearch : hubSearch;
+    return filtered.filter((product) => productMatchesHubSearch(product, query));
+  }, [
+    isSearchActive,
+    searchCatalog,
+    tabProducts,
+    hubFilterOptions,
+    debouncedHubSearch,
+    hubSearch,
+  ]);
+
+  const displayProducts = useMemo(() => {
+    if (!isSearchActive) {
+      return matchedProducts;
+    }
+    const start = (currentPage - 1) * HUB_PAGE_SIZE;
+    return matchedProducts.slice(start, start + HUB_PAGE_SIZE);
+  }, [isSearchActive, matchedProducts, currentPage]);
+
+  const activeTotalPages = isSearchActive
+    ? Math.max(1, Math.ceil(matchedProducts.length / HUB_PAGE_SIZE))
+    : totalPages;
+
+  const activeLoading = isSearchActive ? searchCatalogLoading : loading;
 
   const pendingAdminChangeByProductId = useMemo(() => {
     const requestMap = {};
@@ -270,43 +448,6 @@ export default function SellerHub() {
     });
     return requestMap;
   }, [pendingAdminListingChanges?.data]);
-
-  const fullyFilteredProducts = useMemo(() => {
-    if (!selectedListingType) return filteredProducts;
-
-    return filteredProducts.filter((product) => {
-      // Use shared row-shape logic (API may use "Multiplex ADs", "Hoardings", etc. — not only "mediaonline").
-      const isMedia = isMediaListing(product);
-      const isVoucher = isVoucherListing(product);
-
-      switch (selectedListingType) {
-        case 'Product':
-          return !isVoucher && !isMedia;
-        case 'Voucher':
-          return isVoucher;
-        case 'Media':
-          return isMedia;
-        default:
-          return true;
-      }
-    });
-  }, [filteredProducts, selectedListingType]);
-
-  const searchFilteredProducts = useMemo(
-    () =>
-      (fullyFilteredProducts || []).filter((p) => productMatchesHubSearch(p, hubSearch)),
-    [fullyFilteredProducts, hubSearch]
-  );
-
-  // Tab counts
-  const tabCounts = useMemo(() => ({
-    'Live': liveProducts.totalProducts || liveProducts.data?.length || 0,
-    'In Draft': draftProducts.totalProducts || draftProducts.data?.length || 0,
-    'Admin Review': pendingProducts.totalProducts || pendingProducts.data?.length || 0,
-    'Delist': delistProducts.totalProducts || delistProducts.data?.length || 0,
-    'Rejected': rejectedProducts.totalProducts || rejectedProducts.data?.length || 0,
-    'All': allProducts.totalProducts || allProducts.data?.length || 0,
-  }), [liveProducts, draftProducts, pendingProducts, delistProducts, rejectedProducts, allProducts]);
 
   // Handle tab change
   const handleTabChange = (tab) => {
@@ -588,7 +729,7 @@ export default function SellerHub() {
             placeholder="Search by name, category, ID…"
             className="pl-9 pr-9 h-10 bg-white border-[#E5E8EB]"
             data-testid="sellerhub-search"
-            aria-label="Search listings on this page"
+            aria-label="Search listings in this tab"
           />
           {hubSearch ? (
             <button
@@ -604,20 +745,22 @@ export default function SellerHub() {
         </div>
         {hubSearch.trim() ? (
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            Filtering listings on the current page only.
+            {searchCatalogLoading
+              ? 'Searching all listings in this tab…'
+              : `Showing ${matchedProducts.length} match${matchedProducts.length === 1 ? '' : 'es'} across this tab.`}
           </p>
         ) : null}
       </div>
 
       {/* Product Grid */}
-      {loading ? (
+      {activeLoading ? (
         <div className="loading-container">
           <Loader2 className="w-10 h-10 animate-spin text-[#C64091]" />
         </div>
-      ) : searchFilteredProducts && searchFilteredProducts.length > 0 ? (
+      ) : displayProducts && displayProducts.length > 0 ? (
         <>
           <div className="product-grid" data-testid="product-grid">
-            {searchFilteredProducts.map((product) => (
+            {displayProducts.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}
@@ -633,7 +776,7 @@ export default function SellerHub() {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && !hubSearch.trim() && (
+          {activeTotalPages > 1 && (
             <div className="pagination-container">
               <Pagination>
                 <PaginationContent>
@@ -644,10 +787,8 @@ export default function SellerHub() {
                       data-testid="pagination-prev"
                     />
                   </PaginationItem>
-                  
-                  {[...Array(Math.min(totalPages, 5))].map((_, idx) => {
-                    const pageNum = idx + 1;
-                    return (
+
+                  {getVisiblePages(currentPage, activeTotalPages).map((pageNum) => (
                       <PaginationItem key={pageNum}>
                         <PaginationLink
                           onClick={() => handlePageChange(pageNum)}
@@ -658,13 +799,12 @@ export default function SellerHub() {
                           {pageNum}
                         </PaginationLink>
                       </PaginationItem>
-                    );
-                  })}
+                  ))}
 
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      onClick={() => currentPage < activeTotalPages && handlePageChange(currentPage + 1)}
+                      className={currentPage === activeTotalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                       data-testid="pagination-next"
                     />
                   </PaginationItem>
@@ -673,7 +813,7 @@ export default function SellerHub() {
             </div>
           )}
         </>
-      ) : fullyFilteredProducts?.length > 0 && hubSearch.trim() ? (
+      ) : fullyFilteredProducts?.length > 0 && hubSearch.trim() && !searchCatalogLoading ? (
         <div className="empty-state" data-testid="sellerhub-search-empty">
           <Package className="empty-state-icon" />
           <p className="empty-state-text">No listings match your search.</p>
