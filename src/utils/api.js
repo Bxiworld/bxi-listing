@@ -114,32 +114,35 @@ api.interceptors.response.use(
 );
 
 // Product APIs (paths match BXI routes: product/*)
-const buildListingParams = (page = 1, type = '') => {
+const buildListingParams = (page = 1, type = '', limit) => {
   const params = { page };
   if (type && String(type).trim()) {
     params.Type = type;
+  }
+  if (limit != null && Number(limit) > 0) {
+    params.limit = Number(limit);
   }
   return { params };
 };
 
 export const productApi = {
-  getLiveProducts: (page = 1, type = '') =>
-    api.get('product/get_product_bySellerCompanyId', buildListingParams(page, type)),
+  getLiveProducts: (page = 1, type = '', limit) =>
+    api.get('product/get_product_bySellerCompanyId', buildListingParams(page, type, limit)),
 
-  getDraftProducts: (page = 1, type = '') =>
-    api.get('product/get_listed_draft_product', buildListingParams(page, type)),
+  getDraftProducts: (page = 1, type = '', limit) =>
+    api.get('product/get_listed_draft_product', buildListingParams(page, type, limit)),
 
-  getAllProducts: (page = 1, type = '') =>
-    api.get('product/get_product_byCompanyId', buildListingParams(page, type)),
+  getAllProducts: (page = 1, type = '', limit) =>
+    api.get('product/get_product_byCompanyId', buildListingParams(page, type, limit)),
 
-  getRejectedProducts: (page = 1, type = '') =>
-    api.get('product/GetListedRejectedProduct', buildListingParams(page, type)),
+  getRejectedProducts: (page = 1, type = '', limit) =>
+    api.get('product/GetListedRejectedProduct', buildListingParams(page, type, limit)),
 
-  getDelistProducts: (page = 1, type = '') =>
-    api.get('product/GetListedDelistProduct', buildListingParams(page, type)),
+  getDelistProducts: (page = 1, type = '', limit) =>
+    api.get('product/GetListedDelistProduct', buildListingParams(page, type, limit)),
 
-  getPendingProducts: (page = 1, type = '') =>
-    api.get('product/GetListedPendingProduct', buildListingParams(page, type)),
+  getPendingProducts: (page = 1, type = '', limit) =>
+    api.get('product/GetListedPendingProduct', buildListingParams(page, type, limit)),
 
   getProductById: (id) =>
     api.get(`product/get_product_byId/${id}`),
