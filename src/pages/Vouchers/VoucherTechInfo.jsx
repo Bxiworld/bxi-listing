@@ -9,11 +9,22 @@ import {
   deliveryToRedemptionType,
   normalizeVoucherDeliveryTypeFromProduct,
 } from '../../utils/voucherDelivery';
+import {
+  VOUCHER_LOCATION_ADDRESS_MODE,
+  VOUCHER_MULTIPLE_LOCATION_INPUT,
+  EMPTY_STORE_ADDRESS,
+  isCompleteStoreAddress,
+  isCompleteStoreAddressWithPincode,
+  inferVoucherLocationModesFromProduct,
+  normalizeManualStoreLocations,
+  buildOfflineAddressListForSubmit,
+  hasValidDigitalLocation,
+} from '../../utils/voucherLocation';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, ArrowRight, Upload, FileText, X, Download } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, FileText, X, Download, Plus, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -88,6 +99,7 @@ function offlineAddressFromProduct(p) {
     landmark: p.Landmark ?? '',
     city: p.City ?? '',
     state: p.State ?? '',
+    pincode: p.Pincode ?? '',
   };
 }
 
@@ -116,7 +128,7 @@ function parseStoreLocationsFromWorkbook(workbook) {
   return rows
     .map(normalizeStoreLocationRow)
     .filter((row) =>
-      [row.address, row.area, row.landmark, row.city, row.state].some(
+      [row.area, row.landmark, row.city, row.state].some(
         (v) => String(v || '').trim() !== ''
       )
     );
@@ -189,6 +201,300 @@ function getVariantDescriptor(variant = {}) {
   return parts.join(' | ');
 }
 
+function CompactRadioOption({ id, value, label }) {
+  return (
+    <div className="inline-flex items-center gap-2.5">
+      <RadioGroupItem id={id} value={value} />
+      <Label htmlFor={id} className="cursor-pointer text-sm font-medium text-[#1F2A44] leading-none mb-0">
+        {label}
+      </Label>
+    </div>
+  );
+}
+
+function StackedRadioOption({ id, value, label, description }) {
+  return (
+    <div className="flex items-start gap-2.5 max-w-md">
+      <RadioGroupItem id={id} value={value} className="mt-0.5" />
+      <div className="space-y-1">
+        <Label htmlFor={id} className="cursor-pointer text-sm font-medium text-[#1F2A44] leading-snug">
+          {label}
+        </Label>
+        {description ? (
+          <p className="text-xs text-[#6B7A99] font-normal leading-snug">{description}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function StoreAddressFields({
+  address,
+  onChange,
+  cities,
+  StateData,
+  addressLetters,
+  areaLetters,
+  onAddressLetters,
+  onAreaLetters,
+  idPrefix = 'store',
+  onPincodeLookup,
+  pincodeLoading = false,
+}) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2 md:col-span-2">
+        <Label htmlFor={`${idPrefix}-pincode`}>
+          Pincode <span className="text-red-500">*</span>
+        </Label>
+        <div className="relative max-w-[220px]">
+          <Input
+            id={`${idPrefix}-pincode`}
+            placeholder="Enter 6-digit pincode"
+            maxLength={6}
+            inputMode="numeric"
+            value={address.pincode || ''}
+            onChange={(e) => {
+              const v = e.target.value.replace(/\D/g, '');
+              onChange({ ...address, pincode: v });
+              if (v.length === 6 && onPincodeLookup) onPincodeLookup(v);
+            }}
+            className={pincodeLoading ? 'pr-10' : ''}
+          />
+          {pincodeLoading && (
+            <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[#C64091]" />
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${idPrefix}-state`}>
+          State <span className="text-red-500">*</span>
+        </Label>
+        <Select
+          value={address.state}
+          onValueChange={(v) => onChange({ ...address, state: v, city: '' })}
+        >
+          <SelectTrigger id={`${idPrefix}-state`}>
+            <SelectValue placeholder="Select state" />
+          </SelectTrigger>
+          <SelectContent>
+            {StateData.map((s) => (
+              <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${idPrefix}-city`}>
+          City <span className="text-red-500">*</span>
+        </Label>
+        <Select
+          value={address.city}
+          onValueChange={(v) => onChange({ ...address, city: v })}
+          disabled={!address.state}
+        >
+          <SelectTrigger id={`${idPrefix}-city`}>
+            <SelectValue placeholder="Select city" />
+          </SelectTrigger>
+          <SelectContent>
+            {cities.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${idPrefix}-area`}>
+          Area <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id={`${idPrefix}-area`}
+          placeholder="Area / locality"
+          value={address.area}
+          maxLength={500}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChange({ ...address, area: val });
+            onAreaLetters?.(countLetters(val));
+          }}
+        />
+        {onAreaLetters != null && (
+          <p className="text-xs text-gray-500 text-right mt-1">{areaLetters} / 500</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${idPrefix}-landmark`}>
+          Landmark <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id={`${idPrefix}-landmark`}
+          placeholder="Eg. Near Metro Station"
+          value={address.landmark}
+          maxLength={500}
+          onChange={(e) => onChange({ ...address, landmark: e.target.value })}
+        />
+      </div>
+      {/* Street address not required for voucher store locations
+      <div className="space-y-2 md:col-span-2">
+        <Label htmlFor={`${idPrefix}-address`}>
+          Street address <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id={`${idPrefix}-address`}
+          placeholder="Building, street, shop number"
+          value={address.address}
+          maxLength={500}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChange({ ...address, address: val });
+            onAddressLetters?.(countLetters(val));
+          }}
+        />
+        {onAddressLetters != null && (
+          <p className="text-xs text-gray-500 text-right mt-1">{addressLetters} / 500</p>
+        )}
+      </div>
+      */}
+    </div>
+  );
+}
+
+function AddressSectionCard({ title, description, children }) {
+  return (
+    <div className="rounded-lg border border-[#E5E8EB] bg-[#FAFBFC] p-4 space-y-4">
+      {(title || description) && (
+        <div className="space-y-1">
+          {title && <p className="text-sm font-semibold text-[#1F2A44]">{title}</p>}
+          {description && <p className="text-xs text-[#6B7A99]">{description}</p>}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function ManualStoreLocationsEditor({
+  rows,
+  onChangeRow,
+  onAddRow,
+  onRemoveRow,
+  StateData,
+  onPincodeLookup,
+  pincodeLoadingIndex = null,
+}) {
+  return (
+    <div className="space-y-4">
+      {rows.map((row, idx) => {
+        const rowCities = row.state
+          ? buildCitySelectOptions(getCitiesForState(row.state, StateData), row.city)
+          : [];
+        return (
+          <div
+            key={`manual-loc-${idx}`}
+            className="rounded-lg border border-[#E5E8EB] bg-white p-4 space-y-3 shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-2 border-b border-[#E5E8EB] pb-2">
+              <p className="text-sm font-semibold text-[#1F2A44]">Location {idx + 1}</p>
+              {rows.length > 2 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRemoveRow(idx)}
+                  className="text-[#6B7A99] hover:text-[#C64091] h-8"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Remove
+                </Button>
+              )}
+            </div>
+            <StoreAddressFields
+              address={row}
+              onChange={(next) => onChangeRow(idx, next)}
+              cities={rowCities}
+              StateData={StateData}
+              idPrefix={`manual-${idx}`}
+              onPincodeLookup={(pincode) => onPincodeLookup?.(idx, pincode)}
+              pincodeLoading={pincodeLoadingIndex === idx}
+            />
+          </div>
+        );
+      })}
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onAddRow}
+        className="border-[#C64091] text-[#C64091]"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Add another location
+      </Button>
+    </div>
+  );
+}
+
+function StoreListUploadSection({
+  storeListFile,
+  parsedStoreLocations,
+  storeFileRef,
+  onPickFile,
+  onClearFile,
+  onFileChange,
+  onDownloadSample,
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>Upload Store List</Label>
+      <p className="text-xs text-[#6B7A99]">Upload Excel with store locations when you have multiple outlets.</p>
+      <div className="flex gap-4 items-center flex-wrap">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onPickFile}
+          className="border-[#C64091] text-[#C64091]"
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          {storeListFile ? 'Change File' : 'Upload Store List'}
+        </Button>
+        {storeListFile && (
+          <div className="flex items-center gap-2 text-sm">
+            <FileText className="w-4 h-4 text-[#C64091]" />
+            <span>{storeListFile.name}</span>
+            <button
+              type="button"
+              onClick={onClearFile}
+              className="text-[#6B7A99] hover:text-[#C64091]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onDownloadSample}
+          className="border-[#C64091] text-[#C64091]"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download Store List Sample
+        </Button>
+      </div>
+      {parsedStoreLocations.length > 0 && (
+        <p className="text-xs text-[#6B7A99]">
+          Parsed {parsedStoreLocations.length} location{parsedStoreLocations.length > 1 ? 's' : ''} from uploaded file.
+        </p>
+      )}
+      <input
+        ref={storeFileRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={onFileChange}
+        className="hidden"
+      />
+    </div>
+  );
+}
+
 export default function VoucherTechInfo({ category }) {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
@@ -200,6 +506,16 @@ export default function VoucherTechInfo({ category }) {
   const [variantCodeMeta, setVariantCodeMeta] = useState({});
   const [storeListFile, setStoreListFile] = useState(null);
   const [parsedStoreLocations, setParsedStoreLocations] = useState([]);
+  const [voucherLocationAddressMode, setVoucherLocationAddressMode] = useState(
+    VOUCHER_LOCATION_ADDRESS_MODE.SINGLE
+  );
+  const [voucherMultipleLocationInput, setVoucherMultipleLocationInput] = useState(
+    VOUCHER_MULTIPLE_LOCATION_INPUT.EXCEL
+  );
+  const [manualStoreLocations, setManualStoreLocations] = useState([
+    EMPTY_STORE_ADDRESS(),
+    EMPTY_STORE_ADDRESS(),
+  ]);
   const [offlineAddress, setOfflineAddress] = useState({
     address: '',
     area: '',
@@ -209,6 +525,7 @@ export default function VoucherTechInfo({ category }) {
     state: '',
   });
   const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [manualPincodeLoadingIdx, setManualPincodeLoadingIdx] = useState(null);
   const [cities, setCities] = useState([]);
   const codeFileRef = useRef(null);
   const storeFileRef = useRef(null);
@@ -283,21 +600,26 @@ export default function VoucherTechInfo({ category }) {
   const hasOfflineOk =
     redemptionTypeValue === 'online' ||
     (() => {
-      const hasAddress =
-        offlineAddress.address?.trim() &&
-        offlineAddress.area?.trim() &&
-        offlineAddress.landmark?.trim() &&
-        offlineAddress.city?.trim() &&
-        offlineAddress.state?.trim();
-      return !!hasAddress || !!storeListFile;
+      const hasAddress = isCompleteStoreAddressWithPincode(offlineAddress);
+      return hasAddress || !!storeListFile || parsedStoreLocations.length > 0;
     })();
+  const hasDigitalLocationOk =
+    redemptionTypeValue !== 'online' ||
+    hasValidDigitalLocation({
+      mode: voucherLocationAddressMode,
+      input: voucherMultipleLocationInput,
+      singleAddress: offlineAddress,
+      parsedExcel: parsedStoreLocations,
+      manualRows: manualStoreLocations,
+      storeListFile,
+    });
   const codeGenOk =
     voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL ||
     (codeGenerationType || 'bxi') !== 'self' ||
     (hasMultipleVariants
       ? voucherVariants.every((variant) => !!variantCodeFiles[String(variant?._id || '')])
       : !!codeFile);
-  const canSubmit = hasRequiredText && onlineOk && hasOfflineOk && codeGenOk;
+  const canSubmit = hasRequiredText && onlineOk && hasOfflineOk && hasDigitalLocationOk && codeGenOk;
 
   // Fetch product data
   useEffect(() => {
@@ -342,20 +664,42 @@ export default function VoucherTechInfo({ category }) {
     setValue('onlineRedemptionUrl', link);
     setOnlineUrlLetters(countLetters(link));
     const addr = offlineAddressFromProduct(productData);
-    setOfflineAddress(addr);
+    setOfflineAddress({ ...EMPTY_STORE_ADDRESS(), ...addr, pincode: productData.Pincode ?? '' });
     setAddressLetters(countLetters(addr.address));
     setAreaLetters(countLetters(addr.area));
+
+    const inferredLocation = inferVoucherLocationModesFromProduct(productData);
+    setVoucherLocationAddressMode(inferredLocation.voucherLocationAddressMode);
+    setVoucherMultipleLocationInput(inferredLocation.voucherMultipleLocationInput);
+
+    let offlineList = [];
     if (Array.isArray(productData?.OfflineAddressList)) {
-      setParsedStoreLocations(productData.OfflineAddressList);
+      offlineList = productData.OfflineAddressList;
     } else if (typeof productData?.OfflineAddressList === 'string') {
       try {
         const parsed = JSON.parse(productData.OfflineAddressList);
-        setParsedStoreLocations(Array.isArray(parsed) ? parsed : []);
+        offlineList = Array.isArray(parsed) ? parsed : [];
       } catch {
+        offlineList = [];
+      }
+    }
+
+    if (inferredLocation.voucherLocationAddressMode === VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE) {
+      if (inferredLocation.voucherMultipleLocationInput === VOUCHER_MULTIPLE_LOCATION_INPUT.MANUAL) {
+        const manualRows = normalizeManualStoreLocations(offlineList);
+        setManualStoreLocations(
+          manualRows.length >= 2
+            ? manualRows
+            : [EMPTY_STORE_ADDRESS(), EMPTY_STORE_ADDRESS()]
+        );
         setParsedStoreLocations([]);
+      } else {
+        setParsedStoreLocations(offlineList);
+        setManualStoreLocations([EMPTY_STORE_ADDRESS(), EMPTY_STORE_ADDRESS()]);
       }
     } else {
       setParsedStoreLocations([]);
+      setManualStoreLocations([EMPTY_STORE_ADDRESS(), EMPTY_STORE_ADDRESS()]);
     }
 
     const cg = String(productData.CodeGenerationType ?? productData.codeGenerationType ?? 'bxi')
@@ -373,8 +717,23 @@ export default function VoucherTechInfo({ category }) {
     }
   }, [offlineAddress.state, offlineAddress.city]);
 
-  // Pincode auto-lookup handler
-  const handlePincodeLookup = useCallback(async (pincode) => {
+  // Pincode auto-lookup — same flow as AddProductSteps product pickup location
+  const applyResolvedPincode = useCallback((resolved, pincode, prev = {}) => {
+    if (resolved.unmatchedState) {
+      toast.warning(`State "${resolved.unmatchedState}" not found in list. Please select manually.`);
+      return { ...prev, pincode: String(pincode) };
+    }
+    return {
+      ...prev,
+      pincode: String(pincode),
+      state: resolved.state || prev.state,
+      city: resolved.city || prev.city,
+      landmark: resolved.landmark || '',
+      area: resolved.landmark || '',
+    };
+  }, []);
+
+  const handleOfflinePincodeLookup = useCallback(async (pincode) => {
     if (String(pincode).length !== 6) return;
     setPincodeLoading(true);
     try {
@@ -383,23 +742,36 @@ export default function VoucherTechInfo({ category }) {
         toast.error('Invalid pincode or no data found');
         return;
       }
-      if (resolved.unmatchedState) {
-        toast.warning(`State "${resolved.unmatchedState}" not found in list. Please select manually.`);
-        return;
-      }
-      setOfflineAddress((prev) => ({
-        ...prev,
-        pincode: String(pincode),
-        state: resolved.state,
-        city: resolved.city,
-      }));
+      setOfflineAddress((prev) => applyResolvedPincode(resolved, pincode, prev));
       toast.success('Location auto-filled from pincode!');
     } catch {
       toast.error('Failed to fetch pincode data');
     } finally {
       setPincodeLoading(false);
     }
-  }, []);
+  }, [applyResolvedPincode]);
+
+  const handleManualPincodeLookup = useCallback(async (index, pincode) => {
+    if (String(pincode).length !== 6) return;
+    setManualPincodeLoadingIdx(index);
+    try {
+      const resolved = await resolveLocationFromPincode(pincode, { StateData });
+      if (!resolved) {
+        toast.error('Invalid pincode or no data found');
+        return;
+      }
+      setManualStoreLocations((prev) =>
+        prev.map((row, i) =>
+          i === index ? applyResolvedPincode(resolved, pincode, row) : row
+        )
+      );
+      toast.success('Location auto-filled from pincode!');
+    } catch {
+      toast.error('Failed to fetch pincode data');
+    } finally {
+      setManualPincodeLoadingIdx(null);
+    }
+  }, [applyResolvedPincode]);
 
   useEffect(() => {
     if (voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL) {
@@ -541,6 +913,52 @@ export default function VoucherTechInfo({ category }) {
     toast.success('Sample file downloaded');
   };
 
+  const appendVoucherLocationFields = (formData, { mode, input }) => {
+    formData.append('voucherLocationAddressMode', mode);
+    formData.append(
+      'voucherMultipleLocationInput',
+      mode === VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE ? input : ''
+    );
+
+    if (mode === VOUCHER_LOCATION_ADDRESS_MODE.SINGLE) {
+      formData.append('OfflineAddressList', JSON.stringify([]));
+      formData.append('Address', offlineAddress.address || '');
+      formData.append('Area', offlineAddress.area || '');
+      formData.append('Landmark', offlineAddress.landmark || '');
+      formData.append('Pincode', offlineAddress.pincode || '');
+      formData.append('City', offlineAddress.city || '');
+      formData.append('State', offlineAddress.state || '');
+      return;
+    }
+
+    const list = buildOfflineAddressListForSubmit({
+      mode,
+      input,
+      parsedExcel: parsedStoreLocations,
+      manualRows: manualStoreLocations,
+    });
+    formData.append('OfflineAddressList', JSON.stringify(list));
+    if (input === VOUCHER_MULTIPLE_LOCATION_INPUT.EXCEL && storeListFile) {
+      formData.append('HotelLocations', storeListFile);
+    }
+  };
+
+  const updateManualStoreRow = (index, nextRow) => {
+    setManualStoreLocations((prev) =>
+      prev.map((row, i) => (i === index ? { ...row, ...nextRow } : row))
+    );
+  };
+
+  const addManualStoreRow = () => {
+    setManualStoreLocations((prev) => [...prev, EMPTY_STORE_ADDRESS()]);
+  };
+
+  const removeManualStoreRow = (index) => {
+    setManualStoreLocations((prev) =>
+      prev.length <= 2 ? prev : prev.filter((_, i) => i !== index)
+    );
+  };
+
   const onSubmit = async (data) => {
     if (!id) {
       toast.error('Product ID missing');
@@ -572,13 +990,42 @@ export default function VoucherTechInfo({ category }) {
 
     // bxi: physical delivery requires complete store address or store list
     if (redemptionTypeValue === 'offline') {
-      const hasAddress = offlineAddress.address?.trim() && offlineAddress.area?.trim() && offlineAddress.landmark?.trim() && offlineAddress.city?.trim() && offlineAddress.state?.trim();
-      if (!hasAddress && !storeListFile) {
-        toast.error('Complete store address or Store list is required.');
+      const hasAddress = isCompleteStoreAddressWithPincode(offlineAddress);
+      if (!hasAddress && !storeListFile && parsedStoreLocations.length === 0) {
+        toast.error('Complete store location with pincode or upload a store list.');
         return;
       }
-      if (offlineAddress.address?.trim() && (!offlineAddress.area?.trim() || !offlineAddress.landmark?.trim() || !offlineAddress.city?.trim() || !offlineAddress.state?.trim())) {
-        toast.error('Complete store address is required.');
+      const hasPartialSingle =
+        offlineAddress.pincode?.trim() ||
+        offlineAddress.area?.trim() ||
+        offlineAddress.landmark?.trim() ||
+        offlineAddress.city?.trim() ||
+        offlineAddress.state?.trim();
+      if (hasPartialSingle && !isCompleteStoreAddressWithPincode(offlineAddress)) {
+        toast.error('Complete store location with a valid 6-digit pincode.');
+        return;
+      }
+    }
+
+    // Ecodes delivery requires location (single or multiple)
+    if (redemptionTypeValue === 'online') {
+      if (
+        !hasValidDigitalLocation({
+          mode: voucherLocationAddressMode,
+          input: voucherMultipleLocationInput,
+          singleAddress: offlineAddress,
+          parsedExcel: parsedStoreLocations,
+          manualRows: manualStoreLocations,
+          storeListFile,
+        })
+      ) {
+        if (voucherLocationAddressMode === VOUCHER_LOCATION_ADDRESS_MODE.SINGLE) {
+          toast.error('Complete store address with a valid 6-digit pincode.');
+        } else if (voucherMultipleLocationInput === VOUCHER_MULTIPLE_LOCATION_INPUT.MANUAL) {
+          toast.error('Enter at least two complete store locations (pincode + address fields).');
+        } else {
+          toast.error('Upload a store list Excel file with at least one location.');
+        }
         return;
       }
     }
@@ -665,16 +1112,20 @@ export default function VoucherTechInfo({ category }) {
       if (url) formData.append('Link', url);
 
       if (redemptionTypeValue === 'offline') {
-        formData.append('Address', offlineAddress.address || '');
-        formData.append('Area', offlineAddress.area || '');
-        formData.append('Landmark', offlineAddress.landmark || '');
-        formData.append('Pincode', offlineAddress.pincode || '');
-        formData.append('City', offlineAddress.city || '');
-        formData.append('State', offlineAddress.state || '');
-        if (parsedStoreLocations.length > 0) {
-          formData.append('OfflineAddressList', JSON.stringify(parsedStoreLocations));
-        }
-        if (storeListFile) formData.append('HotelLocations', storeListFile);
+        const physicalMode =
+          storeListFile || parsedStoreLocations.length > 0
+            ? VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE
+            : VOUCHER_LOCATION_ADDRESS_MODE.SINGLE;
+        const physicalInput = VOUCHER_MULTIPLE_LOCATION_INPUT.EXCEL;
+        appendVoucherLocationFields(formData, {
+          mode: physicalMode,
+          input: physicalInput,
+        });
+      } else {
+        appendVoucherLocationFields(formData, {
+          mode: voucherLocationAddressMode,
+          input: voucherMultipleLocationInput,
+        });
       }
 
       if ((data.codeGenerationType || codeGenerationType) === 'self') {
@@ -759,130 +1210,29 @@ export default function VoucherTechInfo({ category }) {
                     <RadioGroup
                       value={voucherDeliveryType || VOUCHER_DELIVERY_TYPE.DIGITAL}
                       onValueChange={(value) => setValue('voucherDeliveryType', value)}
+                      className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-8"
                     >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-6">
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.DIGITAL} id="delivery-digital" className="mt-1" />
-                          <div>
-                            <Label htmlFor="delivery-digital" className="cursor-pointer font-medium">
-                              Ecodes Delivery
-                            </Label>
-                            <p className="text-xs text-[#6B7A99] font-normal">Online voucher — buyer gets digital fulfilment (URL after payment).</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value={VOUCHER_DELIVERY_TYPE.PHYSICAL} id="delivery-physical" className="mt-1" />
-                          <div>
-                            <Label htmlFor="delivery-physical" className="cursor-pointer font-medium">
-                              Physical delivery
-                            </Label>
-                            <p className="text-xs text-[#6B7A99] font-normal">Physical voucher — store list or address; PI / logistics may apply.</p>
-                          </div>
-                        </div>
-                      </div>
+                      <StackedRadioOption
+                        id="delivery-digital"
+                        value={VOUCHER_DELIVERY_TYPE.DIGITAL}
+                        label="Ecodes Delivery"
+                        description="Online voucher — buyer gets digital fulfilment (URL after payment)."
+                      />
+                      <StackedRadioOption
+                        id="delivery-physical"
+                        value={VOUCHER_DELIVERY_TYPE.PHYSICAL}
+                        label="Physical delivery"
+                        description="Physical voucher — store list or address; PI / logistics may apply."
+                      />
                     </RadioGroup>
                   </div>
 
                   {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.DIGITAL && (
-                    <div className="space-y-2">
-                      <Label htmlFor="redemptionSteps">
-                        Add URL <span className="text-red-500">*</span>
-                      </Label>
-                      <Input
-                        id="onlineRedemptionUrl"
-                        type="text"
-                        placeholder="https://..."
-                        {...register('onlineRedemptionUrl')}
-                        maxLength={500}
-                        onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
-                        className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
-                      />
-                      <div className="flex items-center justify-between mt-1">
-                        {errors.onlineRedemptionUrl && (
-                          <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
-                        )}
-                        <p className="text-xs text-gray-500 ml-auto">{onlineUrlLetters} / 500</p>
-                      </div>
-                    </div>
-                  )}
-                  {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Address ( If Single ) Type Below <span className="text-red-500">*</span></Label>
-                          <Input
-                            placeholder="Address ( If Single ) Type Below"
-                            value={offlineAddress.address}
-                            maxLength={500}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setOfflineAddress({ ...offlineAddress, address: val });
-                              setAddressLetters(countLetters(val));
-                            }}
-                          />
-                          <p className="text-xs text-gray-500 text-right mt-1">{addressLetters} / 500</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Area <span className="text-red-500">*</span></Label>
-                          <Input
-                            placeholder="Area"
-                            value={offlineAddress.area}
-                            maxLength={500}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setOfflineAddress({ ...offlineAddress, area: val });
-                              setAreaLetters(countLetters(val));
-                            }}
-                          />
-                          <p className="text-xs text-gray-500 text-right mt-1">{areaLetters} / 500</p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Landmark <span className="text-red-500">*</span></Label>
-                          <Input
-                            placeholder="Eg. Juhu"
-                            value={offlineAddress.landmark}
-                            maxLength={500}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setOfflineAddress({ ...offlineAddress, landmark: val });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>State <span className="text-red-500">*</span></Label>
-                          <Select
-                            value={offlineAddress.state}
-                            onValueChange={(v) => {
-                              setOfflineAddress({ ...offlineAddress, state: v, city: '' });
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select state" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {StateData.map((s) => (
-                                <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>City <span className="text-red-500">*</span></Label>
-                          <Select
-                            value={offlineAddress.city}
-                            onValueChange={(v) => setOfflineAddress({ ...offlineAddress, city: v })}
-                            disabled={!offlineAddress.state}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select city" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {cities.map((c) => (
-                                <SelectItem key={c} value={c}>{c}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      <AddressSectionCard
+                        title="Redemption URL"
+                        description="Link where buyers redeem or access the Ecodes voucher after purchase."
+                      >
                         <div className="space-y-2">
                           <Label htmlFor="onlineRedemptionUrl">
                             Add URL <span className="text-red-500">*</span>
@@ -890,7 +1240,7 @@ export default function VoucherTechInfo({ category }) {
                           <Input
                             id="onlineRedemptionUrl"
                             type="text"
-                            placeholder="Add URL"
+                            placeholder="https://..."
                             {...register('onlineRedemptionUrl')}
                             maxLength={500}
                             onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
@@ -903,64 +1253,170 @@ export default function VoucherTechInfo({ category }) {
                             <p className="text-xs text-gray-500 ml-auto">{onlineUrlLetters} / 500</p>
                           </div>
                         </div>
-                      </div>
+                      </AddressSectionCard>
+
+                      <AddressSectionCard
+                        title="Location coverage"
+                        description="Where can this Ecodes voucher be redeemed? Required for marketplace location filters."
+                      >
+                        <RadioGroup
+                          value={voucherLocationAddressMode}
+                          onValueChange={setVoucherLocationAddressMode}
+                          className="flex flex-wrap gap-6"
+                        >
+                          <CompactRadioOption
+                            id="ecodes-loc-single"
+                            value={VOUCHER_LOCATION_ADDRESS_MODE.SINGLE}
+                            label="Single address"
+                          />
+                          <CompactRadioOption
+                            id="ecodes-loc-multiple"
+                            value={VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE}
+                            label="Multiple address"
+                          />
+                        </RadioGroup>
+
+                        {voucherLocationAddressMode === VOUCHER_LOCATION_ADDRESS_MODE.SINGLE && (
+                          <div className="pt-2">
+                            <StoreAddressFields
+                              address={offlineAddress}
+                              onChange={setOfflineAddress}
+                              cities={cities}
+                              StateData={StateData}
+                              addressLetters={addressLetters}
+                              areaLetters={areaLetters}
+                              onAddressLetters={setAddressLetters}
+                              onAreaLetters={setAreaLetters}
+                              idPrefix="ecodes-single"
+                              onPincodeLookup={handleOfflinePincodeLookup}
+                              pincodeLoading={pincodeLoading}
+                            />
+                          </div>
+                        )}
+
+                        {voucherLocationAddressMode === VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE && (
+                          <div className="space-y-4 pt-2">
+                            <div className="space-y-2">
+                              <Label>How do you want to add locations? <span className="text-red-500">*</span></Label>
+                              <RadioGroup
+                                value={voucherMultipleLocationInput}
+                                onValueChange={setVoucherMultipleLocationInput}
+                                className="flex flex-wrap gap-6"
+                              >
+                                <CompactRadioOption
+                                  id="ecodes-multi-excel"
+                                  value={VOUCHER_MULTIPLE_LOCATION_INPUT.EXCEL}
+                                  label="Excel upload"
+                                />
+                                <CompactRadioOption
+                                  id="ecodes-multi-manual"
+                                  value={VOUCHER_MULTIPLE_LOCATION_INPUT.MANUAL}
+                                  label="Enter multiple addresses"
+                                />
+                              </RadioGroup>
+                            </div>
+
+                            {voucherMultipleLocationInput === VOUCHER_MULTIPLE_LOCATION_INPUT.EXCEL && (
+                              <StoreListUploadSection
+                                storeListFile={storeListFile}
+                                parsedStoreLocations={parsedStoreLocations}
+                                storeFileRef={storeFileRef}
+                                onPickFile={() => {
+                                  if (storeFileRef.current) {
+                                    storeFileRef.current.value = '';
+                                    storeFileRef.current.click();
+                                  }
+                                }}
+                                onClearFile={() => {
+                                  setStoreListFile(null);
+                                  setParsedStoreLocations([]);
+                                }}
+                                onFileChange={handleStoreListChange}
+                                onDownloadSample={downloadSampleStoreLocations}
+                              />
+                            )}
+
+                            {voucherMultipleLocationInput === VOUCHER_MULTIPLE_LOCATION_INPUT.MANUAL && (
+                              <ManualStoreLocationsEditor
+                                rows={manualStoreLocations}
+                                onChangeRow={updateManualStoreRow}
+                                onAddRow={addManualStoreRow}
+                                onRemoveRow={removeManualStoreRow}
+                                StateData={StateData}
+                                onPincodeLookup={handleManualPincodeLookup}
+                                pincodeLoadingIndex={manualPincodeLoadingIdx}
+                              />
+                            )}
+                          </div>
+                        )}
+                      </AddressSectionCard>
                     </div>
                   )}
-
-                  <div className="space-y-2">
-                    <Label>Upload Store List ( If Multiple Locations) </Label>
-                    <p className="text-xs text-[#6B7A99]">Upload Excel with store locations when you have multiple outlets.</p>
-                    <div className="flex gap-4 items-center">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          if (storeFileRef.current) {
-                            storeFileRef.current.value = '';
-                            storeFileRef.current.click();
-                          }
-                        }}
-                        className="border-[#C64091] text-[#C64091]"
+                  {voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL && (
+                    <div className="space-y-4">
+                      <AddressSectionCard
+                        title="Store address"
                       >
-                        <Upload className="w-4 h-4 mr-2" />
-                        {storeListFile ? 'Change File' : 'Upload Store List'}
-                      </Button>
-                      {storeListFile && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <FileText className="w-4 h-4 text-[#C64091]" />
-                          <span>{storeListFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setStoreListFile(null)}
-                            className="text-[#6B7A99] hover:text-[#C64091]"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                        <StoreAddressFields
+                          address={offlineAddress}
+                          onChange={setOfflineAddress}
+                          cities={cities}
+                          StateData={StateData}
+                          addressLetters={addressLetters}
+                          areaLetters={areaLetters}
+                          onAddressLetters={setAddressLetters}
+                          onAreaLetters={setAreaLetters}
+                          idPrefix="physical-single"
+                          onPincodeLookup={handleOfflinePincodeLookup}
+                          pincodeLoading={pincodeLoading}
+                        />
+                      </AddressSectionCard>
+                      <AddressSectionCard title="Redemption URL">
+                        <div className="space-y-2">
+                          <Label htmlFor="physical-onlineRedemptionUrl">
+                            Add URL <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="physical-onlineRedemptionUrl"
+                            type="text"
+                            placeholder="https://..."
+                            {...register('onlineRedemptionUrl')}
+                            maxLength={500}
+                            onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
+                            className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
+                          />
+                          <div className="flex items-center justify-between mt-1">
+                            {errors.onlineRedemptionUrl && (
+                              <p className="text-sm text-red-500">{errors.onlineRedemptionUrl.message}</p>
+                            )}
+                            <p className="text-xs text-gray-500 ml-auto">{onlineUrlLetters} / 500</p>
+                          </div>
                         </div>
-                      )}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={downloadSampleStoreLocations}
-                        className="border-[#C64091] text-[#C64091]"
+                      </AddressSectionCard>
+                      <AddressSectionCard
+                        title="Multiple store locations (optional)"
+                        description="Upload an Excel file if the voucher is valid at more than one outlet."
                       >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Store List Sample
-                      </Button>
+                        <StoreListUploadSection
+                          storeListFile={storeListFile}
+                          parsedStoreLocations={parsedStoreLocations}
+                          storeFileRef={storeFileRef}
+                          onPickFile={() => {
+                            if (storeFileRef.current) {
+                              storeFileRef.current.value = '';
+                              storeFileRef.current.click();
+                            }
+                          }}
+                          onClearFile={() => {
+                            setStoreListFile(null);
+                            setParsedStoreLocations([]);
+                          }}
+                          onFileChange={handleStoreListChange}
+                          onDownloadSample={downloadSampleStoreLocations}
+                        />
+                      </AddressSectionCard>
                     </div>
-                    {parsedStoreLocations.length > 0 && (
-                      <p className="text-xs text-[#6B7A99]">
-                        Parsed {parsedStoreLocations.length} location{parsedStoreLocations.length > 1 ? 's' : ''} from uploaded file.
-                      </p>
-                    )}
-                    <input
-                      ref={storeFileRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleStoreListChange}
-                      className="hidden"
-                    />
-                  </div>
+                  )}
                 </div>
                 {/* 
                 <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
@@ -1093,21 +1549,10 @@ export default function VoucherTechInfo({ category }) {
                     <RadioGroup
                       value={codeGenerationType || 'bxi'}
                       onValueChange={(value) => setValue('codeGenerationType', value)}
+                      className="flex flex-wrap gap-6"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="bxi" id="codegen-bxi" />
-                          <Label htmlFor="codegen-bxi" className="cursor-pointer font-normal">
-                            BXI
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="self" id="codegen-self" />
-                          <Label htmlFor="codegen-self" className="cursor-pointer font-normal">
-                            Upload Now
-                          </Label>
-                        </div>
-                      </div>
+                      <CompactRadioOption id="codegen-bxi" value="bxi" label="BXI" />
+                      <CompactRadioOption id="codegen-self" value="self" label="Upload Now" />
                     </RadioGroup>
                   </div>
                 )}
