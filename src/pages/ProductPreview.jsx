@@ -1318,11 +1318,11 @@ export default function ProductPreview() {
                       String(offlineAddress.city || '').trim() ||
                       String(offlineAddress.state || '').trim()
                     );
-                  const showOfflineAddress =
-                    (normalizedRedemptionType === 'offline' ||
-                      normalizedRedemptionType === 'both') &&
-                    hasOfflineAddress;
+                  const showOfflineAddress = hasOfflineAddress;
                   const hasMultipleStoreLocations = multipleStoreLocations.length > 0;
+                  const showMultipleStoreLocations =
+                    hasMultipleStoreLocations ||
+                    Boolean(storeListUrl);
                   const voucherTagsRaw = product?.ProductTags ?? product?.Tags;
                   const voucherValidity = product?.ListThisProductForAmount;
                   const voucherValidityUnit = product?.ListThisProductForUnitOfTime;
@@ -1341,6 +1341,7 @@ export default function ProductPreview() {
                     redemptionType ||
                     redemptionUrl ||
                     showOfflineAddress ||
+                    showMultipleStoreLocations ||
                     voucherTags.length > 0;
 
                   if (!hasVoucherTechInfo) {
@@ -1430,7 +1431,7 @@ export default function ProductPreview() {
                             {showOfflineAddress && (
                               <Box>
                                 <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                                  Offline Address
+                                  Store address
                                 </Typography>
                                 <Stack spacing={0.5}>
                                   {String(offlineAddress.address || '').trim() && (
@@ -1459,8 +1460,7 @@ export default function ProductPreview() {
                                 </Stack>
                               </Box>
                             )}
-                            {(normalizedRedemptionType === 'offline' ||
-                              normalizedRedemptionType === 'both') && (
+                            {showMultipleStoreLocations && (
                                 <Box>
                                   <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
                                     Multiple Locations
