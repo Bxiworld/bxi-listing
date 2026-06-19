@@ -25,12 +25,16 @@ import {
   TooltipTrigger,
 } from '../../components/ui/tooltip';
 
+import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+  isAllowedListingGstRate,
+} from '../../utils/gstOptions';
+
 const VALIDITY_OPTIONS = Array.from({ length: 18 }, (_, i) => {
   const n = i + 1;
   return { value: `${n}`, label: `${n} Month${n > 1 ? 's' : ''}` };
 });
-
-const GST_OPTIONS = [3, 5, 12, 18, 28];
 
 const FEATURE_MIN = 5;
 const FEATURE_MAX = 20;
@@ -66,9 +70,10 @@ const validateVariant = (v, isOffer) => {
   else if (!HSN_VALID.test(hsnStr) || /^0+$/.test(hsnStr)) err.HSN = 'HSN must be 4, 6, or 8 digits (not all zeros)';
 
   const gstVal = v.GST === '' || v.GST == null ? null : Number(v.GST);
-  const allowedGST = [0, 3, 5, 12, 18, 28];
   if (gstVal === null || gstVal === undefined) err.GST = 'GST is required';
-  else if (!allowedGST.includes(gstVal)) err.GST = 'GST must be 0, 3, 5, 12, 18, or 28';
+  else if (!isAllowedListingGstRate(gstVal)) {
+    err.GST = 'GST must be 0%, 0.25%, 3%, 5%, 18%, or 40%';
+  }
 
   const minQty = parseFloat(String(v.MinOrderQuantity || '1').replace(/,/g, ''));
   if (isNaN(minQty) || minQty <= 0) err.MinOrderQuantity = 'Minimum Quantity must be greater than 0';
@@ -99,7 +104,9 @@ const validateOtherCost = (o) => {
   if (!hsnStr) err.AdCostHSN = 'HSN is required';
   else if (!HSN_VALID.test(hsnStr) || /^0+$/.test(hsnStr)) err.AdCostHSN = 'HSN must be 4, 6, or 8 digits (not all zeros)';
   const gst = Number(o.AdCostGST);
-  if (![3, 5, 12, 18, 28].includes(gst)) err.AdCostGST = 'Please enter GST value (3, 5, 12, 18, or 28)';
+  if (!isAllowedListingGstRate(gst)) {
+    err.AdCostGST = 'Please select a valid GST rate (0%, 0.25%, 3%, 5%, 18%, or 40%)';
+  }
   const reason = String(o.ReasonOfCost || '').trim();
   if (!reason) err.ReasonOfCost = 'Reason of cost is required';
   else if (reason.length > 75) err.ReasonOfCost = 'Reason must be at most 75 characters';
@@ -591,8 +598,8 @@ export default function HotelsProductInfo({ category }) {
                 >
                   <SelectTrigger className={variantErrors.GST ? 'border-red-500' : ''}><SelectValue placeholder="GST" /></SelectTrigger>
                   <SelectContent>
-                    {GST_OPTIONS.map((g) => (
-                      <SelectItem key={g} value={String(g)}>{g}%</SelectItem>
+                    {LISTING_GST_RATE_OPTIONS.map((g) => (
+                      <SelectItem key={g} value={g}>{formatListingGstPercentLabel(g)}</SelectItem>
                     ))}
                     <SelectItem value="0">P.I.</SelectItem>
                   </SelectContent>
@@ -827,8 +834,8 @@ export default function HotelsProductInfo({ category }) {
                   >
                     <SelectTrigger className={otherCostErrors.AdCostGST ? 'border-red-500' : ''}><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {GST_OPTIONS.map((g) => (
-                        <SelectItem key={g} value={String(g)}>{g}%</SelectItem>
+                      {LISTING_GST_RATE_OPTIONS.map((g) => (
+                        <SelectItem key={g} value={g}>{formatListingGstPercentLabel(g)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

@@ -49,6 +49,11 @@ import {
   isTirupatiAirportSubcategory,
   AIRPORT_TIMELINE_OPTIONS,
 } from '../../config/mediaListingProfiles';
+import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+  listingGstCoerceNumberZodSchema,
+} from '../../utils/gstOptions';
 
 const AIRPORT_TIMELINE_VALUES = AIRPORT_TIMELINE_OPTIONS.map((o) => o.value);
 
@@ -147,20 +152,9 @@ const MediaProductInfo = () => {
   const [CityArray, setCityArray] = useState();
   const [stateArray, setStateArray] = useState();
   const [state, setState] = useState('');
-  const [GSTData, setGSTData] = useState();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('Update_TDS_GST/get_all_gst');
-        const resData = response?.data ?? response;
-        setGSTData(resData?.data ?? resData);
-      } catch (error) {
-        toast.error('Error fetching data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+  const [GSTData] = useState(
+    LISTING_GST_RATE_OPTIONS.map((rate) => ({ GST: rate }))
+  );
 
   useEffect(() => {
     if (stateArray) {
@@ -304,7 +298,7 @@ const MediaProductInfo = () => {
             .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
               message: 'Discounted price cannot be zero',
             }),
-          GST: z.coerce.number().gte(5).lte(28),
+          GST: listingGstCoerceNumberZodSchema(),
           HSN: z
             .string()
             .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
@@ -2289,7 +2283,7 @@ const MediaProductInfo = () => {
                                   {GSTData?.map((gst, idx) => {
                                     return (
                                       <MenuItem sx={MenuItems} value={gst?.GST}>
-                                        {gst?.GST}
+                                        {formatListingGstPercentLabel(gst?.GST)}
                                       </MenuItem>
                                     );
                                   })}
@@ -3098,7 +3092,7 @@ const MediaProductInfo = () => {
                                   {GSTData?.map((gst, idx) => {
                                     return (
                                       <MenuItem sx={MenuItems} value={gst?.GST}>
-                                        {gst?.GST}
+                                        {formatListingGstPercentLabel(gst?.GST)}
                                       </MenuItem>
                                     );
                                   })}

@@ -15,12 +15,13 @@ import ToolTip from '../../components/ToolTip';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { useLocation } from 'react-router-dom';
 import api from '../../utils/api';
+import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+  listingGstCoerceNumberZodSchema,
+} from '../../utils/gstOptions';
 
-const formatGstPercentLabel = (raw) => {
-  if (raw === null || raw === undefined || raw === '') return '';
-  const s = String(raw).trim().replace(/%+\s*$/g, '').trim();
-  return s === '' ? '' : `${s}%`;
-};
+const formatGstPercentLabel = formatListingGstPercentLabel;
 
 export default function TextileProductInform(props) {
   const location = useLocation();
@@ -41,7 +42,7 @@ export default function TextileProductInform(props) {
         .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
           message: 'Cost price cannot be zero',
         }),
-        AdCostGST: z.coerce.number().gte(5).lte(28),
+        AdCostGST: listingGstCoerceNumberZodSchema(),
         AdCostHSN: z
           .string() 
           .regex(/^\d{4}$|^\d{6}$|^\d{8}$/, {
@@ -67,19 +68,7 @@ export default function TextileProductInform(props) {
     }
   }, [props.defaultValue]);
 
-  const [GSTData, setGSTData] = useState();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('/Update_TDS_GST/get_all_gst');
-        setGSTData(response?.data?.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-    fetchData();
-  }, []);
+  const [GSTData] = useState(LISTING_GST_RATE_OPTIONS.map((rate) => ({ GST: rate })));
 
   return (
     <Box

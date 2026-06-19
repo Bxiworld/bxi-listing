@@ -51,16 +51,17 @@ import {
   filterOfflineFeatureOptions,
   resolveOfflineBtlProfile,
 } from '../../config/mediaListingProfiles';
+import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+  listingGstCoerceNumberZodSchema,
+} from '../../utils/gstOptions';
 
 const NEWSPAPER_SUBCATEGORY_ID = '647713dcb530d22fce1f6c36';
 const PRINT_SUBCATEGORY_NAMES = ['Newspaper', 'Magazines', 'Flyers', 'Electricity bills', 'Boarding Pass'];
 
 /** Single “%” in UI — API/menu values may already include % */
-const formatGstPercentLabel = (raw) => {
-  if (raw === null || raw === undefined || raw === '') return '';
-  const s = String(raw).trim().replace(/%+\s*$/g, '').trim();
-  return s === '' ? '' : `${s}%`;
-};
+const formatGstPercentLabel = formatListingGstPercentLabel;
 
 const newspaperPricingGridSx = {
   display: 'grid',
@@ -198,7 +199,9 @@ const MediaProductInfo = () => {
   const [IsDisabled, setIsDisabled] = useState();
   const [storeDataOfLocation, setStoreDataOfLocation] = useState({});
   const [OthercostEditId, SetOthercostEditId] = useState(null);
-  const [GSTData, setGSTData] = useState();
+  const [GSTData] = useState(
+    LISTING_GST_RATE_OPTIONS.map((rate) => ({ GST: rate }))
+  );
 
   const isNewspaperJourney =
     isNewspaperFromStorage ||
@@ -267,11 +270,7 @@ const MediaProductInfo = () => {
               })
               .gt(0, 'Discounted price must be greater than 0'),
           ),
-          GST: z
-            .coerce
-            .number()
-            .gte(5, 'GST must be between 5% and 28%')
-            .lte(28, 'GST must be between 5% and 28%'),
+          GST: listingGstCoerceNumberZodSchema(),
           HSN: z.preprocess(
             (value) => String(value ?? '').trim(),
             z
@@ -341,18 +340,6 @@ const MediaProductInfo = () => {
       }),
     [isNewspaperJourney, isOfflineBtlJourney, OneUnitProduct, IsDisabled, offlineBtlProfile],
   );
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('/Update_TDS_GST/get_all_gst');
-        setGSTData(response?.data?.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-    fetchData();
-  }, []);
 
   const {
     register,

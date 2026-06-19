@@ -36,6 +36,10 @@ import RemoveIcon from '../../assets/Images/CommonImages/RemoveIcon.svg';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { Stepper } from '../AddProduct/AddProductSteps';
 import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+} from '../../utils/gstOptions';
+import {
   DOOH_AD_TYPE_OPTIONS_FILTERED,
   DOOH_SUPPORTING_DOC_KEYS,
   FEATURE_ALLOWLIST_BY_KEY,
@@ -54,7 +58,6 @@ function normalizeDoohDays(value) {
   return '10';
 }
 
-const GST_OPTIONS = ['5', '10', '12', '18', '28'];
 const LOOPTIME_SECOND_OPTIONS = Array.from({ length: 18 }, (_, idx) =>
   String((idx + 1) * 10),
 );
@@ -697,9 +700,9 @@ export default function DigitalScreensTechInfo() {
                           setStoreMediaAllData((p) => ({ ...p, GST: e.target.value }))
                         }
                       >
-                        {GST_OPTIONS.map((g) => (
+                        {LISTING_GST_RATE_OPTIONS.map((g) => (
                           <option key={g} value={g}>
-                            {g}%
+                            {formatListingGstPercentLabel(g)}
                           </option>
                         ))}
                       </select>

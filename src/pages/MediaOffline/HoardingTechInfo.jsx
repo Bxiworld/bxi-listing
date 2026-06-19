@@ -44,6 +44,10 @@ import {
 } from '../../config/mediaListingProfiles';
 import bxitoken from '../../assets/Images/CommonImages/BXIToken.png';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
+import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+} from '../../utils/gstOptions';
 
 
 // Constants
@@ -643,8 +647,10 @@ export default function HoardingTechInfo() {
                                                 }}
                                             >
                                                 <option value="">Select GST</option>
-                                                {['5', '10', '12', '18', '28'].map((val) => (
-                                                    <option key={val} value={val}>{val}%</option>
+                                                {LISTING_GST_RATE_OPTIONS.map((val) => (
+                                                    <option key={val} value={val}>
+                                                        {formatListingGstPercentLabel(val)}
+                                                    </option>
                                                 ))}
                                             </select>
                                             {FetchedproductData?.mediaVariation?.GST && (
