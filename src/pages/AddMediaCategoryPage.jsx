@@ -4,16 +4,6 @@ import useListingEntryContext from "../hooks/useListingEntryContext";
 import api from "../utils/api";
 import { normalizeLabel, normalizeListingPayload } from "../utils/mediaSubcategoryListing";
 
-import Cinema from "../assets/AddMediaCategoryPageIcons/Cinema.svg";
-import Airport from "../assets/AddMediaCategoryPageIcons/Airport.svg";
-import DOOH from "../assets/AddMediaCategoryPageIcons/Dooh.svg";
-import Outdoor from "../assets/AddMediaCategoryPageIcons/Outdoor.svg";
-import OfflineBTL from "../assets/AddMediaCategoryPageIcons/Offline-BTL.svg";
-import Print from "../assets/AddMediaCategoryPageIcons/Print.svg";
-import Radio from "../assets/AddMediaCategoryPageIcons/Radio.svg";
-import Television from "../assets/AddMediaCategoryPageIcons/Television.svg";
-import Other from "../assets/AddMediaCategoryPageIcons/Other.svg";
-
 /**
  * Offline listing flows use /mediaoffline/general-info; online use /mediaonline/general-info.
  * After general info, MediaGeneralInfo / GeneralInformation route by `journey`:
@@ -34,7 +24,7 @@ const MEDIA_CATEGORIES = [
     id: 1,
     key: "television",
     label: "Television",
-    icon: Television,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Television.webp",
     subcategoryHint: "Digital ADs",
     journey: "television-ads",
   },
@@ -42,7 +32,7 @@ const MEDIA_CATEGORIES = [
     id: 2,
     key: "print",
     label: "Print Media",
-    icon: Print,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Print%20Media.webp",
     subcategoryHint: "News Papers / Magazines",
     journey: "newspaper",
   },
@@ -50,7 +40,7 @@ const MEDIA_CATEGORIES = [
     id: 3,
     key: "radio",
     label: "Radio",
-    icon: Radio,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Radio.webp",
     subcategoryHint: "Display Video",
     journey: "display-video",
   },
@@ -58,7 +48,7 @@ const MEDIA_CATEGORIES = [
     id: 4,
     key: "hoarding",
     label: "Hoarding",
-    icon: Outdoor,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Hoardings.webp",
     subcategoryHint: "Hoardings",
     journey: "hoarding",
   },
@@ -66,7 +56,7 @@ const MEDIA_CATEGORIES = [
     id: 5,
     key: "multiplex",
     label: "Multiplex",
-    icon: Cinema,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Multiplex.webp",
     subcategoryHint: "Multiplex ADs",
     journey: "multiplex",
   },
@@ -74,7 +64,7 @@ const MEDIA_CATEGORIES = [
     id: 6,
     key: "dooh",
     label: "DOOH",
-    icon: DOOH,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/DOOH.webp",
     subcategoryHint: "Digital ADs",
     journey: "digital-ads",
   },
@@ -82,7 +72,7 @@ const MEDIA_CATEGORIES = [
     id: 7,
     key: "airport",
     label: "Airport",
-    icon: Airport,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Airport.webp",
     subcategoryHint: "Airport",
     journey: "airport",
   },
@@ -90,7 +80,7 @@ const MEDIA_CATEGORIES = [
     id: 8,
     key: "offlinebtl",
     label: "Offline BTL",
-    icon: OfflineBTL,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Offline%20BTL.webp",
     subcategoryHint: "Car Wrap",
     journey: "btl",
   },
@@ -98,7 +88,7 @@ const MEDIA_CATEGORIES = [
     id: 9,
     key: "other",
     label: "Other",
-    icon: Other,
+    icon: "https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/Others.webp",
     subcategoryHint: "Display Video",
     journey: "display-video",
   },
@@ -256,7 +246,7 @@ export default function AllMediaCategories() {
               {!fetchState.loading &&
                 !fetchState.error &&
                 tiles.map(({ meta, apiRow }) => {
-                  const Icon = apiRow?.iconUrl || meta.icon;
+                  const iconSrc = meta.icon || apiRow?.iconUrl;
                   return (
                     <button
                       key={meta.key}
@@ -265,11 +255,14 @@ export default function AllMediaCategories() {
                       onClick={() => handleCategoryClick(apiRow, meta)}
                       data-testid={`admin-category-${meta.key}`}
                     >
-                      <img
-                        src={Icon}
-                        alt=""
-                        className="media-category-icon"
-                      />
+                      <div className="media-category-icon-wrap">
+                        <img
+                          src={iconSrc}
+                          alt=""
+                          className="media-category-icon"
+                          loading="lazy"
+                        />
+                      </div>
                       <span className="media-category-label">
                         {meta.label}
                       </span>
