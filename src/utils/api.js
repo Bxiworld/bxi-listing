@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY || 'Bearer K8sY2jF4pL3rQ1hA9gZ6bX7wC5vU0t';
+// SECURITY: no hardcoded fallback — a committed value would silently become the
+// live gateway key whenever the env var is unset. Fail closed instead.
+const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY;
+if (!BXI_API_KEY) {
+  throw new Error('REACT_APP_BXI_API_KEY is not set (no hardcoded fallback).');
+}
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://apiv1production.bxiworld.com').replace(/\/+$/, '');
 
 // Seller auth token handed off from the dashboard (app.bxiworld.com) via URL,
