@@ -56,6 +56,12 @@ import {
 } from '../../utils/voucherType';
 import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
 import CommaSeparator from '../../components/CommaSeprator';
+import {
+  LISTING_GST_RATE_OPTIONS,
+  LISTING_NON_ZERO_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+  isAllowedListingGstRate,
+} from '../../utils/gstOptions';
 
 /** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
 function formatSizeOptionButtonLabel(opt) {
@@ -1042,10 +1048,6 @@ const isOtherFeatureOption = (value) => {
   return normalized === 'other' || normalized === 'others';
 };
 
-/** All variant GST% options; for chained variants, first row rules restrict choices */
-const ALL_GST_RATE_OPTIONS = ['0', '3', '5', '12', '18', '28'];
-const NON_ZERO_GST_RATE_OPTIONS = ['3', '5', '12', '18', '28'];
-
 export const ProductInfo = ({ category }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
@@ -1372,8 +1374,12 @@ export const ProductInfo = ({ category }) => {
       toast.error('HSN cannot be all zeros');
       return;
     }
-    const firstGst = String(productsVariations[0]?.GST ?? '');
     const chosenGst = String(d.gst ?? '18');
+    if (!isAllowedListingGstRate(chosenGst)) {
+      toast.error('Please select a valid GST rate');
+      return;
+    }
+    const firstGst = String(productsVariations[0]?.GST ?? '');
     if (productsVariations.length >= 1) {
       if (editVariationIndex === null || editVariationIndex > 0) {
         if (firstGst === '0' && chosenGst !== '0') {
@@ -1833,8 +1839,8 @@ export const ProductInfo = ({ category }) => {
   );
 
   const gstFormOptions = useMemo(() => {
-    if (!isGstChained) return ALL_GST_RATE_OPTIONS;
-    return firstVariantGst === '0' ? ['0'] : NON_ZERO_GST_RATE_OPTIONS;
+    if (!isGstChained) return LISTING_GST_RATE_OPTIONS;
+    return firstVariantGst === '0' ? ['0'] : LISTING_NON_ZERO_GST_RATE_OPTIONS;
   }, [isGstChained, firstVariantGst]);
 
   useEffect(() => {
@@ -2388,7 +2394,7 @@ export const ProductInfo = ({ category }) => {
                   <SelectContent>
                     {gstFormOptions.map((rate) => (
                       <SelectItem key={rate} value={rate}>
-                        {rate}%
+                        {formatListingGstPercentLabel(rate)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -3103,8 +3109,8 @@ export const ProductInfo = ({ category }) => {
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {[5, 12, 18, 28].map((n) => (
-                          <SelectItem key={n} value={String(n)}>{n}%</SelectItem>
+                        {LISTING_GST_RATE_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={n}>{formatListingGstPercentLabel(n)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

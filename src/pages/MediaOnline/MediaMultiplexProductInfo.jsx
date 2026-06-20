@@ -20,6 +20,10 @@ import { toast } from 'sonner';
 import api, { mediaApi } from '../../utils/api';
 import StateData from '../../utils/StateCityArray.json';
 import { Stepper } from '../AddProduct/AddProductSteps';
+import {
+  LISTING_GST_RATE_OPTIONS,
+  formatListingGstPercentLabel,
+} from '../../utils/gstOptions';
 
 /** Radix Select forbids SelectItem value=""; use sentinel for “show all states”. */
 const ALL_STATES_VALUE = '__all_states__';
@@ -507,8 +511,10 @@ export default function MediaMultiplexProductInfo() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[0, 5, 12, 18, 28].map((rate) => (
-                    <SelectItem key={rate} value={String(rate)}>{rate}%</SelectItem>
+                  {LISTING_GST_RATE_OPTIONS.map((rate) => (
+                    <SelectItem key={rate} value={rate}>
+                      {formatListingGstPercentLabel(rate)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
