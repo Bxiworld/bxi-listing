@@ -6,7 +6,7 @@ const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY;
 if (!BXI_API_KEY) {
   throw new Error('REACT_APP_BXI_API_KEY is not set (no hardcoded fallback).');
 }
-const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://apiv1production.bxiworld.com').replace(/\/+$/, '');
+const API_BASE_URL = 'https://bxi-api-development.bxiworld.in';
 
 // Seller auth token handed off from the dashboard (app.bxiworld.com) via URL,
 // because sessionStorage is per-origin and the cross-site (.com <-> .in) cookie

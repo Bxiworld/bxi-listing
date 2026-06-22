@@ -80,9 +80,9 @@
     "start": "serve -s build -l ${PORT:-3000}",
     "start:dev": "env-cmd -f .env.development craco start",
     "start:prod": "serve -s build -l ${PORT:-3000}",
-    "build": "env-cmd -f .env.production cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
-    "build:prod": "env-cmd -f .env.production cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
-    "serve:prod": "serve -s build -l ${PORT:-3000}",
+    "build": "env-cmd -f .env.development cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
+    "build:dev": "env-cmd -f .env.development cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
+    "serve:dev": "serve -s build -l ${PORT:-3000}",
     "test": "craco test"
   },
   "engines": {
