@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, Navigate } from 'react-router-dom';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -164,10 +164,13 @@ function StepDetailCard({ stepNumber, title, description, status, children }) {
 export default function BulkUploadProcessing() {
   const navigate = useNavigate();
   const location = useLocation();
+  const params = useParams();
   const state = location.state;
 
   const jobId = state?.jobId;
-  const webhookId = state?.webhookId;
+  // Prefer router state (fast path after upload); fall back to the URL param so a
+  // refresh / shared link / "come back later" still recovers the job by webhook id.
+  const webhookId = state?.webhookId || params?.webhookId || null;
   const storeResponse = state?.storeResponse;
   const fileName = state?.fileName;
   const category = state?.category || 'product';
@@ -367,7 +370,9 @@ export default function BulkUploadProcessing() {
     }
   };
 
-  if (!state || !hasTracking) {
+  // Only bail when there's nothing to track at all. A URL-only load (no router state
+  // but a :webhookId param) is valid — we recover by polling check_processing_status.
+  if (!hasTracking) {
     return <Navigate to="/sellerhub" replace />;
   }
 

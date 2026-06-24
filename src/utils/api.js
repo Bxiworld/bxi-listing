@@ -299,6 +299,10 @@ export const bulkUploadApi = {
     api.post('publiq_bulk_upload/fetch_company_upload', {}),
   checkProcessingStatus: (body) =>
     api.post('publiq_bulk_upload/check_processing_status', body),
+  /** Recovery: list this company's recent bulk jobs (newest first) so a job can be
+   * reopened after the browser tab/router state is gone. */
+  getMyBulkUploads: () =>
+    api.post('publiq_bulk_upload/my_bulk_uploads', {}),
   /** Corrected Excel after AI output — validated on BXI only (multipart: file, webhook_id, category). */
   uploadCorrectedBulkFile: (formData) =>
     api.post('publiq_bulk_upload/bulk_error_file_upload_User', formData, {

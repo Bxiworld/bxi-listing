@@ -94,11 +94,15 @@ export default function BulkUpload({ category = 'textile' }) {
           data?.bulkUpload_response?.message ||
             'File submitted. AI is processing your spreadsheet.',
         );
-        navigate('/bulkupload/status', {
+        const webhookId = data?.webhook_response?._id;
+        // Put the webhook id in the URL so a refresh / shared link / "come back later"
+        // recovers the job (status page also reads it from useParams). state is kept for
+        // the fast path (storeResponse needed to register the company-upload row).
+        navigate(webhookId ? `/bulkupload/status/${webhookId}` : '/bulkupload/status', {
           replace: true,
           state: {
             jobId: data?.bulkUpload_response?.job_id,
-            webhookId: data?.webhook_response?._id,
+            webhookId,
             storeResponse: data?.storeResponse,
             fileName: file.name,
             category: resolvedCategory,
