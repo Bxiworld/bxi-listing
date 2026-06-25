@@ -45,7 +45,7 @@ import { useAuthUser } from '../hooks/useAuthUser';
 import useListingEntryContext from '../hooks/useListingEntryContext';
 import { getAllowedCategories, getAllowedVouchers } from '../config/categories';
 import { PRODUCT_TYPE_BY_CATEGORY } from '../config/categoryFormConfig';
-import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing } from '../utils/listingProductFields';
+import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing, getProductCategoryName, getProductType, getProductSubCategoryName, getVoucherVertical } from '../utils/listingProductFields';
 import { productApi } from '../utils/api';
 
 const HUB_PAGE_SIZE = 20;
@@ -98,6 +98,44 @@ const productMatchesHubSearch = (product, rawQuery) => {
   return words.every((w) => haystack.includes(w));
 };
 
+const LISTING_TYPE_API_VALUES = new Set(['Product', 'Voucher']);
+
+/** Backend `Type` query only supports ListingType Product/Voucher — not category names. */
+const resolveApiListingTypeParam = (selectedListingType) =>
+  LISTING_TYPE_API_VALUES.has(selectedListingType) ? selectedListingType : '';
+
+const productMatchesCategoryFilter = (product, selectedType) => {
+  if (!selectedType) return true;
+  if (selectedType === 'Media') return isMediaListing(product);
+  if (isMediaListing(product)) return false;
+
+  const aliasPool = new Set([
+    normalizeCategory(selectedType),
+    ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) => normalizeCategory(a)),
+  ]);
+
+  const categoryCandidates = [
+    getProductCategoryName(product),
+    getProductType(product),
+    getVoucherVertical(product),
+    getProductSubCategoryName(product),
+    product?.Type,
+    product?.ProductName,
+    product?.ProductDescription,
+  ]
+    .map((v) => normalizeCategory(v))
+    .filter(Boolean);
+
+  return categoryCandidates.some((candidate) =>
+    [...aliasPool].some(
+      (alias) =>
+        candidate === alias ||
+        candidate.includes(alias) ||
+        alias.includes(candidate)
+    )
+  );
+};
+
 function filterSellerHubProducts(
   source,
   { activeTab, selectedType, selectedListingType }
@@ -108,40 +146,7 @@ function filterSellerHubProducts(
       : (source || []).filter(passesSellerHubDraftTabListing);
 
   if (selectedType) {
-    if (selectedType === 'Media') {
-      list = list.filter((product) => isMediaListing(product));
-    } else {
-      const selectedNorm = normalizeCategory(selectedType);
-      const aliasPool = new Set([
-        selectedNorm,
-        ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) =>
-          normalizeCategory(a)
-        ),
-      ]);
-
-      list = list.filter((product) => {
-        if (isMediaListing(product)) {
-          return false;
-        }
-
-        const categoryCandidates = [
-          product?.ProductCategoryName,
-          product?.ProductType,
-          product?.Type,
-        ]
-          .map((v) => normalizeCategory(v))
-          .filter(Boolean);
-
-        return categoryCandidates.some((candidate) =>
-          [...aliasPool].some(
-            (alias) =>
-              candidate === alias ||
-              candidate.includes(alias) ||
-              alias.includes(candidate)
-          )
-        );
-      });
-    }
+    list = list.filter((product) => productMatchesCategoryFilter(product, selectedType));
   }
 
   if (selectedListingType) {
@@ -204,8 +209,8 @@ export default function SellerHub() {
   const [selectedListingType, setSelectedListingType] = useState('');
   const [hubSearch, setHubSearch] = useState('');
   const [debouncedHubSearch, setDebouncedHubSearch] = useState('');
-  const [searchCatalog, setSearchCatalog] = useState([]);
-  const [searchCatalogLoading, setSearchCatalogLoading] = useState(false);
+  const [hubCatalog, setHubCatalog] = useState([]);
+  const [hubCatalogLoading, setHubCatalogLoading] = useState(false);
 
   // Redux state
   const {
@@ -239,23 +244,31 @@ export default function SellerHub() {
     : 'Add Voucher';
   const listingTypeLabel = isMedia ? 'media listings' : (hasVoucherAccess && !hasProductAccess ? 'voucher listings' : 'product listings');
 
-  const fetchAllTabsData = (type = '') => {
-    dispatch(fetchLiveProducts({ page: 1, type }));
-    dispatch(fetchDraftProducts({ page: 1, type }));
-    dispatch(fetchAllProducts({ page: 1, type }));
-    dispatch(fetchRejectedProducts({ page: 1, type }));
-    dispatch(fetchDelistProducts({ page: 1, type }));
-    dispatch(fetchPendingProducts({ page: 1, type }));
+  const apiListingTypeParam = useMemo(
+    () => resolveApiListingTypeParam(selectedListingType),
+    [selectedListingType]
+  );
+  const isHubFilterActive = Boolean(selectedType || selectedListingType);
+  const isSearchActive = Boolean(debouncedHubSearch.trim());
+  const needsHubCatalog = isSearchActive || isHubFilterActive;
+
+  const fetchAllTabsData = (listingType = '') => {
+    dispatch(fetchLiveProducts({ page: 1, type: listingType }));
+    dispatch(fetchDraftProducts({ page: 1, type: listingType }));
+    dispatch(fetchAllProducts({ page: 1, type: listingType }));
+    dispatch(fetchRejectedProducts({ page: 1, type: listingType }));
+    dispatch(fetchDelistProducts({ page: 1, type: listingType }));
+    dispatch(fetchPendingProducts({ page: 1, type: listingType }));
   };
 
-  // Fetch all products on mount, refresh, and filter change
+  // Fetch all products on mount, refresh, and listing-type filter change
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       return;
     }
-    fetchAllTabsData(selectedType);
+    fetchAllTabsData(apiListingTypeParam);
     setCurrentPage(1);
-  }, [dispatch, refreshTrigger, authLoading, isAuthenticated, selectedType]);
+  }, [dispatch, refreshTrigger, authLoading, isAuthenticated, apiListingTypeParam]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
@@ -269,37 +282,37 @@ export default function SellerHub() {
     return () => clearTimeout(timer);
   }, [hubSearch]);
 
-  // Fetch current tab data when page changes (skip while cross-tab search is active)
+  // Fetch current tab data when page changes (skip while client catalog mode is active)
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
       return;
     }
-    if (debouncedHubSearch.trim()) {
+    if (needsHubCatalog) {
       return;
     }
-    fetchCurrentTabData(currentPage, selectedType);
+    fetchCurrentTabData(currentPage, apiListingTypeParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, activeTab, authLoading, isAuthenticated, selectedType, debouncedHubSearch]);
+  }, [currentPage, activeTab, authLoading, isAuthenticated, apiListingTypeParam, needsHubCatalog]);
 
-  const fetchCurrentTabData = (page, type = '') => {
+  const fetchCurrentTabData = (page, listingType = '') => {
     switch (activeTab) {
       case 'Live':
-        dispatch(fetchLiveProducts({ page, type }));
+        dispatch(fetchLiveProducts({ page, type: listingType }));
         break;
       case 'In Draft':
-        dispatch(fetchDraftProducts({ page, type }));
+        dispatch(fetchDraftProducts({ page, type: listingType }));
         break;
       case 'Admin Review':
-        dispatch(fetchPendingProducts({ page, type }));
+        dispatch(fetchPendingProducts({ page, type: listingType }));
         break;
       case 'Delist':
-        dispatch(fetchDelistProducts({ page, type }));
+        dispatch(fetchDelistProducts({ page, type: listingType }));
         break;
       case 'Rejected':
-        dispatch(fetchRejectedProducts({ page, type }));
+        dispatch(fetchRejectedProducts({ page, type: listingType }));
         break;
       case 'All':
-        dispatch(fetchAllProducts({ page, type }));
+        dispatch(fetchAllProducts({ page, type: listingType }));
         break;
       default:
         break;
@@ -343,8 +356,6 @@ export default function SellerHub() {
     [tabProducts, hubFilterOptions]
   );
 
-  const isSearchActive = Boolean(debouncedHubSearch.trim());
-
   // Tab counts
   const tabCounts = useMemo(() => ({
     'Live': liveProducts.totalProducts || liveProducts.data?.length || 0,
@@ -360,10 +371,9 @@ export default function SellerHub() {
       return undefined;
     }
 
-    const query = debouncedHubSearch.trim();
-    if (!query) {
-      setSearchCatalog([]);
-      setSearchCatalogLoading(false);
+    if (!needsHubCatalog) {
+      setHubCatalog([]);
+      setHubCatalogLoading(false);
       return undefined;
     }
 
@@ -375,24 +385,24 @@ export default function SellerHub() {
     let cancelled = false;
 
     (async () => {
-      setSearchCatalogLoading(true);
+      setHubCatalogLoading(true);
       try {
         const catalogLimit = Math.min(
           Math.max(tabCounts[activeTab] || HUB_PAGE_SIZE, HUB_PAGE_SIZE),
           HUB_SEARCH_CATALOG_MAX
         );
-        const response = await fetcher(1, selectedType, catalogLimit);
+        const response = await fetcher(1, apiListingTypeParam, catalogLimit);
         if (cancelled) return;
         const items = response.data?.products || response.data?.product || [];
-        setSearchCatalog(Array.isArray(items) ? items : []);
+        setHubCatalog(Array.isArray(items) ? items : []);
         setCurrentPage(1);
       } catch {
         if (!cancelled) {
-          setSearchCatalog([]);
+          setHubCatalog([]);
         }
       } finally {
         if (!cancelled) {
-          setSearchCatalogLoading(false);
+          setHubCatalogLoading(false);
         }
       }
     })();
@@ -401,42 +411,49 @@ export default function SellerHub() {
       cancelled = true;
     };
   }, [
+    needsHubCatalog,
     debouncedHubSearch,
     activeTab,
-    selectedType,
+    apiListingTypeParam,
     authLoading,
     isAuthenticated,
     refreshTrigger,
     tabCounts,
+    selectedType,
+    selectedListingType,
   ]);
 
   const matchedProducts = useMemo(() => {
-    const source = isSearchActive ? searchCatalog : tabProducts;
-    const filtered = filterSellerHubProducts(source, hubFilterOptions);
-    const query = isSearchActive ? debouncedHubSearch : hubSearch;
-    return filtered.filter((product) => productMatchesHubSearch(product, query));
+    const source = needsHubCatalog ? hubCatalog : tabProducts;
+    let filtered = filterSellerHubProducts(source, hubFilterOptions);
+    if (isSearchActive) {
+      filtered = filtered.filter((product) =>
+        productMatchesHubSearch(product, debouncedHubSearch)
+      );
+    }
+    return filtered;
   }, [
-    isSearchActive,
-    searchCatalog,
+    needsHubCatalog,
+    hubCatalog,
     tabProducts,
     hubFilterOptions,
+    isSearchActive,
     debouncedHubSearch,
-    hubSearch,
   ]);
 
   const displayProducts = useMemo(() => {
-    if (!isSearchActive) {
+    if (!needsHubCatalog) {
       return matchedProducts;
     }
     const start = (currentPage - 1) * HUB_PAGE_SIZE;
     return matchedProducts.slice(start, start + HUB_PAGE_SIZE);
-  }, [isSearchActive, matchedProducts, currentPage]);
+  }, [needsHubCatalog, matchedProducts, currentPage]);
 
-  const activeTotalPages = isSearchActive
+  const activeTotalPages = needsHubCatalog
     ? Math.max(1, Math.ceil(matchedProducts.length / HUB_PAGE_SIZE))
     : totalPages;
 
-  const activeLoading = isSearchActive ? searchCatalogLoading : loading;
+  const activeLoading = needsHubCatalog ? hubCatalogLoading : loading;
 
   const pendingAdminChangeByProductId = useMemo(() => {
     const requestMap = {};
@@ -483,7 +500,7 @@ export default function SellerHub() {
       setDeleteDialogOpen(false);
       setProductToDelete(null);
       dispatch(triggerRefresh());
-      fetchCurrentTabData(currentPage, selectedType);
+      fetchCurrentTabData(currentPage, apiListingTypeParam);
     } catch (error) {
       toast.error(error || 'Failed to delete product');
     } finally {
@@ -505,7 +522,7 @@ export default function SellerHub() {
       })).unwrap();
       toast.success('Product relisted successfully');
       dispatch(triggerRefresh());
-      fetchCurrentTabData(currentPage, selectedType);
+      fetchCurrentTabData(currentPage, apiListingTypeParam);
     } catch (error) {
       toast.error(error || 'Failed to relist product');
     }
@@ -523,7 +540,7 @@ export default function SellerHub() {
       })).unwrap();
       toast.success('Product delisted successfully');
       dispatch(triggerRefresh());
-      fetchCurrentTabData(currentPage, selectedType);
+      fetchCurrentTabData(currentPage, apiListingTypeParam);
     } catch (error) {
       toast.error(error || 'Failed to delist product');
     }
@@ -665,6 +682,7 @@ export default function SellerHub() {
                   // Map our "All Categories" sentinel back to empty string state.
                   setSelectedType(value === '__all__' ? '' : value);
                   setSelectedListingType('');
+                  setCurrentPage(1);
                 }}
               >
                 <SelectTrigger
@@ -691,6 +709,7 @@ export default function SellerHub() {
                 onValueChange={(value) => {
                   // Allow clearing back to "All Types"
                   setSelectedListingType(value === '__all_types__' ? '' : value);
+                  setCurrentPage(1);
                 }}
               >
                 <SelectTrigger
@@ -743,11 +762,11 @@ export default function SellerHub() {
             </button>
           ) : null}
         </div>
-        {hubSearch.trim() ? (
+        {hubSearch.trim() || isHubFilterActive ? (
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            {searchCatalogLoading
-              ? 'Searching all listings in this tab…'
-              : `Showing ${matchedProducts.length} match${matchedProducts.length === 1 ? '' : 'es'} across this tab.`}
+            {hubCatalogLoading
+              ? 'Loading listings for search and filters…'
+              : `Showing ${matchedProducts.length} match${matchedProducts.length === 1 ? '' : 'es'} in this tab${isHubFilterActive && !hubSearch.trim() ? ' for the selected filters' : ''}.`}
           </p>
         ) : null}
       </div>
@@ -813,7 +832,7 @@ export default function SellerHub() {
             </div>
           )}
         </>
-      ) : fullyFilteredProducts?.length > 0 && hubSearch.trim() && !searchCatalogLoading ? (
+      ) : !activeLoading && hubSearch.trim() && matchedProducts.length === 0 ? (
         <div className="empty-state" data-testid="sellerhub-search-empty">
           <Package className="empty-state-icon" />
           <p className="empty-state-text">No listings match your search.</p>
@@ -827,7 +846,12 @@ export default function SellerHub() {
             Clear search
           </Button>
         </div>
-      ) : (tabProducts || []).length > 0 && fullyFilteredProducts?.length === 0 ? (
+      ) : !activeLoading && isHubFilterActive && matchedProducts.length === 0 ? (
+        <div className="empty-state" data-testid="sellerhub-filter-empty">
+          <Package className="empty-state-icon" />
+          <p className="empty-state-text">No listings match your filters.</p>
+        </div>
+      ) : !activeLoading && !needsHubCatalog && (tabProducts || []).length > 0 && fullyFilteredProducts?.length === 0 ? (
         <div className="empty-state" data-testid="sellerhub-filter-empty">
           <Package className="empty-state-icon" />
           <p className="empty-state-text">No listings match your filters.</p>
