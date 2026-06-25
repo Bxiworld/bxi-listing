@@ -43,6 +43,7 @@ import {
 } from '../redux/slices/productSlice';
 import { useAuthUser } from '../hooks/useAuthUser';
 import useListingEntryContext from '../hooks/useListingEntryContext';
+import BulkUploadJobsBanner from '../components/BulkUploadJobsBanner';
 import { getAllowedCategories, getAllowedVouchers } from '../config/categories';
 import { PRODUCT_TYPE_BY_CATEGORY } from '../config/categoryFormConfig';
 import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing } from '../utils/listingProductFields';
@@ -631,6 +632,9 @@ export default function SellerHub() {
           </Button>
         </div>
       </div>
+
+      {/* Bulk upload recovery: resume/download in-flight or finished jobs without re-uploading */}
+      <BulkUploadJobsBanner />
 
       {/* Tab Cards */}
       <div className="tab-cards-container" >

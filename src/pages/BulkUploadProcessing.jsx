@@ -7,7 +7,7 @@ import {
   Loader2,
   Mail,
   AlertTriangle,
-  ExternalLink,
+  Download,
   Upload,
   X,
   Circle,
@@ -183,12 +183,15 @@ export default function BulkUploadProcessing() {
   const [processingPayload, setProcessingPayload] = useState(null);
   const [pollError, setPollError] = useState(null);
   const [registerError, setRegisterError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const createSentRef = useRef(false);
 
   const [correctedFile, setCorrectedFile] = useState(null);
   const [correctedUploading, setCorrectedUploading] = useState(false);
   const [correctedValidationErrors, setCorrectedValidationErrors] = useState([]);
   const [correctedUploadOk, setCorrectedUploadOk] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewDone, setReviewDone] = useState(false);
   const [validationMeta, setValidationMeta] = useState(null);
   const [issuesModalOpen, setIssuesModalOpen] = useState(false);
   const correctedInputRef = useRef(null);
@@ -298,6 +301,123 @@ export default function BulkUploadProcessing() {
       cancelled = true;
     };
   }, [webhookId, showCorrectedUpload]);
+
+  const handleDownloadProcessed = async () => {
+    if (downloading) return;
+    // Need a webhook id to use the backend proxy. Fall back to opening the raw URL.
+    if (!webhookId) {
+      if (processingPayload?.download_url) {
+        window.open(processingPayload.download_url, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+    setDownloading(true);
+    try {
+      const res = await bulkUploadApi.downloadProcessedFile(webhookId);
+      const blob = res.data;
+      const contentType = res.headers?.['content-type'] || '';
+
+      // The proxy returns JSON (200/202) when the file is still processing or errored.
+      if (contentType.includes('application/json')) {
+        let message = 'Could not download the file. Please try again.';
+        try {
+          message = JSON.parse(await blob.text())?.message || message;
+        } catch {
+          /* ignore parse error */
+        }
+        toast.error(message);
+        return;
+      }
+
+      // Derive a filename from Content-Disposition, else from the AI URL, else default.
+      let fileName = 'bulk-upload-output.xlsx';
+      const cd = res.headers?.['content-disposition'] || '';
+      const match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(cd);
+      if (match) {
+        try {
+          fileName = decodeURIComponent(match[1]);
+        } catch {
+          fileName = match[1];
+        }
+      } else if (processingPayload?.download_url) {
+        try {
+          fileName =
+            new URL(processingPayload.download_url).pathname.split('/').pop() || fileName;
+        } catch {
+          /* keep default */
+        }
+      }
+
+      const objectUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      // With responseType:'blob', error bodies arrive as Blobs — read them back to JSON.
+      let message = err?.message || 'Download failed. Please try again.';
+      const data = err?.response?.data;
+      if (data instanceof Blob) {
+        try {
+          message = JSON.parse(await data.text())?.message || message;
+        } catch {
+          /* ignore */
+        }
+      } else if (data?.message) {
+        message = data.message;
+      }
+      // Safety net: if the proxy is unavailable (e.g. backend not yet updated) but we
+      // still have the direct link, open it so the user isn't completely blocked.
+      if (processingPayload?.download_url) {
+        toast.message('Opening the file in a new tab…', { description: message });
+        window.open(processingPayload.download_url, '_blank', 'noopener,noreferrer');
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleSendForReview = async () => {
+    if (submittingReview || reviewDone) return;
+    if (!webhookId) {
+      toast.error('Missing job reference. Please reopen this job from Seller Hub.');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const { data } = await bulkUploadApi.createProductsFromBulk(category, webhookId);
+      if (data?.success) {
+        setReviewDone(true);
+        toast.success(
+          data?.alreadySubmitted
+            ? 'Already submitted for admin review.'
+            : `Sent for admin review${data?.insertedCount ? ` (${data.insertedCount} product${data.insertedCount === 1 ? '' : 's'})` : ''}.`,
+        );
+        setTimeout(() => navigate('/sellerhub'), 1200);
+      } else {
+        toast.error(data?.message || 'Could not submit products. Please try again.');
+      }
+    } catch (err) {
+      const res = err?.response?.data;
+      const errors = res?.errors;
+      if (Array.isArray(errors) && errors.length > 0) {
+        // Re-validation found issues — surface them like the validation step does.
+        setCorrectedValidationErrors(errors);
+        setCorrectedUploadOk(false);
+        setIssuesModalOpen(true);
+        toast.error(res.message || `Found ${errors.length} issue(s). Please re-check the file.`);
+      } else {
+        toast.error(res?.message || err?.message || 'Could not submit products.');
+      }
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const handleCorrectedFile = (f) => {
     if (!f) return;
@@ -614,15 +734,19 @@ export default function BulkUploadProcessing() {
                   </p>
                 )}
                 {!showSpinner && !isFailed && hasDownload && (
-                  <a
-                    href={processingPayload.download_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-[#C64091] font-medium text-xs sm:text-sm hover:underline"
+                  <button
+                    type="button"
+                    onClick={handleDownloadProcessed}
+                    disabled={downloading}
+                    className="inline-flex items-center gap-2 text-[#C64091] font-medium text-xs sm:text-sm hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <ExternalLink className="h-4 w-4 shrink-0" />
-                    Download processed file
-                  </a>
+                    {downloading ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 shrink-0" />
+                    )}
+                    {downloading ? 'Preparing download…' : 'Download processed file'}
+                  </button>
                 )}
                 {!showSpinner &&
                   !isFailed &&
@@ -713,8 +837,40 @@ export default function BulkUploadProcessing() {
                       )}
 
                     {correctedUploadOk && (
-                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                        Validation passed. File saved—continue from Seller Hub when ready.
+                      <div className="flex flex-col gap-2">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                          {reviewDone
+                            ? 'Submitted for admin review. Track it in Seller Hub → Admin Review.'
+                            : 'Validation passed with no issues. Send these products for admin review.'}
+                        </div>
+                        {reviewDone ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] w-full sm:w-auto"
+                            onClick={() => navigate('/sellerhub')}
+                          >
+                            Go to Seller Hub
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
+                            disabled={submittingReview}
+                            onClick={handleSendForReview}
+                          >
+                            {submittingReview ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Submitting…
+                              </>
+                            ) : (
+                              'Send for admin review'
+                            )}
+                          </Button>
+                        )}
                       </div>
                     )}
 

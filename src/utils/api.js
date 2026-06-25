@@ -303,6 +303,15 @@ export const bulkUploadApi = {
    * reopened after the browser tab/router state is gone. */
   getMyBulkUploads: () =>
     api.post('publiq_bulk_upload/my_bulk_uploads', {}),
+  /** Download the processed file THROUGH the backend proxy (streams from S3 or proxies
+   * the AI URL with Content-Disposition: attachment). Avoids the "opens in a tab but
+   * doesn't download" / CORS / expired-AI-file problems of linking the raw AI URL. */
+  downloadProcessedFile: (webhook_id) =>
+    api.post(
+      'publiq_bulk_upload/download_file',
+      { webhook_id },
+      { responseType: 'blob' },
+    ),
   /** Corrected Excel after AI output — validated on BXI only (multipart: file, webhook_id, category). */
   uploadCorrectedBulkFile: (formData) =>
     api.post('publiq_bulk_upload/bulk_error_file_upload_User', formData, {
@@ -310,6 +319,32 @@ export const bulkUploadApi = {
     }),
   getBulkValidationErrors: (webhook_id) =>
     api.post('publiq_bulk_upload/get_validation_errors', { webhook_id }),
+  /** Create the products from a validated bulk file and send them to admin review.
+   * Maps the category slug to the right BXI creation endpoint; `data` is the webhook id. */
+  createProductsFromBulk: (category, webhookId) => {
+    const endpoint =
+      BULK_CREATE_ENDPOINT_BY_CATEGORY[String(category || '').toLowerCase()];
+    if (!endpoint) {
+      return Promise.reject(
+        new Error(`Bulk product creation isn't available for "${category}" yet.`),
+      );
+    }
+    return api.post(`publiq_bulk_upload/${endpoint}`, { data: webhookId });
+  },
+};
+
+// Category slug (as passed from the upload page) → BXI product-creation route.
+const BULK_CREATE_ENDPOINT_BY_CATEGORY = {
+  electronics: 'upload_bulkUpload_files_Electronics',
+  fmcg: 'upload_bulkUpload_files_FMCG',
+  mobility: 'upload_bulkUpload_files_Mobility',
+  officesupply: 'upload_bulkUpload_files_office_supply',
+  'office supply': 'upload_bulkUpload_files_office_supply',
+  others: 'upload_bulkUpload_files_Others',
+  qsr: 'upload_bulkUpload_files_QSR',
+  restaurant: 'upload_bulkUpload_files_QSR',
+  textile: 'upload_bulkUpload_files_Textile',
+  lifestyle: 'upload_bulkUpload_files_Lifestyle',
 };
 
 export default api;
