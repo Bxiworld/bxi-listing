@@ -1090,6 +1090,24 @@ export default function VoucherTechInfo({ category }) {
       }
     }
 
+    // Single-variant: the uploaded e-code count must match the listing quantity
+    // so the voucher can never go live out of stock (mirrors the multi-variant
+    // check above and the backend listing-stage gate).
+    if (
+      !hasMultipleVariants &&
+      redemptionTypeValue === 'online' &&
+      (data.codeGenerationType || codeGenerationType) === 'self'
+    ) {
+      const expectedQty = getExpectedVariantQty(voucherVariants[0]);
+      const parsedCount = Number(variantCodeMeta?.single?.count || 0);
+      if (expectedQty > 0 && parsedCount !== expectedQty) {
+        toast.error(
+          `This voucher requires ${expectedQty} codes, found ${parsedCount}. Upload exactly ${expectedQty} unique codes or adjust the quantity.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const normalizedInclusions = normalizePreviewText(data.inclusions);
