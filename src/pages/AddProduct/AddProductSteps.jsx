@@ -114,7 +114,9 @@ const getSubcategoryOptions = (responseData) => {
         return { label: item, value: item };
       }
       if (item?.SubcategoryType) {
-        return { label: item.SubcategoryType, value: item.SubcategoryType };
+        // Prefer the subdocument _id so listings reference the same key the
+        // subcategory count APIs match on; fall back to the display string.
+        return { label: item.SubcategoryType, value: item._id ?? item.SubcategoryType };
       }
       if (item?.name) {
         return { label: item.name, value: item.name };
