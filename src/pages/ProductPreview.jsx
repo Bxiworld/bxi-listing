@@ -40,6 +40,11 @@ import { getMediaListingProfile } from '../config/mediaListingProfiles';
 import { formatCampaignDurationPreview } from '../utils/digitalAdsCampaignDuration';
 import * as XLSX from 'xlsx';
 import { isMediaListing } from '../utils/listingProductFields';
+import {
+  VOUCHER_LOCATION_ADDRESS_MODE,
+  inferVoucherLocationModesFromProduct,
+  normalizeManualStoreLocations,
+} from '../utils/voucherLocation';
 
 function shouldHideMinMaxOrderQtyForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
@@ -256,7 +261,7 @@ function formatMinMaxOrderQtySummary(minVal, maxVal) {
 }
 
 function getVoucherOfflineAddress(product) {
-  const empty = { address: '', area: '', landmark: '', city: '', state: '' };
+  const empty = { address: '', area: '', landmark: '', city: '', state: '', pincode: '' };
   if (!product) return empty;
 
   if (product.OfflineAddress) {
@@ -271,6 +276,7 @@ function getVoucherOfflineAddress(product) {
         landmark: parsed?.landmark ?? '',
         city: parsed?.city ?? '',
         state: parsed?.state ?? '',
+        pincode: parsed?.pincode ?? parsed?.Pincode ?? product.Pincode ?? '',
       };
     } catch {
       return empty;
@@ -283,6 +289,7 @@ function getVoucherOfflineAddress(product) {
     landmark: product.Landmark ?? '',
     city: product.City ?? '',
     state: product.State ?? '',
+    pincode: product.Pincode ?? '',
   };
 }
 
@@ -308,7 +315,50 @@ function normalizeStoreLocationRow(row = {}) {
     landmark: read(['landmark', 'Landmark', 'LANDMARK']),
     city: read(['city', 'City', 'CITY']),
     state: read(['state', 'State', 'STATE']),
+    pincode: read(['pincode', 'Pincode', 'PINCODE']),
   };
+}
+
+function hasStoreLocationContent(location = {}) {
+  const loc = normalizeStoreLocationRow(location);
+  return [loc.pincode, loc.address, loc.area, loc.landmark, loc.city, loc.state].some(
+    (v) => String(v || '').trim() !== ''
+  );
+}
+
+function StoreLocationDetailGrid({ location, compact = false }) {
+  const loc = normalizeStoreLocationRow(location);
+  const fields = [
+    { label: 'Pincode', value: loc.pincode },
+    { label: 'State', value: loc.state },
+    { label: 'City', value: loc.city },
+    { label: 'Area', value: loc.area },
+    { label: 'Landmark', value: loc.landmark },
+    { label: 'Address', value: loc.address },
+  ].filter((row) => String(row.value || '').trim());
+
+  if (!fields.length) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        Details not provided
+      </Typography>
+    );
+  }
+
+  return (
+    <Grid container spacing={compact ? 1.5 : 2}>
+      {fields.map(({ label, value }) => (
+        <Grid item xs={6} sm={compact ? 6 : 4} key={label}>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {label}
+          </Typography>
+          <Typography variant="body2" fontWeight={500} color="#111827">
+            {value}
+          </Typography>
+        </Grid>
+      ))}
+    </Grid>
+  );
 }
 
 function parseStoreLocationsFromWorkbook(workbook) {
@@ -318,11 +368,7 @@ function parseStoreLocationsFromWorkbook(workbook) {
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
   return rows
     .map(normalizeStoreLocationRow)
-    .filter((row) =>
-      [row.address, row.area, row.landmark, row.city, row.state].some(
-        (v) => String(v || '').trim() !== ''
-      )
-    );
+    .filter((row) => hasStoreLocationContent(row));
 }
 
 /** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
@@ -472,14 +518,14 @@ export default function ProductPreview() {
       }
 
       if (Array.isArray(product?.OfflineAddressList)) {
-        setMultipleStoreLocations(product.OfflineAddressList);
+        setMultipleStoreLocations(normalizeManualStoreLocations(product.OfflineAddressList));
         return;
       }
       if (typeof product?.OfflineAddressList === 'string') {
         try {
           const parsed = JSON.parse(product.OfflineAddressList);
           if (Array.isArray(parsed)) {
-            setMultipleStoreLocations(parsed);
+            setMultipleStoreLocations(normalizeManualStoreLocations(parsed));
             return;
           }
         } catch {
@@ -854,17 +900,6 @@ export default function ProductPreview() {
                       />
                     </Box>
                   )}
-
-                {product?.gender && (
-                  <Box>
-                    <Typography variant="body2" fontWeight="medium" color="text.secondary">
-                      Gender
-                    </Typography>
-                    <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                      {product.gender}
-                    </Typography>
-                  </Box>
-                )}
 
                 {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
                 {selectedVariantData && variantPreviewColumns.length > 0 && (
@@ -1310,23 +1345,29 @@ export default function ProductPreview() {
                   const redemptionUrl = product?.Link || product?.redemptionURL;
                   const storeListUrl = getStoreListUrl(product);
                   const offlineAddress = getVoucherOfflineAddress(product);
-                  const hasOfflineAddress =
-                    !!(
-                      String(offlineAddress.address || '').trim() ||
-                      String(offlineAddress.area || '').trim() ||
-                      String(offlineAddress.landmark || '').trim() ||
-                      String(offlineAddress.city || '').trim() ||
-                      String(offlineAddress.state || '').trim()
-                    );
-                  const showOfflineAddress = hasOfflineAddress;
-                  const hasMultipleStoreLocations = multipleStoreLocations.length > 0;
+                  const locationModes = inferVoucherLocationModesFromProduct(product);
+                  const normalizedMultipleLocations = normalizeManualStoreLocations(
+                    multipleStoreLocations
+                  ).filter(hasStoreLocationContent);
+                  const hasMultipleStoreLocations = normalizedMultipleLocations.length > 0;
+                  const isMultipleLocationMode =
+                    locationModes.voucherLocationAddressMode ===
+                      VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE ||
+                    normalizedMultipleLocations.length > 1;
+                  const hasSingleStoreAddress = hasStoreLocationContent(offlineAddress);
+                  const showSingleStoreAddress =
+                    hasSingleStoreAddress && !isMultipleLocationMode;
                   const showMultipleStoreLocations =
-                    hasMultipleStoreLocations ||
+                    isMultipleLocationMode ||
+                    (hasMultipleStoreLocations && !showSingleStoreAddress) ||
                     Boolean(storeListUrl);
+                  const inlineLocationPreviewCount = Math.min(
+                    normalizedMultipleLocations.length,
+                    2
+                  );
                   const voucherTagsRaw = product?.ProductTags ?? product?.Tags;
                   const voucherValidity = product?.ListThisProductForAmount;
                   const voucherValidityUnit = product?.ListThisProductForUnitOfTime;
-                  console.log('voucherValidity', voucherValidity + ' ' + voucherValidityUnit);
                   const voucherTags = Array.isArray(voucherTagsRaw)
                     ? voucherTagsRaw
                     : voucherTagsRaw != null && String(voucherTagsRaw).trim()
@@ -1340,7 +1381,7 @@ export default function ProductPreview() {
                     redemptionSteps ||
                     redemptionType ||
                     redemptionUrl ||
-                    showOfflineAddress ||
+                    showSingleStoreAddress ||
                     showMultipleStoreLocations ||
                     voucherTags.length > 0;
 
@@ -1428,69 +1469,90 @@ export default function ProductPreview() {
                                 </Typography>
                               </Box>
                             )}
-                            {showOfflineAddress && (
+                            {(showSingleStoreAddress || showMultipleStoreLocations) && (
                               <Box>
                                 <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                                  Store address
+                                  {showMultipleStoreLocations && !showSingleStoreAddress
+                                    ? 'Applicable locations'
+                                    : 'Store address'}
                                 </Typography>
-                                <Stack spacing={0.5}>
-                                  {String(offlineAddress.address || '').trim() && (
-                                    <Typography variant="body1" color="text.secondary">
-                                      {offlineAddress.address}
-                                    </Typography>
-                                  )}
-                                  {String(offlineAddress.area || '').trim() && (
-                                    <Typography variant="body1" color="text.secondary">
-                                      Area: {offlineAddress.area}
-                                    </Typography>
-                                  )}
-                                  {String(offlineAddress.landmark || '').trim() && (
-                                    <Typography variant="body1" color="text.secondary">
-                                      Landmark: {offlineAddress.landmark}
-                                    </Typography>
-                                  )}
-                                  {(String(offlineAddress.city || '').trim() ||
-                                    String(offlineAddress.state || '').trim()) && (
+
+                                {showSingleStoreAddress && (
+                                  <Box
+                                    sx={{
+                                      bgcolor: '#F9FAFB',
+                                      p: 2,
+                                      borderRadius: '12px',
+                                      border: '1px solid #E5E8EB',
+                                    }}
+                                  >
+                                    <StoreLocationDetailGrid location={offlineAddress} />
+                                  </Box>
+                                )}
+
+                                {showMultipleStoreLocations && (
+                                  <Box sx={{ mt: showSingleStoreAddress ? 2 : 0 }}>
+                                    {hasMultipleStoreLocations ? (
+                                      <Stack spacing={1.5}>
+                                        {normalizedMultipleLocations
+                                          .slice(0, inlineLocationPreviewCount)
+                                          .map((loc, idx) => (
+                                            <Box
+                                              key={`preview-loc-${idx}`}
+                                              sx={{
+                                                p: 1.5,
+                                                border: '1px solid #E5E8EB',
+                                                borderRadius: 1,
+                                                bgcolor: '#FAFBFC',
+                                              }}
+                                            >
+                                              <Typography
+                                                variant="body2"
+                                                fontWeight={600}
+                                                color="#111827"
+                                                sx={{ mb: 1 }}
+                                              >
+                                                Location {idx + 1}
+                                              </Typography>
+                                              <StoreLocationDetailGrid location={loc} compact />
+                                            </Box>
+                                          ))}
+                                        {normalizedMultipleLocations.length > inlineLocationPreviewCount && (
+                                          <Button
+                                            type="button"
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => setStoreLocationsDialogOpen(true)}
+                                            sx={{
+                                              alignSelf: 'flex-start',
+                                              textTransform: 'none',
+                                              borderColor: '#2563EB',
+                                              color: '#2563EB',
+                                            }}
+                                          >
+                                            View all {normalizedMultipleLocations.length} locations
+                                          </Button>
+                                        )}
+                                      </Stack>
+                                    ) : storeListUrl ? (
+                                      <Typography
+                                        component="a"
+                                        href={storeListUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                                      >
+                                        Download uploaded store list
+                                      </Typography>
+                                    ) : (
                                       <Typography variant="body1" color="text.secondary">
-                                        {[offlineAddress.city, offlineAddress.state]
-                                          .filter((v) => String(v || '').trim())
-                                          .join(', ')}
+                                        No store locations available.
                                       </Typography>
                                     )}
-                                </Stack>
+                                  </Box>
+                                )}
                               </Box>
                             )}
-                            {showMultipleStoreLocations && (
-                                <Box>
-                                  <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                                    Multiple Locations
-                                  </Typography>
-                                  {hasMultipleStoreLocations ? (
-                                    <Button
-                                      type="button"
-                                      variant="outlined"
-                                      size="small"
-                                      onClick={() => setStoreLocationsDialogOpen(true)}
-                                    >
-                                      Show multiple locations ({multipleStoreLocations.length})
-                                    </Button>
-                                  ) : storeListUrl ? (
-                                    <Typography
-                                      component="a"
-                                      href={storeListUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      sx={{ color: '#1A56DB', textDecoration: 'underline' }}
-                                    >
-                                      Download uploaded store list
-                                    </Typography>
-                                  ) : (
-                                    <Typography variant="body1" color="text.secondary">
-                                      No multiple locations uploaded.
-                                    </Typography>
-                                  )}
-                                </Box>
-                              )}
                           </Stack>
                         </Grid>
                         {/* Tags at Bottom */}
@@ -1939,27 +2001,34 @@ export default function ProductPreview() {
           fullWidth
           maxWidth="md"
         >
-          <DialogTitle>Multiple Store Locations</DialogTitle>
+          <DialogTitle>
+            {multipleStoreLocations.length > 1
+              ? `Store locations (${multipleStoreLocations.length})`
+              : 'Store location'}
+          </DialogTitle>
           <DialogContent dividers>
             {multipleStoreLocations.length === 0 ? (
               <Typography color="text.secondary">No store locations available.</Typography>
             ) : (
               <Stack spacing={1.5}>
-                {multipleStoreLocations.map((loc, idx) => (
-                  <Box
-                    key={`${loc.address || 'location'}-${idx}`}
-                    sx={{ p: 1.5, border: '1px solid #E5E8EB', borderRadius: 1 }}
-                  >
-                    <Typography variant="body2" fontWeight={600} color="#111827">
-                      {loc.address || 'Address not specified'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {[loc.area, loc.landmark, loc.city, loc.state]
-                        .filter((v) => String(v || '').trim())
-                        .join(', ') || 'Details not provided'}
-                    </Typography>
-                  </Box>
-                ))}
+                {normalizeManualStoreLocations(multipleStoreLocations)
+                  .filter(hasStoreLocationContent)
+                  .map((loc, idx) => (
+                    <Box
+                      key={`${loc.address || loc.pincode || 'location'}-${idx}`}
+                      sx={{
+                        p: 2,
+                        border: '1px solid #E5E8EB',
+                        borderRadius: 1,
+                        bgcolor: '#FAFBFC',
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={600} color="#111827" sx={{ mb: 1 }}>
+                        Location {idx + 1}
+                      </Typography>
+                      <StoreLocationDetailGrid location={loc} compact />
+                    </Box>
+                  ))}
               </Stack>
             )}
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
