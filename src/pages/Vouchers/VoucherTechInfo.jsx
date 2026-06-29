@@ -578,7 +578,14 @@ export default function VoucherTechInfo({ category }) {
   const hasMultipleVariants = voucherVariants.length > 1;
 
   const getExpectedVariantQty = (variant) => {
-    const qty = Number(variant?.TotalAvailableQty ?? variant?.MaxOrderQuantity ?? 0);
+    // The listed quantity may live in TotalAvailableQty (total stock) or
+    // MaxOrderQuantity, and the absent one is normalized to 0. Nullish
+    // coalescing does not fall back on 0, so take the larger positive value —
+    // otherwise a stored TotalAvailableQty of 0 hides the real MaxOrderQuantity
+    // and the e-code count check is skipped.
+    const total = Number(variant?.TotalAvailableQty) || 0;
+    const max = Number(variant?.MaxOrderQuantity) || 0;
+    const qty = Math.max(total, max);
     return Number.isFinite(qty) ? qty : 0;
   };
 
