@@ -1093,6 +1093,7 @@ export const ProductInfo = ({ category }) => {
   // Mobility Registration Details (managed by react-hook-form)
 
   const piConfig = getProductInfoConfig(category);
+  const requiresProductId = piConfig.hasProductId && !isVoucherCategory;
   const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
   const activeVoucherConfig = isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
   // EE: Date of the Event only when user chose "Events" on eephysical (bxi-dashboard parity)
@@ -1467,6 +1468,16 @@ export const ProductInfo = ({ category }) => {
       return;
     }
 
+    const productIdTrimmed = String(d.productIdType ?? '').trim();
+    if (requiresProductId && !productIdTrimmed) {
+      setError('productIdType', { type: 'required', message: 'Product Id is required' });
+      toast.error('Product Id is required');
+      return;
+    }
+    if (requiresProductId) {
+      clearErrors('productIdType');
+    }
+
     const wantsSample = !!d.isSample;
     const sampleQty = wantsSample ? parseInt(d.sampleAvailability, 10) : 0;
     const samplePrice = wantsSample
@@ -1496,7 +1507,7 @@ export const ProductInfo = ({ category }) => {
       HSN: d.hsn || '',
       ProductSize: productSize,
 
-      ProductIdType: d.productIdType || `SKU-${Date.now()}`,
+      ...(requiresProductId ? { ProductIdType: productIdTrimmed } : {}),
       Length: ['Length', 'Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.length || '') : '',
       Width: d.selectedSize === 'Length x Height x Width' ? (d.width || '') : '',
       Height: ['Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.height || '') : '',
@@ -1896,6 +1907,13 @@ export const ProductInfo = ({ category }) => {
     }
     if (productsVariations.length === 0) {
       toast.error('Please add at least one variation using "Proceed to Add"');
+      return;
+    }
+    if (
+      requiresProductId &&
+      productsVariations.some((v) => !String(v.ProductIdType ?? '').trim())
+    ) {
+      toast.error('Each variation must have a Product Id');
       return;
     }
     if (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) {
@@ -2302,14 +2320,19 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Product ID */}
-            {piConfig.hasProductId && !isVoucherCategory && (
+            {requiresProductId && (
               <div className="space-y-2">
                 <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
                 <Input
                   id="productIdType"
                   placeholder="e.g. 1910WH23"
-                  {...register('productIdType')}
+                  {...register('productIdType', {
+                    required: 'Product Id is required',
+                  })}
                 />
+                {errors.productIdType && (
+                  <p className="text-sm text-red-600">{errors.productIdType.message}</p>
+                )}
               </div>
             )}
 
