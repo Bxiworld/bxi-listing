@@ -1094,6 +1094,12 @@ export const ProductInfo = ({ category }) => {
 
   const piConfig = getProductInfoConfig(category);
   const requiresProductId = piConfig.hasProductId && !isVoucherCategory;
+  const VARIATION_DRAFT_FIELDS = [
+    'productIdType', 'variantName', 'price', 'discountedPrice', 'hsn',
+    'minOrderQty', 'maxOrderQty', 'length', 'width', 'height', 'weight',
+    'volume', 'sizeValue', 'shoeSize', 'sampleAvailability', 'priceOfSample',
+    'flavor', 'offeringType', 'dateOfEvent', 'selectedSize',
+  ];
   const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
   const activeVoucherConfig = isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
   // EE: Date of the Event only when user chose "Events" on eephysical (bxi-dashboard parity)
@@ -1535,7 +1541,7 @@ export const ProductInfo = ({ category }) => {
       toast.success('Variation added');
     }
     // Size requirement is satisfied once at least one variation exists.
-    clearErrors(['selectedSize']);
+    clearErrors(['selectedSize', ...VARIATION_DRAFT_FIELDS]);
     setValue('price', '');
     setValue('discountedPrice', '');
     setValue('productIdType', '');
@@ -1733,7 +1739,7 @@ export const ProductInfo = ({ category }) => {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError, clearErrors } = useForm({
+  const { register, formState: { errors }, setValue, watch, getValues, setError, clearErrors, trigger } = useForm({
     defaultValues: {
       price: '',
       discountedPrice: '',
@@ -1900,6 +1906,23 @@ export const ProductInfo = ({ category }) => {
     }
   }, [selectedSize, setValue]);
 
+  const handleSaveAndNext = async () => {
+    if (productsVariations.length > 0) {
+      clearErrors(VARIATION_DRAFT_FIELDS);
+    }
+
+    const saveFieldsToValidate = [];
+    if (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes') {
+      saveFieldsToValidate.push('registrationDetails', 'insuranceDetails', 'taxesDetails');
+    }
+    if (saveFieldsToValidate.length > 0) {
+      const ok = await trigger(saveFieldsToValidate);
+      if (!ok) return;
+    }
+
+    await onSubmit(getValues());
+  };
+
   const onSubmit = async (data) => {
     if (!id) {
       toast.error('Product ID missing. Please start from General Information.');
@@ -1908,6 +1931,9 @@ export const ProductInfo = ({ category }) => {
     if (productsVariations.length === 0) {
       toast.error('Please add at least one variation using "Proceed to Add"');
       return;
+    }
+    if (requiresProductId) {
+      clearErrors('productIdType');
     }
     if (
       requiresProductId &&
@@ -2068,11 +2094,7 @@ export const ProductInfo = ({ category }) => {
             </div>
           )} */}
           
-          <form noValidate onSubmit={handleSubmit(onSubmit, (formErrors) => {
-            const firstKey = Object.keys(formErrors)[0];
-            const firstError = formErrors[firstKey];
-            toast.error(firstError?.message || `Please fix the "${firstKey}" field before submitting.`);
-          })} className="space-y-6">
+          <form noValidate onSubmit={(e) => { e.preventDefault(); handleSaveAndNext(); }} className="space-y-6">
             {/* Gender selection – for textile */}
             {hasGenderInProductInfo && (
               <div className="space-y-2">
@@ -2326,9 +2348,7 @@ export const ProductInfo = ({ category }) => {
                 <Input
                   id="productIdType"
                   placeholder="e.g. 1910WH23"
-                  {...register('productIdType', {
-                    required: 'Product Id is required',
-                  })}
+                  {...register('productIdType')}
                 />
                 {errors.productIdType && (
                   <p className="text-sm text-red-600">{errors.productIdType.message}</p>
@@ -2351,7 +2371,7 @@ export const ProductInfo = ({ category }) => {
               {errors.variantName && (
                 <p className="text-sm text-red-600">{errors.variantName.message}</p>
               )}
-              <p className="text-xs text-gray-500">Required when adding a variation (Proceed to Add). Max 120 characters.</p>
+              <p className="text-xs text-gray-500"> Max 120 characters.</p>
             </div>
 
             {/* HSN + GST (same row) */}
@@ -3446,7 +3466,8 @@ export const ProductInfo = ({ category }) => {
                 Back
               </Button>
               <Button
-                type="submit"
+                type="button"
+                onClick={handleSaveAndNext}
                 disabled={
                   isSubmitting || 
                   productsVariations.length === 0 || 
