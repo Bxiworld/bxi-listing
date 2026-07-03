@@ -77,7 +77,7 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-    "start": "npm run start:dev",
+    "start": "npm run start:prod",
     "build": "npm run build:prod",
     "serve": "serve -s build -l ${PORT:-3000}",
     "test": "craco test"
