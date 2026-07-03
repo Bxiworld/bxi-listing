@@ -78,7 +78,9 @@
   },
   "scripts": {
     "start": "npm run start:prod",
+    "start:prod": "craco start",
     "build": "npm run build:prod",
+    "build:prod": "cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
     "serve": "serve -s build -l ${PORT:-3000}",
     "test": "craco test"
   },
