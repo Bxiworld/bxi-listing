@@ -113,65 +113,38 @@ const getSubcategoryOptions = (responseData) => {
       if (typeof item === 'string') {
         return { label: item, value: item };
       }
-      if (item?.SubcategoryType) {
-        // Prefer the subdocument _id so listings reference the same key the
-        // subcategory count APIs match on; fall back to the display string.
-        return { label: item.SubcategoryType, value: item._id ?? item.SubcategoryType };
+      if (!item || typeof item !== 'object') {
+        return null;
       }
-      if (item?.name) {
-        return { label: item.name, value: item.name };
-      }
-      if (item?.value) {
-        return { label: item.value, value: item.value };
-      }
-      if (item?.SampleFmcgCategoryType) {
-        return {
-          label: item.SampleFmcgCategoryType,
-          value: item.SampleFmcgCategoryType,
-        };
-      }
-      if (item?.SampleMobilityCategoryType) {
-        return {
-          label: item.SampleMobilityCategoryType,
-          value: item.SampleMobilityCategoryType,
-        };
-      }
-      if (item?.RestuarantQsrCategoryType) {
-        return { label: item.RestuarantQsrCategoryType, value: item.RestuarantQsrCategoryType };
-      }
-      if (item?.EntertainmentFeature || item?.entertainmentSubcategory) {
-        const v = item.EntertainmentFeature || item.entertainmentSubcategory;
-        return { label: v, value: v };
-      }
-      if (item?.OtherSub) {
-        return { label: item.OtherSub, value: item.OtherSub };
-      }
-      if (item?.SampleAirlineFeature) {
-        return { label: item.SampleAirlineFeature, value: item.SampleAirlineFeature };
-      }
-      if (item?.Mediaonlinecategorysingle) {
-        return { label: item.Mediaonlinecategorysingle, value: item._id };
-      }
-      if (item?.Mediaofflinecategory) {
-        return { label: item.Mediaofflinecategory, value: item._id };
-      }
-      if (item?.SubcategoryName) {
-        return { label: item.SubcategoryName, value: item.SubcategoryName };
-      }
-      // Final fallback: first non-id string field in object
-      if (item && typeof item === 'object') {
-        const candidate = Object.entries(item).find(
+      // Display label: the first recognized name field on the row.
+      const label =
+        item.SubcategoryType ||
+        item.name ||
+        item.value ||
+        item.SampleFmcgCategoryType ||
+        item.SampleMobilityCategoryType ||
+        item.SampleCategoryType ||
+        item.RestuarantQsrCategoryType ||
+        item.EntertainmentFeature ||
+        item.entertainmentSubcategory ||
+        item.OtherSub ||
+        item.SampleAirlineFeature ||
+        item.TextileNestedSubType ||
+        item.Mediaonlinecategorysingle ||
+        item.Mediaofflinecategory ||
+        item.SubcategoryName ||
+        // Final fallback: first non-id string field in object
+        Object.entries(item).find(
           ([key, val]) =>
-            typeof val === 'string' &&
-            val.trim() &&
-            key !== '_id' &&
-            key !== 'id'
-        );
-        if (candidate) {
-          return { label: candidate[1], value: candidate[1] };
-        }
+            typeof val === 'string' && val.trim() && key !== '_id' && key !== 'id'
+        )?.[1];
+      if (!label) {
+        return null;
       }
-      return null;
+      // Always prefer the subdocument _id so listings reference the same key the
+      // marketplace subcategory filters/count APIs match on; fall back to the display
+      // string only when the row genuinely has no id.
+      return { label, value: item._id ?? label };
     })
     .filter(Boolean);
 };
@@ -373,27 +346,38 @@ export const GeneralInformation = ({ category }) => {
       const currentVoucherJourneyType = getVoucherJourneyTypeFromStorage();
 
       if (currentVoucherJourneyType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
-        const defaultVoucherSubcategories =
+        const curatedLabels =
           category === 'hotelsVoucher'
-            ? [
-                'Value Voucher',
-                'Gift Cards',
-                'Valid on All',
-                'Valid on Limited',
-                'Others',
-              ]
-            : [
-                'Value Voucher',
-                'Gift Cards',
-              ];
-        const options = defaultVoucherSubcategories
-          .map((s) => ({ value: s, label: s }))
-          .sort((a, b) => String(a.label).localeCompare(String(b.label)));
-        setSubcategoryOptions(options);
+            ? ['Value Voucher', 'Gift Cards', 'Valid on All', 'Valid on Limited', 'Others']
+            : ['Value Voucher', 'Gift Cards'];
         setGenderCategoryData([]);
         setSelectedGenderId(null);
         setSelectedGender('Unisex');
-        if (!id) setValue('subcategory', '');
+        setSubcategoriesLoading(true);
+        // Value-journey subcategories ("Value Voucher"/"Gift Cards") are seeded as real
+        // tiles in each category's subcategory collection, so fetch and map each curated
+        // label to its _id (what the marketplace subcategory filter matches on). Fall back
+        // to a label-valued option only if a label isn't seeded yet / the fetch fails.
+        const endpoint = getSubcategoryEndpoint(category);
+        api
+          .get(endpoint || 'hotelsub/Get_hotel_subcategory')
+          .then((res) => {
+            const root = res?.data?.body ?? res?.data?.data ?? res?.data;
+            const all = getSubcategoryOptions({ data: root });
+            const options = curatedLabels.map((lbl) => {
+              const hit = all.find(
+                (o) => String(o.label).toLowerCase() === lbl.toLowerCase()
+              );
+              return hit || { value: lbl, label: lbl };
+            });
+            setSubcategoryOptions(options);
+            if (!id) setValue('subcategory', '');
+          })
+          .catch(() => {
+            setSubcategoryOptions(curatedLabels.map((s) => ({ value: s, label: s })));
+            if (!id) setValue('subcategory', '');
+          })
+          .finally(() => setSubcategoriesLoading(false));
         return;
       }
 
@@ -570,10 +554,12 @@ export const GeneralInformation = ({ category }) => {
           ProductType: resolvedVerticalType,
           // API defaults ProductCategoryName to "Others" when omitted; Seller Hub and filters use it first.
           ...(isVoucherCategory && { ProductCategoryName: resolvedVerticalType }),
+          // ProductSubCategory must carry the subcategory _id (what the marketplace
+          // category/subcategory filters match on); the human label lives in ...Name.
           ProductSubCategory:
             category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
           ProductSubCategoryName:
-            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
+            category === 'airlineVoucher' ? airlineSubcategoryValue : subcategoryName,
           Gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           ProductSubtitle: giConfig.hasSubtitle ? data.productSubtitle : undefined,
