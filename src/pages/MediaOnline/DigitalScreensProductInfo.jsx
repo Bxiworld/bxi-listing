@@ -263,7 +263,7 @@ export default function DigitalScreensProductInfo() {
                 <Download className="w-4 h-4" /> Download template
               </a>
             </div>
-            <p className="text-sm text-[#6B7A99] mt-4">Note: Inside uploaded excel rates should be as per day.</p>
+            <p className="text-sm text-[#6B7A99] mt-4">Note: Inside uploaded excel rates should be as per min no. of days listed.</p>
           </div>
           
 

@@ -33,8 +33,9 @@ import {
   supportingDocsToCheckboxState,
   checkboxStateToSupportingArray,
   emptySupportingCheckboxState,
-  SUPPORTING_DOC_KEYS_FORM_ORDER,
-  SUPPORTING_DOC_LABELS,
+  SUPPORTING_DOC_KEYS_FORM_ORDER_MULTIPLEX,
+  getSupportingDocLabel,
+  validateMultiplexSupportingDocs,
 } from '../../utils/supportingBuyerDocs';
 import {
   filterFeatureDropdownRows,
@@ -213,6 +214,7 @@ export default function MediaMultiplexTechInfo() {
     UploadLink: '',
     HSN: '',
   });
+  const [supportingDocsError, setSupportingDocsError] = useState('');
 
   const handleInputChange = e => {
     const { name, value } = e.target;
@@ -235,6 +237,7 @@ export default function MediaMultiplexTechInfo() {
 
   const handleCheckboxChange = e => {
     const { value, checked } = e.target;
+    setSupportingDocsError('');
     setStoreMediaAllData(prev => {
       const updatedSupportingDocs = {
         ...prev.supportingDocs,
@@ -386,6 +389,7 @@ export default function MediaMultiplexTechInfo() {
             '',
           supportingDocs: supportingDocsToCheckboxState(
             data?.WhatSupportingYouWouldGiveToBuyer,
+            { mediaProfile: 'multiplex' },
           ),
           UploadLink: data?.UploadLink ?? '',
         }));
@@ -533,6 +537,7 @@ export default function MediaMultiplexTechInfo() {
       ProductQuantity: 0,
       WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(
         storeMediaAllData?.supportingDocs,
+        { mediaProfile: 'multiplex' },
       ),
       OtherCost: OthercostFields,
       ProductFeatures: items,
@@ -565,14 +570,16 @@ export default function MediaMultiplexTechInfo() {
       offerningbrandat: storeMediaAllData?.offerningbrandat,
     };
 
-    // Supporting Documents validation
-    if (
-      checkboxStateToSupportingArray(storeMediaAllData?.supportingDocs || {}).length ===
-      0
-    ) {
-      toast.error('Select at least one Supporting Document');
+    // Supporting Documents validation (multiplex key: plottingReport)
+    const supportingDocsValidation = validateMultiplexSupportingDocs(
+      storeMediaAllData?.supportingDocs || {},
+    );
+    if (!supportingDocsValidation.valid) {
+      setSupportingDocsError(supportingDocsValidation.message);
+      toast.error(supportingDocsValidation.message);
       return;
     }
+    setSupportingDocsError('');
 
     // Repetition validation (only if product is in specific subcategory)
     if (
@@ -1342,7 +1349,7 @@ export default function MediaMultiplexTechInfo() {
                               flexWrap: 'wrap ',
                             }}
                           >
-                            {SUPPORTING_DOC_KEYS_FORM_ORDER.map((docKey) => (
+                            {SUPPORTING_DOC_KEYS_FORM_ORDER_MULTIPLEX.map((docKey) => (
                               <Box
                                 key={docKey}
                                 sx={{ display: 'flex', gap: '10px' }}
@@ -1356,12 +1363,24 @@ export default function MediaMultiplexTechInfo() {
                                   onChange={handleCheckboxChange}
                                 />
                                 <Typography sx={{ ...CommonTextStyle }}>
-                                  {SUPPORTING_DOC_LABELS[docKey]}
+                                  {getSupportingDocLabel(docKey)}
                                 </Typography>
                               </Box>
                             ))}
                           </Grid>
                         </Grid>
+                        {supportingDocsError ? (
+                          <Typography
+                            sx={{
+                              color: 'red',
+                              fontFamily: 'Inter, sans-serif',
+                              fontSize: '12px',
+                              mt: 0.5,
+                            }}
+                          >
+                            {supportingDocsError}
+                          </Typography>
+                        ) : null}
                       </Box>
 
                       <OthercostPortion
