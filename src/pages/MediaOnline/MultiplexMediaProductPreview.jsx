@@ -1435,34 +1435,35 @@ export default function MultiplexMediaProductPreview() {
                     </Box>
                   ) : null}
 
-                  {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks
-                    .length === 0 ? null : (
-                      <>
-                        <Box sx={{ mt: 3 }}>
-                          <Typography sx={cost}>Remarks </Typography>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              width: '95%',
-                              gap: '10px',
-                              mt: 1,
-                            }}
-                          >
-                            {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks.map(
-                              (item) => {
-                                return (
-                                  <>
-                                    <Typography sx={otherCostText}>
-                                      {item}
-                                    </Typography>
-                                  </>
-                                );
-                              },
-                            )}
-                          </Box>
+                  {Array.isArray(
+                    GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks,
+                  ) &&
+                  GetProductByIdData.OtherInformationBuyerMustKnowOrRemarks.length >
+                    0 ? (
+                      <Box sx={{ mt: 3 }}>
+                        <Typography sx={cost}>Remarks </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            width: '95%',
+                            gap: '8px',
+                            mt: 1,
+                          }}
+                        >
+                          {GetProductByIdData.OtherInformationBuyerMustKnowOrRemarks.map(
+                            (item, remarkIdx) => (
+                              <Typography
+                                key={`remark-${remarkIdx}`}
+                                sx={otherCostText}
+                              >
+                                {item}
+                              </Typography>
+                            ),
+                          )}
                         </Box>
-                      </>
-                    )}
+                      </Box>
+                    ) : null}
                 </Grid>
               </Grid>
             </Box>
@@ -1498,6 +1499,7 @@ export default function MultiplexMediaProductPreview() {
 
         {getSupportingDocsDisplayLabels(
           GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
+          { mediaProfile: 'multiplex' },
         ).map((label, idx) => (
           <Typography
             key={idx}
