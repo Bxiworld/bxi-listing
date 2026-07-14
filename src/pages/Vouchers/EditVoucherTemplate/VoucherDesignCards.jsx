@@ -46,21 +46,21 @@ export const VoucherCardFront = React.forwardRef(
           </div>
           <div className="flex-1 flex flex-col justify-between py-2 min-w-0">
             <div>
-              <p className="text-[18px] font-semibold leading-tight mb-0.5 truncate" style={{ fontFamily: 'Inter, sans-serif', color: textColor }}>
+              <p className="text-[18px] font-semibold leading-tight mb-0.5 line-clamp-2" style={{ fontFamily: 'Inter, sans-serif', color: textColor }}>
                 {productData?.productName || 'Voucher'}
               </p>
               <p className="text-xs font-normal mb-3" style={{ fontFamily: 'Inter, sans-serif', color: textMuted }}>
                 {productData?.voucherType || 'Gift Card'}
               </p>
               <div
-                className="p-3 rounded-xl text-center"
+                className="p-3 rounded-xl text-center flex-shrink-0"
                 style={{
                   background: valueBoxGradient,
                   border: '1px solid rgba(255,255,255,0.12)',
                 }}
               >
                 <p className="text-[10px] uppercase tracking-wider font-medium mb-1" style={{ color: gradientSecondaryText }}>VALUE</p>
-                <p className="text-[28px] font-semibold leading-none" style={{ color: gradientPrimaryText }}>
+                <p className="text-[28px] font-semibold leading-tight" style={{ color: gradientPrimaryText }}>
                   {productData?.pricePerUnit ?? '1000'}
                 </p>
               </div>
