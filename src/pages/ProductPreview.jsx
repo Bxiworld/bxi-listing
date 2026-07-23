@@ -1094,8 +1094,8 @@ export default function ProductPreview() {
                   {};
                 const hasLoc = loc.region || loc.state || loc.city || loc.landmark || loc.pincode;
                 const mediaSubtitle =
-                  product?.ProductSubtitle ||
                   product?.ProductSubtittle ||
+                  product?.ProductSubtitle ||
                   product?.productSubtitle ||
                   '';
                 const mediaDescriptionBody =
@@ -1107,6 +1107,7 @@ export default function ProductPreview() {
                   : null;
                 const mediaNameForDescription =
                   product?.medianame || product?.ProductName || '';
+                const productSubtitle = String(mediaSubtitle).trim();
                 return (
                   <Stack spacing={isMediaProduct ? 2 : 3}>
                     {isMediaProduct &&
@@ -1121,13 +1122,13 @@ export default function ProductPreview() {
                           </Typography>
                         </Box>
                       )}
-                    {isMediaProduct && String(mediaSubtitle).trim() !== '' && (
+                    {productSubtitle !== '' && (
                       <Box>
                         <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
-                          Subtitle
+                          Product subtitle
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                          {String(mediaSubtitle).trim()}
+                          {productSubtitle}
                         </Typography>
                       </Box>
                     )}
@@ -1136,15 +1137,11 @@ export default function ProductPreview() {
                         Product Description
                       </Typography>
                       <Typography variant="body1" color="text.secondary">
-                        {isMediaProduct
-                          ? (() => {
-                            const body = String(mediaDescriptionBody || '').trim();
-                            if (body !== '') return body;
-                            return 'No description available.';
-                          })()
-                          : product?.ProductDescription ||
-                          product?.ProductSubtitle ||
-                          'No description available.'}
+                        {(() => {
+                          const body = String(mediaDescriptionBody || '').trim();
+                          if (body !== '') return body;
+                          return 'No description available.';
+                        })()}
                       </Typography>
                     </Box>
                     {product?.ProductsVariantions.at(0).OfferingType && (
