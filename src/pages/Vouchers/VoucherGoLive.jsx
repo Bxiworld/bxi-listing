@@ -118,6 +118,14 @@ export default function VoucherGoLive({ category }) {
                   <p className="text-sm text-[#6B7A99] mb-1">Product Name</p>
                   <p className="font-semibold text-[#111827]">{productData?.ProductName}</p>
                 </div>
+                {(productData?.ProductSubtittle || productData?.ProductSubtitle) && (
+                  <div>
+                    <p className="text-sm text-[#6B7A99] mb-1">Product subtitle</p>
+                    <p className="text-sm text-[#111827]">
+                      {productData?.ProductSubtittle || productData?.ProductSubtitle}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-sm text-[#6B7A99] mb-1">Category</p>
                   <Badge variant="secondary">{productData?.ProductType}</Badge>

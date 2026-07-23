@@ -657,7 +657,8 @@ export default function HoardingMediaProductPreview() {
   const gridColumns = isDoohListing ? doohDigitalColumns : hoardingColumns;
 
   const productSubtitleText = normalizePreviewText(
-    GetProductByIdData?.ProductSubtitle,
+    GetProductByIdData?.ProductSubtittle ||
+      GetProductByIdData?.ProductSubtitle,
   );
   const productDescriptionText = normalizePreviewText(
     GetProductByIdData?.ProductDescription,
@@ -861,7 +862,8 @@ export default function HoardingMediaProductPreview() {
                   fontSize: '0.875rem',
                 }}
               >
-                {GetProductByIdData?.ProductSubtitle ||
+                {GetProductByIdData?.ProductSubtittle ||
+                  GetProductByIdData?.ProductSubtitle ||
                   [
                     GetProductByIdData?.ProductCategoryName,
                     GetProductByIdData?.ProductSubCategoryName,
@@ -957,7 +959,7 @@ export default function HoardingMediaProductPreview() {
                 >
                   {showSubtitleInDescription ? (
                     <Box sx={{ mb: 2.5 }}>
-                      <Typography sx={descriptionSectionLabel}>Subtitle</Typography>
+                      <Typography sx={descriptionSectionLabel}>Product subtitle</Typography>
                       <Typography sx={descriptionBodyText}>
                         {productSubtitleText}
                       </Typography>

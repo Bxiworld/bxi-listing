@@ -587,7 +587,8 @@ export default function MultiplexMediaProductPreview() {
                   fontSize: '0.875rem',
                 }}
               >
-                {GetProductByIdData?.ProductSubtitle ||
+                {GetProductByIdData?.ProductSubtittle ||
+                  GetProductByIdData?.ProductSubtitle ||
                   [
                     GetProductByIdData?.ProductCategoryName,
                     GetProductByIdData?.ProductSubCategoryName,
@@ -1090,6 +1091,23 @@ export default function MultiplexMediaProductPreview() {
               <Grid container>
                 <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
 
+                {(GetProductByIdData?.ProductSubtittle ||
+                  GetProductByIdData?.ProductSubtitle) && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="600"
+                      color="#1E40AF"
+                      sx={{ mb: 0.5 }}
+                    >
+                      Product subtitle
+                    </Typography>
+                    <Typography sx={DescriptionAnswerText}>
+                      {GetProductByIdData?.ProductSubtittle ||
+                        GetProductByIdData?.ProductSubtitle}
+                    </Typography>
+                  </Box>
+                )}
                 Description: <Typography sx={DescriptionAnswerText}>
                       {GetProductByIdData?.ProductDescription}
                     </Typography>
