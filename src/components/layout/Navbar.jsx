@@ -69,7 +69,7 @@ export default function TopNavbar() {
               className="hidden w-4 h-4 object-contain group-hover:block"
               alt=""
             />
-            {isAdmin ? "Back to Admin Panel" : "Back to Marketplace"}
+            {isAdmin ? "Back to Admin Panel" : "Back to B2B Platform"}
           </button>
         </div>
 
