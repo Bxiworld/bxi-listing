@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { ArrowLeft, ArrowRight, Info, Tag, X } from 'lucide-react';
@@ -30,6 +30,16 @@ import {
   formatListingGstPercentLabel,
   isAllowedListingGstRate,
 } from '../../utils/gstOptions';
+import {
+  getRequiredHsnDigitLength,
+  getHsnInputMaxLength,
+  hsnLengthLabel,
+  hsnRequirementHint,
+  sanitizeHsnInput,
+  validateListingHsn,
+  validateVariantsShareSameHsn,
+} from '../../utils/hsnValidation';
+import { useAuthUser } from '../../hooks/useAuthUser';
 
 const VALIDITY_OPTIONS = Array.from({ length: 18 }, (_, i) => {
   const n = i + 1;
@@ -47,9 +57,8 @@ const OTHER_COST_APPLICABLE = [
 
 const isOfferSpecific = () => getVoucherJourneyTypeFromStorage() === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
 
-// Validation helpers (aligned with bxi-dashboard SizeChartTemplate & OthercostsTemplate)
-const HSN_VALID = /^\d{4}$|^\d{6}$|^\d{8}$/;
-const validateVariant = (v, isOffer) => {
+// Validation helpers (aligned with AddProductSteps HSN + GST rules)
+const validateVariant = (v, isOffer, hsnValidateOpts, lockedHsn = '') => {
   const err = {};
   const variantName = String(v.VariantName ?? '').trim();
   if (!variantName) err.VariantName = 'Variant name is required';
@@ -65,9 +74,11 @@ const validateVariant = (v, isOffer) => {
   if (!v.TotalAvailableQty || isNaN(totalQty) || totalQty <= 0) err.TotalAvailableQty = 'Value must be greater than 0';
   else if (String(v.TotalAvailableQty).length > 10) err.TotalAvailableQty = 'Value must be at most 10 characters';
 
-  const hsnStr = String(v.HSN || '').trim();
-  if (!hsnStr) err.HSN = 'HSN is required';
-  else if (!HSN_VALID.test(hsnStr) || /^0+$/.test(hsnStr)) err.HSN = 'HSN must be 4, 6, or 8 digits (not all zeros)';
+  const hsnCheck = validateListingHsn(v.HSN, hsnValidateOpts);
+  if (!hsnCheck.ok) err.HSN = hsnCheck.message;
+  else if (lockedHsn && hsnCheck.value !== lockedHsn) {
+    err.HSN = 'HSN code must be the same for all variants';
+  }
 
   const gstVal = v.GST === '' || v.GST == null ? null : Number(v.GST);
   if (gstVal === null || gstVal === undefined) err.GST = 'GST is required';
@@ -96,13 +107,12 @@ const validateVariant = (v, isOffer) => {
   return err;
 };
 
-const validateOtherCost = (o) => {
+const validateOtherCost = (o, hsnValidateOpts) => {
   const err = {};
   const cost = parseFloat(String(o.CostPrice || '').replace(/,/g, ''));
   if (!o.CostPrice || isNaN(cost) || cost <= 0) err.CostPrice = 'Cost price is required and cannot be zero';
-  const hsnStr = String(o.AdCostHSN || '').trim();
-  if (!hsnStr) err.AdCostHSN = 'HSN is required';
-  else if (!HSN_VALID.test(hsnStr) || /^0+$/.test(hsnStr)) err.AdCostHSN = 'HSN must be 4, 6, or 8 digits (not all zeros)';
+  const hsnCheck = validateListingHsn(o.AdCostHSN, hsnValidateOpts);
+  if (!hsnCheck.ok) err.AdCostHSN = hsnCheck.message;
   const gst = Number(o.AdCostGST);
   if (!isAllowedListingGstRate(gst)) {
     err.AdCostGST = 'Please select a valid GST rate (0%, 0.25%, 3%, 5%, 18%, or 40%)';
@@ -117,6 +127,19 @@ export default function HotelsProductInfo({ category }) {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
+  const { company: authCompany, isAdmin } = useAuthUser();
+  const requiredHsnLength = useMemo(
+    () => (isAdmin ? null : getRequiredHsnDigitLength(authCompany)),
+    [isAdmin, authCompany]
+  );
+  const hsnMaxLength = useMemo(
+    () => getHsnInputMaxLength({ isAdmin, company: authCompany }),
+    [isAdmin, authCompany]
+  );
+  const hsnValidateOpts = useMemo(
+    () => (isAdmin ? { isAdmin: true } : { requiredLength: requiredHsnLength }),
+    [isAdmin, requiredHsnLength]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
   const [HSNStore, setHSNStore] = useState([]);
@@ -235,7 +258,11 @@ export default function HotelsProductInfo({ category }) {
 
   const handleAddVariant = () => {
     const v = newVariant;
-    const err = validateVariant(v, isOfferSpecific());
+    const lockedHsn =
+      editVariantIndex === 0
+        ? ''
+        : String(variantFields[0]?.HSN ?? '').trim();
+    const err = validateVariant(v, isOfferSpecific(), hsnValidateOpts, lockedHsn);
     setVariantErrors(err);
     if (Object.keys(err).length > 0) {
       toast.error('Please fix variant errors before adding.');
@@ -245,12 +272,13 @@ export default function HotelsProductInfo({ category }) {
       Number(v.PricePerUnit || 0) * Number(v.TotalAvailableQty || 0);
     const existingRow =
       editVariantIndex !== null ? variantFields[editVariantIndex] : null;
+    const hsnValue = validateListingHsn(v.HSN, hsnValidateOpts).value;
     const payload = {
       ...(existingRow?._id ? { _id: existingRow._id } : {}),
       VariantName: String(v.VariantName || '').trim(),
       PricePerUnit: String(v.PricePerUnit).trim(),
       TotalAvailableQty: String(v.TotalAvailableQty).trim(),
-      HSN: String(v.HSN).trim(),
+      HSN: hsnValue,
       GST: String(v.GST),
       MinOrderQuantity: String(v.MinOrderQuantity || '1').trim(),
       MaxOrderQuantity: v.MaxOrderQuantity ? String(v.MaxOrderQuantity).trim() : '',
@@ -262,7 +290,13 @@ export default function HotelsProductInfo({ category }) {
       ...(isOfferSpecific() ? { OfferingType: String(v.OfferingType || '').trim().slice(0, 25) } : {}),
     };
     const wasEdit = editVariantIndex !== null;
-    if (wasEdit) {
+    if (wasEdit && editVariantIndex === 0) {
+      const current = getValues('ProductsVariantions') || [];
+      replaceVariants(
+        current.map((row, i) => (i === 0 ? { ...row, ...payload } : { ...row, HSN: hsnValue }))
+      );
+      setEditVariantIndex(null);
+    } else if (wasEdit) {
       updateVariant(editVariantIndex, payload);
       setEditVariantIndex(null);
     } else {
@@ -272,7 +306,7 @@ export default function HotelsProductInfo({ category }) {
       VariantName: '',
       PricePerUnit: '',
       TotalAvailableQty: '',
-      HSN: '',
+      HSN: hsnValue,
       GST: '',
       MinOrderQuantity: '1',
       MaxOrderQuantity: '',
@@ -307,17 +341,18 @@ export default function HotelsProductInfo({ category }) {
 
   const handleAddOtherCost = () => {
     const o = newOtherCost;
-    const err = validateOtherCost(o);
+    const err = validateOtherCost(o, hsnValidateOpts);
     setOtherCostErrors(err);
     if (Object.keys(err).length > 0) {
       toast.error('Please fix additional cost errors before adding.');
       return;
     }
+    const hsnValue = validateListingHsn(o.AdCostHSN, hsnValidateOpts).value;
     const payload = {
       AdCostApplicableOn: o.AdCostApplicableOn || 'All',
       CostPrice: String(o.CostPrice).trim(),
       currencyType: o.currencyType || 'INR',
-      AdCostHSN: String(o.AdCostHSN).trim(),
+      AdCostHSN: hsnValue,
       AdCostGST: Number(o.AdCostGST),
       ReasonOfCost: String(o.ReasonOfCost).trim().slice(0, 75),
     };
@@ -399,6 +434,24 @@ export default function HotelsProductInfo({ category }) {
     setCurrentTag('');
   };
 
+  const isHsnLocked = useMemo(() => {
+    if (editVariantIndex === 0) return false;
+    if (variantFields.length === 0) return false;
+    if (editVariantIndex === null && variantFields.length >= 1) return true;
+    if (editVariantIndex != null && editVariantIndex > 0) return true;
+    return false;
+  }, [editVariantIndex, variantFields.length]);
+
+  const firstVariantHsn = useMemo(
+    () => String(variantFields[0]?.HSN ?? '').trim(),
+    [variantFields]
+  );
+
+  useEffect(() => {
+    if (!isHsnLocked || !firstVariantHsn) return;
+    setNewVariant((p) => (p.HSN === firstVariantHsn ? p : { ...p, HSN: firstVariantHsn }));
+  }, [isHsnLocked, firstVariantHsn, editVariantIndex, variantFields.length]);
+
   const handleDeleteTag = (tag) => {
     setTags((prev) => prev.filter((t) => t !== tag));
   };
@@ -413,6 +466,22 @@ export default function HotelsProductInfo({ category }) {
       setSubmitSectionErrors('Add at least one variant.');
       toast.error('Add at least one variant.');
       return;
+    }
+    const variants = getValues('ProductsVariantions') || variantFields.map((f) => ({ ...f }));
+    const sharedCheck = validateVariantsShareSameHsn(variants);
+    if (!sharedCheck.ok) {
+      setSubmitSectionErrors(sharedCheck.message);
+      toast.error(sharedCheck.message);
+      return;
+    }
+    for (let i = 0; i < variants.length; i += 1) {
+      const rowCheck = validateListingHsn(variants[i]?.HSN, hsnValidateOpts);
+      if (!rowCheck.ok) {
+        const msg = `Variation ${i + 1}: ${rowCheck.message}`;
+        setSubmitSectionErrors(msg);
+        toast.error(msg);
+        return;
+      }
     }
     if (featureItems.length < FEATURE_MIN) {
       setSubmitSectionErrors(`Add at least ${FEATURE_MIN} product features.`);
@@ -568,12 +637,22 @@ export default function HotelsProductInfo({ category }) {
                 <Input
                   type="text"
                   inputMode="numeric"
-                  maxLength={8}
+                  maxLength={hsnMaxLength}
                   value={newVariant.HSN}
-                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setNewVariant((p) => ({ ...p, HSN: v })); setVariantErrors((prev) => ({ ...prev, HSN: undefined })); }}
-                  placeholder="4, 6 or 8 digits"
+                  disabled={isHsnLocked}
+                  onChange={(e) => {
+                    if (isHsnLocked) return;
+                    const v = sanitizeHsnInput(e.target.value, hsnMaxLength);
+                    setNewVariant((p) => ({ ...p, HSN: v }));
+                    setVariantErrors((prev) => ({ ...prev, HSN: undefined }));
+                  }}
+                  placeholder={hsnLengthLabel(requiredHsnLength, { isAdmin })}
                   className={variantErrors.HSN ? 'border-red-500' : ''}
                 />
+                <p className="text-xs text-gray-500">
+                  {hsnRequirementHint(requiredHsnLength, { isAdmin })}
+                  {isHsnLocked ? ' · locked to first variant' : '. Same HSN for all variants.'}
+                </p>
                 {variantErrors.HSN && <p className="text-xs text-red-500 mt-0.5">{variantErrors.HSN}</p>}
               </div>
               <div className="space-y-2">
@@ -814,14 +893,14 @@ export default function HotelsProductInfo({ category }) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>HSN (4/6/8 digits)</Label>
+                  <Label>HSN ({hsnLengthLabel(requiredHsnLength, { isAdmin })})</Label>
                   <Input
                     type="text"
                     inputMode="numeric"
-                    maxLength={8}
-                    placeholder="e.g. 9983"
+                    maxLength={hsnMaxLength}
+                    placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
                     value={newOtherCost.AdCostHSN}
-                    onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setNewOtherCost((p) => ({ ...p, AdCostHSN: v })); setOtherCostErrors((prev) => ({ ...prev, AdCostHSN: undefined })); }}
+                    onChange={(e) => { const v = sanitizeHsnInput(e.target.value, hsnMaxLength); setNewOtherCost((p) => ({ ...p, AdCostHSN: v })); setOtherCostErrors((prev) => ({ ...prev, AdCostHSN: undefined })); }}
                     className={otherCostErrors.AdCostHSN ? 'border-red-500' : ''}
                   />
                   {otherCostErrors.AdCostHSN && <p className="text-xs text-red-500 mt-0.5">{otherCostErrors.AdCostHSN}</p>}

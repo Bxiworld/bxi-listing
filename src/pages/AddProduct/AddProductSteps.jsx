@@ -62,6 +62,16 @@ import {
   formatListingGstPercentLabel,
   isAllowedListingGstRate,
 } from '../../utils/gstOptions';
+import {
+  getRequiredHsnDigitLength,
+  getHsnInputMaxLength,
+  hsnLengthLabel,
+  hsnRequirementHint,
+  sanitizeHsnInput,
+  validateListingHsn,
+  validateVariantsShareSameHsn,
+} from '../../utils/hsnValidation';
+import { useAuthUser } from '../../hooks/useAuthUser';
 
 /** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
 function formatSizeOptionButtonLabel(opt) {
@@ -1041,6 +1051,19 @@ export const ProductInfo = ({ category }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const { company: authCompany, isAdmin } = useAuthUser();
+  const requiredHsnLength = useMemo(
+    () => (isAdmin ? null : getRequiredHsnDigitLength(authCompany)),
+    [isAdmin, authCompany]
+  );
+  const hsnMaxLength = useMemo(
+    () => getHsnInputMaxLength({ isAdmin, company: authCompany }),
+    [isAdmin, authCompany]
+  );
+  const hsnValidateOpts = useMemo(
+    () => (isAdmin ? { isAdmin: true } : { requiredLength: requiredHsnLength }),
+    [isAdmin, requiredHsnLength]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [featureOptions, setFeatureOptions] = useState([]);
   const [featuresLoading, setFeaturesLoading] = useState(false);
@@ -1299,28 +1322,16 @@ export const ProductInfo = ({ category }) => {
       toast.error('Reason of cost cannot exceed 75 characters');
       return;
     }
-    const hs = String(otherCostForm.AdCostHSN || '').trim();
-    if (!hs) {
-      toast.error('HSN is required');
-      return;
-    }
-    if (!/^\d{4}$|^\d{6}$|^\d{8}$/.test(hs)) {
-      toast.error('HSN must be 4, 6, or 8 digits');
-      return;
-    }
-    if (hs.startsWith('0')) {
-      toast.error('HSN cannot start with 0');
-      return;
-    }
-    if (/^0+$/.test(hs)) {
-      toast.error('HSN cannot be all zeros');
+    const hsnCheck = validateListingHsn(otherCostForm.AdCostHSN, hsnValidateOpts);
+    if (!hsnCheck.ok) {
+      toast.error(hsnCheck.message);
       return;
     }
     setOtherCosts((prev) => [...prev, {
       AdCostApplicableOn: otherCostForm.AdCostApplicableOn || 'All',
       CostPrice: cp,
       currencyType: otherCostForm.currencyType || '₹',
-      AdCostHSN: hs || '',
+      AdCostHSN: hsnCheck.value,
       AdCostGST: Number(otherCostForm.AdCostGST) || 18,
       ReasonOfCost: otherCostForm.ReasonOfCost?.trim() || '',
     }]);
@@ -1353,21 +1364,22 @@ export const ProductInfo = ({ category }) => {
       toast.error('Discounted MRP is required and must be greater than 0');
       return;
     }
-    if (!d.hsn?.trim() && hasHsn) {
-      toast.error('HSN is required');
-      return;
-    }
-    if (d.hsn && !/^\d{4}$|^\d{6}$|^\d{8}$/.test(d.hsn)) {
-      toast.error('HSN must be 4, 6, or 8 digits');
-      return;
-    }
-    if (d.hsn && d.hsn.startsWith('0')) {
-      toast.error('HSN cannot start with 0');
-      return;
-    }
-    if (d.hsn && /^0+$/.test(d.hsn)) {
-      toast.error('HSN cannot be all zeros');
-      return;
+    if (hasHsn) {
+      const hsnCheck = validateListingHsn(d.hsn, hsnValidateOpts);
+      if (!hsnCheck.ok) {
+        toast.error(hsnCheck.message);
+        return;
+      }
+      const firstHsn = String(productsVariations[0]?.HSN ?? '').trim();
+      if (productsVariations.length >= 1) {
+        if (editVariationIndex === null || editVariationIndex > 0) {
+          if (firstHsn && hsnCheck.value !== firstHsn) {
+            toast.error('HSN code must be the same for all variants');
+            return;
+          }
+        }
+      }
+      d.hsn = hsnCheck.value;
     }
     const chosenGst = String(d.gst ?? '18');
     if (!isAllowedListingGstRate(chosenGst)) {
@@ -1519,7 +1531,14 @@ export const ProductInfo = ({ category }) => {
       ...(extraCol === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event')) && { DateOfTheEvent: d.dateOfEvent || '' }),
     };
     if (editVariationIndex !== null) {
-      setProductsVariations((prev) => prev.map((row, i) => (i === editVariationIndex ? variation : row)));
+      setProductsVariations((prev) => {
+        const next = prev.map((row, i) => (i === editVariationIndex ? variation : row));
+        if (hasHsn && editVariationIndex === 0) {
+          const syncedHsn = String(variation.HSN || '').trim();
+          return next.map((row, i) => (i === 0 ? row : { ...row, HSN: syncedHsn }));
+        }
+        return next;
+      });
       setEditVariationIndex(null);
       toast.success('Variation updated');
     } else {
@@ -1546,7 +1565,16 @@ export const ProductInfo = ({ category }) => {
       setValue('maxOrderQty', '');
     }
     setValue('gst', '');
-    setValue('hsn', '');
+    // HSN must stay identical across variants — keep the shared code filled for the next row.
+    if (hasHsn) {
+      const sharedHsn =
+        editVariationIndex === 0
+          ? String(variation.HSN || '')
+          : String(productsVariations[0]?.HSN || variation.HSN || '');
+      setValue('hsn', sharedHsn);
+    } else {
+      setValue('hsn', '');
+    }
     setValue('productSize', '');
     setValue('measurementUnit', '');
     setValue('flavor', '');
@@ -1669,7 +1697,11 @@ export const ProductInfo = ({ category }) => {
       setValue('maxOrderQty', '100');
     }
     setValue('gst', '');
-    setValue('hsn', '');
+    if (hasHsn) {
+      setValue('hsn', String(productsVariations[0]?.HSN ?? '').trim());
+    } else {
+      setValue('hsn', '');
+    }
     setValue('productSize', '');
     setValue('measurementUnit', '');
     setValue('flavor', '');
@@ -1701,7 +1733,19 @@ export const ProductInfo = ({ category }) => {
   };
 
   const handleRemoveVariation = (idx) => {
-    setProductsVariations((prev) => prev.filter((_, i) => i !== idx));
+    setProductsVariations((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      if (hasHsn) {
+        const shared = String(next[0]?.HSN ?? '').trim();
+        setValue('hsn', shared);
+      }
+      return next;
+    });
+    if (editVariationIndex === idx) {
+      setEditVariationIndex(null);
+    } else if (editVariationIndex != null && editVariationIndex > idx) {
+      setEditVariationIndex(editVariationIndex - 1);
+    }
   };
 
   // Date requirements per category
@@ -1838,8 +1882,22 @@ export const ProductInfo = ({ category }) => {
     return false;
   }, [editVariationIndex, productsVariations]);
 
+  const isHsnChained = useMemo(() => {
+    if (!hasHsn) return false;
+    if (editVariationIndex === 0) return false;
+    if (productsVariations.length === 0) return false;
+    if (editVariationIndex === null && productsVariations.length >= 1) return true;
+    if (editVariationIndex != null && editVariationIndex > 0) return true;
+    return false;
+  }, [hasHsn, editVariationIndex, productsVariations]);
+
   const firstVariantGst = useMemo(
     () => String(productsVariations[0]?.GST ?? '18'),
+    [productsVariations]
+  );
+
+  const firstVariantHsn = useMemo(
+    () => String(productsVariations[0]?.HSN ?? '').trim(),
     [productsVariations]
   );
 
@@ -1859,6 +1917,11 @@ export const ProductInfo = ({ category }) => {
       setValue('gst', firstVariantGst);
     }
   }, [isGstChained, firstVariantGst, editVariationIndex, setValue, getValues, productsVariations.length]);
+
+  useEffect(() => {
+    if (!isHsnChained || !firstVariantHsn) return;
+    setValue('hsn', firstVariantHsn, { shouldDirty: false, shouldValidate: true });
+  }, [isHsnChained, firstVariantHsn, editVariationIndex, setValue, productsVariations.length]);
 
   const selectedSize = watch('selectedSize');
   const isDimensionSelectionLocked = hasSizeOptions && productsVariations.length > 0;
@@ -1917,6 +1980,20 @@ export const ProductInfo = ({ category }) => {
     if (productsVariations.length === 0) {
       toast.error('Please add at least one variation using "Proceed to Add"');
       return;
+    }
+    if (hasHsn) {
+      const sharedCheck = validateVariantsShareSameHsn(productsVariations);
+      if (!sharedCheck.ok) {
+        toast.error(sharedCheck.message);
+        return;
+      }
+      for (let i = 0; i < productsVariations.length; i += 1) {
+        const rowCheck = validateListingHsn(productsVariations[i]?.HSN, hsnValidateOpts);
+        if (!rowCheck.ok) {
+          toast.error(`Variation ${i + 1}: ${rowCheck.message}`);
+          return;
+        }
+      }
     }
     if (requiresProductId) {
       clearErrors('productIdType');
@@ -2375,7 +2452,7 @@ export const ProductInfo = ({ category }) => {
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Harmonized System Nomenclature code for tax classification (4-8 digits)</p>
+                          <p>{hsnRequirementHint(requiredHsnLength, { isAdmin })}. Same HSN applies to all variants.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -2385,15 +2462,22 @@ export const ProductInfo = ({ category }) => {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    placeholder="e.g. 998346"
+                    maxLength={hsnMaxLength}
+                    placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                    disabled={isHsnChained}
                     {...register('hsn', {
-                      setValueAs: (v) => String(v ?? '').replace(/\D/g, ''),
+                      setValueAs: (v) => sanitizeHsnInput(v, hsnMaxLength),
                       onChange: (e) => {
-                        const next = String(e?.target?.value ?? '').replace(/\D/g, '');
+                        if (isHsnChained) return;
+                        const next = sanitizeHsnInput(e?.target?.value, hsnMaxLength);
                         setValue('hsn', next, { shouldValidate: true, shouldDirty: true });
                       },
                     })}
                   />
+                  <p className="text-xs text-gray-500">
+                    {hsnLengthLabel(requiredHsnLength, { isAdmin })} required
+                    {isHsnChained ? ' · locked to first variant' : ''}
+                  </p>
                 </div>
               )}
 
@@ -3124,12 +3208,15 @@ export const ProductInfo = ({ category }) => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>HSN (4/6/8 digits)</Label>
+                    <Label>HSN ({hsnLengthLabel(requiredHsnLength, { isAdmin })})</Label>
                     <Input
-                      placeholder="e.g. 9983"
-                      maxLength={8}
+                      placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                      maxLength={hsnMaxLength}
                       value={otherCostForm.AdCostHSN}
-                      onChange={(e) => setOtherCostForm((prev) => ({ ...prev, AdCostHSN: e.target.value.replace(/\D/g, '') }))}
+                      onChange={(e) => setOtherCostForm((prev) => ({
+                        ...prev,
+                        AdCostHSN: sanitizeHsnInput(e.target.value, hsnMaxLength),
+                      }))}
                     />
                   </div>
                   <div className="space-y-2">
