@@ -587,7 +587,8 @@ export default function MultiplexMediaProductPreview() {
                   fontSize: '0.875rem',
                 }}
               >
-                {GetProductByIdData?.ProductSubtitle ||
+                {GetProductByIdData?.ProductSubtittle ||
+                  GetProductByIdData?.ProductSubtitle ||
                   [
                     GetProductByIdData?.ProductCategoryName,
                     GetProductByIdData?.ProductSubCategoryName,
@@ -1090,6 +1091,23 @@ export default function MultiplexMediaProductPreview() {
               <Grid container>
                 <Grid item xl={12} lg={12} md={12} sm={12} xs={12}>
 
+                {(GetProductByIdData?.ProductSubtittle ||
+                  GetProductByIdData?.ProductSubtitle) && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight="600"
+                      color="#1E40AF"
+                      sx={{ mb: 0.5 }}
+                    >
+                      Product subtitle
+                    </Typography>
+                    <Typography sx={DescriptionAnswerText}>
+                      {GetProductByIdData?.ProductSubtittle ||
+                        GetProductByIdData?.ProductSubtitle}
+                    </Typography>
+                  </Box>
+                )}
                 Description: <Typography sx={DescriptionAnswerText}>
                       {GetProductByIdData?.ProductDescription}
                     </Typography>
@@ -1435,34 +1453,35 @@ export default function MultiplexMediaProductPreview() {
                     </Box>
                   ) : null}
 
-                  {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks
-                    .length === 0 ? null : (
-                      <>
-                        <Box sx={{ mt: 3 }}>
-                          <Typography sx={cost}>Remarks </Typography>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              width: '95%',
-                              gap: '10px',
-                              mt: 1,
-                            }}
-                          >
-                            {GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks.map(
-                              (item) => {
-                                return (
-                                  <>
-                                    <Typography sx={otherCostText}>
-                                      {item}
-                                    </Typography>
-                                  </>
-                                );
-                              },
-                            )}
-                          </Box>
+                  {Array.isArray(
+                    GetProductByIdData?.OtherInformationBuyerMustKnowOrRemarks,
+                  ) &&
+                  GetProductByIdData.OtherInformationBuyerMustKnowOrRemarks.length >
+                    0 ? (
+                      <Box sx={{ mt: 3 }}>
+                        <Typography sx={cost}>Remarks </Typography>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            width: '95%',
+                            gap: '8px',
+                            mt: 1,
+                          }}
+                        >
+                          {GetProductByIdData.OtherInformationBuyerMustKnowOrRemarks.map(
+                            (item, remarkIdx) => (
+                              <Typography
+                                key={`remark-${remarkIdx}`}
+                                sx={otherCostText}
+                              >
+                                {item}
+                              </Typography>
+                            ),
+                          )}
                         </Box>
-                      </>
-                    )}
+                      </Box>
+                    ) : null}
                 </Grid>
               </Grid>
             </Box>
@@ -1498,6 +1517,7 @@ export default function MultiplexMediaProductPreview() {
 
         {getSupportingDocsDisplayLabels(
           GetProductByIdData?.WhatSupportingYouWouldGiveToBuyer,
+          { mediaProfile: 'multiplex' },
         ).map((label, idx) => (
           <Typography
             key={idx}

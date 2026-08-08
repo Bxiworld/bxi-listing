@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  listing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_LANDING_URL: "https://dev.bxiworld.in"
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_LANDING_URL=https://dev.bxiworld.in
+    restart: unless-stopped

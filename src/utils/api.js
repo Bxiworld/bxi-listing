@@ -6,32 +6,78 @@ const BXI_API_KEY = process.env.REACT_APP_BXI_API_KEY;
 if (!BXI_API_KEY) {
   throw new Error('REACT_APP_BXI_API_KEY is not set (no hardcoded fallback).');
 }
+// Env-driven (REACT_APP_API_URL, selected per environment by start:dev/start:prod).
+// Falls back to the development API. Trailing slashes normalized (BXI mounts at root, no /api).
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://apiv1production.bxiworld.com').replace(/\/+$/, '');
 
-// Seller auth token handed off from the dashboard (app.bxiworld.com) via URL,
-// because sessionStorage is per-origin and the cross-site (.com <-> .in) cookie
-// cannot be shared. On first load we read `sellertoken` from the URL, persist it
-// to this origin's sessionStorage, and strip it from the address bar.
+// Seller auth handed off from the dashboard (app.bxiworld.com). sessionStorage is
+// per-origin and the cross-site (.com <-> .in) cookie cannot be shared.
+//
+// SECURITY (VAPT rescan PT-25): the dashboard NO LONGER passes the JWT in the URL.
+// It passes a short-lived, single-use `code` which we exchange (POST
+// /auth/handoff/exchange) for a real session token that never appears in the
+// address bar. The code is stripped from the URL immediately and is rejected on
+// any replay. `sellertoken` is still read for backward-compat during rollout.
 const SELLER_TOKEN_KEY = 'bxi_auth_token';
-const captureSellerTokenFromUrl = () => {
+
+// Resolves once any pending handoff-code exchange has completed. API calls await
+// it so the Authorization header is set before the first authenticated request.
+let handoffReady = Promise.resolve();
+
+const stripUrlParams = (keys) => {
+  const params = new URLSearchParams(window.location.search);
+  let changed = false;
+  keys.forEach((k) => {
+    if (params.has(k)) {
+      params.delete(k);
+      changed = true;
+    }
+  });
+  if (changed) {
+    const q = params.toString();
+    const newUrl =
+      window.location.pathname + (q ? `?${q}` : '') + window.location.hash;
+    window.history.replaceState({}, document.title, newUrl);
+  }
+};
+
+const captureAuthFromUrl = () => {
   try {
     const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl = params.get('sellertoken');
-    if (tokenFromUrl) {
-      sessionStorage.setItem(SELLER_TOKEN_KEY, tokenFromUrl);
-      // Remove the token from the visible URL (avoid it lingering in history/logs).
-      params.delete('sellertoken');
-      const newQuery = params.toString();
-      const newUrl =
-        window.location.pathname + (newQuery ? `?${newQuery}` : '') + window.location.hash;
-      window.history.replaceState({}, document.title, newUrl);
+    const code = params.get('code');
+    const legacyToken = params.get('sellertoken');
+
+    if (code) {
+      // Strip immediately so the code cannot be reused from history/address bar,
+      // then exchange it once for a real token.
+      stripUrlParams(['code', 'sellertoken']);
+      handoffReady = (async () => {
+        try {
+          const res = await axios.post(
+            `${API_BASE_URL}/auth/handoff/exchange`,
+            { code },
+            { headers: { bxiapikey: BXI_API_KEY } }
+          );
+          const token = res?.data?.token;
+          if (token) sessionStorage.setItem(SELLER_TOKEN_KEY, token);
+        } catch (e) {
+          // Invalid / expired / already-used code — leave no token; the app will
+          // then require its own login instead of granting replayed access.
+        }
+      })();
+      return;
+    }
+
+    if (legacyToken) {
+      sessionStorage.setItem(SELLER_TOKEN_KEY, legacyToken);
+      stripUrlParams(['sellertoken']);
     }
   } catch (e) {
-    console.error('[API] Error capturing seller token:', e);
+    console.error('[API] Error capturing auth from URL:', e);
   }
 };
 if (typeof window !== 'undefined') {
-  captureSellerTokenFromUrl();
+  captureAuthFromUrl();
 }
 const getSellerToken = () => {
   try {
@@ -72,7 +118,9 @@ const api = axios.create({
 
 // Request interceptor - add admin token if present; allow FormData to set Content-Type (multipart)
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    // Wait for any in-flight handoff-code exchange so the seller token is ready.
+    try { await handoffReady; } catch (e) { /* proceed unauthenticated */ }
     const token = getAdminToken();
     if (token) {
       config.headers['x-admin-token'] = token;
@@ -299,6 +347,19 @@ export const bulkUploadApi = {
     api.post('publiq_bulk_upload/fetch_company_upload', {}),
   checkProcessingStatus: (body) =>
     api.post('publiq_bulk_upload/check_processing_status', body),
+  /** Recovery: list this company's recent bulk jobs (newest first) so a job can be
+   * reopened after the browser tab/router state is gone. */
+  getMyBulkUploads: () =>
+    api.post('publiq_bulk_upload/my_bulk_uploads', {}),
+  /** Download the processed file THROUGH the backend proxy (streams from S3 or proxies
+   * the AI URL with Content-Disposition: attachment). Avoids the "opens in a tab but
+   * doesn't download" / CORS / expired-AI-file problems of linking the raw AI URL. */
+  downloadProcessedFile: (webhook_id) =>
+    api.post(
+      'publiq_bulk_upload/download_file',
+      { webhook_id },
+      { responseType: 'blob' },
+    ),
   /** Corrected Excel after AI output — validated on BXI only (multipart: file, webhook_id, category). */
   uploadCorrectedBulkFile: (formData) =>
     api.post('publiq_bulk_upload/bulk_error_file_upload_User', formData, {
@@ -306,6 +367,32 @@ export const bulkUploadApi = {
     }),
   getBulkValidationErrors: (webhook_id) =>
     api.post('publiq_bulk_upload/get_validation_errors', { webhook_id }),
+  /** Create the products from a validated bulk file and send them to admin review.
+   * Maps the category slug to the right BXI creation endpoint; `data` is the webhook id. */
+  createProductsFromBulk: (category, webhookId) => {
+    const endpoint =
+      BULK_CREATE_ENDPOINT_BY_CATEGORY[String(category || '').toLowerCase()];
+    if (!endpoint) {
+      return Promise.reject(
+        new Error(`Bulk product creation isn't available for "${category}" yet.`),
+      );
+    }
+    return api.post(`publiq_bulk_upload/${endpoint}`, { data: webhookId });
+  },
+};
+
+// Category slug (as passed from the upload page) → BXI product-creation route.
+const BULK_CREATE_ENDPOINT_BY_CATEGORY = {
+  electronics: 'upload_bulkUpload_files_Electronics',
+  fmcg: 'upload_bulkUpload_files_FMCG',
+  mobility: 'upload_bulkUpload_files_Mobility',
+  officesupply: 'upload_bulkUpload_files_office_supply',
+  'office supply': 'upload_bulkUpload_files_office_supply',
+  others: 'upload_bulkUpload_files_Others',
+  qsr: 'upload_bulkUpload_files_QSR',
+  restaurant: 'upload_bulkUpload_files_QSR',
+  textile: 'upload_bulkUpload_files_Textile',
+  lifestyle: 'upload_bulkUpload_files_Lifestyle',
 };
 
 export default api;

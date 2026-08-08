@@ -588,6 +588,16 @@ function App() {
                   </ListingAccessGuard>
                 }
               />
+              {/* URL-addressable variant so a refresh / shared link / "return later"
+                  recovers the job by webhook id instead of relying on router state. */}
+              <Route
+                path="/bulkupload/status/:webhookId"
+                element={
+                  <ListingAccessGuard kind="product">
+                    <BulkUploadProcessing />
+                  </ListingAccessGuard>
+                }
+              />
               {bulkUploadCategories.map(({ path, category, showProductsPath }) => (
                 <React.Fragment key={path}>
                   <Route

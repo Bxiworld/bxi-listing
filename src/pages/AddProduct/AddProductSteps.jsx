@@ -62,6 +62,16 @@ import {
   formatListingGstPercentLabel,
   isAllowedListingGstRate,
 } from '../../utils/gstOptions';
+import {
+  getRequiredHsnDigitLength,
+  getHsnInputMaxLength,
+  hsnLengthLabel,
+  hsnRequirementHint,
+  sanitizeHsnInput,
+  validateListingHsn,
+  validateVariantsShareSameHsn,
+} from '../../utils/hsnValidation';
+import { useAuthUser } from '../../hooks/useAuthUser';
 
 /** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
 function formatSizeOptionButtonLabel(opt) {
@@ -113,63 +123,38 @@ const getSubcategoryOptions = (responseData) => {
       if (typeof item === 'string') {
         return { label: item, value: item };
       }
-      if (item?.SubcategoryType) {
-        return { label: item.SubcategoryType, value: item.SubcategoryType };
+      if (!item || typeof item !== 'object') {
+        return null;
       }
-      if (item?.name) {
-        return { label: item.name, value: item.name };
-      }
-      if (item?.value) {
-        return { label: item.value, value: item.value };
-      }
-      if (item?.SampleFmcgCategoryType) {
-        return {
-          label: item.SampleFmcgCategoryType,
-          value: item.SampleFmcgCategoryType,
-        };
-      }
-      if (item?.SampleMobilityCategoryType) {
-        return {
-          label: item.SampleMobilityCategoryType,
-          value: item.SampleMobilityCategoryType,
-        };
-      }
-      if (item?.RestuarantQsrCategoryType) {
-        return { label: item.RestuarantQsrCategoryType, value: item.RestuarantQsrCategoryType };
-      }
-      if (item?.EntertainmentFeature || item?.entertainmentSubcategory) {
-        const v = item.EntertainmentFeature || item.entertainmentSubcategory;
-        return { label: v, value: v };
-      }
-      if (item?.OtherSub) {
-        return { label: item.OtherSub, value: item.OtherSub };
-      }
-      if (item?.SampleAirlineFeature) {
-        return { label: item.SampleAirlineFeature, value: item.SampleAirlineFeature };
-      }
-      if (item?.Mediaonlinecategorysingle) {
-        return { label: item.Mediaonlinecategorysingle, value: item._id };
-      }
-      if (item?.Mediaofflinecategory) {
-        return { label: item.Mediaofflinecategory, value: item._id };
-      }
-      if (item?.SubcategoryName) {
-        return { label: item.SubcategoryName, value: item.SubcategoryName };
-      }
-      // Final fallback: first non-id string field in object
-      if (item && typeof item === 'object') {
-        const candidate = Object.entries(item).find(
+      // Display label: the first recognized name field on the row.
+      const label =
+        item.SubcategoryType ||
+        item.name ||
+        item.value ||
+        item.SampleFmcgCategoryType ||
+        item.SampleMobilityCategoryType ||
+        item.SampleCategoryType ||
+        item.RestuarantQsrCategoryType ||
+        item.EntertainmentFeature ||
+        item.entertainmentSubcategory ||
+        item.OtherSub ||
+        item.SampleAirlineFeature ||
+        item.TextileNestedSubType ||
+        item.Mediaonlinecategorysingle ||
+        item.Mediaofflinecategory ||
+        item.SubcategoryName ||
+        // Final fallback: first non-id string field in object
+        Object.entries(item).find(
           ([key, val]) =>
-            typeof val === 'string' &&
-            val.trim() &&
-            key !== '_id' &&
-            key !== 'id'
-        );
-        if (candidate) {
-          return { label: candidate[1], value: candidate[1] };
-        }
+            typeof val === 'string' && val.trim() && key !== '_id' && key !== 'id'
+        )?.[1];
+      if (!label) {
+        return null;
       }
-      return null;
+      // Always prefer the subdocument _id so listings reference the same key the
+      // marketplace subcategory filters/count APIs match on; fall back to the display
+      // string only when the row genuinely has no id.
+      return { label, value: item._id ?? label };
     })
     .filter(Boolean);
 };
@@ -371,27 +356,38 @@ export const GeneralInformation = ({ category }) => {
       const currentVoucherJourneyType = getVoucherJourneyTypeFromStorage();
 
       if (currentVoucherJourneyType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
-        const defaultVoucherSubcategories =
+        const curatedLabels =
           category === 'hotelsVoucher'
-            ? [
-                'Value Voucher',
-                'Gift Cards',
-                'Valid on All',
-                'Valid on Limited',
-                'Others',
-              ]
-            : [
-                'Value Voucher',
-                'Gift Cards',
-              ];
-        const options = defaultVoucherSubcategories
-          .map((s) => ({ value: s, label: s }))
-          .sort((a, b) => String(a.label).localeCompare(String(b.label)));
-        setSubcategoryOptions(options);
+            ? ['Value Voucher', 'Gift Cards', 'Valid on All', 'Valid on Limited', 'Others']
+            : ['Value Voucher', 'Gift Cards'];
         setGenderCategoryData([]);
         setSelectedGenderId(null);
         setSelectedGender('Unisex');
-        if (!id) setValue('subcategory', '');
+        setSubcategoriesLoading(true);
+        // Value-journey subcategories ("Value Voucher"/"Gift Cards") are seeded as real
+        // tiles in each category's subcategory collection, so fetch and map each curated
+        // label to its _id (what the marketplace subcategory filter matches on). Fall back
+        // to a label-valued option only if a label isn't seeded yet / the fetch fails.
+        const endpoint = getSubcategoryEndpoint(category);
+        api
+          .get(endpoint || 'hotelsub/Get_hotel_subcategory')
+          .then((res) => {
+            const root = res?.data?.body ?? res?.data?.data ?? res?.data;
+            const all = getSubcategoryOptions({ data: root });
+            const options = curatedLabels.map((lbl) => {
+              const hit = all.find(
+                (o) => String(o.label).toLowerCase() === lbl.toLowerCase()
+              );
+              return hit || { value: lbl, label: lbl };
+            });
+            setSubcategoryOptions(options);
+            if (!id) setValue('subcategory', '');
+          })
+          .catch(() => {
+            setSubcategoryOptions(curatedLabels.map((s) => ({ value: s, label: s })));
+            if (!id) setValue('subcategory', '');
+          })
+          .finally(() => setSubcategoriesLoading(false));
         return;
       }
 
@@ -568,10 +564,12 @@ export const GeneralInformation = ({ category }) => {
           ProductType: resolvedVerticalType,
           // API defaults ProductCategoryName to "Others" when omitted; Seller Hub and filters use it first.
           ...(isVoucherCategory && { ProductCategoryName: resolvedVerticalType }),
+          // ProductSubCategory must carry the subcategory _id (what the marketplace
+          // category/subcategory filters match on); the human label lives in ...Name.
           ProductSubCategory:
             category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
           ProductSubCategoryName:
-            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
+            category === 'airlineVoucher' ? airlineSubcategoryValue : subcategoryName,
           Gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           ProductSubtitle: giConfig.hasSubtitle ? data.productSubtitle : undefined,
@@ -1053,6 +1051,19 @@ export const ProductInfo = ({ category }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const { company: authCompany, isAdmin } = useAuthUser();
+  const requiredHsnLength = useMemo(
+    () => (isAdmin ? null : getRequiredHsnDigitLength(authCompany)),
+    [isAdmin, authCompany]
+  );
+  const hsnMaxLength = useMemo(
+    () => getHsnInputMaxLength({ isAdmin, company: authCompany }),
+    [isAdmin, authCompany]
+  );
+  const hsnValidateOpts = useMemo(
+    () => (isAdmin ? { isAdmin: true } : { requiredLength: requiredHsnLength }),
+    [isAdmin, requiredHsnLength]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [featureOptions, setFeatureOptions] = useState([]);
   const [featuresLoading, setFeaturesLoading] = useState(false);
@@ -1091,6 +1102,13 @@ export const ProductInfo = ({ category }) => {
   // Mobility Registration Details (managed by react-hook-form)
 
   const piConfig = getProductInfoConfig(category);
+  const requiresProductId = piConfig.hasProductId && !isVoucherCategory;
+  const VARIATION_DRAFT_FIELDS = [
+    'productIdType', 'variantName', 'price', 'discountedPrice', 'hsn',
+    'minOrderQty', 'maxOrderQty', 'length', 'width', 'height', 'weight',
+    'volume', 'sizeValue', 'shoeSize', 'sampleAvailability', 'priceOfSample',
+    'flavor', 'offeringType', 'dateOfEvent', 'selectedSize',
+  ];
   const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
   const activeVoucherConfig = isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
   // EE: Date of the Event only when user chose "Events" on eephysical (bxi-dashboard parity)
@@ -1304,28 +1322,16 @@ export const ProductInfo = ({ category }) => {
       toast.error('Reason of cost cannot exceed 75 characters');
       return;
     }
-    const hs = String(otherCostForm.AdCostHSN || '').trim();
-    if (!hs) {
-      toast.error('HSN is required');
-      return;
-    }
-    if (!/^\d{4}$|^\d{6}$|^\d{8}$/.test(hs)) {
-      toast.error('HSN must be 4, 6, or 8 digits');
-      return;
-    }
-    if (hs.startsWith('0')) {
-      toast.error('HSN cannot start with 0');
-      return;
-    }
-    if (/^0+$/.test(hs)) {
-      toast.error('HSN cannot be all zeros');
+    const hsnCheck = validateListingHsn(otherCostForm.AdCostHSN, hsnValidateOpts);
+    if (!hsnCheck.ok) {
+      toast.error(hsnCheck.message);
       return;
     }
     setOtherCosts((prev) => [...prev, {
       AdCostApplicableOn: otherCostForm.AdCostApplicableOn || 'All',
       CostPrice: cp,
       currencyType: otherCostForm.currencyType || '₹',
-      AdCostHSN: hs || '',
+      AdCostHSN: hsnCheck.value,
       AdCostGST: Number(otherCostForm.AdCostGST) || 18,
       ReasonOfCost: otherCostForm.ReasonOfCost?.trim() || '',
     }]);
@@ -1358,21 +1364,22 @@ export const ProductInfo = ({ category }) => {
       toast.error('Discounted MRP is required and must be greater than 0');
       return;
     }
-    if (!d.hsn?.trim() && hasHsn) {
-      toast.error('HSN is required');
-      return;
-    }
-    if (d.hsn && !/^\d{4}$|^\d{6}$|^\d{8}$/.test(d.hsn)) {
-      toast.error('HSN must be 4, 6, or 8 digits');
-      return;
-    }
-    if (d.hsn && d.hsn.startsWith('0')) {
-      toast.error('HSN cannot start with 0');
-      return;
-    }
-    if (d.hsn && /^0+$/.test(d.hsn)) {
-      toast.error('HSN cannot be all zeros');
-      return;
+    if (hasHsn) {
+      const hsnCheck = validateListingHsn(d.hsn, hsnValidateOpts);
+      if (!hsnCheck.ok) {
+        toast.error(hsnCheck.message);
+        return;
+      }
+      const firstHsn = String(productsVariations[0]?.HSN ?? '').trim();
+      if (productsVariations.length >= 1) {
+        if (editVariationIndex === null || editVariationIndex > 0) {
+          if (firstHsn && hsnCheck.value !== firstHsn) {
+            toast.error('HSN code must be the same for all variants');
+            return;
+          }
+        }
+      }
+      d.hsn = hsnCheck.value;
     }
     const chosenGst = String(d.gst ?? '18');
     if (!isAllowedListingGstRate(chosenGst)) {
@@ -1465,6 +1472,16 @@ export const ProductInfo = ({ category }) => {
       return;
     }
 
+    const productIdTrimmed = String(d.productIdType ?? '').trim();
+    if (requiresProductId && !productIdTrimmed) {
+      setError('productIdType', { type: 'required', message: 'Product Id is required' });
+      toast.error('Product Id is required');
+      return;
+    }
+    if (requiresProductId) {
+      clearErrors('productIdType');
+    }
+
     const wantsSample = !!d.isSample;
     const sampleQty = wantsSample ? parseInt(d.sampleAvailability, 10) : 0;
     const samplePrice = wantsSample
@@ -1494,7 +1511,7 @@ export const ProductInfo = ({ category }) => {
       HSN: d.hsn || '',
       ProductSize: productSize,
 
-      ProductIdType: d.productIdType || `SKU-${Date.now()}`,
+      ...(requiresProductId ? { ProductIdType: productIdTrimmed } : {}),
       Length: ['Length', 'Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.length || '') : '',
       Width: d.selectedSize === 'Length x Height x Width' ? (d.width || '') : '',
       Height: ['Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.height || '') : '',
@@ -1514,7 +1531,14 @@ export const ProductInfo = ({ category }) => {
       ...(extraCol === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event')) && { DateOfTheEvent: d.dateOfEvent || '' }),
     };
     if (editVariationIndex !== null) {
-      setProductsVariations((prev) => prev.map((row, i) => (i === editVariationIndex ? variation : row)));
+      setProductsVariations((prev) => {
+        const next = prev.map((row, i) => (i === editVariationIndex ? variation : row));
+        if (hasHsn && editVariationIndex === 0) {
+          const syncedHsn = String(variation.HSN || '').trim();
+          return next.map((row, i) => (i === 0 ? row : { ...row, HSN: syncedHsn }));
+        }
+        return next;
+      });
       setEditVariationIndex(null);
       toast.success('Variation updated');
     } else {
@@ -1522,7 +1546,7 @@ export const ProductInfo = ({ category }) => {
       toast.success('Variation added');
     }
     // Size requirement is satisfied once at least one variation exists.
-    clearErrors(['selectedSize']);
+    clearErrors(['selectedSize', ...VARIATION_DRAFT_FIELDS]);
     setValue('price', '');
     setValue('discountedPrice', '');
     setValue('productIdType', '');
@@ -1541,7 +1565,16 @@ export const ProductInfo = ({ category }) => {
       setValue('maxOrderQty', '');
     }
     setValue('gst', '');
-    setValue('hsn', '');
+    // HSN must stay identical across variants — keep the shared code filled for the next row.
+    if (hasHsn) {
+      const sharedHsn =
+        editVariationIndex === 0
+          ? String(variation.HSN || '')
+          : String(productsVariations[0]?.HSN || variation.HSN || '');
+      setValue('hsn', sharedHsn);
+    } else {
+      setValue('hsn', '');
+    }
     setValue('productSize', '');
     setValue('measurementUnit', '');
     setValue('flavor', '');
@@ -1664,7 +1697,11 @@ export const ProductInfo = ({ category }) => {
       setValue('maxOrderQty', '100');
     }
     setValue('gst', '');
-    setValue('hsn', '');
+    if (hasHsn) {
+      setValue('hsn', String(productsVariations[0]?.HSN ?? '').trim());
+    } else {
+      setValue('hsn', '');
+    }
     setValue('productSize', '');
     setValue('measurementUnit', '');
     setValue('flavor', '');
@@ -1696,7 +1733,19 @@ export const ProductInfo = ({ category }) => {
   };
 
   const handleRemoveVariation = (idx) => {
-    setProductsVariations((prev) => prev.filter((_, i) => i !== idx));
+    setProductsVariations((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      if (hasHsn) {
+        const shared = String(next[0]?.HSN ?? '').trim();
+        setValue('hsn', shared);
+      }
+      return next;
+    });
+    if (editVariationIndex === idx) {
+      setEditVariationIndex(null);
+    } else if (editVariationIndex != null && editVariationIndex > idx) {
+      setEditVariationIndex(editVariationIndex - 1);
+    }
   };
 
   // Date requirements per category
@@ -1720,7 +1769,7 @@ export const ProductInfo = ({ category }) => {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch, getValues, setError, clearErrors } = useForm({
+  const { register, formState: { errors }, setValue, watch, getValues, setError, clearErrors, trigger } = useForm({
     defaultValues: {
       price: '',
       discountedPrice: '',
@@ -1833,8 +1882,22 @@ export const ProductInfo = ({ category }) => {
     return false;
   }, [editVariationIndex, productsVariations]);
 
+  const isHsnChained = useMemo(() => {
+    if (!hasHsn) return false;
+    if (editVariationIndex === 0) return false;
+    if (productsVariations.length === 0) return false;
+    if (editVariationIndex === null && productsVariations.length >= 1) return true;
+    if (editVariationIndex != null && editVariationIndex > 0) return true;
+    return false;
+  }, [hasHsn, editVariationIndex, productsVariations]);
+
   const firstVariantGst = useMemo(
     () => String(productsVariations[0]?.GST ?? '18'),
+    [productsVariations]
+  );
+
+  const firstVariantHsn = useMemo(
+    () => String(productsVariations[0]?.HSN ?? '').trim(),
     [productsVariations]
   );
 
@@ -1854,6 +1917,11 @@ export const ProductInfo = ({ category }) => {
       setValue('gst', firstVariantGst);
     }
   }, [isGstChained, firstVariantGst, editVariationIndex, setValue, getValues, productsVariations.length]);
+
+  useEffect(() => {
+    if (!isHsnChained || !firstVariantHsn) return;
+    setValue('hsn', firstVariantHsn, { shouldDirty: false, shouldValidate: true });
+  }, [isHsnChained, firstVariantHsn, editVariationIndex, setValue, productsVariations.length]);
 
   const selectedSize = watch('selectedSize');
   const isDimensionSelectionLocked = hasSizeOptions && productsVariations.length > 0;
@@ -1887,6 +1955,23 @@ export const ProductInfo = ({ category }) => {
     }
   }, [selectedSize, setValue]);
 
+  const handleSaveAndNext = async () => {
+    if (productsVariations.length > 0) {
+      clearErrors(VARIATION_DRAFT_FIELDS);
+    }
+
+    const saveFieldsToValidate = [];
+    if (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes') {
+      saveFieldsToValidate.push('registrationDetails', 'insuranceDetails', 'taxesDetails');
+    }
+    if (saveFieldsToValidate.length > 0) {
+      const ok = await trigger(saveFieldsToValidate);
+      if (!ok) return;
+    }
+
+    await onSubmit(getValues());
+  };
+
   const onSubmit = async (data) => {
     if (!id) {
       toast.error('Product ID missing. Please start from General Information.');
@@ -1894,6 +1979,30 @@ export const ProductInfo = ({ category }) => {
     }
     if (productsVariations.length === 0) {
       toast.error('Please add at least one variation using "Proceed to Add"');
+      return;
+    }
+    if (hasHsn) {
+      const sharedCheck = validateVariantsShareSameHsn(productsVariations);
+      if (!sharedCheck.ok) {
+        toast.error(sharedCheck.message);
+        return;
+      }
+      for (let i = 0; i < productsVariations.length; i += 1) {
+        const rowCheck = validateListingHsn(productsVariations[i]?.HSN, hsnValidateOpts);
+        if (!rowCheck.ok) {
+          toast.error(`Variation ${i + 1}: ${rowCheck.message}`);
+          return;
+        }
+      }
+    }
+    if (requiresProductId) {
+      clearErrors('productIdType');
+    }
+    if (
+      requiresProductId &&
+      productsVariations.some((v) => !String(v.ProductIdType ?? '').trim())
+    ) {
+      toast.error('Each variation must have a Product Id');
       return;
     }
     if (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) {
@@ -2048,11 +2157,7 @@ export const ProductInfo = ({ category }) => {
             </div>
           )} */}
           
-          <form noValidate onSubmit={handleSubmit(onSubmit, (formErrors) => {
-            const firstKey = Object.keys(formErrors)[0];
-            const firstError = formErrors[firstKey];
-            toast.error(firstError?.message || `Please fix the "${firstKey}" field before submitting.`);
-          })} className="space-y-6">
+          <form noValidate onSubmit={(e) => { e.preventDefault(); handleSaveAndNext(); }} className="space-y-6">
             {/* Gender selection – for textile */}
             {hasGenderInProductInfo && (
               <div className="space-y-2">
@@ -2300,7 +2405,7 @@ export const ProductInfo = ({ category }) => {
             )}
 
             {/* Product ID */}
-            {piConfig.hasProductId && !isVoucherCategory && (
+            {requiresProductId && (
               <div className="space-y-2">
                 <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
                 <Input
@@ -2308,6 +2413,9 @@ export const ProductInfo = ({ category }) => {
                   placeholder="e.g. 1910WH23"
                   {...register('productIdType')}
                 />
+                {errors.productIdType && (
+                  <p className="text-sm text-red-600">{errors.productIdType.message}</p>
+                )}
               </div>
             )}
 
@@ -2326,7 +2434,7 @@ export const ProductInfo = ({ category }) => {
               {errors.variantName && (
                 <p className="text-sm text-red-600">{errors.variantName.message}</p>
               )}
-              <p className="text-xs text-gray-500">Required when adding a variation (Proceed to Add). Max 120 characters.</p>
+              <p className="text-xs text-gray-500"> Max 120 characters.</p>
             </div>
 
             {/* HSN + GST (same row) */}
@@ -2344,7 +2452,7 @@ export const ProductInfo = ({ category }) => {
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Harmonized System Nomenclature code for tax classification (4-8 digits)</p>
+                          <p>{hsnRequirementHint(requiredHsnLength, { isAdmin })}. Same HSN applies to all variants.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -2354,15 +2462,22 @@ export const ProductInfo = ({ category }) => {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    placeholder="e.g. 998346"
+                    maxLength={hsnMaxLength}
+                    placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                    disabled={isHsnChained}
                     {...register('hsn', {
-                      setValueAs: (v) => String(v ?? '').replace(/\D/g, ''),
+                      setValueAs: (v) => sanitizeHsnInput(v, hsnMaxLength),
                       onChange: (e) => {
-                        const next = String(e?.target?.value ?? '').replace(/\D/g, '');
+                        if (isHsnChained) return;
+                        const next = sanitizeHsnInput(e?.target?.value, hsnMaxLength);
                         setValue('hsn', next, { shouldValidate: true, shouldDirty: true });
                       },
                     })}
                   />
+                  <p className="text-xs text-gray-500">
+                    {hsnLengthLabel(requiredHsnLength, { isAdmin })} required
+                    {isHsnChained ? ' · locked to first variant' : ''}
+                  </p>
                 </div>
               )}
 
@@ -3093,12 +3208,15 @@ export const ProductInfo = ({ category }) => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>HSN (4/6/8 digits)</Label>
+                    <Label>HSN ({hsnLengthLabel(requiredHsnLength, { isAdmin })})</Label>
                     <Input
-                      placeholder="e.g. 9983"
-                      maxLength={8}
+                      placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                      maxLength={hsnMaxLength}
                       value={otherCostForm.AdCostHSN}
-                      onChange={(e) => setOtherCostForm((prev) => ({ ...prev, AdCostHSN: e.target.value.replace(/\D/g, '') }))}
+                      onChange={(e) => setOtherCostForm((prev) => ({
+                        ...prev,
+                        AdCostHSN: sanitizeHsnInput(e.target.value, hsnMaxLength),
+                      }))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -3421,7 +3539,8 @@ export const ProductInfo = ({ category }) => {
                 Back
               </Button>
               <Button
-                type="submit"
+                type="button"
+                onClick={handleSaveAndNext}
                 disabled={
                   isSubmitting || 
                   productsVariations.length === 0 || 

@@ -77,17 +77,16 @@
     "zod": "^3.24.4"
   },
   "scripts": {
-    "start": "serve -s build -l ${PORT:-3000}",
-    "start:dev": "env-cmd -f .env.development craco start",
-    "start:prod": "serve -s build -l ${PORT:-3000}",
-    "build": "env-cmd -f .env.production cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
-    "build:prod": "env-cmd -f .env.production cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
-    "serve:prod": "serve -s build -l ${PORT:-3000}",
+    "start": "npm run start:prod",
+    "start:prod": "craco start",
+    "build": "npm run build:prod",
+    "build:prod": "cross-env NODE_OPTIONS=--max_old_space_size=2048 GENERATE_SOURCEMAP=false craco build",
+    "serve": "serve -s build -l ${PORT:-3000}",
     "test": "craco test"
   },
   "engines": {
-    "node": "16.x",
-    "npm": "8.x"
+    "node": "20.x",
+    "npm": "10.x"
   },
   "browserslist": {
     "production": [

@@ -117,6 +117,39 @@ function resolveHoardingTimeline(product) {
   return raw;
 }
 
+function resolveDoohOrderTimelineRange(product) {
+  if (!product) return null;
+  const mv = product.mediaVariation || {};
+  const v0 = product.ProductsVariantions?.[0] || {};
+
+  const minRaw = pickFirstFilled(
+    mv.minOrderQuantitytimeline,
+    v0.minOrderQuantitytimeline,
+    product.minOrderQuantitytimeline,
+  );
+  const maxRaw = pickFirstFilled(
+    mv.maxOrderQuantitytimeline,
+    v0.maxOrderQuantitytimeline,
+    product.maxOrderQuantitytimeline,
+  );
+
+  const min = Number(minRaw);
+  const max = Number(maxRaw);
+  const hasMin = Number.isFinite(min) && min > 0;
+  const hasMax = Number.isFinite(max) && max > 0;
+
+  if (hasMin && hasMax) {
+    return `${min}-${max} Day`;
+  }
+  if (hasMin) {
+    return `${min} Day`;
+  }
+  if (hasMax) {
+    return `${max} Day`;
+  }
+  return null;
+}
+
 function resolveHoardingMediaName(product) {
   if (!product) return null;
   return pickFirstFilled(product.mediaName, product.medianame, product.ProductName);
@@ -398,10 +431,15 @@ export default function HoardingMediaProductPreview() {
     [GetProductByIdData],
   );
 
-  const hoardingTimeline = useMemo(
-    () => resolveHoardingTimeline(GetProductByIdData),
-    [GetProductByIdData],
-  );
+  const hoardingTimeline = useMemo(() => {
+    if (String(GetProductByIdData?.mediaCategory || '').toLowerCase() === 'dooh') {
+      return (
+        resolveDoohOrderTimelineRange(GetProductByIdData) ||
+        resolveHoardingTimeline(GetProductByIdData)
+      );
+    }
+    return resolveHoardingTimeline(GetProductByIdData);
+  }, [GetProductByIdData]);
 
   async function GetProductByid() {
     if (!id) return;
@@ -619,7 +657,8 @@ export default function HoardingMediaProductPreview() {
   const gridColumns = isDoohListing ? doohDigitalColumns : hoardingColumns;
 
   const productSubtitleText = normalizePreviewText(
-    GetProductByIdData?.ProductSubtitle,
+    GetProductByIdData?.ProductSubtittle ||
+      GetProductByIdData?.ProductSubtitle,
   );
   const productDescriptionText = normalizePreviewText(
     GetProductByIdData?.ProductDescription,
@@ -823,7 +862,8 @@ export default function HoardingMediaProductPreview() {
                   fontSize: '0.875rem',
                 }}
               >
-                {GetProductByIdData?.ProductSubtitle ||
+                {GetProductByIdData?.ProductSubtittle ||
+                  GetProductByIdData?.ProductSubtitle ||
                   [
                     GetProductByIdData?.ProductCategoryName,
                     GetProductByIdData?.ProductSubCategoryName,
@@ -919,7 +959,7 @@ export default function HoardingMediaProductPreview() {
                 >
                   {showSubtitleInDescription ? (
                     <Box sx={{ mb: 2.5 }}>
-                      <Typography sx={descriptionSectionLabel}>Subtitle</Typography>
+                      <Typography sx={descriptionSectionLabel}>Product subtitle</Typography>
                       <Typography sx={descriptionBodyText}>
                         {productSubtitleText}
                       </Typography>

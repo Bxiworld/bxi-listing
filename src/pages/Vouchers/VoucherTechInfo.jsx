@@ -21,7 +21,7 @@ import {
   hasValidDigitalLocation,
 } from '../../utils/voucherLocation';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight, Upload, FileText, X, Download, Plus, Loader2 } from 'lucide-react';
@@ -549,6 +549,8 @@ export default function VoucherTechInfo({ category }) {
     handleSubmit,
     setValue,
     watch,
+    getValues,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -564,9 +566,21 @@ export default function VoucherTechInfo({ category }) {
     },
   });
 
+  const registerWithLetterCount = (name, setLetterCount) => {
+    const registration = register(name);
+    return {
+      ...registration,
+      onChange: (e) => {
+        registration.onChange(e);
+        setLetterCount(countLetters(e.target.value));
+      },
+    };
+  };
+
   const voucherDeliveryType = watch('voucherDeliveryType');
   const voucherJourneyType = watch('voucherJourneyType');
   const codeGenerationType = watch('codeGenerationType');
+  const resolvedCodeGenerationType = codeGenerationType === 'self' ? 'self' : 'bxi';
   const inclusions = watch('inclusions');
   const exclusions = watch('exclusions');
   const termsAndConditions = watch('termsAndConditions');
@@ -578,7 +592,14 @@ export default function VoucherTechInfo({ category }) {
   const hasMultipleVariants = voucherVariants.length > 1;
 
   const getExpectedVariantQty = (variant) => {
-    const qty = Number(variant?.TotalAvailableQty ?? variant?.MaxOrderQuantity ?? 0);
+    // The listed quantity may live in TotalAvailableQty (total stock) or
+    // MaxOrderQuantity, and the absent one is normalized to 0. Nullish
+    // coalescing does not fall back on 0, so take the larger positive value —
+    // otherwise a stored TotalAvailableQty of 0 hides the real MaxOrderQuantity
+    // and the e-code count check is skipped.
+    const total = Number(variant?.TotalAvailableQty) || 0;
+    const max = Number(variant?.MaxOrderQuantity) || 0;
+    const qty = Math.max(total, max);
     return Number.isFinite(qty) ? qty : 0;
   };
 
@@ -615,11 +636,19 @@ export default function VoucherTechInfo({ category }) {
     });
   const codeGenOk =
     voucherDeliveryType === VOUCHER_DELIVERY_TYPE.PHYSICAL ||
-    (codeGenerationType || 'bxi') !== 'self' ||
+    resolvedCodeGenerationType !== 'self' ||
     (hasMultipleVariants
       ? voucherVariants.every((variant) => !!variantCodeFiles[String(variant?._id || '')])
       : !!codeFile);
   const canSubmit = hasRequiredText && onlineOk && hasOfflineOk && hasDigitalLocationOk && codeGenOk;
+
+  useEffect(() => {
+    if (voucherDeliveryType !== VOUCHER_DELIVERY_TYPE.DIGITAL) return;
+    const current = getValues('codeGenerationType');
+    if (current !== 'bxi' && current !== 'self') {
+      setValue('codeGenerationType', 'bxi', { shouldDirty: false, shouldValidate: true });
+    }
+  }, [voucherDeliveryType, getValues, setValue]);
 
   // Fetch product data
   useEffect(() => {
@@ -704,7 +733,10 @@ export default function VoucherTechInfo({ category }) {
 
     const cg = String(productData.CodeGenerationType ?? productData.codeGenerationType ?? 'bxi')
       .toLowerCase();
-    setValue('codeGenerationType', cg === 'self' ? 'self' : 'bxi');
+    setValue('codeGenerationType', cg === 'self' ? 'self' : 'bxi', {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
   }, [id, productData, setValue]);
 
   // Update cities when state changes
@@ -1090,6 +1122,24 @@ export default function VoucherTechInfo({ category }) {
       }
     }
 
+    // Single-variant: the uploaded e-code count must match the listing quantity
+    // so the voucher can never go live out of stock (mirrors the multi-variant
+    // check above and the backend listing-stage gate).
+    if (
+      !hasMultipleVariants &&
+      redemptionTypeValue === 'online' &&
+      (data.codeGenerationType || codeGenerationType) === 'self'
+    ) {
+      const expectedQty = getExpectedVariantQty(voucherVariants[0]);
+      const parsedCount = Number(variantCodeMeta?.single?.count || 0);
+      if (expectedQty > 0 && parsedCount !== expectedQty) {
+        toast.error(
+          `This voucher requires ${expectedQty} codes, found ${parsedCount}. Upload exactly ${expectedQty} unique codes or adjust the quantity.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const normalizedInclusions = normalizePreviewText(data.inclusions);
@@ -1241,9 +1291,8 @@ export default function VoucherTechInfo({ category }) {
                             id="onlineRedemptionUrl"
                             type="text"
                             placeholder="https://..."
-                            {...register('onlineRedemptionUrl')}
+                            {...registerWithLetterCount('onlineRedemptionUrl', setOnlineUrlLetters)}
                             maxLength={500}
-                            onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
                             className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                           />
                           <div className="flex items-center justify-between mt-1">
@@ -1380,9 +1429,8 @@ export default function VoucherTechInfo({ category }) {
                             id="physical-onlineRedemptionUrl"
                             type="text"
                             placeholder="https://..."
-                            {...register('onlineRedemptionUrl')}
+                            {...registerWithLetterCount('onlineRedemptionUrl', setOnlineUrlLetters)}
                             maxLength={500}
-                            onChange={(e) => setOnlineUrlLetters(countLetters(e.target.value))}
                             className={errors.onlineRedemptionUrl ? 'border-red-500' : ''}
                           />
                           <div className="flex items-center justify-between mt-1">
@@ -1463,8 +1511,7 @@ export default function VoucherTechInfo({ category }) {
                     placeholder="Inclusions"
                     rows={4}
                     maxLength={500}
-                    {...register('inclusions')}
-                    onChange={(e) => setInclusionsLetters(countLetters(e.target.value))}
+                    {...registerWithLetterCount('inclusions', setInclusionsLetters)}
                     className={errors.inclusions ? 'border-red-500' : ''}
                   />
                   <div className="flex items-center justify-between mt-1">
@@ -1485,8 +1532,7 @@ export default function VoucherTechInfo({ category }) {
                     placeholder="Exclusions"
                     rows={4}
                     maxLength={500}
-                    {...register('exclusions')}
-                    onChange={(e) => setExclusionsLetters(countLetters(e.target.value))}
+                    {...registerWithLetterCount('exclusions', setExclusionsLetters)}
                     className={errors.exclusions ? 'border-red-500' : ''}
                   />
                   <div className="flex items-center justify-between mt-1">
@@ -1507,8 +1553,7 @@ export default function VoucherTechInfo({ category }) {
                     placeholder="Terms & Conditions"
                     rows={4}
                     maxLength={8000}
-                    {...register('termsAndConditions')}
-                    onChange={(e) => setTermsLetters(countLetters(e.target.value))}
+                    {...registerWithLetterCount('termsAndConditions', setTermsLetters)}
                     className={errors.termsAndConditions ? 'border-red-500' : ''}
                   />
                   <div className="flex items-center justify-between mt-1">
@@ -1529,8 +1574,7 @@ export default function VoucherTechInfo({ category }) {
                     placeholder="Redemption Steps"
                     rows={4}
                     maxLength={500}
-                    {...register('redemptionSteps')}
-                    onChange={(e) => setRedemptionStepsLetters(countLetters(e.target.value))}
+                    {...registerWithLetterCount('redemptionSteps', setRedemptionStepsLetters)}
                     className={errors.redemptionSteps ? 'border-red-500' : ''}
                   />
                   <div className="flex items-center justify-between mt-1">
@@ -1546,18 +1590,25 @@ export default function VoucherTechInfo({ category }) {
                     <Label>
                       How do you want to upload your voucher codes? (Bxi will generate them for you or you can upload them) <span className="text-red-500">*</span>
                     </Label>
-                    <RadioGroup
-                      value={codeGenerationType || 'bxi'}
-                      onValueChange={(value) => setValue('codeGenerationType', value)}
-                      className="flex flex-wrap gap-6"
-                    >
-                      <CompactRadioOption id="codegen-bxi" value="bxi" label="BXI" />
-                      <CompactRadioOption id="codegen-self" value="self" label="Upload Now" />
-                    </RadioGroup>
+                    <Controller
+                      name="codeGenerationType"
+                      control={control}
+                      defaultValue="bxi"
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value === 'self' ? 'self' : 'bxi'}
+                          onValueChange={field.onChange}
+                          className="flex flex-wrap gap-6"
+                        >
+                          <CompactRadioOption id="codegen-bxi" value="bxi" label="BXI" />
+                          <CompactRadioOption id="codegen-self" value="self" label="Upload Now" />
+                        </RadioGroup>
+                      )}
+                    />
                   </div>
                 )}
 
-                {codeGenerationType === 'self' && (
+                {resolvedCodeGenerationType === 'self' && (
                   <div className="space-y-2">
                     <Label>Voucher Codes File <span className="text-red-500">*</span></Label>
                     <p className="text-xs text-[#6B7A99]">
