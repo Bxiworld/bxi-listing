@@ -2463,7 +2463,7 @@ export const ProductInfo = ({ category }) => {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={hsnMaxLength}
-                    placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                    placeholder={isAdmin || requiredHsnLength !== 6 ? 'e.g. 9983' : 'e.g. 998346'}
                     disabled={isHsnChained}
                     {...register('hsn', {
                       setValueAs: (v) => sanitizeHsnInput(v, hsnMaxLength),
@@ -3210,7 +3210,7 @@ export const ProductInfo = ({ category }) => {
                   <div className="space-y-2">
                     <Label>HSN ({hsnLengthLabel(requiredHsnLength, { isAdmin })})</Label>
                     <Input
-                      placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                      placeholder={isAdmin || requiredHsnLength !== 6 ? 'e.g. 9983' : 'e.g. 998346'}
                       maxLength={hsnMaxLength}
                       value={otherCostForm.AdCostHSN}
                       onChange={(e) => setOtherCostForm((prev) => ({
