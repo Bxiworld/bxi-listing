@@ -1,7 +1,7 @@
 /**
  * HSN digit rules for seller listing (GST e-invoice / B2B):
- * - Aggregate turnover up to ₹5 Cr → mandatory 4-digit HSN
- * - Aggregate turnover above ₹5 Cr → mandatory 6-digit HSN
+ * - Aggregate turnover up to ₹5 Cr → 4, 6, or 8 digit HSN
+ * - Aggregate turnover above ₹5 Cr → 6 or 8 digit HSN only
  *
  * Admin listing does NOT use turnover-based length — admins keep 4/6/8 digits.
  * Same HSN across variants applies to both admin and sellers.
@@ -9,9 +9,10 @@
  * Turnover source: company.GSTDetails.aggregateTurnOverRange.minimum (Signzy/IDfy).
  */
 
-export const FIVE_CRORE_RUPEES = 5 * 10000000; 
+export const FIVE_CRORE_RUPEES = 5 * 10000000;
 export const ADMIN_HSN_MAX_LENGTH = 8;
-const ADMIN_HSN_VALID = /^\d{4}$|^\d{6}$|^\d{8}$/;
+const HSN_4_6_8 = /^\d{4}$|^\d{6}$|^\d{8}$/;
+const HSN_6_8 = /^\d{6}$|^\d{8}$/;
 
 export function getCompanyAggregateTurnoverRupees(company) {
   const range = company?.GSTDetails?.aggregateTurnOverRange;
@@ -33,8 +34,8 @@ export function getCompanyAggregateTurnoverRupees(company) {
 }
 
 /**
- * Seller-only: required HSN digit length from turnover.
- * Missing turnover → 4 (treated as upto ₹5 Cr).
+ * Seller-only: HSN length tier from turnover.
+ * Missing / up to ₹5 Cr → 4 (4/6/8 allowed). Above ₹5 Cr → 6 (6/8 allowed).
  * @returns {4|6}
  */
 export function getRequiredHsnDigitLength(company) {
@@ -45,16 +46,16 @@ export function getRequiredHsnDigitLength(company) {
 
 /**
  * Max input length for the HSN field.
- * Admin: 8 (allows 4/6/8). Seller: 4 or 6 from turnover.
+ * Admin and sellers both allow 8-digit codes; sellers above ₹5 Cr still cap at 8
+ * (they just cannot use 4-digit).
  */
-export function getHsnInputMaxLength({ isAdmin, company }) {
-  if (isAdmin) return ADMIN_HSN_MAX_LENGTH;
-  return getRequiredHsnDigitLength(company);
+export function getHsnInputMaxLength({ isAdmin, company } = {}) {
+  return ADMIN_HSN_MAX_LENGTH;
 }
 
 export function hsnLengthLabel(requiredLength, { isAdmin } = {}) {
   if (isAdmin) return '4, 6, or 8 digits';
-  return requiredLength === 6 ? '6 digits' : '4 digits';
+  return requiredLength === 6 ? '6 or 8 digits' : '4, 6, or 8 digits';
 }
 
 export function hsnRequirementHint(requiredLength, { isAdmin } = {}) {
@@ -62,9 +63,9 @@ export function hsnRequirementHint(requiredLength, { isAdmin } = {}) {
     return 'HSN must be 4, 6, or 8 digits';
   }
   if (requiredLength === 6) {
-    return 'Company turnover is above ₹5 Cr — HSN must be exactly 6 digits';
+    return 'Company turnover is above ₹5 Cr — HSN must be 6 or 8 digits';
   }
-  return 'Company turnover is up to ₹5 Cr — HSN must be exactly 4 digits';
+  return 'Company turnover is up to ₹5 Cr — HSN must be 4, 6, or 8 digits';
 }
 
 /**
@@ -72,7 +73,7 @@ export function hsnRequirementHint(requiredLength, { isAdmin } = {}) {
  * @param {string} rawHsn
  * @param {object} options
  * @param {boolean} [options.isAdmin] — when true, allow 4/6/8 (no turnover rule)
- * @param {4|6} [options.requiredLength] — seller turnover-based length
+ * @param {4|6} [options.requiredLength] — seller turnover tier (4 = 4/6/8, 6 = 6/8)
  * @returns {{ ok: true, value: string } | { ok: false, message: string }}
  */
 export function validateListingHsn(rawHsn, options = {}) {
@@ -92,17 +93,27 @@ export function validateListingHsn(rawHsn, options = {}) {
   }
 
   if (isAdmin) {
-    if (!ADMIN_HSN_VALID.test(value)) {
+    if (!HSN_4_6_8.test(value)) {
       return { ok: false, message: 'HSN must be 4, 6, or 8 digits' };
     }
     return { ok: true, value };
   }
 
-  const len = Number(requiredLength) === 6 ? 6 : 4;
-  if (value.length !== len || !/^\d+$/.test(value)) {
+  const aboveFiveCr = Number(requiredLength) === 6;
+  if (aboveFiveCr) {
+    if (!HSN_6_8.test(value)) {
+      return {
+        ok: false,
+        message: `HSN must be 6 or 8 digits (${hsnRequirementHint(6)})`,
+      };
+    }
+    return { ok: true, value };
+  }
+
+  if (!HSN_4_6_8.test(value)) {
     return {
       ok: false,
-      message: `HSN must be exactly ${len} digits (${hsnRequirementHint(len)})`,
+      message: `HSN must be 4, 6, or 8 digits (${hsnRequirementHint(4)})`,
     };
   }
   return { ok: true, value };
