@@ -33,6 +33,11 @@ const statusConfig = {
 
 const defaultImage = 'https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/brandWorldLogoWithBG.png' || 'https://images.unsplash.com/photo-1612538498488-226257115cc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwcHJvZHVjdCUyMHBhY2thZ2luZyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzA3OTI2MDh8MA&ixlib=rb-4.1.0&q=85';
 
+const isLiveListingStatus = (uploadStatus) => {
+  const status = String(uploadStatus || '').trim();
+  return status === 'Approved' || status === 'Live';
+};
+
 export const ProductCard = ({
   product,
   companyType = 'Others',
@@ -114,6 +119,11 @@ export const ProductCard = ({
     }
   };
 
+  const showDelistButton =
+    Boolean(onDelist) &&
+    (tabType === 'Live' || (tabType === 'All' && isLiveListingStatus(ProductUploadStatus)));
+  const showEditButton = tabType !== 'Delist' && !showDelistButton;
+
   return (
     <div className="product-card fade-in" data-testid={`product-card-${_id}`}>
       {/* Image */}
@@ -183,7 +193,7 @@ export const ProductCard = ({
               View
             </Button>
 
-            {tabType === 'Live' && onDelist && (
+            {showDelistButton && (
               <Button
                 variant="outline"
                 size="sm"
@@ -196,7 +206,7 @@ export const ProductCard = ({
               </Button>
             )}
 
-            {tabType !== 'Delist' && tabType !== 'Live' && (
+            {showEditButton && (
               <Button
                 variant="outline"
                 size="sm"
