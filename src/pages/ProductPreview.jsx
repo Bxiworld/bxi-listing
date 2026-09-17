@@ -453,6 +453,30 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
     });
   }
 
+  const colorValue = String(v.ProductColor || '').trim();
+  if (colorValue) {
+    cols.push({
+      id: 'color',
+      heading: 'Color',
+      minWidth: 88,
+      cell: (
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+          <Box
+            sx={{
+              width: 18,
+              height: 18,
+              borderRadius: '4px',
+              border: '1px solid',
+              borderColor: 'grey.300',
+              bgcolor: colorValue,
+            }}
+          />
+          <Typography variant="body2">{colorValue}</Typography>
+        </Stack>
+      ),
+    });
+  }
+
   return cols;
 }
 
@@ -603,6 +627,13 @@ export default function ProductPreview() {
 
   const rawVariantsList = product?.ProductsVariantions;
   const variants = Array.isArray(rawVariantsList) ? rawVariantsList : [];
+  const uniqueProductColors = [
+    ...new Set(
+      variants
+        .map((v) => String(v?.ProductColor || '').trim())
+        .filter(Boolean),
+    ),
+  ];
   const isVoucherListing = product?.ListingType === 'Voucher';
   const isMediaProduct = isMediaListing(product);
   const selectedVariantData =
@@ -881,23 +912,30 @@ export default function ProductPreview() {
                 />
 
                 {!isVoucherListing &&
-                  product?.ProductCategoryName !== 'QSR' &&
-                  product?.ProductCategoryName !== 'FMCG' &&
-                  selectedVariantData?.ProductColor && (
+                  !isMediaProduct &&
+                  uniqueProductColors.length > 0 && (
                     <Box>
                       <Typography variant="body2" fontWeight="medium" color="text.secondary" sx={{ mb: 1 }}>
-                        Colors
+                        Available Color
                       </Typography>
-                      <Box
-                        sx={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 2,
-                          border: '2px solid',
-                          borderColor: 'grey.300',
-                          bgcolor: selectedVariantData.ProductColor,
-                        }}
-                      />
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {uniqueProductColors.map((color) => (
+                          <Box
+                            key={color}
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 2,
+                              border: '2px solid',
+                              borderColor:
+                                selectedVariantData?.ProductColor === color
+                                  ? 'primary.main'
+                                  : 'grey.300',
+                              bgcolor: color,
+                            }}
+                          />
+                        ))}
+                      </Box>
                     </Box>
                   )}
 
