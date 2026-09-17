@@ -1107,7 +1107,7 @@ export const ProductInfo = ({ category }) => {
     'productIdType', 'variantName', 'price', 'discountedPrice', 'hsn',
     'minOrderQty', 'maxOrderQty', 'length', 'width', 'height', 'weight',
     'volume', 'sizeValue', 'shoeSize', 'sampleAvailability', 'priceOfSample',
-    'flavor', 'offeringType', 'dateOfEvent', 'selectedSize',
+    'flavor', 'offeringType', 'dateOfEvent', 'selectedSize', 'productColor',
   ];
   const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
   const activeVoucherConfig = isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
@@ -1121,6 +1121,7 @@ export const ProductInfo = ({ category }) => {
     ? (activeVoucherConfig?.sizeOptions || [])
     : (piConfig.sizeOptions || []);
   const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
+  const showProductColor = !isVoucherCategory && !!piConfig.hasColorPicker;
 
   const getSizeUnitOptions = (sizeType) => {
     if (!sizeType) return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
@@ -1522,6 +1523,9 @@ export const ProductInfo = ({ category }) => {
         SamplePrice: samplePrice,
       }),
       ...(shoeSize && { ShoeSize: shoeSize }),
+      ...(showProductColor
+        ? { ProductColor: String(d.productColor || '').trim() }
+        : {}),
       ...(isVoucherCategory && {
         validityOfVoucherValue: d.validityOfVoucherValue ?? 12,
         validityOfVoucherUnit: d.validityOfVoucherUnit || 'Months',
@@ -1581,6 +1585,7 @@ export const ProductInfo = ({ category }) => {
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
     setValue('variantName', '');
+    setValue('productColor', '');
     // Keep size selection & unit fixed once variants exist (BXI Frontend parity).
     // Don't reset sizeUnit to 'cm' unconditionally — re-derive from the locked dimension
     // so subsequent variants keep the correct unit (e.g. 'gsm' for GSM, 'kg' for Weight).
@@ -1621,6 +1626,7 @@ export const ProductInfo = ({ category }) => {
     setValue('minOrderQty', String(row.MinOrderQuantity ?? '1'));
     setValue('maxOrderQty', String(row.MaxOrderQuantity ?? '100'));
     setValue('productIdType', row.ProductIdType ?? '');
+    setValue('productColor', row.ProductColor ?? '');
 
     setValue('isSample', !!(row.SampleQty || row.SamplePrice));
     setValue('sampleAvailability', row.SampleQty ? String(row.SampleQty) : '');
@@ -1708,6 +1714,7 @@ export const ProductInfo = ({ category }) => {
     setValue('offeringType', '');
     setValue('dateOfEvent', '');
     setValue('variantName', '');
+    setValue('productColor', '');
     const lockedSize = (getValues('selectedSize') || '').toLowerCase();
     if (lockedSize.includes('weight') || lockedSize === 'gsm') {
       setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
@@ -1802,6 +1809,7 @@ export const ProductInfo = ({ category }) => {
       offeringType: '',
       dateOfEvent: '',
       variantName: '',
+      productColor: '',
     }
   });
 
@@ -2404,17 +2412,54 @@ export const ProductInfo = ({ category }) => {
               </div>
             )}
 
-            {/* Product ID */}
-            {requiresProductId && (
-              <div className="space-y-2">
-                <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
-                <Input
-                  id="productIdType"
-                  placeholder="e.g. 1910WH23"
-                  {...register('productIdType')}
-                />
-                {errors.productIdType && (
-                  <p className="text-sm text-red-600">{errors.productIdType.message}</p>
+            {/* Product ID + optional color */}
+            {(requiresProductId || showProductColor) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {requiresProductId && (
+                  <div className="space-y-2">
+                    <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="productIdType"
+                      placeholder="e.g. 1910WH23"
+                      {...register('productIdType')}
+                    />
+                    {errors.productIdType && (
+                      <p className="text-sm text-red-600">{errors.productIdType.message}</p>
+                    )}
+                  </div>
+                )}
+                {showProductColor && (
+                  <div className={cn('space-y-2', !requiresProductId && 'md:col-span-2')}>
+                    <Label htmlFor="productColor">
+                      Color <span className="text-gray-400 font-normal">(optional)</span>
+                    </Label>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        id="productColor"
+                        type="color"
+                        value={watch('productColor') || '#ffffff'}
+                        onChange={(e) => setValue('productColor', e.target.value)}
+                        className="w-12 h-12 rounded cursor-pointer border border-gray-300 bg-white"
+                        aria-label="Product color"
+                      />
+                      {watch('productColor') ? (
+                        <>
+                          <span className="text-sm text-gray-600 font-mono">
+                            {watch('productColor')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setValue('productColor', '')}
+                            className="text-xs text-[#6B7A99] hover:text-[#C64091] underline"
+                          >
+                            Clear
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-500">No color selected</span>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -2817,6 +2862,7 @@ export const ProductInfo = ({ category }) => {
                     <thead className="bg-[#F9FAFB] text-[#374151]">
                       <tr>
                         {showSizeColumn && <th className="px-3 py-2 text-center font-medium">Size</th>}
+                        {showProductColor && <th className="px-3 py-2 text-center font-medium">Color</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
                         {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
@@ -2846,6 +2892,16 @@ export const ProductInfo = ({ category }) => {
                           {showSizeColumn && (
                             <td className="px-3 py-2">
                               {formatVariationSize(v)}
+                            </td>
+                          )}
+                          {showProductColor && (
+                            <td className="px-3 py-2">
+                              {v.ProductColor ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
+                                  <span>{v.ProductColor}</span>
+                                </div>
+                              ) : '—'}
                             </td>
                           )}
                           {activeVoucherConfig?.extraVariantColumn === 'color' && (

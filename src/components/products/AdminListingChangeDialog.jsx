@@ -15,6 +15,7 @@ const VARIANT_FIELD_CONFIG = [
   { key: 'PricePerUnit', label: 'Price Per Unit' },
   { key: 'MinOrderQuantity', label: 'Min Quantity' },
   { key: 'MaxOrderQuantity', label: 'Max Quantity' },
+  { key: 'ProductColor', label: 'Color' },
   { key: 'TotalAvailableQty', label: 'Total Available Qty' },
   { key: 'minTimeslotSeconds', label: 'Min Timeslot Seconds' },
   { key: 'maxTimeslotSeconds', label: 'Max Timeslot Seconds' },
