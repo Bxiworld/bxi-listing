@@ -33,6 +33,7 @@ import {
   Divider,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
+import useAuthUser from '../hooks/useAuthUser';
 import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
@@ -485,6 +486,7 @@ export default function ProductPreview() {
   const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
   const { id } = useParams();
+  const { isAdmin } = useAuthUser();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -650,6 +652,7 @@ export default function ProductPreview() {
     product?.ProductUploadStatus !== 'Approved' &&
     product?.ProductUploadStatus !== 'pendingapproval' &&
     images?.length > 0;
+  const canShowComplete = isAdmin && product?.ProductUploadStatus === 'Approved';
   const uploadCtaLabel = isMediaProduct ? 'Upload Media' : isVoucherListing ? 'Upload Voucher' : 'Upload Product';
 
   const primaryColor = '#C64091';
@@ -2011,22 +2014,40 @@ export default function ProductPreview() {
           </Box>
         </Paper>
 
-        {canShowUpload && (
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              onClick={handleUpload}
-              disabled={uploading}
-              sx={{
-                bgcolor: primaryColor,
-                px: 4,
-                minWidth: 140,
-                minHeight: 40,
-                '&:hover': { bgcolor: primaryDark },
-              }}
-            >
-              {uploading ? 'Uploading...' : uploadCtaLabel}
-            </Button>
+        {(canShowUpload || canShowComplete) && (
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+            {canShowUpload && (
+              <Button
+                variant="contained"
+                onClick={handleUpload}
+                disabled={uploading}
+                sx={{
+                  bgcolor: primaryColor,
+                  px: 4,
+                  minWidth: 140,
+                  minHeight: 40,
+                  '&:hover': { bgcolor: primaryDark },
+                }}
+              >
+                {uploading ? 'Uploading...' : uploadCtaLabel}
+              </Button>
+            )}
+            {canShowComplete && (
+              <Button
+                variant="contained"
+                onClick={() => navigate('/sellerhub')}
+                data-testid="admin-listing-complete-btn"
+                sx={{
+                  bgcolor: primaryColor,
+                  px: 4,
+                  minWidth: 140,
+                  minHeight: 40,
+                  '&:hover': { bgcolor: primaryDark },
+                }}
+              >
+                Complete
+              </Button>
+            )}
           </Box>
         )}
 
