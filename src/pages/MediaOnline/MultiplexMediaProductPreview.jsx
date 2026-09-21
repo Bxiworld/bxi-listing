@@ -1732,6 +1732,40 @@ export default function MultiplexMediaProductPreview() {
                 </Button>
               </Box>
             )}
+          {isAdmin && GetProductByIdData?.ProductUploadStatus === 'Approved' ? (
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  py: { xs: 2.5, md: 3 },
+                  px: 2,
+                  borderTop: `1px solid ${borderSubtle}`,
+                  bgcolor: surfaceMuted,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={() => navigate('/sellerhub')}
+                  size="large"
+                  data-testid="admin-listing-complete-btn"
+                  sx={{
+                    borderRadius: `${radiusMd}px`,
+                    px: { xs: 3, sm: 5 },
+                    py: 1.35,
+                    fontWeight: 600,
+                    fontSize: '0.9375rem',
+                    textTransform: 'none',
+                    bgcolor: accent,
+                    boxShadow: '0 4px 14px rgba(198, 64, 145, 0.35)',
+                    '&:hover': {
+                      bgcolor: '#A03375',
+                      boxShadow: '0 6px 20px rgba(198, 64, 145, 0.4)',
+                    },
+                  }}
+                >
+                  Complete
+                </Button>
+              </Box>
+            ) : null}
         </Paper>
       </Box>
     </Box>

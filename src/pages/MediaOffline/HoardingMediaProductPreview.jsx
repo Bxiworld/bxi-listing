@@ -14,6 +14,7 @@ import {
 import { Stack } from '@mui/system';
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import useAuthUser from '../../hooks/useAuthUser';
 import { toast } from 'sonner';
 import { ArrowLeft, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { DataGrid } from '@mui/x-data-grid';
@@ -386,6 +387,7 @@ export default function HoardingMediaProductPreview() {
   const { id } = useParams();
 
   const navigate = useNavigate();
+  const { isAdmin } = useAuthUser();
   const bulkuploadnavigate = localStorage.getItem('bulkuploadnavigate');
 
   const [TabValue, setTabValue] = React.useState('1');
@@ -463,14 +465,20 @@ export default function HoardingMediaProductPreview() {
       'Are you sure you want to upload this product?',
     );
     if (confirm !== true) return;
+    const payload = isAdmin
+      ? { id, _id: id, ProductUploadStatus: 'Approved' }
+      : { id, _id: id, ProductUploadStatus: 'pendingapproval' };
     productApi
-      .productMutation({ id, ProductUploadStatus: 'pendingapproval' })
+      .productMutation(payload)
       .then((res) => {
         const body = res?.data?.body ?? res?.data ?? res;
-        toast.success('Once uploaded, changes are subject to approval.');
-        if (body?.ProductUploadStatus === 'pendingapproval') {
-          setTimeout(() => navigate('/sellerhub'), 1200);
+        const finalStatus = body?.ProductUploadStatus;
+        if (finalStatus === 'Approved') {
+          toast.success('Your listing is now live.');
+        } else {
+          toast.success('Once uploaded, changes are subject to approval.');
         }
+        setTimeout(() => navigate('/sellerhub'), 1200);
       })
       .catch((err) => {
         toast.error(
@@ -1797,6 +1805,40 @@ export default function HoardingMediaProductPreview() {
                 </Button>
               </Box>
             )}
+          {isAdmin && GetProductByIdData?.ProductUploadStatus === 'Approved' ? (
+              <Box
+                sx={{
+                  textAlign: 'center',
+                  py: { xs: 2.5, md: 3 },
+                  px: 2,
+                  borderTop: `1px solid ${borderSubtle}`,
+                  bgcolor: surfaceMuted,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  onClick={() => navigate('/sellerhub')}
+                  size="large"
+                  data-testid="admin-listing-complete-btn"
+                  sx={{
+                    borderRadius: `${radiusMd}px`,
+                    px: { xs: 3, sm: 5 },
+                    py: 1.35,
+                    fontWeight: 600,
+                    fontSize: '0.9375rem',
+                    textTransform: 'none',
+                    bgcolor: accent,
+                    boxShadow: '0 4px 14px rgba(198, 64, 145, 0.35)',
+                    '&:hover': {
+                      bgcolor: '#A03375',
+                      boxShadow: '0 6px 20px rgba(198, 64, 145, 0.4)',
+                    },
+                  }}
+                >
+                  Complete
+                </Button>
+              </Box>
+            ) : null}
         </Paper>
       </Box>
 
