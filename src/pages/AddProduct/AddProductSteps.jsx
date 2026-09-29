@@ -1074,6 +1074,7 @@ export const ProductInfo = ({ category }) => {
   const [cityArray, setCityArray] = useState([]);
   const [otherCosts, setOtherCosts] = useState([]);
   const [otherCostForm, setOtherCostForm] = useState({ AdCostApplicableOn: 'All', CostPrice: '', currencyType: '₹', AdCostHSN: '', AdCostGST: 18, ReasonOfCost: '' });
+  const [editOtherCostIndex, setEditOtherCostIndex] = useState(null);
   const [productsVariations, setProductsVariations] = useState([]);
   const [productData, setProductData] = useState(null);
   const descriptionRef = useRef(null);
@@ -1308,6 +1309,15 @@ export const ProductInfo = ({ category }) => {
     setFeatureList((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const emptyOtherCostForm = {
+    AdCostApplicableOn: 'All',
+    CostPrice: '',
+    currencyType: '₹',
+    AdCostHSN: '',
+    AdCostGST: 18,
+    ReasonOfCost: '',
+  };
+
   const handleAddOtherCost = () => {
     const cp = parseFloat(String(otherCostForm.CostPrice).replace(/,/g, '')) || 0;
     if (cp <= 0) {
@@ -1328,19 +1338,50 @@ export const ProductInfo = ({ category }) => {
       toast.error(hsnCheck.message);
       return;
     }
-    setOtherCosts((prev) => [...prev, {
+    const payload = {
       AdCostApplicableOn: otherCostForm.AdCostApplicableOn || 'All',
       CostPrice: cp,
       currencyType: otherCostForm.currencyType || '₹',
       AdCostHSN: hsnCheck.value,
       AdCostGST: Number(otherCostForm.AdCostGST) || 18,
       ReasonOfCost: otherCostForm.ReasonOfCost?.trim() || '',
-    }]);
-    setOtherCostForm({ AdCostApplicableOn: 'All', CostPrice: '', currencyType: '₹', AdCostHSN: '', AdCostGST: 18, ReasonOfCost: '' });
+    };
+    const wasEdit = editOtherCostIndex !== null;
+    if (wasEdit) {
+      setOtherCosts((prev) =>
+        prev.map((row, i) => (i === editOtherCostIndex ? payload : row)),
+      );
+      setEditOtherCostIndex(null);
+      toast.success('Additional cost updated');
+    } else {
+      setOtherCosts((prev) => [...prev, payload]);
+      toast.success('Additional cost added');
+    }
+    setOtherCostForm({ ...emptyOtherCostForm });
+  };
+
+  const handleEditOtherCost = (idx) => {
+    const row = otherCosts[idx];
+    if (!row) return;
+    setOtherCostForm({
+      AdCostApplicableOn: row.AdCostApplicableOn || 'All',
+      CostPrice: row.CostPrice ?? '',
+      currencyType: row.currencyType || '₹',
+      AdCostHSN: row.AdCostHSN || '',
+      AdCostGST: Number(row.AdCostGST) || 18,
+      ReasonOfCost: row.ReasonOfCost || '',
+    });
+    setEditOtherCostIndex(idx);
   };
 
   const handleRemoveOtherCost = (idx) => {
     setOtherCosts((prev) => prev.filter((_, i) => i !== idx));
+    setEditOtherCostIndex((prev) => {
+      if (prev === null) return null;
+      if (prev === idx) return null;
+      if (prev > idx) return prev - 1;
+      return prev;
+    });
   };
 
   const handleAddVariation = () => {
@@ -3297,14 +3338,29 @@ export const ProductInfo = ({ category }) => {
                       onChange={(e) => setOtherCostForm((prev) => ({ ...prev, ReasonOfCost: e.target.value }))}
                     />
                   </div>
-                  <div className="flex items-end">
+                  <div className="flex items-end gap-2">
                     <Button
                       type="button"
                       onClick={handleAddOtherCost}
                       className="w-full"
                     >
-                      Add Additional Cost
+                      {editOtherCostIndex !== null
+                        ? 'Update Additional Cost'
+                        : 'Add Additional Cost'}
                     </Button>
+                    {editOtherCostIndex !== null && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setEditOtherCostIndex(null);
+                          setOtherCostForm({ ...emptyOtherCostForm });
+                        }}
+                        className="shrink-0"
+                      >
+                        Cancel
+                      </Button>
+                    )}
                   </div>
                 </div>
                 {otherCosts.length === 0 && (
@@ -3358,13 +3414,23 @@ export const ProductInfo = ({ category }) => {
                           </td>
 
                           <td className="px-3 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveOtherCost(idx)}
-                              className="text-[#6B7A99] hover:text-[#C64091] p-1"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditOtherCost(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveOtherCost(idx)}
+                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                                aria-label="Remove additional cost"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
