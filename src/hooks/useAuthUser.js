@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { authApi, companyApi, fetchAdminData, companyTypeApi } from '../utils/api';
+import { authApi, companyApi, fetchAdminData, companyTypeApi, waitForSellerHandoff } from '../utils/api';
 
 /**
  * Returns logged-in user, company type name, and admin flag.
@@ -22,6 +22,14 @@ export function useAuthUser() {
     setLoading(true);
     setError(null);
     try {
+      // Finish dashboard→listing handoff before any auth probe so we don't
+      // briefly look logged-out and bounce back to the dashboard.
+      try {
+        await waitForSellerHandoff();
+      } catch {
+        /* ignore — AuthGuard handles missing session */
+      }
+
       if (typeof window !== 'undefined') {
         const q = new URLSearchParams(window.location.search);
         if (q.get('source') === 'dashboard') {
