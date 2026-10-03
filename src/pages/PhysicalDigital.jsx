@@ -18,7 +18,10 @@ import { cn } from "../lib/utils";
 import { useAuthUser } from "../hooks/useAuthUser";
 import useListingEntryContext from "../hooks/useListingEntryContext";
 import { getAllowedCategories, getAllowedVouchers } from "../config/categories";
-import { getVoucherJourneyType, getVoucherJourneyLabel } from "../utils/voucherType";
+import {
+  getVoucherJourneyType,
+  getVoucherJourneyLabel,
+} from "../utils/voucherType";
 
 const PHYSICAL_OPTIONS = [
   {
@@ -89,44 +92,44 @@ const COMPANY_TYPE_TO_VOUCHER_PATH = {
 
 const DeliveryCompanyType = [
   {
-    CompanyType: 'Textile',
-    text: 'Discover the perfect blend of comfort and style in our textile products, showcasing your favorite brands.',
+    CompanyType: "Textile",
+    text: "Discover the perfect blend of comfort and style in our textile products, showcasing your favorite brands.",
   },
   {
-    CompanyType: 'Hotel',
-    text: 'Let buyer Experience luxury and comfort of your premium hotel',
+    CompanyType: "Hotel",
+    text: "Let buyer Experience luxury and comfort of your premium hotel",
   },
   {
-    CompanyType: 'Lifestyle',
-    text: 'Style Your Buyers and Make Them FAMOUS.',
+    CompanyType: "Lifestyle",
+    text: "Style Your Buyers and Make Them FAMOUS.",
   },
   {
-    CompanyType: 'Mobility',
-    text: 'Let Them Discover the Freedom to Go Where Ever They Want with Your Mobility Products, Make Your Listing Count !',
+    CompanyType: "Mobility",
+    text: "Let Them Discover the Freedom to Go Where Ever They Want with Your Mobility Products, Make Your Listing Count !",
   },
   {
-    CompanyType: 'Electronics',
-    text: 'Let the Buyer Experience, The Latest in Technology with Your Cutting Edge Electronic Offerings !',
+    CompanyType: "Electronics",
+    text: "Let the Buyer Experience, The Latest in Technology with Your Cutting Edge Electronic Offerings !",
   },
   {
-    CompanyType: 'Office Supply',
-    text: 'Office Essentials Redefined: Help Elevate the Workspace with Your Quality Selection!',
+    CompanyType: "Office Supply",
+    text: "Office Essentials Redefined: Help Elevate the Workspace with Your Quality Selection!",
   },
   {
-    CompanyType: 'FMCG',
-    text: 'Revolutionizing the way your brand’s everyday essentials are made available to buyers. Lets begin to list.',
+    CompanyType: "FMCG",
+    text: "Revolutionizing the way your brand’s everyday essentials are made available to buyers. Lets begin to list.",
   },
   {
-    CompanyType: 'QSR',
-    text: 'The future of dining out: ordering in. Start to List!',
+    CompanyType: "QSR",
+    text: "The future of dining out: ordering in. Start to List!",
   },
   {
-    CompanyType: 'Entertainment & Events',
-    text: 'Let Your Offering of Entertainment and Recreation, Keep the Buyers Engaged, Active & Entertained !',
+    CompanyType: "Entertainment & Events",
+    text: "Let Your Offering of Entertainment and Recreation, Keep the Buyers Engaged, Active & Entertained !",
   },
   {
-    CompanyType: 'Others',
-    text: 'Transforming the way Buyers shop. Let\'s start listing!',
+    CompanyType: "Others",
+    text: "Transforming the way Buyers shop. Let's start listing!",
   },
 ];
 
@@ -150,9 +153,10 @@ export default function PhysicalDigital() {
   const { source, entryCompanyType } = useListingEntryContext();
   const adminContext = isAdmin || source === "admin";
   // When admin context with URL companyType, prioritize entryCompanyType over logged-in user's type
-  const effectiveCompanyType = (adminContext && entryCompanyType)
-    ? entryCompanyType
-    : (companyType || entryCompanyType || "Others");
+  const effectiveCompanyType =
+    adminContext && entryCompanyType
+      ? entryCompanyType
+      : companyType || entryCompanyType || "Others";
   const [selectedProduct, setSelectedProduct] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(false);
   const [physicalData, setPhysicalData] = useState(null);
@@ -162,14 +166,15 @@ export default function PhysicalDigital() {
 
   const showAdminView = adminContext;
   const isVoucherOnly = isVoucherOnlyCompanyType(effectiveCompanyType);
-  const scopeAccessToCompanyType = isVoucherOnly || Boolean(adminContext && entryCompanyType);
+  const scopeAccessToCompanyType =
+    isVoucherOnly || Boolean(adminContext && entryCompanyType);
   const allowedCategories = getAllowedCategories(
     effectiveCompanyType,
-    showAdminView && !scopeAccessToCompanyType
+    showAdminView && !scopeAccessToCompanyType,
   );
   const allowedVouchers = getAllowedVouchers(
     effectiveCompanyType,
-    showAdminView && !scopeAccessToCompanyType
+    showAdminView && !scopeAccessToCompanyType,
   );
   const hasProductAccess = allowedCategories.length > 0;
   const hasVoucherAccess = allowedVouchers.length > 0;
@@ -178,7 +183,7 @@ export default function PhysicalDigital() {
     "Select the Best Voucher Type that describes your voucher offering";
   const genericOneLineTitle =
     hasProductAccess && hasVoucherAccess
-      ? 'Choose how your offering will be delivered'
+      ? "Choose how your offering will be delivered"
       : hasProductAccess
         ? "Select Product to continue."
         : "Select Voucher to continue.";
@@ -213,11 +218,16 @@ export default function PhysicalDigital() {
       const path = COMPANY_TYPE_TO_VOUCHER_PATH[effectiveCompanyType];
       if (path) {
         // Match bxi-dashboard: store voucher type and company for general-info and downstream steps
-        if (typeof localStorage !== 'undefined') {
-          const voucherJourneyType = getVoucherJourneyType(digitalData?.name ?? 'Offer Specific');
-          localStorage.setItem('digitalDataType', voucherJourneyType);
-          localStorage.setItem('digitalData', getVoucherJourneyLabel(voucherJourneyType));
-          localStorage.setItem('companyType', effectiveCompanyType ?? '');
+        if (typeof localStorage !== "undefined") {
+          const voucherJourneyType = getVoucherJourneyType(
+            digitalData?.name ?? "Offer Specific",
+          );
+          localStorage.setItem("digitalDataType", voucherJourneyType);
+          localStorage.setItem(
+            "digitalData",
+            getVoucherJourneyLabel(voucherJourneyType),
+          );
+          localStorage.setItem("companyType", effectiveCompanyType ?? "");
         }
         navigate(path);
       } else {
@@ -255,7 +265,8 @@ export default function PhysicalDigital() {
     toast.error("Please select Product or Voucher.");
   };
 
-  const showProductStepCopy = !isVoucherOnly && selectedProduct && openView === 0;
+  const showProductStepCopy =
+    !isVoucherOnly && selectedProduct && openView === 0;
   const showVoucherStepCopy =
     isVoucherOnly || (selectedVoucher && openView === 1);
   const showListingTypeCards = !isVoucherOnly;
@@ -264,7 +275,7 @@ export default function PhysicalDigital() {
 
   return (
     <div
-      className="min-h-screen bg-[#f5f5f7] py-12 px-4"
+      className="min-h-screen bg-[#f5f5f7] py-4 px-4"
       data-testid="physical-digital-page"
     >
       <div className="max-w-5xl mx-auto">
@@ -304,9 +315,10 @@ export default function PhysicalDigital() {
             ) : (
               <TooltipProvider delayDuration={200}>
                 <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-                  <h1 className="text-xl font-bold text-[#374151]">
+                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[#374151]">
                     {genericOneLineTitle}
                   </h1>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -331,71 +343,73 @@ export default function PhysicalDigital() {
 
           {/* Product/Voucher Selection Cards */}
           {showListingTypeCards ? (
-          <div className="flex flex-wrap justify-center gap-8 mb-12">
-            {hasProductAccess && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenView(0);
-                  setSelectedProduct(true);
-                  setSelectedVoucher(false);
-                  setPhysicalData(null);
-                }}
-                className={cn(
-                  "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center",
-                  selectedProduct
-                    ? "border-[#C64091] shadow-md"
-                    : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-                )}>
-                <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-4">
-                  <Package className="w-7 h-7 text-[#C64091]" />
-                </div>
+            <div className="flex flex-wrap justify-center gap-8 mb-12">
+              {hasProductAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpenView(0);
+                    setSelectedProduct(true);
+                    setSelectedVoucher(false);
+                    setPhysicalData(null);
+                  }}
+                  className={cn(
+                    "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center",
+                    selectedProduct
+                      ? "border-[#C64091] shadow-md"
+                      : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
+                  )}
+                >
+                  <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-2">
+                    <Package className="w-7 h-7 text-[#C64091]" />
+                  </div>
 
-                <h3 className="font-semibold text-lg text-[#374151] mb-2">
-                  Product
-                </h3>
+                  <h3 className="font-semibold text-lg text-[#374151] mb-2">
+                    Product
+                  </h3>
 
-                <p className="text-sm text-[#6b7280] leading-relaxed">
-                  If your product is tangible and needs to be physically shipped
-                  or delivered, please click here to upload.
-                </p>
-              </button>
-            )}
+                  <p className="text-sm text-[#6b7280] leading-relaxed">
+                    If your product is tangible and needs to be physically
+                    shipped or delivered, please click here to upload.
+                  </p>
+                </button>
+              )}
 
-            {hasVoucherAccess && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (effectiveCompanyType === "Entertainment & Events") {
-                    navigate("/eephysical");
-                    return;
-                  }
-                  setOpenView(1);
-                  setSelectedVoucher(true);
-                  setSelectedProduct(false);
-                  setDigitalData(null);
-                }}
-                className={cn(
-                  "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center",
-                  selectedVoucher
-                    ? "border-[#C64091] shadow-md"
-                    : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-                )}>
-                <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-4">
-                  <Gift className="w-7 h-7 text-[#C64091]" />
-                </div>
+              {hasVoucherAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (effectiveCompanyType === "Entertainment & Events") {
+                      navigate("/eephysical");
+                      return;
+                    }
+                    setOpenView(1);
+                    setSelectedVoucher(true);
+                    setSelectedProduct(false);
+                    setDigitalData(null);
+                  }}
+                  className={cn(
+                    "w-[340px] h-[210px] bg-white rounded-2xl border-2 transition-all flex flex-col items-center justify-center px-8 text-center",
+                    selectedVoucher
+                      ? "border-[#C64091] shadow-md"
+                      : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
+                  )}
+                >
+                  <div className="w-14 h-14 rounded-full bg-[rgba(198,64,145,0.1)] flex items-center justify-center mb-2">
+                    <Gift className="w-7 h-7 text-[#C64091]" />
+                  </div>
 
-                <h3 className="font-semibold text-lg text-[#374151] mb-2">
-                  Voucher
-                </h3>
+                  <h3 className="font-semibold text-lg text-[#374151] mb-2">
+                    Voucher
+                  </h3>
 
-                <p className="text-sm text-[#6b7280] leading-relaxed">
-                  If your products can be redeemed through voucher / codes / gift
-                  cards, please click here to upload.
-                </p>
-              </button>
-            )}
-          </div>
+                  <p className="text-sm text-[#6b7280] leading-relaxed">
+                    If your products can be redeemed through voucher / codes /
+                    gift cards, please click here to upload.
+                  </p>
+                </button>
+              )}
+            </div>
           ) : null}
 
           {/* Physical Product Options */}
@@ -426,7 +440,8 @@ export default function PhysicalDigital() {
                       physicalData?.id === item.id
                         ? "border-[#C64091] shadow-md"
                         : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-                    )}>
+                    )}
+                  >
                     <h3 className="font-semibold text-[#374151] mb-2">
                       {item.name}
                     </h3>
@@ -462,7 +477,8 @@ export default function PhysicalDigital() {
                       digitalData?.id === item.id
                         ? "border-[#C64091] shadow-md"
                         : "border-gray-200 hover:border-[#C64091] hover:shadow-lg",
-                    )}>
+                    )}
+                  >
                     <h3 className="font-semibold text-[#374151] mb-2">
                       {item.name}
                     </h3>
