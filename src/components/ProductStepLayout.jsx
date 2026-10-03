@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 /**
  * ProductStepLayout - Wrapper component for product/voucher steps
@@ -6,26 +6,40 @@ import React from 'react';
  */
 export const ProductStepLayout = ({ category, children }) => {
   const voucherCategories = [
-    'electronicsVoucher', 'fmcgVoucher', 'mobilityVoucher', 'officesupplyVoucher',
-    'eeVoucher', 'textileVoucher', 'lifestyleVoucher', 'airlineVoucher',
-    'qsrVoucher', 'hotelsVoucher', 'otherVoucher'
+    "electronicsVoucher",
+    "fmcgVoucher",
+    "mobilityVoucher",
+    "officesupplyVoucher",
+    "eeVoucher",
+    "textileVoucher",
+    "lifestyleVoucher",
+    "airlineVoucher",
+    "qsrVoucher",
+    "hotelsVoucher",
+    "otherVoucher",
   ];
 
-  const mediaCategories = ['mediaonline', 'mediaoffline'];
+  const mediaCategories = ["mediaonline", "mediaoffline"];
 
   const isVoucher = voucherCategories.includes(category);
   const isMedia = mediaCategories.includes(category);
-  const title = isVoucher ? 'My Voucher' : isMedia ? 'My Media' : 'My Product';
+  const title = isVoucher ? "My Voucher" : isMedia ? "My Media" : "My Product";
 
   return (
-    <div>
-      <div className="border-b border-[#E5E8EB] px-6 py-4 bg-white mb-6">
-        <h1 className="text-2xl font-bold text-[#111827]">{title}</h1>
-        <p className="text-sm text-[#6B7A99] mt-1">
-          {isVoucher ? 'Create and manage your voucher listings' : isMedia ? 'Create and manage your media listings' : 'Create and manage your product listings'}
+    <div className="product-step-layout w-full min-w-0">
+      <div className="mb-4 border-b border-[#E5E8EB] bg-white px-4 py-3 sm:mb-6 sm:px-6 sm:py-4">
+        <h1 className="text-xl font-bold text-[#111827] sm:text-2xl">
+          {title}
+        </h1>
+        <p className="mt-1 text-xs text-[#6B7A99] sm:text-sm">
+          {isVoucher
+            ? "Create and manage your voucher listings"
+            : isMedia
+              ? "Create and manage your media listings"
+              : "Create and manage your product listings"}
         </p>
       </div>
-      {children}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 };
