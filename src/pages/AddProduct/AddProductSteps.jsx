@@ -4768,7 +4768,7 @@ export const ProductInfo = ({ category }) => {
                         {featureList.map((f, idx) => (
                           <div
                             key={idx}
-                            className="flex items-start justify-between gap-3 rounded-lg border border-[#E5E8EB] bg-[#F9FAFB] px-4 py-3 hover:shadow-sm transition"
+                            className="flex items-start justify-between gap-3 rounded-lg border border-[#E5E8EB] bg-[#F9FAFB] px-4 mb-2 mt-2 py-3 hover:shadow-sm transition"
                           >
                             <div>
                               <p className="font-medium text-[#111827]">
