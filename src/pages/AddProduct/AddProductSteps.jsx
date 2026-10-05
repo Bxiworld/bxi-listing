@@ -5690,7 +5690,7 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="go-live-page">
+    <div className="min-h-screen bg-[#F8F9FA]" data-testid="go-live-page">
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">

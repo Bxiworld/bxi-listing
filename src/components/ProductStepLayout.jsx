@@ -27,7 +27,7 @@ export const ProductStepLayout = ({ category, children }) => {
 
   return (
     <div className="product-step-layout w-full min-w-0">
-      <div className="mb-4 border-b border-[#E5E8EB] bg-white px-4 py-3 sm:mb-6 sm:px-6 sm:py-4">
+      <div className="border-b border-[#E5E8EB] bg-white px-4 py-3 sm:mb-6 sm:px-6 sm:py-4">
         <h1 className="text-xl font-bold text-[#111827] sm:text-2xl">
           {title}
         </h1>
