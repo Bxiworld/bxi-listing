@@ -315,7 +315,7 @@ export default function PhysicalDigital() {
             ) : (
               <TooltipProvider delayDuration={200}>
                 <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-                  <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[#374151]">
+                  <h1 className="text-md sm:text-xl md:text-2xl lg:text-3xl font-bold text-[#374151]">
                     {genericOneLineTitle}
                   </h1>
 
