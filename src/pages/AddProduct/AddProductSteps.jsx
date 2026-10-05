@@ -1,25 +1,47 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
-import { getMediaJourney } from '../../constants/mediaMapping';
-import { useForm } from 'react-hook-form';
-import { format } from 'date-fns';
-import { ArrowLeft, ArrowRight, Save, CheckCircle2, Info, X, CloudUpload, ImageIcon, Trash2, Tag } from 'lucide-react';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  useNavigate,
+  useParams,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
+import { getMediaJourney } from "../../constants/mediaMapping";
+import { useForm } from "react-hook-form";
+import { format } from "date-fns";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Save,
+  CheckCircle2,
+  Info,
+  X,
+  CloudUpload,
+  ImageIcon,
+  Trash2,
+  Tag,
+} from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../components/ui/select';
-import { ToggleGroup, ToggleGroupItem } from '../../components/ui/toggle-group';
-import { toast } from 'sonner';
-import { cn } from '../../lib/utils';
-import { productApi } from '../../utils/api';
-import api from '../../utils/api';
+} from "../../components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "../../components/ui/toggle-group";
+import { toast } from "sonner";
+import { cn } from "../../lib/utils";
+import { productApi } from "../../utils/api";
+import api from "../../utils/api";
 import {
   PRODUCT_TYPE_BY_CATEGORY,
   getGeneralInfoConfig,
@@ -31,37 +53,40 @@ import {
   getVoucherProductInfoConfig,
   getValidationSchema,
   QSR_HARDCODED_FEATURES,
-} from '../../config/categoryFormConfig';
+} from "../../config/categoryFormConfig";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '../../components/ui/tooltip';
-import { Checkbox } from '../../components/ui/checkbox';
-import StateData from '../../utils/StateCityArray.json';
+} from "../../components/ui/tooltip";
+import { Checkbox } from "../../components/ui/checkbox";
+import StateData from "../../utils/StateCityArray.json";
 import {
   buildCitySelectOptions,
   getCitiesForState,
-} from '../../utils/stateCityOptions';
-import { resolveLocationFromPincode } from '../../utils/pincodeLookup';
-import { supportsBulkUpload, downloadBulkUploadTemplate } from '../../utils/excelTemplates';
-import { Divider } from '@mui/material';
-import { InfoIcon } from 'lucide-react';
-import bxitoken from '../../assets/bxi-token.svg';
+} from "../../utils/stateCityOptions";
+import { resolveLocationFromPincode } from "../../utils/pincodeLookup";
+import {
+  supportsBulkUpload,
+  downloadBulkUploadTemplate,
+} from "../../utils/excelTemplates";
+import { Divider } from "@mui/material";
+import { InfoIcon } from "lucide-react";
+import bxitoken from "../../assets/bxi-token.svg";
 import {
   getVoucherJourneyTypeFromStorage,
   getVoucherJourneyLabel,
   VOUCHER_JOURNEY_TYPE,
-} from '../../utils/voucherType';
-import { useScrollToTopOnStepEnter } from '../../hooks/useScrollToTopOnStepEnter';
-import CommaSeparator from '../../components/CommaSeprator';
+} from "../../utils/voucherType";
+import { useScrollToTopOnStepEnter } from "../../hooks/useScrollToTopOnStepEnter";
+import CommaSeparator from "../../components/CommaSeprator";
 import {
   LISTING_GST_RATE_OPTIONS,
   LISTING_NON_ZERO_GST_RATE_OPTIONS,
   formatListingGstPercentLabel,
   isAllowedListingGstRate,
-} from '../../utils/gstOptions';
+} from "../../utils/gstOptions";
 import {
   getRequiredHsnDigitLength,
   getHsnInputMaxLength,
@@ -70,33 +95,58 @@ import {
   sanitizeHsnInput,
   validateListingHsn,
   validateVariantsShareSameHsn,
-} from '../../utils/hsnValidation';
-import { useAuthUser } from '../../hooks/useAuthUser';
+} from "../../utils/hsnValidation";
+import { useAuthUser } from "../../hooks/useAuthUser";
 
 /** Label for dimension option buttons: keeps values as-is for form state, splits camelCase for display. */
 function formatSizeOptionButtonLabel(opt) {
-  if (typeof opt !== 'string') return opt;
-  if (opt.includes(' ')) return opt;
-  return opt.replace(/([a-z])([A-Z])/g, '$1 $2');
+  if (typeof opt !== "string") return opt;
+  if (opt.includes(" ")) return opt;
+  return opt.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
 
 /** Utility function to count letters/characters in a string */
 function countLetters(text) {
-  if (!text || typeof text !== 'string') return 0;
+  if (!text || typeof text !== "string") return 0;
   return text.length;
 }
 
 const STATE_REGION_MAP = {
-  'Delhi': 'North', 'Haryana': 'North', 'Punjab': 'North', 'Uttar Pradesh': 'North',
-  'Rajasthan': 'North', 'Himachal Pradesh': 'North', 'Uttarakhand': 'North',
-  'Jammu Kashmir': 'North', 'Chandigarh': 'North', 'Ladakh': 'North',
-  'Maharashtra': 'West', 'Gujarat': 'West', 'Goa': 'West', 'Madhya Pradesh': 'Central',
-  'Chhattisgarh': 'Central', 'West Bengal': 'East', 'Bihar': 'East', 'Jharkhand': 'East',
-  'Odisha': 'East', 'Assam': 'East', 'Sikkim': 'East', 'Meghalaya': 'East',
-  'Tripura': 'East', 'Mizoram': 'East', 'Manipur': 'East', 'Nagaland': 'East',
-  'Arunachal Pradesh': 'East', 'Tamil Nadu': 'South', 'Karnataka': 'South',
-  'Kerala': 'South', 'Andhra Pradesh': 'South', 'Telangana': 'South',
-  'Puducherry': 'South', 'Andaman Nicobar Islands': 'South', 'Lakshadweep': 'South',
+  Delhi: "North",
+  Haryana: "North",
+  Punjab: "North",
+  "Uttar Pradesh": "North",
+  Rajasthan: "North",
+  "Himachal Pradesh": "North",
+  Uttarakhand: "North",
+  "Jammu Kashmir": "North",
+  Chandigarh: "North",
+  Ladakh: "North",
+  Maharashtra: "West",
+  Gujarat: "West",
+  Goa: "West",
+  "Madhya Pradesh": "Central",
+  Chhattisgarh: "Central",
+  "West Bengal": "East",
+  Bihar: "East",
+  Jharkhand: "East",
+  Odisha: "East",
+  Assam: "East",
+  Sikkim: "East",
+  Meghalaya: "East",
+  Tripura: "East",
+  Mizoram: "East",
+  Manipur: "East",
+  Nagaland: "East",
+  "Arunachal Pradesh": "East",
+  "Tamil Nadu": "South",
+  Karnataka: "South",
+  Kerala: "South",
+  "Andhra Pradesh": "South",
+  Telangana: "South",
+  Puducherry: "South",
+  "Andaman Nicobar Islands": "South",
+  Lakshadweep: "South",
 };
 
 const getSubcategoryOptions = (responseData) => {
@@ -120,10 +170,10 @@ const getSubcategoryOptions = (responseData) => {
 
   return list
     .map((item) => {
-      if (typeof item === 'string') {
+      if (typeof item === "string") {
         return { label: item, value: item };
       }
-      if (!item || typeof item !== 'object') {
+      if (!item || typeof item !== "object") {
         return null;
       }
       // Display label: the first recognized name field on the row.
@@ -146,7 +196,10 @@ const getSubcategoryOptions = (responseData) => {
         // Final fallback: first non-id string field in object
         Object.entries(item).find(
           ([key, val]) =>
-            typeof val === 'string' && val.trim() && key !== '_id' && key !== 'id'
+            typeof val === "string" &&
+            val.trim() &&
+            key !== "_id" &&
+            key !== "id",
         )?.[1];
       if (!label) {
         return null;
@@ -160,56 +213,68 @@ const getSubcategoryOptions = (responseData) => {
 };
 
 const STEPS = [
-  { id: 1, name: 'General Information', path: 'general-info' },
-  { id: 2, name: 'Product Information', path: 'product-info' },
-  { id: 3, name: 'Technical Information', path: 'tech-info' },
-  { id: 4, name: 'Go Live', path: 'go-live' },
+  { id: 1, name: "General Information", path: "general-info" },
+  { id: 2, name: "Product Information", path: "product-info" },
+  { id: 3, name: "Technical Information", path: "tech-info" },
+  { id: 4, name: "Go Live", path: "go-live" },
 ];
 
 // Helper to get step name based on category type
 const getStepName = (stepId, category) => {
   if (stepId !== 2) return STEPS[stepId - 1].name;
-  const isVoucherCategory = category?.endsWith?.('Voucher');
-  if (isVoucherCategory) return 'Voucher Information';
+  const isVoucherCategory = category?.endsWith?.("Voucher");
+  if (isVoucherCategory) return "Voucher Information";
   const isMediaCategory =
-    category === 'mediaonline' || category === 'mediaoffline' || category === 'media';
-  if (isMediaCategory) return 'Media Information';
-  return 'Product Information';
+    category === "mediaonline" ||
+    category === "mediaoffline" ||
+    category === "media";
+  if (isMediaCategory) return "Media Information";
+  return "Product Information";
 };
 
 // Stepper Component – exported for use in voucher pages (HotelsProductInfo, VoucherTechInfo, VoucherGoLive, VoucherDesign)
-export const Stepper = ({ currentStep, completedSteps = [], category = '' }) => {
+export const Stepper = ({
+  currentStep,
+  completedSteps = [],
+  category = "",
+}) => {
   return (
     <div className="stepper vertical" data-testid="add-product-stepper">
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.id;
-        const isCompleted = completedSteps.includes(step.id) || currentStep > step.id;
+        const isCompleted =
+          completedSteps.includes(step.id) || currentStep > step.id;
         const stepName = getStepName(step.id, category);
-        
+
         return (
           <div key={step.id} className="stepper-step">
             <div className="stepper-step-row">
               <div
                 className={cn(
-                  'stepper-circle',
-                  isActive && 'active',
-                  isCompleted && 'completed'
+                  "stepper-circle",
+                  isActive && "active",
+                  isCompleted && "completed",
                 )}
               >
                 {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : step.id}
               </div>
               <span
                 className={cn(
-                  'stepper-label',
-                  isActive && 'active',
-                  isCompleted && 'completed'
+                  "stepper-label",
+                  isActive && "active",
+                  isCompleted && "completed",
                 )}
               >
                 {stepName}
               </span>
             </div>
             {index < STEPS.length - 1 && (
-              <div className={cn('stepper-line-vertical', isCompleted && 'completed')} />
+              <div
+                className={cn(
+                  "stepper-line-vertical",
+                  isCompleted && "completed",
+                )}
+              />
             )}
           </div>
         );
@@ -223,34 +288,49 @@ export const GeneralInformation = ({ category }) => {
   useScrollToTopOnStepEnter();
   const navigate = useNavigate();
   const { id } = useParams();
-  const [pendingTextileGenderHydrate, setPendingTextileGenderHydrate] = useState(null);
-  const [pendingTextileSubcategoryHydrate, setPendingTextileSubcategoryHydrate] = useState(null);
+  const [pendingTextileGenderHydrate, setPendingTextileGenderHydrate] =
+    useState(null);
+  const [
+    pendingTextileSubcategoryHydrate,
+    setPendingTextileSubcategoryHydrate,
+  ] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subcategoryOptions, setSubcategoryOptions] = useState([]);
   const [subcategoriesLoading, setSubcategoriesLoading] = useState(false);
   const [genderCategoryData, setGenderCategoryData] = useState([]);
   const [selectedGenderId, setSelectedGenderId] = useState(null);
-  const [selectedGender, setSelectedGender] = useState('Unisex');
-  
-  const giConfig = getGeneralInfoConfig(category);
-  const valSchema = getValidationSchema(category, 'generalInfo');
-  const isVoucherCategory = category?.endsWith?.('Voucher');
-  const voucherJourneyType = isVoucherCategory ? getVoucherJourneyTypeFromStorage() : null;
-  const isOfferSpecificVoucher = voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
-  const nextStepPath = isVoucherCategory
-    ? (category === 'hotelsVoucher' ? 'hotelsproductinfo' : 'techinfo')
-    : 'product-info';
+  const [selectedGender, setSelectedGender] = useState("Unisex");
 
-  const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm({
+  const giConfig = getGeneralInfoConfig(category);
+  const valSchema = getValidationSchema(category, "generalInfo");
+  const isVoucherCategory = category?.endsWith?.("Voucher");
+  const voucherJourneyType = isVoucherCategory
+    ? getVoucherJourneyTypeFromStorage()
+    : null;
+  const isOfferSpecificVoucher =
+    voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
+  const nextStepPath = isVoucherCategory
+    ? category === "hotelsVoucher"
+      ? "hotelsproductinfo"
+      : "techinfo"
+    : "product-info";
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    setValue,
+    watch,
+  } = useForm({
     defaultValues: {
-      productName: '',
-      productSubtitle: '',
-      subcategory: '',
-      description: '',
-      hasRegistrationProcess: 'Yes',
-      HotelStars: '5',
-      gender: '',
-    }
+      productName: "",
+      productSubtitle: "",
+      subcategory: "",
+      description: "",
+      hasRegistrationProcess: "Yes",
+      HotelStars: "5",
+      gender: "",
+    },
   });
 
   // Hydrate draft / edit when URL includes product id (parity with ProductInfo / TechInfo / GoLive)
@@ -268,37 +348,47 @@ export const GeneralInformation = ({ category }) => {
         const data = raw?.body ?? raw?.data ?? raw;
         if (cancelled || !data) return;
 
-        setValue('productName', data.ProductName || '', { shouldDirty: false });
-        setValue('description', data.ProductDescription || '', { shouldDirty: false });
+        setValue("productName", data.ProductName || "", { shouldDirty: false });
+        setValue("description", data.ProductDescription || "", {
+          shouldDirty: false,
+        });
         if (giConfig.hasSubtitle) {
-          setValue('productSubtitle', data.ProductSubtitle || '', { shouldDirty: false });
+          setValue("productSubtitle", data.ProductSubtitle || "", {
+            shouldDirty: false,
+          });
         }
         if (giConfig.hasRadioButtons && !isVoucherCategory) {
           const v = data.HasRegistrationProcess;
-          if (v === 'Yes' || v === 'No') {
-            setValue('hasRegistrationProcess', v, { shouldDirty: false });
+          if (v === "Yes" || v === "No") {
+            setValue("hasRegistrationProcess", v, { shouldDirty: false });
           }
         }
-        if (giConfig.hasStarRating && data.HotelStars != null && String(data.HotelStars).trim() !== '') {
-          setValue('HotelStars', String(data.HotelStars), { shouldDirty: false });
+        if (
+          giConfig.hasStarRating &&
+          data.HotelStars != null &&
+          String(data.HotelStars).trim() !== ""
+        ) {
+          setValue("HotelStars", String(data.HotelStars), {
+            shouldDirty: false,
+          });
         }
 
         const subVal = data.ProductSubCategory ?? data.productSubCategory;
-        const subStr = subVal != null && subVal !== '' ? String(subVal) : '';
+        const subStr = subVal != null && subVal !== "" ? String(subVal) : "";
 
         if (giConfig.hasGenderSelection && data.Gender) {
           setPendingTextileGenderHydrate(String(data.Gender));
           setPendingTextileSubcategoryHydrate(subStr || null);
-          setValue('gender', data.Gender, { shouldDirty: false });
+          setValue("gender", data.Gender, { shouldDirty: false });
         } else {
           setPendingTextileGenderHydrate(null);
           setPendingTextileSubcategoryHydrate(null);
-          if (category !== 'airlineVoucher' && subStr) {
-            setValue('subcategory', subStr, { shouldDirty: false });
+          if (category !== "airlineVoucher" && subStr) {
+            setValue("subcategory", subStr, { shouldDirty: false });
           }
         }
       } catch {
-        toast.error('Failed to load product details.');
+        toast.error("Failed to load product details.");
       }
     })();
     return () => {
@@ -316,23 +406,29 @@ export const GeneralInformation = ({ category }) => {
   ]);
 
   const normalizeCategoryLabel = (cat) => {
-    if (!cat) return 'Product';
-    const cleaned = cat.replace(/voucher$/i, '');
-    if (!cleaned) return 'Product';
+    if (!cat) return "Product";
+    const cleaned = cat.replace(/voucher$/i, "");
+    if (!cleaned) return "Product";
     return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   };
 
   const categoryLabel = normalizeCategoryLabel(category);
-  const selectedSubcategory = watch('subcategory');
-  const watchedProductName = watch('productName') || '';
-  const watchedProductSubtitle = watch('productSubtitle') || '';
-  const watchedDescription = watch('description') || '';
-  const textileGenderDisplayOrder = ['kids', 'female', 'male', 'unisex', 'others'];
+  const selectedSubcategory = watch("subcategory");
+  const watchedProductName = watch("productName") || "";
+  const watchedProductSubtitle = watch("productSubtitle") || "";
+  const watchedDescription = watch("description") || "";
+  const textileGenderDisplayOrder = [
+    "kids",
+    "female",
+    "male",
+    "unisex",
+    "others",
+  ];
   const orderedGenderCategoryData =
     giConfig.hasGenderSelection && Array.isArray(genderCategoryData)
       ? [...genderCategoryData].sort((a, b) => {
-          const aLabel = String(a?.SubcategoryName || '').toLowerCase();
-          const bLabel = String(b?.SubcategoryName || '').toLowerCase();
+          const aLabel = String(a?.SubcategoryName || "").toLowerCase();
+          const bLabel = String(b?.SubcategoryName || "").toLowerCase();
           const aIdx = textileGenderDisplayOrder.indexOf(aLabel);
           const bIdx = textileGenderDisplayOrder.indexOf(bLabel);
           const safeA = aIdx === -1 ? textileGenderDisplayOrder.length : aIdx;
@@ -343,13 +439,13 @@ export const GeneralInformation = ({ category }) => {
       : genderCategoryData;
 
   useEffect(() => {
-    if (category === 'airlineVoucher') {
+    if (category === "airlineVoucher") {
       setSubcategoryOptions([]);
       setGenderCategoryData([]);
       setSelectedGenderId(null);
-      setSelectedGender('Unisex');
+      setSelectedGender("Unisex");
       setSubcategoriesLoading(false);
-      if (!id) setValue('subcategory', '');
+      if (!id) setValue("subcategory", "");
       return;
     }
     if (isVoucherCategory) {
@@ -357,12 +453,18 @@ export const GeneralInformation = ({ category }) => {
 
       if (currentVoucherJourneyType === VOUCHER_JOURNEY_TYPE.VALUE_GIFT) {
         const curatedLabels =
-          category === 'hotelsVoucher'
-            ? ['Value Voucher', 'Gift Cards', 'Valid on All', 'Valid on Limited', 'Others']
-            : ['Value Voucher', 'Gift Cards'];
+          category === "hotelsVoucher"
+            ? [
+                "Value Voucher",
+                "Gift Cards",
+                "Valid on All",
+                "Valid on Limited",
+                "Others",
+              ]
+            : ["Value Voucher", "Gift Cards"];
         setGenderCategoryData([]);
         setSelectedGenderId(null);
-        setSelectedGender('Unisex');
+        setSelectedGender("Unisex");
         setSubcategoriesLoading(true);
         // Value-journey subcategories ("Value Voucher"/"Gift Cards") are seeded as real
         // tiles in each category's subcategory collection, so fetch and map each curated
@@ -370,48 +472,62 @@ export const GeneralInformation = ({ category }) => {
         // to a label-valued option only if a label isn't seeded yet / the fetch fails.
         const endpoint = getSubcategoryEndpoint(category);
         api
-          .get(endpoint || 'hotelsub/Get_hotel_subcategory')
+          .get(endpoint || "hotelsub/Get_hotel_subcategory")
           .then((res) => {
             const root = res?.data?.body ?? res?.data?.data ?? res?.data;
             const all = getSubcategoryOptions({ data: root });
             const options = curatedLabels.map((lbl) => {
               const hit = all.find(
-                (o) => String(o.label).toLowerCase() === lbl.toLowerCase()
+                (o) => String(o.label).toLowerCase() === lbl.toLowerCase(),
               );
               return hit || { value: lbl, label: lbl };
             });
             setSubcategoryOptions(options);
-            if (!id) setValue('subcategory', '');
+            if (!id) setValue("subcategory", "");
           })
           .catch(() => {
-            setSubcategoryOptions(curatedLabels.map((s) => ({ value: s, label: s })));
-            if (!id) setValue('subcategory', '');
+            setSubcategoryOptions(
+              curatedLabels.map((s) => ({ value: s, label: s })),
+            );
+            if (!id) setValue("subcategory", "");
           })
           .finally(() => setSubcategoriesLoading(false));
         return;
       }
 
-      if (category === 'hotelsVoucher') {
+      if (category === "hotelsVoucher") {
         setSubcategoriesLoading(true);
         setGenderCategoryData([]);
         setSelectedGenderId(null);
-        setSelectedGender('Unisex');
+        setSelectedGender("Unisex");
         const endpoint = getSubcategoryEndpoint(category);
-        api.get(endpoint || 'hotelsub/Get_hotel_subcategory')
+        api
+          .get(endpoint || "hotelsub/Get_hotel_subcategory")
           .then((res) => {
             const raw = res?.data?.data ?? res?.data;
-            const list = Array.isArray(raw) ? raw : (raw?.data ? [].concat(raw.data) : []);
-            const options = list.map((el) => ({
-              value: el?._id ?? el?.SubcategoryType ?? el,
-              label: el?.SampleCategoryType ?? el?.SubcategoryType ?? (typeof el === 'string' ? el : String(el?._id ?? '')),
-            })).filter((o) => o.value != null && o.label != null);
-            options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+            const list = Array.isArray(raw)
+              ? raw
+              : raw?.data
+                ? [].concat(raw.data)
+                : [];
+            const options = list
+              .map((el) => ({
+                value: el?._id ?? el?.SubcategoryType ?? el,
+                label:
+                  el?.SampleCategoryType ??
+                  el?.SubcategoryType ??
+                  (typeof el === "string" ? el : String(el?._id ?? "")),
+              }))
+              .filter((o) => o.value != null && o.label != null);
+            options.sort((a, b) =>
+              String(a.label).localeCompare(String(b.label)),
+            );
             setSubcategoryOptions(options);
-            if (!id) setValue('subcategory', '');
+            if (!id) setValue("subcategory", "");
           })
           .catch(() => {
             setSubcategoryOptions([]);
-            toast.error('Unable to load hotel subcategories.');
+            toast.error("Unable to load hotel subcategories.");
           })
           .finally(() => setSubcategoriesLoading(false));
         return;
@@ -423,8 +539,8 @@ export const GeneralInformation = ({ category }) => {
       setSubcategoryOptions([]);
       setGenderCategoryData([]);
       setSelectedGenderId(null);
-      setSelectedGender('Unisex');
-      if (!id) setValue('subcategory', '');
+      setSelectedGender("Unisex");
+      if (!id) setValue("subcategory", "");
       return;
     }
 
@@ -436,7 +552,7 @@ export const GeneralInformation = ({ category }) => {
 
         // Textile-specific shape: [{ SubcategoryName, SubcategoryValue: [...] }, ...]
         if (
-          category === 'textile' &&
+          category === "textile" &&
           Array.isArray(root) &&
           root.length > 0 &&
           Array.isArray(root[0]?.SubcategoryValue)
@@ -448,31 +564,41 @@ export const GeneralInformation = ({ category }) => {
             const defaultGenderGroup =
               root.find(
                 (item) =>
-                  String(item?.SubcategoryName || '').toLowerCase() === 'unisex'
+                  String(item?.SubcategoryName || "").toLowerCase() ===
+                  "unisex",
               ) || root[0];
-            const defaultGenderName = defaultGenderGroup?.SubcategoryName || 'Unisex';
+            const defaultGenderName =
+              defaultGenderGroup?.SubcategoryName || "Unisex";
             setSelectedGenderId(defaultGenderGroup?._id || null);
             setSelectedGender(defaultGenderName);
-            setValue('gender', defaultGenderName);
+            setValue("gender", defaultGenderName);
             const options = getSubcategoryOptions({
-              data: [{ SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [] }],
+              data: [
+                {
+                  SubcategoryValue: defaultGenderGroup?.SubcategoryValue || [],
+                },
+              ],
             });
-            options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+            options.sort((a, b) =>
+              String(a.label).localeCompare(String(b.label)),
+            );
             setSubcategoryOptions(options);
-            setValue('subcategory', '');
+            setValue("subcategory", "");
           }
         } else {
           setGenderCategoryData([]);
           setSelectedGenderId(null);
-          setSelectedGender('Unisex');
+          setSelectedGender("Unisex");
           const root = res?.data?.body ?? res?.data?.data ?? res?.data;
           const options = getSubcategoryOptions({ data: root });
-          options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+          options.sort((a, b) =>
+            String(a.label).localeCompare(String(b.label)),
+          );
           setSubcategoryOptions(options);
         }
       } catch (error) {
         setSubcategoryOptions([]);
-        toast.error('Unable to load subcategories for this category.');
+        toast.error("Unable to load subcategories for this category.");
       } finally {
         setSubcategoriesLoading(false);
       }
@@ -481,26 +607,34 @@ export const GeneralInformation = ({ category }) => {
     fetchSubcategories();
   }, [category, isVoucherCategory, id, setValue]);
 
-  const handleTextileGenderSelect = useCallback((genderGroup) => {
-    setSelectedGenderId(genderGroup?._id || null);
-    const name = genderGroup?.SubcategoryName || 'Unisex';
-    setSelectedGender(name);
-    setValue('gender', name, { shouldValidate: true });
-    const options = getSubcategoryOptions({
-      data: [{ SubcategoryValue: genderGroup?.SubcategoryValue || [] }],
-    });
-    options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
-    setSubcategoryOptions(options);
-    setValue('subcategory', '', { shouldValidate: true });
-  }, [setValue]);
+  const handleTextileGenderSelect = useCallback(
+    (genderGroup) => {
+      setSelectedGenderId(genderGroup?._id || null);
+      const name = genderGroup?.SubcategoryName || "Unisex";
+      setSelectedGender(name);
+      setValue("gender", name, { shouldValidate: true });
+      const options = getSubcategoryOptions({
+        data: [{ SubcategoryValue: genderGroup?.SubcategoryValue || [] }],
+      });
+      options.sort((a, b) => String(a.label).localeCompare(String(b.label)));
+      setSubcategoryOptions(options);
+      setValue("subcategory", "", { shouldValidate: true });
+    },
+    [setValue],
+  );
 
   useEffect(() => {
-    if (!giConfig.hasGenderSelection || !genderCategoryData.length || !pendingTextileGenderHydrate) {
+    if (
+      !giConfig.hasGenderSelection ||
+      !genderCategoryData.length ||
+      !pendingTextileGenderHydrate
+    ) {
       return;
     }
     const g = pendingTextileGenderHydrate;
     const match = genderCategoryData.find(
-      (item) => String(item?.SubcategoryName || '').toLowerCase() === g.toLowerCase()
+      (item) =>
+        String(item?.SubcategoryName || "").toLowerCase() === g.toLowerCase(),
     );
     if (!match) {
       setPendingTextileGenderHydrate(null);
@@ -512,7 +646,7 @@ export const GeneralInformation = ({ category }) => {
     setPendingTextileGenderHydrate(null);
     setPendingTextileSubcategoryHydrate(null);
     if (pend) {
-      setValue('subcategory', pend, { shouldDirty: false });
+      setValue("subcategory", pend, { shouldDirty: false });
     }
   }, [
     genderCategoryData,
@@ -527,13 +661,15 @@ export const GeneralInformation = ({ category }) => {
     setIsSubmitting(true);
     try {
       let productId = id;
-      const normalizedSubcategory = data.subcategory || '';
-      const subcategoryName = subcategoryOptions.find((o) => o.value === normalizedSubcategory)?.label || normalizedSubcategory;
+      const normalizedSubcategory = data.subcategory || "";
+      const subcategoryName =
+        subcategoryOptions.find((o) => o.value === normalizedSubcategory)
+          ?.label || normalizedSubcategory;
       const airlineSubcategoryValue =
-        PRODUCT_TYPE_BY_CATEGORY[category] || 'Airline Tickets';
+        PRODUCT_TYPE_BY_CATEGORY[category] || "Airline Tickets";
 
-      const isMediaOnline = category === 'mediaonline';
-      const isMediaOffline = category === 'mediaoffline';
+      const isMediaOnline = category === "mediaonline";
+      const isMediaOffline = category === "mediaoffline";
       const isMedia = isMediaOnline || isMediaOffline;
 
       let payload;
@@ -544,103 +680,149 @@ export const GeneralInformation = ({ category }) => {
           ProductSubtitle: data.productSubtitle,
           ProductSubCategory: normalizedSubcategory,
           ProductSubCategoryName: subcategoryName,
-          ProductUploadStatus: 'productinformation',
-          ListingType: 'Media',
-          ProductType: isMediaOnline ? 'MediaOnline' : 'MediaOffline',
-          ProductCategoryName:
-            isMediaOnline
-              ? subcategoryName === 'Multiplex ADs' ? 'Multiplex ADs' : 'MediaOnline'
-              : subcategoryName === 'Hoardings' ? 'MediaOffline' : subcategoryName,
+          ProductUploadStatus: "productinformation",
+          ListingType: "Media",
+          ProductType: isMediaOnline ? "MediaOnline" : "MediaOffline",
+          ProductCategoryName: isMediaOnline
+            ? subcategoryName === "Multiplex ADs"
+              ? "Multiplex ADs"
+              : "MediaOnline"
+            : subcategoryName === "Hoardings"
+              ? "MediaOffline"
+              : subcategoryName,
           ...(id && { id }),
         };
       } else {
         const resolvedVerticalType =
-          PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || 'Others';
+          PRODUCT_TYPE_BY_CATEGORY[category] || categoryLabel || "Others";
         payload = {
           ProductName: data.productName,
           ProductDescription: data.description,
-          ProductUploadStatus: 'productinformation',
-          ListingType: isVoucherCategory ? 'Voucher' : 'Product',
+          ProductUploadStatus: "productinformation",
+          ListingType: isVoucherCategory ? "Voucher" : "Product",
           ProductType: resolvedVerticalType,
           // API defaults ProductCategoryName to "Others" when omitted; Seller Hub and filters use it first.
-          ...(isVoucherCategory && { ProductCategoryName: resolvedVerticalType }),
+          ...(isVoucherCategory && {
+            ProductCategoryName: resolvedVerticalType,
+          }),
           // ProductSubCategory must carry the subcategory _id (what the marketplace
           // category/subcategory filters match on); the human label lives in ...Name.
           ProductSubCategory:
-            category === 'airlineVoucher' ? airlineSubcategoryValue : normalizedSubcategory,
+            category === "airlineVoucher"
+              ? airlineSubcategoryValue
+              : normalizedSubcategory,
           ProductSubCategoryName:
-            category === 'airlineVoucher' ? airlineSubcategoryValue : subcategoryName,
+            category === "airlineVoucher"
+              ? airlineSubcategoryValue
+              : subcategoryName,
           Gender: giConfig.hasGenderSelection ? selectedGender : undefined,
           gender: giConfig.hasGenderSelection ? selectedGender : undefined,
-          ProductSubtitle: giConfig.hasSubtitle ? data.productSubtitle : undefined,
-          HasRegistrationProcess: giConfig.hasRadioButtons ? data.hasRegistrationProcess : undefined,
+          ProductSubtitle: giConfig.hasSubtitle
+            ? data.productSubtitle
+            : undefined,
+          HasRegistrationProcess: giConfig.hasRadioButtons
+            ? data.hasRegistrationProcess
+            : undefined,
           HotelStars: giConfig.hasStarRating ? data.HotelStars : undefined,
         };
         // bxi-dashboard GeneralInfoTemplate: VoucherType from localStorage (Offer Specific | Value Voucher / Gift Cards )
-        if (isVoucherCategory && typeof localStorage !== 'undefined') {
-          payload.VoucherType = getVoucherJourneyLabel(getVoucherJourneyTypeFromStorage());
+        if (isVoucherCategory && typeof localStorage !== "undefined") {
+          payload.VoucherType = getVoucherJourneyLabel(
+            getVoucherJourneyTypeFromStorage(),
+          );
         }
       }
 
       // bxi-dashboard uses product_mutation for all voucher steps (AddVoucherPages/TextileVoucher ProductHooksQuery)
       if (id && isVoucherCategory) {
         await productApi.productMutation({ _id: id, ...payload });
-        toast.success('General information updated!');
+        toast.success("General information updated!");
       } else if (!id && isVoucherCategory) {
         const res = await productApi.productMutation(payload);
-        const created = res?.data?.body ?? res?.data?.data ?? res?.data?.product ?? res?.data;
-        if (created?.name === 'ValidationError' || created?.errors) {
-          const firstError = created?.errors ? Object.values(created.errors)?.[0]?.message : null;
-          throw new Error(firstError || created?.message || 'Validation failed');
+        const created =
+          res?.data?.body ?? res?.data?.data ?? res?.data?.product ?? res?.data;
+        if (created?.name === "ValidationError" || created?.errors) {
+          const firstError = created?.errors
+            ? Object.values(created.errors)?.[0]?.message
+            : null;
+          throw new Error(
+            firstError || created?.message || "Validation failed",
+          );
         }
-        productId = created?._id ?? created?.id ?? created?.product?._id ?? created?.ProductData?._id;
+        productId =
+          created?._id ??
+          created?.id ??
+          created?.product?._id ??
+          created?.ProductData?._id;
         if (!productId) {
           const draftRes = await productApi.getDraftProducts(1);
-          const draftData = draftRes?.data?.products ?? draftRes?.data?.body?.products ?? draftRes?.data?.data?.products ?? [];
+          const draftData =
+            draftRes?.data?.products ??
+            draftRes?.data?.body?.products ??
+            draftRes?.data?.data?.products ??
+            [];
           if (Array.isArray(draftData) && draftData.length > 0) {
             productId = draftData[0]?._id;
           }
         }
         if (!productId) {
-          throw new Error('Product was not created. Please check required fields and try again.');
+          throw new Error(
+            "Product was not created. Please check required fields and try again.",
+          );
         }
-        toast.success('General information saved!');
+        toast.success("General information saved!");
       } else if (id && !isMedia) {
         await productApi.updateProduct({ _id: id, ...payload });
-        toast.success('General information updated!');
+        toast.success("General information updated!");
       } else if (isMedia) {
         const res = await productApi.productMutation(payload);
-        const created = res?.data?.body ?? res?.data?.data ?? res?.data?.product ?? res?.data;
-        if (created?.name === 'ValidationError' || created?.errors) {
-          const firstError = created?.errors ? Object.values(created.errors)?.[0]?.message : null;
-          throw new Error(firstError || created?.message || 'Validation failed');
+        const created =
+          res?.data?.body ?? res?.data?.data ?? res?.data?.product ?? res?.data;
+        if (created?.name === "ValidationError" || created?.errors) {
+          const firstError = created?.errors
+            ? Object.values(created.errors)?.[0]?.message
+            : null;
+          throw new Error(
+            firstError || created?.message || "Validation failed",
+          );
         }
-        productId = created?._id ?? created?.id ?? created?.product?._id ?? created?.ProductData?._id;
+        productId =
+          created?._id ??
+          created?.id ??
+          created?.product?._id ??
+          created?.ProductData?._id;
         if (id) {
-          toast.success('General information updated!');
+          toast.success("General information updated!");
         } else {
           if (!productId) {
             const draftRes = await productApi.getDraftProducts(1);
-            const draftData = draftRes?.data?.products ?? draftRes?.data?.body?.products ?? draftRes?.data?.data?.products ?? [];
+            const draftData =
+              draftRes?.data?.products ??
+              draftRes?.data?.body?.products ??
+              draftRes?.data?.data?.products ??
+              [];
             if (Array.isArray(draftData) && draftData.length > 0) {
               productId = draftData[0]?._id;
             }
           }
           if (!productId) {
-            throw new Error('Product was not created. Please check required fields and try again.');
+            throw new Error(
+              "Product was not created. Please check required fields and try again.",
+            );
           }
-          toast.success('General information saved!');
+          toast.success("General information saved!");
         }
       } else {
         const res = await productApi.createProduct(payload);
         const created =
-          res?.data?.body ||
-          res?.data?.data ||
-          res?.data?.product ||
-          res?.data;
-        if (created?.name === 'ValidationError' || created?.errors) {
-          const firstError = created?.errors ? Object.values(created.errors)?.[0]?.message : null;
-          throw new Error(firstError || created?.message || 'Validation failed');
+          res?.data?.body || res?.data?.data || res?.data?.product || res?.data;
+        if (created?.name === "ValidationError" || created?.errors) {
+          const firstError = created?.errors
+            ? Object.values(created.errors)?.[0]?.message
+            : null;
+          throw new Error(
+            firstError || created?.message || "Validation failed",
+          );
         }
         productId =
           created?._id ||
@@ -659,28 +841,38 @@ export const GeneralInformation = ({ category }) => {
           }
         }
         if (!productId) {
-          throw new Error('Product was not created. Please check required fields and try again.');
+          throw new Error(
+            "Product was not created. Please check required fields and try again.",
+          );
         }
-        toast.success('General information saved!');
+        toast.success("General information saved!");
       }
 
       let targetPath;
       if (isMediaOnline) {
         const storedMediaCategory =
-          (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('mediaCategory')) ||
-          (typeof localStorage !== 'undefined' && localStorage.getItem('mediaCategory')) ||
-          '';
+          (typeof sessionStorage !== "undefined" &&
+            sessionStorage.getItem("mediaCategory")) ||
+          (typeof localStorage !== "undefined" &&
+            localStorage.getItem("mediaCategory")) ||
+          "";
         const journey = getMediaJourney(storedMediaCategory);
 
-        if (subcategoryName === 'Digital ADs' && journey !== 'television-ads') {
+        if (subcategoryName === "Digital ADs" && journey !== "television-ads") {
           targetPath = `/mediaonline/mediaonlinedigitalscreensinfo/${productId}`;
-        } else if (subcategoryName === 'Multiplex ADs' || journey === 'multiplex') {
+        } else if (
+          subcategoryName === "Multiplex ADs" ||
+          journey === "multiplex"
+        ) {
           targetPath = `/mediaonline/mediaonlinemultiplexproductinfo/${productId}`;
         } else {
           targetPath = `/mediaonline/product-info/${productId}`;
         }
       } else if (isMediaOffline) {
-        if (subcategoryName === 'Hoardings' || getMediaJourney(storedMediaCategory) === 'hoarding') {
+        if (
+          subcategoryName === "Hoardings" ||
+          getMediaJourney(storedMediaCategory) === "hoarding"
+        ) {
           targetPath = `/mediaoffline/mediaofflinehoardinginfo/${productId}`;
         } else {
           targetPath = `/mediaoffline/mediaofflineproductinfo/${productId}`;
@@ -693,9 +885,14 @@ export const GeneralInformation = ({ category }) => {
       const errorText =
         error?.response?.data?.message ||
         error?.message ||
-        'Failed to save. Please try again.';
-      if (String(errorText).includes('SellerCompanyId') || String(errorText).includes('PostedBy')) {
-        toast.error('Your session is missing. Please login from dashboard again and retry.');
+        "Failed to save. Please try again.";
+      if (
+        String(errorText).includes("SellerCompanyId") ||
+        String(errorText).includes("PostedBy")
+      ) {
+        toast.error(
+          "Your session is missing. Please login from dashboard again and retry.",
+        );
       } else {
         toast.error(errorText);
       }
@@ -705,7 +902,10 @@ export const GeneralInformation = ({ category }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="general-info-page">
+    <div
+      className="min-h-screen bg-[#F8F9FA] py-8"
+      data-testid="general-info-page"
+    >
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
@@ -722,259 +922,432 @@ export const GeneralInformation = ({ category }) => {
                       <InfoIcon className="w-4 h-4 ml-2" />
                     </TooltipTrigger>
                     <TooltipContent className="w-48 text-white rounded-md padding-1">
-                      <p >General Information refers to broad and fundamental knowledge or facts about a particular Product OR Vouchers.</p>
+                      <p>
+                        General Information refers to broad and fundamental
+                        knowledge or facts about a particular Product OR
+                        Vouchers.
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </h2>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Subcategory */}
+                <div className="space-y-2">
+                  {giConfig.hasGenderSelection &&
+                    genderCategoryData.length > 0 && (
+                      <div className="space-y-4">
+                        <Label>
+                          Gender (Textile){" "}
+                          <span className="text-red-500">*</span>
+                        </Label>
+                        <input
+                          type="hidden"
+                          {...register("gender", {
+                            required: valSchema?.gender?.required
+                              ? "Please select gender"
+                              : false,
+                          })}
+                        />
+                        <div className="grid grid-cols-5 gap-3 mb-6">
+                          {orderedGenderCategoryData.map((item) => {
+                            const rawLabel = item?.SubcategoryName || "Unisex";
+                            const normalizedLabelMap = {
+                              kids: "Kids",
+                              female: "Female",
+                              male: "Male",
+                              unisex: "Unisex",
+                              others: "Others",
+                            };
+                            const label =
+                              normalizedLabelMap[
+                                String(rawLabel).toLowerCase()
+                              ] ||
+                              String(rawLabel).charAt(0).toUpperCase() +
+                                String(rawLabel).slice(1).toLowerCase();
+                            const isActive = selectedGenderId === item?._id;
+                            return (
+                              <Button
+                                key={item?._id || label}
+                                type="button"
+                                variant="outline"
+                                className={cn(
+                                  "justify-center",
+                                  isActive
+                                    ? "border-[#C64091] bg-[#FCE7F3] text-[#C64091]"
+                                    : "",
+                                )}
+                                onClick={() => handleTextileGenderSelect(item)}
+                                data-testid={`textile-gender-${String(label).toLowerCase()}`}
+                              >
+                                {label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        {errors.gender && (
+                          <p className="text-sm text-red-500">
+                            {errors.gender.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-            {/* Subcategory */}
-            <div className="space-y-2">
-              {giConfig.hasGenderSelection && genderCategoryData.length > 0 && (
-                <div className="space-y-4">
-                  <Label>Gender (Textile) <span className="text-red-500">*</span></Label>
-                  <input type="hidden" {...register('gender', { required: valSchema?.gender?.required ? 'Please select gender' : false })} />
-                  <div className="grid grid-cols-5 gap-3 mb-6">
-                    {orderedGenderCategoryData.map((item) => {
-                      const rawLabel = item?.SubcategoryName || 'Unisex';
-                      const normalizedLabelMap = {
-                        kids: 'Kids',
-                        female: 'Female',
-                        male: 'Male',
-                        unisex: 'Unisex',
-                        others: 'Others',
-                      };
-                      const label =
-                        normalizedLabelMap[String(rawLabel).toLowerCase()] ||
-                        String(rawLabel).charAt(0).toUpperCase() +
-                          String(rawLabel).slice(1).toLowerCase();
-                      const isActive = selectedGenderId === item?._id;
-                      return (
-                        <Button
-                          key={item?._id || label}
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            'justify-center',
-                            isActive
-                              ? 'border-[#C64091] bg-[#FCE7F3] text-[#C64091]'
-                              : ''
-                          )}
-                          onClick={() => handleTextileGenderSelect(item)}
-                          data-testid={`textile-gender-${String(label).toLowerCase()}`}
-                        >
-                          {label}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  {errors.gender && <p className="text-sm text-red-500">{errors.gender.message}</p>}
-                </div>
-              )}
-
-              <input
-                type="hidden"
-                {...register('subcategory', (() => {
-                  const p = valSchema?.subcategory;
-                  if (!p) return { required: 'Subcategory is required' };
-                  return { required: p.required ? 'Please select a subcategory' : false };
-                })())}
-              />
-              {category !== 'airlineVoucher' && (
-                <>
-                  <Label htmlFor="subcategory">{isVoucherCategory ? 'Voucher Subcategory' : 'Subcategory'} <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={selectedSubcategory || ''}
-                    onValueChange={(value) => setValue('subcategory', value, { shouldValidate: true })}
-                  >
-                    <SelectTrigger id="subcategory" data-testid="select-subcategory">
-                      <SelectValue
-                        placeholder={
-                          subcategoriesLoading
-                            ? 'Loading subcategories...'
-                            : 'Select subcategory'
+                  <input
+                    type="hidden"
+                    {...register(
+                      "subcategory",
+                      (() => {
+                        const p = valSchema?.subcategory;
+                        if (!p) return { required: "Subcategory is required" };
+                        return {
+                          required: p.required
+                            ? "Please select a subcategory"
+                            : false,
+                        };
+                      })(),
+                    )}
+                  />
+                  {category !== "airlineVoucher" && (
+                    <>
+                      <Label htmlFor="subcategory">
+                        {isVoucherCategory
+                          ? "Voucher Subcategory"
+                          : "Subcategory"}{" "}
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <Select
+                        value={selectedSubcategory || ""}
+                        onValueChange={(value) =>
+                          setValue("subcategory", value, {
+                            shouldValidate: true,
+                          })
                         }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subcategoryOptions.length > 0 ? (
-                        subcategoryOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="__no_subcategory__" disabled>
-                          No subcategories found
-                        </SelectItem>
+                      >
+                        <SelectTrigger
+                          id="subcategory"
+                          data-testid="select-subcategory"
+                        >
+                          <SelectValue
+                            placeholder={
+                              subcategoriesLoading
+                                ? "Loading subcategories..."
+                                : "Select subcategory"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subcategoryOptions.length > 0 ? (
+                            subcategoryOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="__no_subcategory__" disabled>
+                              No subcategories found
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {errors.subcategory && (
+                        <p className="text-sm text-red-500">
+                          {errors.subcategory.message}
+                        </p>
                       )}
-                    </SelectContent>
-                  </Select>
-                  {errors.subcategory && (
-                    <p className="text-sm text-red-500">{errors.subcategory.message}</p>
+                    </>
                   )}
-                </>
-              )}
-            </div>
-            {/* Product Name – validation from getValidationSchema (bxi parity) */}
-            <div className="space-y-2">
-              <Label htmlFor="productName">
-                {isVoucherCategory ? 'Voucher Name' : 'Product Name'} <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="productName"
-                placeholder={isVoucherCategory ? 'Enter Voucher Name' : 'Enter Product Name'}
-                {...register('productName', (() => {
-                  const p = valSchema?.productname;
-                  if (!p) return { required: 'Product name is required' };
-                  const r = {};
-                  if (p.required) r.required = p.min ? `Product name must be at least ${p.min} characters` : 'Product name is required';
-                  if (p.min) r.minLength = { value: p.min, message: `Product name must be at least ${p.min} characters` };
-                  if (p.max) r.maxLength = { value: p.max, message: `Product name must be at most ${p.max} characters` };
-                  return r;
-                })())}
-                className={errors.productName ? 'border-red-500' : ''}
-                data-testid="input-product-name"
-              />
-              <div className="flex items-center justify-between mt-1">
-                {errors.productName && (
-                  <p className="text-sm text-red-500">{errors.productName.message}</p>
-                )}
-                <p className="text-xs text-gray-500 ml-auto">{countLetters(watchedProductName)} / 50</p>
-              </div>
-            </div>
-
-            {/* Subtitle – shown when config.hasSubtitle; validation from getValidationSchema */}
-            {giConfig.hasSubtitle &&  (
-              <div className="space-y-2 mt-4">
-                <Label htmlFor="productSubtitle">{isVoucherCategory ? 'Voucher Subtitle' : 'Product Subtitle'} <span className="text-red-500">*</span></Label>
-                <Input
-                  id="productSubtitle"
-                  placeholder={isVoucherCategory ? 'Enter Voucher Subtitle' : 'Enter Product Subtitle'}
-                  {...register('productSubtitle', (() => {
-                    const p = valSchema?.productsubtitle;
-                    if (!p) return { required: 'Product subtitle is required', minLength: 10, maxLength: 75 };
-                    const r = {};
-                    if (p.required) r.required = p.min ? `Product subtitle must be at least ${p.min} characters` : 'Product subtitle is required';
-                    if (p.min) r.minLength = { value: p.min, message: `Product subtitle must be at least ${p.min} characters` };
-                    if (p.max) r.maxLength = { value: p.max, message: `Product subtitle must be at most ${p.max} characters` };
-                    return r;
-                  })())}
-                  className={errors.productSubtitle ? 'border-red-500' : ''}
-                />
-                <div className="flex items-center justify-between mt-1">
-                  {errors.productSubtitle && (
-                    <p className="text-sm text-red-500">{errors.productSubtitle.message}</p>
-                  )}
-                  <p className="text-xs text-gray-500 ml-auto">{countLetters(watchedProductSubtitle)} / 75</p>
                 </div>
-              </div>
-            )}
-
-            {/* Listing Type – only for product categories */}
-
-
-            {/* Description – validation from getValidationSchema (bxi productdescription min/max) */}
-            <div className="space-y-2">
-              <Label htmlFor="description">
-                {isVoucherCategory ? 'Voucher Description' : 'Description'} <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your product..."
-                rows={5}
-                {...register('description', (() => {
-                  const p = valSchema?.productdescription;
-                  if (!p) return { required: 'Description is required', maxLength: { value: 1000, message: 'Description cannot exceed 1000 characters' } };
-                  const r = {};
-                  if (p.required) r.required = p.min ? `Description must be at least ${p.min} characters` : 'Description is required';
-                  if (p.min) r.minLength = { value: p.min, message: `Description must be at least ${p.min} characters` };
-                  if (p.max) r.maxLength = { value: p.max, message: `Description cannot exceed ${p.max} characters` };
-                  return r;
-                })())}
-                className={errors.description ? 'border-red-500' : ''}
-                data-testid="input-description"
-              />
-              <div className="flex items-center justify-between mt-1">
-                {errors.description && (
-                  <p className="text-sm text-red-500">{errors.description.message}</p>
-                )}
-                <p className="text-xs text-gray-500 ml-auto">{countLetters(watchedDescription)} / 1000</p>
-              </div>
-            </div>
-
-            {/* Mobility: Registration process radio */}
-            {giConfig.hasRadioButtons && !isVoucherCategory && (
-              <div className="space-y-2">
-                <Label>{giConfig.radioButtonLabel} <span className="text-red-500">*</span></Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" value="Yes" {...register(giConfig.radioButtonField, { required: valSchema?.hasRegistrationProcess?.required ? 'Please select an option' : false })} className="text-[#C64091]" />
-                    <span>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" value="No" {...register(giConfig.radioButtonField, { required: valSchema?.hasRegistrationProcess?.required ? 'Please select an option' : false })} className="text-[#C64091]" />
-                    <span>No</span>
-                  </label>
+                {/* Product Name – validation from getValidationSchema (bxi parity) */}
+                <div className="space-y-2">
+                  <Label htmlFor="productName">
+                    {isVoucherCategory ? "Voucher Name" : "Product Name"}{" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="productName"
+                    placeholder={
+                      isVoucherCategory
+                        ? "Enter Voucher Name"
+                        : "Enter Product Name"
+                    }
+                    {...register(
+                      "productName",
+                      (() => {
+                        const p = valSchema?.productname;
+                        if (!p) return { required: "Product name is required" };
+                        const r = {};
+                        if (p.required)
+                          r.required = p.min
+                            ? `Product name must be at least ${p.min} characters`
+                            : "Product name is required";
+                        if (p.min)
+                          r.minLength = {
+                            value: p.min,
+                            message: `Product name must be at least ${p.min} characters`,
+                          };
+                        if (p.max)
+                          r.maxLength = {
+                            value: p.max,
+                            message: `Product name must be at most ${p.max} characters`,
+                          };
+                        return r;
+                      })(),
+                    )}
+                    className={errors.productName ? "border-red-500" : ""}
+                    data-testid="input-product-name"
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    {errors.productName && (
+                      <p className="text-sm text-red-500">
+                        {errors.productName.message}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">
+                      {countLetters(watchedProductName)} / 50
+                    </p>
+                  </div>
                 </div>
-                {errors[giConfig.radioButtonField] && (
-                  <p className="text-sm text-red-500">{errors[giConfig.radioButtonField].message}</p>
-                )}
-              </div>
-            )}
 
-            {/* Hotels: Star rating – validation from schema when HotelStars required */}
-            {giConfig.hasStarRating && (
-              <div className="space-y-2">
-                <Label>{giConfig.starRatingLabel} <span className="text-red-500">*</span></Label>
-                <input type="hidden" {...register(giConfig.starRatingField, { required: valSchema?.HotelStars?.required ? 'Please select hotel star rating' : false })} />
-                <Select
-                  value={watch(giConfig.starRatingField) || '5'}
-                  onValueChange={(value) => setValue(giConfig.starRatingField, value, { shouldValidate: true })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n} Star{n > 1 ? 's' : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors[giConfig.starRatingField] && (
-                  <p className="text-sm text-red-500">{errors[giConfig.starRatingField].message}</p>
+                {/* Subtitle – shown when config.hasSubtitle; validation from getValidationSchema */}
+                {giConfig.hasSubtitle && (
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="productSubtitle">
+                      {isVoucherCategory
+                        ? "Voucher Subtitle"
+                        : "Product Subtitle"}{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="productSubtitle"
+                      placeholder={
+                        isVoucherCategory
+                          ? "Enter Voucher Subtitle"
+                          : "Enter Product Subtitle"
+                      }
+                      {...register(
+                        "productSubtitle",
+                        (() => {
+                          const p = valSchema?.productsubtitle;
+                          if (!p)
+                            return {
+                              required: "Product subtitle is required",
+                              minLength: 10,
+                              maxLength: 75,
+                            };
+                          const r = {};
+                          if (p.required)
+                            r.required = p.min
+                              ? `Product subtitle must be at least ${p.min} characters`
+                              : "Product subtitle is required";
+                          if (p.min)
+                            r.minLength = {
+                              value: p.min,
+                              message: `Product subtitle must be at least ${p.min} characters`,
+                            };
+                          if (p.max)
+                            r.maxLength = {
+                              value: p.max,
+                              message: `Product subtitle must be at most ${p.max} characters`,
+                            };
+                          return r;
+                        })(),
+                      )}
+                      className={errors.productSubtitle ? "border-red-500" : ""}
+                    />
+                    <div className="flex items-center justify-between mt-1">
+                      {errors.productSubtitle && (
+                        <p className="text-sm text-red-500">
+                          {errors.productSubtitle.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 ml-auto">
+                        {countLetters(watchedProductSubtitle)} / 75
+                      </p>
+                    </div>
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(category === 'eeVoucher' ? '/eephysical' : '/sellerhub')}
-                data-testid="btn-back"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Seller Hub
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  !watch('productName') ||
-                  !watch('description') ||
-                  (category !== 'airlineVoucher' && !watch('subcategory'))
-                }
-                className="bg-[#C64091] hover:bg-[#A03375]"
-                data-testid="btn-save-next"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
+                {/* Listing Type – only for product categories */}
+
+                {/* Description – validation from getValidationSchema (bxi productdescription min/max) */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">
+                    {isVoucherCategory ? "Voucher Description" : "Description"}{" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe your product..."
+                    rows={5}
+                    {...register(
+                      "description",
+                      (() => {
+                        const p = valSchema?.productdescription;
+                        if (!p)
+                          return {
+                            required: "Description is required",
+                            maxLength: {
+                              value: 1000,
+                              message:
+                                "Description cannot exceed 1000 characters",
+                            },
+                          };
+                        const r = {};
+                        if (p.required)
+                          r.required = p.min
+                            ? `Description must be at least ${p.min} characters`
+                            : "Description is required";
+                        if (p.min)
+                          r.minLength = {
+                            value: p.min,
+                            message: `Description must be at least ${p.min} characters`,
+                          };
+                        if (p.max)
+                          r.maxLength = {
+                            value: p.max,
+                            message: `Description cannot exceed ${p.max} characters`,
+                          };
+                        return r;
+                      })(),
+                    )}
+                    className={errors.description ? "border-red-500" : ""}
+                    data-testid="input-description"
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    {errors.description && (
+                      <p className="text-sm text-red-500">
+                        {errors.description.message}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">
+                      {countLetters(watchedDescription)} / 1000
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mobility: Registration process radio */}
+                {giConfig.hasRadioButtons && !isVoucherCategory && (
+                  <div className="space-y-2">
+                    <Label>
+                      {giConfig.radioButtonLabel}{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          value="Yes"
+                          {...register(giConfig.radioButtonField, {
+                            required: valSchema?.hasRegistrationProcess
+                              ?.required
+                              ? "Please select an option"
+                              : false,
+                          })}
+                          className="text-[#C64091]"
+                        />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          value="No"
+                          {...register(giConfig.radioButtonField, {
+                            required: valSchema?.hasRegistrationProcess
+                              ?.required
+                              ? "Please select an option"
+                              : false,
+                          })}
+                          className="text-[#C64091]"
+                        />
+                        <span>No</span>
+                      </label>
+                    </div>
+                    {errors[giConfig.radioButtonField] && (
+                      <p className="text-sm text-red-500">
+                        {errors[giConfig.radioButtonField].message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Hotels: Star rating – validation from schema when HotelStars required */}
+                {giConfig.hasStarRating && (
+                  <div className="space-y-2">
+                    <Label>
+                      {giConfig.starRatingLabel}{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <input
+                      type="hidden"
+                      {...register(giConfig.starRatingField, {
+                        required: valSchema?.HotelStars?.required
+                          ? "Please select hotel star rating"
+                          : false,
+                      })}
+                    />
+                    <Select
+                      value={watch(giConfig.starRatingField) || "5"}
+                      onValueChange={(value) =>
+                        setValue(giConfig.starRatingField, value, {
+                          shouldValidate: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select rating" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n} Star{n > 1 ? "s" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors[giConfig.starRatingField] && (
+                      <p className="text-sm text-red-500">
+                        {errors[giConfig.starRatingField].message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      navigate(
+                        category === "eeVoucher" ? "/eephysical" : "/sellerhub",
+                      )
+                    }
+                    className="w-full sm:w-auto"
+                    data-testid="btn-back"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Seller Hub
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      isSubmitting ||
+                      !watch("productName") ||
+                      !watch("description") ||
+                      (category !== "airlineVoucher" && !watch("subcategory"))
+                    }
+                    className="w-full bg-[#C64091] hover:bg-[#A03375] sm:w-auto"
+                    data-testid="btn-save-next"
+                  >
+                    {isSubmitting ? "Saving..." : "Save & Next"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               </form>
             </div>
           </main>
@@ -988,62 +1361,88 @@ export const GeneralInformation = ({ category }) => {
 const PRODUCT_FEATURE_MIN = 5;
 const PRODUCT_FEATURE_MAX = 20;
 
-const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL'];
-const US_SHOE_SIZES = [30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50];
-const UK_SHOE_SIZES = [2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5];
+const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"];
+const US_SHOE_SIZES = [
+  30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
+  49, 50,
+];
+const UK_SHOE_SIZES = [
+  2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11,
+  11.5,
+];
 const EU_SHOE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
 const inferSelectedSizeFromVariation = (row, options = []) => {
-  if (!row) return '';
-  if (row.ShoeSize) return 'Shoes Size';
+  if (!row) return "";
+  if (row.ShoeSize) return "Shoes Size";
 
-  const rawSize = String(row.ProductSize || '').trim();
+  const rawSize = String(row.ProductSize || "").trim();
   const normalized = rawSize.toLowerCase();
 
   // Priority 1: direct match of ProductSize against known options (e.g. "GSM", "Weight")
   if (rawSize) {
-    const directMatch = options.find((opt) => String(opt).toLowerCase() === normalized);
+    const directMatch = options.find(
+      (opt) => String(opt).toLowerCase() === normalized,
+    );
     if (directMatch) return directMatch;
   }
 
   // Priority 2: infer from L/W/H/Weight fields only when no ProductSize option matched,
   // so stale dimension fields from legacy variants don't override the actual dimension.
-  if (row.Length && row.Height && row.Width) return 'Length x Height x Width';
-  if (row.Length && row.Height) return 'Length x Height';
-  if (row.Length) return 'Length';
-  if (row.Weight) return 'Weight';
+  if (row.Length && row.Height && row.Width) return "Length x Height x Width";
+  if (row.Length && row.Height) return "Length x Height";
+  if (row.Length) return "Length";
+  if (row.Weight) return "Weight";
 
-  if (!rawSize) return '';
+  if (!rawSize) return "";
 
   // Priority 3: heuristic inference from ProductSize string
-  if (options.includes('Custom Size') && !row.ShoeSize && !(row.Length || row.Height || row.Width || row.Weight)) {
-    const mu = String(row.MeasurementUnit || '').trim();
+  if (
+    options.includes("Custom Size") &&
+    !row.ShoeSize &&
+    !(row.Length || row.Height || row.Width || row.Weight)
+  ) {
+    const mu = String(row.MeasurementUnit || "").trim();
     const parts = rawSize.split(/\s+/).filter(Boolean);
     if (mu && parts.length >= 2 && parts[parts.length - 1] === mu) {
-      return 'Custom Size';
+      return "Custom Size";
     }
   }
-  if (normalized.includes('ml') || normalized.includes('cl') || normalized.endsWith('l')) return 'Volume';
-  if (normalized.includes('kg') || normalized.includes(' g') || normalized.includes('lb')) return 'Weight';
-  return '';
+  if (
+    normalized.includes("ml") ||
+    normalized.includes("cl") ||
+    normalized.endsWith("l")
+  )
+    return "Volume";
+  if (
+    normalized.includes("kg") ||
+    normalized.includes(" g") ||
+    normalized.includes("lb")
+  )
+    return "Weight";
+  return "";
 };
 
 const formatVariationSize = (row) => {
-  if (!row) return '';
+  if (!row) return "";
   // `MeasurementUnit` is shared across size types. For shoe sizes, default to US.
   // For length-based sizes, default to cm.
-  const defaultUnit = row.ShoeSize ? 'US' : 'cm';
+  const defaultUnit = row.ShoeSize ? "US" : "cm";
   const unit = String(row.MeasurementUnit || defaultUnit).trim();
-  if (row.ShoeSize) return `${row.ShoeSize} (${unit || 'US'})`;
-  if (row.Length && row.Height && row.Width) return `${row.Length} x ${row.Height} x ${row.Width} ${unit}`.trim();
-  if (row.Length && row.Height) return `${row.Length} x ${row.Height} ${unit}`.trim();
+  if (row.ShoeSize) return `${row.ShoeSize} (${unit || "US"})`;
+  if (row.Length && row.Height && row.Width)
+    return `${row.Length} x ${row.Height} x ${row.Width} ${unit}`.trim();
+  if (row.Length && row.Height)
+    return `${row.Length} x ${row.Height} ${unit}`.trim();
   if (row.Length) return `${row.Length} ${unit}`.trim();
-  if (row.Weight) return `${row.Weight} ${unit || 'kg'}`.trim();
-  return row.ProductSize || '';
+  if (row.Weight) return `${row.Weight} ${unit || "kg"}`.trim();
+  return row.ProductSize || "";
 };
 
 const isOtherFeatureOption = (value) => {
-  const normalized = String(value || '').trim().toLowerCase();
-  return normalized === 'other' || normalized === 'others';
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  return normalized === "other" || normalized === "others";
 };
 
 export const ProductInfo = ({ category }) => {
@@ -1054,35 +1453,51 @@ export const ProductInfo = ({ category }) => {
   const { company: authCompany, isAdmin } = useAuthUser();
   const requiredHsnLength = useMemo(
     () => (isAdmin ? null : getRequiredHsnDigitLength(authCompany)),
-    [isAdmin, authCompany]
+    [isAdmin, authCompany],
   );
   const hsnMaxLength = useMemo(
     () => getHsnInputMaxLength({ isAdmin, company: authCompany }),
-    [isAdmin, authCompany]
+    [isAdmin, authCompany],
   );
   const hsnValidateOpts = useMemo(
     () => (isAdmin ? { isAdmin: true } : { requiredLength: requiredHsnLength }),
-    [isAdmin, requiredHsnLength]
+    [isAdmin, requiredHsnLength],
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [featureOptions, setFeatureOptions] = useState([]);
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [featureList, setFeatureList] = useState([]);
-  const [selectedFeature, setSelectedFeature] = useState('');
-  const [featureDescription, setFeatureDescription] = useState('');
-  const [locationDetails, setLocationDetails] = useState({ region: '', state: '', city: '', landmark: '', pincode: '' });
+  const [selectedFeature, setSelectedFeature] = useState("");
+  const [featureDescription, setFeatureDescription] = useState("");
+  const [locationDetails, setLocationDetails] = useState({
+    region: "",
+    state: "",
+    city: "",
+    landmark: "",
+    pincode: "",
+  });
   const [cityArray, setCityArray] = useState([]);
   const [otherCosts, setOtherCosts] = useState([]);
-  const [otherCostForm, setOtherCostForm] = useState({ AdCostApplicableOn: 'All', CostPrice: '', currencyType: '₹', AdCostHSN: '', AdCostGST: 18, ReasonOfCost: '' });
+  const [otherCostForm, setOtherCostForm] = useState({
+    AdCostApplicableOn: "All",
+    CostPrice: "",
+    currencyType: "₹",
+    AdCostHSN: "",
+    AdCostGST: 18,
+    ReasonOfCost: "",
+  });
   const [editOtherCostIndex, setEditOtherCostIndex] = useState(null);
   const [productsVariations, setProductsVariations] = useState([]);
   const [productData, setProductData] = useState(null);
   const descriptionRef = useRef(null);
-  const isVoucherCategory = category?.endsWith?.('Voucher');
-  const voucherJourneyType = isVoucherCategory ? getVoucherJourneyTypeFromStorage() : null;
-  const isOfferSpecificVoucher = voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
+  const isVoucherCategory = category?.endsWith?.("Voucher");
+  const voucherJourneyType = isVoucherCategory
+    ? getVoucherJourneyTypeFromStorage()
+    : null;
+  const isOfferSpecificVoucher =
+    voucherJourneyType === VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC;
   const shouldUseDiscountedPrice = !isVoucherCategory;
-  
+
   // Manufacturing & Expiry Dates
   const [manufacturingDate, setManufacturingDate] = useState(null);
   const [hasExpiryDate, setHasExpiryDate] = useState(false);
@@ -1093,84 +1508,132 @@ export const ProductInfo = ({ category }) => {
 
   // Tags (voucher categories)
   const [tags, setTags] = useState([]);
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
 
   // Airline voucher fields
-  const [fromLocation, setFromLocation] = useState('');
-  const [destinationLocation, setDestinationLocation] = useState('');
-  const [redeemedValue, setRedeemedValue] = useState('');
-  
+  const [fromLocation, setFromLocation] = useState("");
+  const [destinationLocation, setDestinationLocation] = useState("");
+  const [redeemedValue, setRedeemedValue] = useState("");
+
   // Mobility Registration Details (managed by react-hook-form)
 
   const piConfig = getProductInfoConfig(category);
   const requiresProductId = piConfig.hasProductId && !isVoucherCategory;
   const VARIATION_DRAFT_FIELDS = [
-    'productIdType', 'variantName', 'price', 'discountedPrice', 'hsn',
-    'minOrderQty', 'maxOrderQty', 'length', 'width', 'height', 'weight',
-    'volume', 'sizeValue', 'shoeSize', 'sampleAvailability', 'priceOfSample',
-    'flavor', 'offeringType', 'dateOfEvent', 'selectedSize', 'productColor',
+    "productIdType",
+    "variantName",
+    "price",
+    "discountedPrice",
+    "hsn",
+    "minOrderQty",
+    "maxOrderQty",
+    "length",
+    "width",
+    "height",
+    "weight",
+    "volume",
+    "sizeValue",
+    "shoeSize",
+    "sampleAvailability",
+    "priceOfSample",
+    "flavor",
+    "offeringType",
+    "dateOfEvent",
+    "selectedSize",
+    "productColor",
   ];
-  const voucherPiConfig = isVoucherCategory ? getVoucherProductInfoConfig(category) : null;
-  const activeVoucherConfig = isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
+  const voucherPiConfig = isVoucherCategory
+    ? getVoucherProductInfoConfig(category)
+    : null;
+  const activeVoucherConfig =
+    isVoucherCategory && isOfferSpecificVoucher ? voucherPiConfig : null;
   // EE: Date of the Event only when user chose "Events" on eephysical (bxi-dashboard parity)
-  const showDateOfEvent = activeVoucherConfig?.extraVariantColumn === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event'));
-  const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(category, 'productInfo', location?.pathname);
-  const prevPath = prevStepPath || 'general-info';
-  const nextPath = nextStepPath || 'tech-info';
+  const showDateOfEvent =
+    activeVoucherConfig?.extraVariantColumn === "dateOfEvent" &&
+    (category !== "eeVoucher" ||
+      (typeof localStorage !== "undefined" &&
+        localStorage.getItem("eevoucherdata") === "event"));
+  const { prev: prevStepPath, next: nextStepPath } = getPrevNextStepPaths(
+    category,
+    "productInfo",
+    location?.pathname,
+  );
+  const prevPath = prevStepPath || "general-info";
+  const nextPath = nextStepPath || "tech-info";
 
   const effectiveSizeOptions = isVoucherCategory
-    ? (activeVoucherConfig?.sizeOptions || [])
-    : (piConfig.sizeOptions || []);
-  const hasSizeOptions = effectiveSizeOptions.length > 0 && category !== 'restaurant';
+    ? activeVoucherConfig?.sizeOptions || []
+    : piConfig.sizeOptions || [];
+  const hasSizeOptions =
+    effectiveSizeOptions.length > 0 && category !== "restaurant";
   const showProductColor = !isVoucherCategory && !!piConfig.hasColorPicker;
 
   const getSizeUnitOptions = (sizeType) => {
-    if (!sizeType) return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
+    if (!sizeType)
+      return ["in", "cm", "mm", "m", "km", "ft", "yd", "mi", "nmi"];
 
     const normalized = sizeType.toLowerCase();
-    if (normalized.includes('weight')) {
-      return ['oz', 'g', 'kg', 'lb', 'l', 'ml', 'cu ft'];
+    if (normalized.includes("weight")) {
+      return ["oz", "g", "kg", "lb", "l", "ml", "cu ft"];
     }
-    if (sizeType === 'GSM') {
-      return ['gsm'];
+    if (sizeType === "GSM") {
+      return ["gsm"];
     }
-    if (normalized.includes('battery')) {
-      return ['mAh', 'Ah', 'Kwh'];
+    if (normalized.includes("battery")) {
+      return ["mAh", "Ah", "Kwh"];
     }
-    if (normalized.includes('power')) {
-      return ['W', 'KW', 'HP', 'V', 'A'];
+    if (normalized.includes("power")) {
+      return ["W", "KW", "HP", "V", "A"];
     }
-    if (normalized.includes('volume') || normalized.includes('capacity')) {
-      return ['in', 'cm', 'oz', 'g', 'gb', 'tb', 'lb', 'kg', 'mah', 'w', 'pixels', 'hz', 'db'];
+    if (normalized.includes("volume") || normalized.includes("capacity")) {
+      return [
+        "in",
+        "cm",
+        "oz",
+        "g",
+        "gb",
+        "tb",
+        "lb",
+        "kg",
+        "mah",
+        "w",
+        "pixels",
+        "hz",
+        "db",
+      ];
     }
-    if (normalized.includes('calorie')) {
-      return ['kcal', 'kJ', 'cal'];
+    if (normalized.includes("calorie")) {
+      return ["kcal", "kJ", "cal"];
     }
-    if (normalized.includes('nutritional')) {
-      return ['g', 'mg', 'kcal'];
+    if (normalized.includes("nutritional")) {
+      return ["g", "mg", "kcal"];
     }
-    if (normalized.includes('shelf life') || normalized.includes('shelflife')) {
-      return ['Days', 'Months', 'Years'];
+    if (normalized.includes("shelf life") || normalized.includes("shelflife")) {
+      return ["Days", "Months", "Years"];
     }
-    if (normalized.includes('temprature') || normalized.includes('temperature') || normalized.includes('temp')) {
-      return ['°C', '°F', 'K'];
+    if (
+      normalized.includes("temprature") ||
+      normalized.includes("temperature") ||
+      normalized.includes("temp")
+    ) {
+      return ["°C", "°F", "K"];
     }
     // Default for length/style dimensions
-    return ['in', 'cm', 'mm', 'm', 'km', 'ft', 'yd', 'mi', 'nmi'];
+    return ["in", "cm", "mm", "m", "km", "ft", "yd", "mi", "nmi"];
   };
   const formatIndianCurrencyInput = (rawValue) => {
-    const cleaned = String(rawValue || '')
-      .replace(/,/g, '')
-      .replace(/[^\d.]/g, '');
-    const [integerPartRaw, ...rest] = cleaned.split('.');
-    const decimalPart = rest.join('').slice(0, 2);
+    const cleaned = String(rawValue || "")
+      .replace(/,/g, "")
+      .replace(/[^\d.]/g, "");
+    const [integerPartRaw, ...rest] = cleaned.split(".");
+    const decimalPart = rest.join("").slice(0, 2);
     const normalizedInt = integerPartRaw
-      ? integerPartRaw.replace(/^0+(?=\d)/, '')
-      : '';
+      ? integerPartRaw.replace(/^0+(?=\d)/, "")
+      : "";
     const formattedInt = normalizedInt
-      ? new Intl.NumberFormat('en-IN').format(Number(normalizedInt))
-      : '';
-    if (decimalPart.length > 0) return `${formattedInt || '0'}.${decimalPart}`;
+      ? new Intl.NumberFormat("en-IN").format(Number(normalizedInt))
+      : "";
+    if (decimalPart.length > 0) return `${formattedInt || "0"}.${decimalPart}`;
     return formattedInt;
   };
   const handleIndianCurrencyChange = (field, value) => {
@@ -1180,19 +1643,23 @@ export const ProductInfo = ({ category }) => {
     });
   };
 
-  const hasHsn = piConfig.commonFields?.includes?.('hsn') ?? true;
+  const hasHsn = piConfig.commonFields?.includes?.("hsn") ?? true;
 
   const hasSampleCheckbox = !isVoucherCategory;
   const showSizeColumn =
     (!isVoucherCategory || hasSizeOptions) &&
-    productsVariations.some((variation) => Boolean(formatVariationSize(variation)?.trim()));
+    productsVariations.some((variation) =>
+      Boolean(formatVariationSize(variation)?.trim()),
+    );
   const showSamplePriceColumn =
-    hasSampleCheckbox && productsVariations.some((variation) => Boolean(variation?.SamplePrice));
+    hasSampleCheckbox &&
+    productsVariations.some((variation) => Boolean(variation?.SamplePrice));
   const showSampleQtyColumn =
-    hasSampleCheckbox && productsVariations.some((variation) => Boolean(variation?.SampleQty));
+    hasSampleCheckbox &&
+    productsVariations.some((variation) => Boolean(variation?.SampleQty));
   const hasGenderInProductInfo = isVoucherCategory
-    ? (voucherPiConfig?.hasGender || false)
-    : [ 'lifestyle', 'others', 'lifestyleVoucher'].includes(category);
+    ? voucherPiConfig?.hasGender || false
+    : ["lifestyle", "others", "lifestyleVoucher"].includes(category);
   const hasFeatures = isVoucherCategory ? !!getFeatureEndpoint(category) : true;
   const hasOtherCosts = true;
   const hasLocationDetails = !isVoucherCategory;
@@ -1200,7 +1667,8 @@ export const ProductInfo = ({ category }) => {
   const hasVariationButton = true;
   const featureEndpoint = getFeatureEndpoint(category);
   const tiConfig = getTechInfoConfig(category);
-  const featureNameField = tiConfig?.featureNameField || 'SampleLifestyleFeature';
+  const featureNameField =
+    tiConfig?.featureNameField || "SampleLifestyleFeature";
 
   useEffect(() => {
     if (!hasFeatures || !featureEndpoint) return;
@@ -1208,24 +1676,36 @@ export const ProductInfo = ({ category }) => {
       setFeaturesLoading(true);
       try {
         const res = await api.get(featureEndpoint);
-        const root = res?.data?.data ?? res?.data?.body ?? res?.data ;
+        const root = res?.data?.data ?? res?.data?.body ?? res?.data;
         const list = Array.isArray(root) ? root : root?.data ? root.data : [];
         let opts = list
           .map((item) => {
-            const label = item?.[featureNameField] || item?.name || item?.value || item?.FmcgproductinfoType || item?.OtherFeature || item?.OfficesupplyFeature  || item?.TextileFeature;
+            const label =
+              item?.[featureNameField] ||
+              item?.name ||
+              item?.value ||
+              item?.FmcgproductinfoType ||
+              item?.OtherFeature ||
+              item?.OfficesupplyFeature ||
+              item?.TextileFeature;
             return label ? { label, value: label } : null;
           })
           .filter(Boolean);
-        if (category === 'qsrVoucher') {
-          const hardcoded = QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f }));
-          const existing = new Set(opts.map((o) => o.value)); 
+        if (category === "qsrVoucher") {
+          const hardcoded = QSR_HARDCODED_FEATURES.map((f) => ({
+            label: f,
+            value: f,
+          }));
+          const existing = new Set(opts.map((o) => o.value));
           opts = [...opts, ...hardcoded.filter((h) => !existing.has(h.value))];
         }
         opts.sort((a, b) => a.label.localeCompare(b.label));
         setFeatureOptions(opts);
       } catch {
-        if (category === 'qsrVoucher') {
-          setFeatureOptions(QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f })));
+        if (category === "qsrVoucher") {
+          setFeatureOptions(
+            QSR_HARDCODED_FEATURES.map((f) => ({ label: f, value: f })),
+          );
         } else {
           setFeatureOptions([]);
         }
@@ -1250,7 +1730,7 @@ export const ProductInfo = ({ category }) => {
       descriptionRef.current.focus();
     }
   }, []);
-  
+
   const handlePincodeLookup = async (pincode) => {
     if (String(pincode).length !== 6) return;
     try {
@@ -1259,50 +1739,58 @@ export const ProductInfo = ({ category }) => {
         STATE_REGION_MAP,
       });
       if (!resolved) {
-        toast.error('Invalid pincode or no data found');
+        toast.error("Invalid pincode or no data found");
         return;
       }
       if (resolved.unmatchedState) {
-        toast.warning(`State "${resolved.unmatchedState}" not found. Please select manually.`);
+        toast.warning(
+          `State "${resolved.unmatchedState}" not found. Please select manually.`,
+        );
         return;
       }
       setLocationDetails((prev) => ({
         ...prev,
         pincode: String(pincode),
-        region: resolved.region || 'North',
+        region: resolved.region || "North",
         state: resolved.state,
         city: resolved.city,
         landmark: resolved.landmark || prev.landmark,
       }));
       setCityArray(resolved.cityOptions || []);
-      toast.success('Location auto-filled!');
+      toast.success("Location auto-filled!");
     } catch {
-      toast.error('Failed to fetch location data');
+      toast.error("Failed to fetch location data");
     }
   };
 
   const handleAddFeature = () => {
     const featureToAdd = selectedFeature || featureDescription?.trim();
     if (!featureToAdd) {
-      toast.error('Please select a feature or enter a custom feature name');
+      toast.error("Please select a feature or enter a custom feature name");
       return;
     }
     if (featureList.length >= PRODUCT_FEATURE_MAX) {
       toast.error(`Maximum ${PRODUCT_FEATURE_MAX} features allowed`);
       return;
     }
-    if (!isOtherFeatureOption(featureToAdd) && featureList.some((f) => f.name === featureToAdd)) {
-      toast.error('This feature is already added');
+    if (
+      !isOtherFeatureOption(featureToAdd) &&
+      featureList.some((f) => f.name === featureToAdd)
+    ) {
+      toast.error("This feature is already added");
       return;
     }
     const desc = featureDescription?.trim() || featureToAdd;
     if (desc.length > 75) {
-      toast.error('Feature description cannot exceed 75 characters');
+      toast.error("Feature description cannot exceed 75 characters");
       return;
     }
-    setFeatureList((prev) => [...prev, { name: featureToAdd, description: desc }]);
-    setSelectedFeature('');
-    setFeatureDescription('');
+    setFeatureList((prev) => [
+      ...prev,
+      { name: featureToAdd, description: desc },
+    ]);
+    setSelectedFeature("");
+    setFeatureDescription("");
   };
 
   const handleRemoveFeature = (idx) => {
@@ -1310,41 +1798,45 @@ export const ProductInfo = ({ category }) => {
   };
 
   const emptyOtherCostForm = {
-    AdCostApplicableOn: 'All',
-    CostPrice: '',
-    currencyType: '₹',
-    AdCostHSN: '',
+    AdCostApplicableOn: "All",
+    CostPrice: "",
+    currencyType: "₹",
+    AdCostHSN: "",
     AdCostGST: 18,
-    ReasonOfCost: '',
+    ReasonOfCost: "",
   };
 
   const handleAddOtherCost = () => {
-    const cp = parseFloat(String(otherCostForm.CostPrice).replace(/,/g, '')) || 0;
+    const cp =
+      parseFloat(String(otherCostForm.CostPrice).replace(/,/g, "")) || 0;
     if (cp <= 0) {
-      toast.error('Cost price must be greater than 0');
+      toast.error("Cost price must be greater than 0");
       return;
     }
     if (!otherCostForm.ReasonOfCost?.trim()) {
-      toast.error('Reason of cost is required');
+      toast.error("Reason of cost is required");
       return;
     }
-    const reason = otherCostForm.ReasonOfCost?.trim() || '';
+    const reason = otherCostForm.ReasonOfCost?.trim() || "";
     if (reason.length > 75) {
-      toast.error('Reason of cost cannot exceed 75 characters');
+      toast.error("Reason of cost cannot exceed 75 characters");
       return;
     }
-    const hsnCheck = validateListingHsn(otherCostForm.AdCostHSN, hsnValidateOpts);
+    const hsnCheck = validateListingHsn(
+      otherCostForm.AdCostHSN,
+      hsnValidateOpts,
+    );
     if (!hsnCheck.ok) {
       toast.error(hsnCheck.message);
       return;
     }
     const payload = {
-      AdCostApplicableOn: otherCostForm.AdCostApplicableOn || 'All',
+      AdCostApplicableOn: otherCostForm.AdCostApplicableOn || "All",
       CostPrice: cp,
-      currencyType: otherCostForm.currencyType || '₹',
+      currencyType: otherCostForm.currencyType || "₹",
       AdCostHSN: hsnCheck.value,
       AdCostGST: Number(otherCostForm.AdCostGST) || 18,
-      ReasonOfCost: otherCostForm.ReasonOfCost?.trim() || '',
+      ReasonOfCost: otherCostForm.ReasonOfCost?.trim() || "",
     };
     const wasEdit = editOtherCostIndex !== null;
     if (wasEdit) {
@@ -1352,10 +1844,10 @@ export const ProductInfo = ({ category }) => {
         prev.map((row, i) => (i === editOtherCostIndex ? payload : row)),
       );
       setEditOtherCostIndex(null);
-      toast.success('Additional cost updated');
+      toast.success("Additional cost updated");
     } else {
       setOtherCosts((prev) => [...prev, payload]);
-      toast.success('Additional cost added');
+      toast.success("Additional cost added");
     }
     setOtherCostForm({ ...emptyOtherCostForm });
   };
@@ -1364,12 +1856,12 @@ export const ProductInfo = ({ category }) => {
     const row = otherCosts[idx];
     if (!row) return;
     setOtherCostForm({
-      AdCostApplicableOn: row.AdCostApplicableOn || 'All',
-      CostPrice: row.CostPrice ?? '',
-      currencyType: row.currencyType || '₹',
-      AdCostHSN: row.AdCostHSN || '',
+      AdCostApplicableOn: row.AdCostApplicableOn || "All",
+      CostPrice: row.CostPrice ?? "",
+      currencyType: row.currencyType || "₹",
+      AdCostHSN: row.AdCostHSN || "",
       AdCostGST: Number(row.AdCostGST) || 18,
-      ReasonOfCost: row.ReasonOfCost || '',
+      ReasonOfCost: row.ReasonOfCost || "",
     });
     setEditOtherCostIndex(idx);
   };
@@ -1386,24 +1878,24 @@ export const ProductInfo = ({ category }) => {
 
   const handleAddVariation = () => {
     const d = getValues();
-    const price = parseFloat(String(d.price || 0).replace(/,/g, '')) || 0;
+    const price = parseFloat(String(d.price || 0).replace(/,/g, "")) || 0;
     const discountedPrice = shouldUseDiscountedPrice
-      ? (parseFloat(String(d.discountedPrice || 0).replace(/,/g, '')) || 0)
+      ? parseFloat(String(d.discountedPrice || 0).replace(/,/g, "")) || 0
       : price;
     if (hasSizeOptions && !d.selectedSize) {
-      setError('selectedSize', {
-        type: 'required',
-        message: 'Please select at least one dimension/description option.',
+      setError("selectedSize", {
+        type: "required",
+        message: "Please select at least one dimension/description option.",
       });
-      toast.error('Please select at least one dimension/description option.');
+      toast.error("Please select at least one dimension/description option.");
       return;
     }
     if (price <= 0) {
-      toast.error('MRP is required and must be greater than 0');
+      toast.error("MRP is required and must be greater than 0");
       return;
     }
     if (shouldUseDiscountedPrice && discountedPrice <= 0) {
-      toast.error('Discounted MRP is required and must be greater than 0');
+      toast.error("Discounted MRP is required and must be greater than 0");
       return;
     }
     if (hasHsn) {
@@ -1412,136 +1904,151 @@ export const ProductInfo = ({ category }) => {
         toast.error(hsnCheck.message);
         return;
       }
-      const firstHsn = String(productsVariations[0]?.HSN ?? '').trim();
+      const firstHsn = String(productsVariations[0]?.HSN ?? "").trim();
       if (productsVariations.length >= 1) {
         if (editVariationIndex === null || editVariationIndex > 0) {
           if (firstHsn && hsnCheck.value !== firstHsn) {
-            toast.error('HSN code must be the same for all variants');
+            toast.error("HSN code must be the same for all variants");
             return;
           }
         }
       }
       d.hsn = hsnCheck.value;
     }
-    const chosenGst = String(d.gst ?? '18');
+    const chosenGst = String(d.gst ?? "18");
     if (!isAllowedListingGstRate(chosenGst)) {
-      toast.error('Please select a valid GST rate');
+      toast.error("Please select a valid GST rate");
       return;
     }
-    const firstGst = String(productsVariations[0]?.GST ?? '');
+    const firstGst = String(productsVariations[0]?.GST ?? "");
     if (productsVariations.length >= 1) {
       if (editVariationIndex === null || editVariationIndex > 0) {
-        if (firstGst === '0' && chosenGst !== '0') {
-          toast.error('GST must be 0% for all variants when the first variant is 0%.');
+        if (firstGst === "0" && chosenGst !== "0") {
+          toast.error(
+            "GST must be 0% for all variants when the first variant is 0%.",
+          );
           return;
         }
-        if (firstGst !== '0' && firstGst !== '' && chosenGst === '0') {
-          toast.error('GST cannot be 0% when the first variant uses a non-zero rate.');
+        if (firstGst !== "0" && firstGst !== "" && chosenGst === "0") {
+          toast.error(
+            "GST cannot be 0% when the first variant uses a non-zero rate.",
+          );
           return;
         }
       }
       if (editVariationIndex === 0) {
         const others = productsVariations.slice(1);
-        if (chosenGst === '0' && others.some((r) => String(r.GST) !== '0')) {
-          toast.error('Set all other variants to 0% GST, or remove them, before the first variant can be 0%.');
+        if (chosenGst === "0" && others.some((r) => String(r.GST) !== "0")) {
+          toast.error(
+            "Set all other variants to 0% GST, or remove them, before the first variant can be 0%.",
+          );
           return;
         }
-        if (chosenGst !== '0' && others.some((r) => String(r.GST) === '0')) {
-          toast.error('Update or remove variants that use 0% GST before the first variant can use a non-zero rate.');
+        if (chosenGst !== "0" && others.some((r) => String(r.GST) === "0")) {
+          toast.error(
+            "Update or remove variants that use 0% GST before the first variant can use a non-zero rate.",
+          );
           return;
         }
       }
     }
-    if (d.selectedSize === 'Shoes Size' && !d.shoeSize) {
-      toast.error('Please select a shoe size');
+    if (d.selectedSize === "Shoes Size" && !d.shoeSize) {
+      toast.error("Please select a shoe size");
       return;
     }
-    if (d.selectedSize === 'Volume' && !d.volume) {
-      toast.error('Please enter volume');
+    if (d.selectedSize === "Volume" && !d.volume) {
+      toast.error("Please enter volume");
       return;
     }
-    if (d.selectedSize === 'Custom Size' && !String(d.sizeValue || '').trim()) {
-      toast.error('Please enter a custom size or description');
+    if (d.selectedSize === "Custom Size" && !String(d.sizeValue || "").trim()) {
+      toast.error("Please enter a custom size or description");
       return;
     }
-    let productSize = d.selectedSize || '';
-    let measurementUnit = d.sizeUnit || 'cm';
-    let shoeSize = '';
-    if (d.selectedSize === 'Shoes Size' && d.shoeSize) {
+    let productSize = d.selectedSize || "";
+    let measurementUnit = d.sizeUnit || "cm";
+    let shoeSize = "";
+    if (d.selectedSize === "Shoes Size" && d.shoeSize) {
       shoeSize = String(d.shoeSize);
-      measurementUnit = d.shoeMeasurementUnit || 'US';
+      measurementUnit = d.shoeMeasurementUnit || "US";
       productSize = shoeSize;
     } else if (CLOTHING_SIZES.includes(d.selectedSize)) {
       productSize = d.selectedSize;
-    } else if (d.selectedSize === 'Volume' && d.volume) {
-      productSize = `${d.volume}${d.sizeUnit || 'L'}`;
-    } else if (d.selectedSize === 'Custom Size') {
-      const v = String(d.sizeValue || '').trim();
-      const u = String(d.sizeUnit || '').trim();
+    } else if (d.selectedSize === "Volume" && d.volume) {
+      productSize = `${d.volume}${d.sizeUnit || "L"}`;
+    } else if (d.selectedSize === "Custom Size") {
+      const v = String(d.sizeValue || "").trim();
+      const u = String(d.sizeUnit || "").trim();
       productSize = u ? `${v} ${u}` : v;
-      measurementUnit = u || 'cm';
+      measurementUnit = u || "cm";
     } else if (d.selectedSize && d.sizeValue) {
-      productSize = `${d.sizeValue}${d.sizeUnit || 'cm'}`;
+      productSize = `${d.sizeValue}${d.sizeUnit || "cm"}`;
     } else if (d.selectedSize) {
       productSize = d.selectedSize;
     }
-    
+
     if (shouldUseDiscountedPrice && discountedPrice > price) {
-      toast.error('Discounted MRP cannot be greater than MRP');
+      toast.error("Discounted MRP cannot be greater than MRP");
       return;
     }
     const minQty = parseInt(d.minOrderQty, 10);
     const maxQty = parseInt(d.maxOrderQty, 10);
     if (!Number.isFinite(minQty) || minQty < 1) {
-      toast.error('Minimum Order Quantity must be greater than 0');
+      toast.error("Minimum Order Quantity must be greater than 0");
       return;
     }
     if (!Number.isFinite(maxQty) || maxQty < 1) {
-      toast.error('Maximum Order Quantity must be greater than 0');
+      toast.error("Maximum Order Quantity must be greater than 0");
       return;
     }
     if (minQty > maxQty) {
-      toast.error('Min Order Quantity cannot be greater than Max Order Quantity');
+      toast.error(
+        "Min Order Quantity cannot be greater than Max Order Quantity",
+      );
       return;
     }
-    const variantNameTrimmed = String(d.variantName ?? '').trim();
+    const variantNameTrimmed = String(d.variantName ?? "").trim();
     if (!variantNameTrimmed) {
-      toast.error('Variant name is required');
+      toast.error("Variant name is required");
       return;
     }
     if (variantNameTrimmed.length > 120) {
-      toast.error('Variant name must be 120 characters or less');
+      toast.error("Variant name must be 120 characters or less");
       return;
     }
 
-    const productIdTrimmed = String(d.productIdType ?? '').trim();
+    const productIdTrimmed = String(d.productIdType ?? "").trim();
     if (requiresProductId && !productIdTrimmed) {
-      setError('productIdType', { type: 'required', message: 'Product Id is required' });
-      toast.error('Product Id is required');
+      setError("productIdType", {
+        type: "required",
+        message: "Product Id is required",
+      });
+      toast.error("Product Id is required");
       return;
     }
     if (requiresProductId) {
-      clearErrors('productIdType');
+      clearErrors("productIdType");
     }
 
     const wantsSample = !!d.isSample;
     const sampleQty = wantsSample ? parseInt(d.sampleAvailability, 10) : 0;
     const samplePrice = wantsSample
-      ? parseFloat(String(d.priceOfSample || 0).replace(/,/g, ''))
+      ? parseFloat(String(d.priceOfSample || 0).replace(/,/g, ""))
       : 0;
     if (wantsSample) {
       if (!Number.isFinite(sampleQty) || sampleQty <= 0) {
-        toast.error('Sample quantity must be greater than 0');
+        toast.error("Sample quantity must be greater than 0");
         return;
       }
       if (!Number.isFinite(samplePrice) || samplePrice <= 0) {
-        toast.error('Sample price must be greater than 0');
+        toast.error("Sample price must be greater than 0");
         return;
       }
     }
     const extraCol = activeVoucherConfig?.extraVariantColumn;
     const existingRow =
-      editVariationIndex !== null ? productsVariations[editVariationIndex] : null;
+      editVariationIndex !== null
+        ? productsVariations[editVariationIndex]
+        : null;
     const variation = {
       ...(existingRow?._id ? { _id: existingRow._id } : {}),
       VariantName: variantNameTrimmed,
@@ -1549,15 +2056,23 @@ export const ProductInfo = ({ category }) => {
       ...(shouldUseDiscountedPrice ? { DiscountedPrice: discountedPrice } : {}),
       MinOrderQuantity: minQty,
       MaxOrderQuantity: maxQty,
-      GST: String(d.gst || '18'),
-      HSN: d.hsn || '',
+      GST: String(d.gst || "18"),
+      HSN: d.hsn || "",
       ProductSize: productSize,
 
       ...(requiresProductId ? { ProductIdType: productIdTrimmed } : {}),
-      Length: ['Length', 'Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.length || '') : '',
-      Width: d.selectedSize === 'Length x Height x Width' ? (d.width || '') : '',
-      Height: ['Length x Height', 'Length x Height x Width'].includes(d.selectedSize) ? (d.height || '') : '',
-      Weight: d.selectedSize === 'Weight' ? (d.weight || '') : '',
+      Length: ["Length", "Length x Height", "Length x Height x Width"].includes(
+        d.selectedSize,
+      )
+        ? d.length || ""
+        : "",
+      Width: d.selectedSize === "Length x Height x Width" ? d.width || "" : "",
+      Height: ["Length x Height", "Length x Height x Width"].includes(
+        d.selectedSize,
+      )
+        ? d.height || ""
+        : "",
+      Weight: d.selectedSize === "Weight" ? d.weight || "" : "",
       MeasurementUnit: measurementUnit,
       ...(wantsSample && {
         SampleQty: sampleQty,
@@ -1565,93 +2080,114 @@ export const ProductInfo = ({ category }) => {
       }),
       ...(shoeSize && { ShoeSize: shoeSize }),
       ...(showProductColor
-        ? { ProductColor: String(d.productColor || '').trim() }
+        ? { ProductColor: String(d.productColor || "").trim() }
         : {}),
       ...(isVoucherCategory && {
         validityOfVoucherValue: d.validityOfVoucherValue ?? 12,
-        validityOfVoucherUnit: d.validityOfVoucherUnit || 'Months',
+        validityOfVoucherUnit: d.validityOfVoucherUnit || "Months",
       }),
-      ...(extraCol === 'flavor' && { Flavor: d.flavor || '' }),
-      ...(extraCol === 'offeringType' && { OfferingType: d.offeringType || '' }),
-      ...(extraCol === 'dateOfEvent' && (category !== 'eeVoucher' || (typeof localStorage !== 'undefined' && localStorage.getItem('eevoucherdata') === 'event')) && { DateOfTheEvent: d.dateOfEvent || '' }),
+      ...(extraCol === "flavor" && { Flavor: d.flavor || "" }),
+      ...(extraCol === "offeringType" && {
+        OfferingType: d.offeringType || "",
+      }),
+      ...(extraCol === "dateOfEvent" &&
+        (category !== "eeVoucher" ||
+          (typeof localStorage !== "undefined" &&
+            localStorage.getItem("eevoucherdata") === "event")) && {
+          DateOfTheEvent: d.dateOfEvent || "",
+        }),
     };
     if (editVariationIndex !== null) {
       setProductsVariations((prev) => {
-        const next = prev.map((row, i) => (i === editVariationIndex ? variation : row));
+        const next = prev.map((row, i) =>
+          i === editVariationIndex ? variation : row,
+        );
         if (hasHsn && editVariationIndex === 0) {
-          const syncedHsn = String(variation.HSN || '').trim();
-          return next.map((row, i) => (i === 0 ? row : { ...row, HSN: syncedHsn }));
+          const syncedHsn = String(variation.HSN || "").trim();
+          return next.map((row, i) =>
+            i === 0 ? row : { ...row, HSN: syncedHsn },
+          );
         }
         return next;
       });
       setEditVariationIndex(null);
-      toast.success('Variation updated');
+      toast.success("Variation updated");
     } else {
       setProductsVariations((prev) => [...prev, variation]);
-      toast.success('Variation added');
+      toast.success("Variation added");
     }
     // Size requirement is satisfied once at least one variation exists.
-    clearErrors(['selectedSize', ...VARIATION_DRAFT_FIELDS]);
-    setValue('price', '');
-    setValue('discountedPrice', '');
-    setValue('productIdType', '');
-    setValue('length', '');
-    setValue('width', '');
-    setValue('height', '');
-    setValue('weight', '');
-    setValue('sizeValue', '');
-    setValue('volume', '');
-    setValue('shoeSize', '');
-    setValue('minOrderQty', '');
+    clearErrors(["selectedSize", ...VARIATION_DRAFT_FIELDS]);
+    setValue("price", "");
+    setValue("discountedPrice", "");
+    setValue("productIdType", "");
+    setValue("length", "");
+    setValue("width", "");
+    setValue("height", "");
+    setValue("weight", "");
+    setValue("sizeValue", "");
+    setValue("volume", "");
+    setValue("shoeSize", "");
+    setValue("minOrderQty", "");
     if (isVoucherCategory) {
-      setValue('maxOrderQty', '');
-      clearErrors(['maxOrderQty']);
+      setValue("maxOrderQty", "");
+      clearErrors(["maxOrderQty"]);
     } else {
-      setValue('maxOrderQty', '');
+      setValue("maxOrderQty", "");
     }
-    setValue('gst', '');
+    setValue("gst", "");
     // HSN must stay identical across variants — keep the shared code filled for the next row.
     if (hasHsn) {
       const sharedHsn =
         editVariationIndex === 0
-          ? String(variation.HSN || '')
-          : String(productsVariations[0]?.HSN || variation.HSN || '');
-      setValue('hsn', sharedHsn);
+          ? String(variation.HSN || "")
+          : String(productsVariations[0]?.HSN || variation.HSN || "");
+      setValue("hsn", sharedHsn);
     } else {
-      setValue('hsn', '');
+      setValue("hsn", "");
     }
-    setValue('productSize', '');
-    setValue('measurementUnit', '');
-    setValue('flavor', '');
-    setValue('offeringType', '');
-    setValue('dateOfEvent', '');
-    setValue('variantName', '');
-    setValue('productColor', '');
+    setValue("productSize", "");
+    setValue("measurementUnit", "");
+    setValue("flavor", "");
+    setValue("offeringType", "");
+    setValue("dateOfEvent", "");
+    setValue("variantName", "");
+    setValue("productColor", "");
     // Keep size selection & unit fixed once variants exist (BXI Frontend parity).
     // Don't reset sizeUnit to 'cm' unconditionally — re-derive from the locked dimension
     // so subsequent variants keep the correct unit (e.g. 'gsm' for GSM, 'kg' for Weight).
-    const lockedSize = (getValues('selectedSize') || '').toLowerCase();
-    if (lockedSize.includes('weight') || lockedSize === 'gsm') {
-      setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
-    } else if (lockedSize.includes('battery') || lockedSize.includes('power')) {
-      setValue('sizeUnit', lockedSize.includes('battery') ? 'mAh' : 'W');
-    } else if (lockedSize.includes('volume') || lockedSize.includes('capacity')) {
-      setValue('sizeUnit', 'ml');
-    } else if (lockedSize.includes('calorie')) {
-      setValue('sizeUnit', 'kcal');
-    } else if (lockedSize.includes('nutritional')) {
-      setValue('sizeUnit', 'g');
-    } else if (lockedSize.includes('shelf life') || lockedSize.includes('shelflife')) {
-      setValue('sizeUnit', 'Months');
-    } else if (lockedSize.includes('temprature') || lockedSize.includes('temperature') || lockedSize.includes('temp')) {
-      setValue('sizeUnit', '°C');
+    const lockedSize = (getValues("selectedSize") || "").toLowerCase();
+    if (lockedSize.includes("weight") || lockedSize === "gsm") {
+      setValue("sizeUnit", lockedSize === "gsm" ? "gsm" : "kg");
+    } else if (lockedSize.includes("battery") || lockedSize.includes("power")) {
+      setValue("sizeUnit", lockedSize.includes("battery") ? "mAh" : "W");
+    } else if (
+      lockedSize.includes("volume") ||
+      lockedSize.includes("capacity")
+    ) {
+      setValue("sizeUnit", "ml");
+    } else if (lockedSize.includes("calorie")) {
+      setValue("sizeUnit", "kcal");
+    } else if (lockedSize.includes("nutritional")) {
+      setValue("sizeUnit", "g");
+    } else if (
+      lockedSize.includes("shelf life") ||
+      lockedSize.includes("shelflife")
+    ) {
+      setValue("sizeUnit", "Months");
+    } else if (
+      lockedSize.includes("temprature") ||
+      lockedSize.includes("temperature") ||
+      lockedSize.includes("temp")
+    ) {
+      setValue("sizeUnit", "°C");
     } else {
-      setValue('sizeUnit', 'cm');
+      setValue("sizeUnit", "cm");
     }
-    setValue('shoeMeasurementUnit', 'US');
-    setValue('isSample', false);
-    setValue('sampleAvailability', '');
-    setValue('priceOfSample', '');
+    setValue("shoeMeasurementUnit", "US");
+    setValue("isSample", false);
+    setValue("sampleAvailability", "");
+    setValue("priceOfSample", "");
   };
 
   const handleEditVariation = (idx) => {
@@ -1659,133 +2195,163 @@ export const ProductInfo = ({ category }) => {
     if (!row) return;
     setEditVariationIndex(idx);
 
-    setValue('variantName', row.VariantName ?? '');
-    setValue('price', row.PricePerUnit ?? '');
-    setValue('discountedPrice', shouldUseDiscountedPrice ? (row.DiscountedPrice ?? '') : '');
-    setValue('gst', String(row.GST ?? '18'));
-    setValue('hsn', row.HSN ?? '');
-    setValue('minOrderQty', String(row.MinOrderQuantity ?? '1'));
-    setValue('maxOrderQty', String(row.MaxOrderQuantity ?? '100'));
-    setValue('productIdType', row.ProductIdType ?? '');
-    setValue('productColor', row.ProductColor ?? '');
+    setValue("variantName", row.VariantName ?? "");
+    setValue("price", row.PricePerUnit ?? "");
+    setValue(
+      "discountedPrice",
+      shouldUseDiscountedPrice ? (row.DiscountedPrice ?? "") : "",
+    );
+    setValue("gst", String(row.GST ?? "18"));
+    setValue("hsn", row.HSN ?? "");
+    setValue("minOrderQty", String(row.MinOrderQuantity ?? "1"));
+    setValue("maxOrderQty", String(row.MaxOrderQuantity ?? "100"));
+    setValue("productIdType", row.ProductIdType ?? "");
+    setValue("productColor", row.ProductColor ?? "");
 
-    setValue('isSample', !!(row.SampleQty || row.SamplePrice));
-    setValue('sampleAvailability', row.SampleQty ? String(row.SampleQty) : '');
-    setValue('priceOfSample', row.SamplePrice ? String(row.SamplePrice) : '');
+    setValue("isSample", !!(row.SampleQty || row.SamplePrice));
+    setValue("sampleAvailability", row.SampleQty ? String(row.SampleQty) : "");
+    setValue("priceOfSample", row.SamplePrice ? String(row.SamplePrice) : "");
 
     // Size/dimensions — use the currently locked dimension if variants exist,
     // so editing doesn't flip the dimension to a wrong type from stale L/W/H/Weight fields.
-    const currentLockedSize = getValues('selectedSize');
-    const derivedSelectedSize = (isDimensionSelectionLocked && currentLockedSize)
-      ? currentLockedSize
-      : (inferSelectedSizeFromVariation(row, effectiveSizeOptions) || row.ProductSize || '');
-    setValue('selectedSize', derivedSelectedSize);
+    const currentLockedSize = getValues("selectedSize");
+    const derivedSelectedSize =
+      isDimensionSelectionLocked && currentLockedSize
+        ? currentLockedSize
+        : inferSelectedSizeFromVariation(row, effectiveSizeOptions) ||
+          row.ProductSize ||
+          "";
+    setValue("selectedSize", derivedSelectedSize);
 
-    setValue('length', row.Length ?? '');
-    setValue('width', row.Width ?? '');
-    setValue('height', row.Height ?? '');
-    setValue('weight', row.Weight ?? '');
+    setValue("length", row.Length ?? "");
+    setValue("width", row.Width ?? "");
+    setValue("height", row.Height ?? "");
+    setValue("weight", row.Weight ?? "");
 
-    if (derivedSelectedSize === 'Custom Size') {
-      const rawPs = String(row.ProductSize || '').trim();
-      const mu = String(row.MeasurementUnit || '').trim();
+    if (derivedSelectedSize === "Custom Size") {
+      const rawPs = String(row.ProductSize || "").trim();
+      const mu = String(row.MeasurementUnit || "").trim();
       const parts = rawPs.split(/\s+/).filter(Boolean);
       if (mu && parts.length >= 2 && parts[parts.length - 1] === mu) {
-        setValue('sizeValue', parts.slice(0, -1).join(' '));
-        setValue('sizeUnit', mu);
+        setValue("sizeValue", parts.slice(0, -1).join(" "));
+        setValue("sizeUnit", mu);
       } else {
-        setValue('sizeValue', rawPs);
-        setValue('sizeUnit', mu || 'cm');
+        setValue("sizeValue", rawPs);
+        setValue("sizeUnit", mu || "cm");
       }
-    } else if (!['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Shoes Size'].includes(derivedSelectedSize)) {
+    } else if (
+      ![
+        "Length",
+        "Length x Height",
+        "Length x Height x Width",
+        "Weight",
+        "Shoes Size",
+      ].includes(derivedSelectedSize)
+    ) {
       // For non-L/W/H/Weight dimensions (e.g. GSM, Battery Capacity), populate sizeValue
       // from ProductSize by stripping the unit suffix if present.
-      const rawPs = String(row.ProductSize || '').trim();
-      const mu = String(row.MeasurementUnit || '').trim();
+      const rawPs = String(row.ProductSize || "").trim();
+      const mu = String(row.MeasurementUnit || "").trim();
       if (mu && rawPs.endsWith(mu)) {
-        setValue('sizeValue', rawPs.slice(0, -mu.length).trim());
+        setValue("sizeValue", rawPs.slice(0, -mu.length).trim());
       } else {
-        setValue('sizeValue', rawPs);
+        setValue("sizeValue", rawPs);
       }
-      setValue('sizeUnit', mu || 'cm');
+      setValue("sizeUnit", mu || "cm");
     }
     if (row.ShoeSize) {
-      setValue('shoeSize', String(row.ShoeSize));
-      setValue('shoeMeasurementUnit', row.MeasurementUnit || 'US');
+      setValue("shoeSize", String(row.ShoeSize));
+      setValue("shoeMeasurementUnit", row.MeasurementUnit || "US");
     }
 
     // Voucher fields
     if (isVoucherCategory) {
-      setValue('validityOfVoucherValue', String(row.validityOfVoucherValue ?? '12'));
-      setValue('validityOfVoucherUnit', row.validityOfVoucherUnit || 'Months');
+      setValue(
+        "validityOfVoucherValue",
+        String(row.validityOfVoucherValue ?? "12"),
+      );
+      setValue("validityOfVoucherUnit", row.validityOfVoucherUnit || "Months");
     }
-    if (activeVoucherConfig?.extraVariantColumn === 'flavor') setValue('flavor', row.Flavor ?? '');
-    if (activeVoucherConfig?.extraVariantColumn === 'offeringType') setValue('offeringType', row.OfferingType ?? '');
-    if (activeVoucherConfig?.extraVariantColumn === 'dateOfEvent') setValue('dateOfEvent', row.DateOfTheEvent ?? '');
+    if (activeVoucherConfig?.extraVariantColumn === "flavor")
+      setValue("flavor", row.Flavor ?? "");
+    if (activeVoucherConfig?.extraVariantColumn === "offeringType")
+      setValue("offeringType", row.OfferingType ?? "");
+    if (activeVoucherConfig?.extraVariantColumn === "dateOfEvent")
+      setValue("dateOfEvent", row.DateOfTheEvent ?? "");
   };
 
   const handleCancelEdit = () => {
     setEditVariationIndex(null);
-    setValue('price', '');
-    setValue('discountedPrice', '');
-    setValue('productIdType', '');
-    setValue('length', '');
-    setValue('width', '');
-    setValue('height', '');
-    setValue('weight', '');
-    setValue('sizeValue', '');
-    setValue('volume', '');
-    setValue('shoeSize', '');
-    setValue('minOrderQty', '1');
+    setValue("price", "");
+    setValue("discountedPrice", "");
+    setValue("productIdType", "");
+    setValue("length", "");
+    setValue("width", "");
+    setValue("height", "");
+    setValue("weight", "");
+    setValue("sizeValue", "");
+    setValue("volume", "");
+    setValue("shoeSize", "");
+    setValue("minOrderQty", "1");
     if (isVoucherCategory) {
-      setValue('maxOrderQty', '1');
-      clearErrors(['maxOrderQty']);
+      setValue("maxOrderQty", "1");
+      clearErrors(["maxOrderQty"]);
     } else {
-      setValue('maxOrderQty', '100');
+      setValue("maxOrderQty", "100");
     }
-    setValue('gst', '');
+    setValue("gst", "");
     if (hasHsn) {
-      setValue('hsn', String(productsVariations[0]?.HSN ?? '').trim());
+      setValue("hsn", String(productsVariations[0]?.HSN ?? "").trim());
     } else {
-      setValue('hsn', '');
+      setValue("hsn", "");
     }
-    setValue('productSize', '');
-    setValue('measurementUnit', '');
-    setValue('flavor', '');
-    setValue('offeringType', '');
-    setValue('dateOfEvent', '');
-    setValue('variantName', '');
-    setValue('productColor', '');
-    const lockedSize = (getValues('selectedSize') || '').toLowerCase();
-    if (lockedSize.includes('weight') || lockedSize === 'gsm') {
-      setValue('sizeUnit', lockedSize === 'gsm' ? 'gsm' : 'kg');
-    } else if (lockedSize.includes('battery') || lockedSize.includes('power')) {
-      setValue('sizeUnit', lockedSize.includes('battery') ? 'mAh' : 'W');
-    } else if (lockedSize.includes('volume') || lockedSize.includes('capacity')) {
-      setValue('sizeUnit', 'ml');
-    } else if (lockedSize.includes('calorie')) {
-      setValue('sizeUnit', 'kcal');
-    } else if (lockedSize.includes('nutritional')) {
-      setValue('sizeUnit', 'g');
-    } else if (lockedSize.includes('shelf life') || lockedSize.includes('shelflife')) {
-      setValue('sizeUnit', 'Months');
-    } else if (lockedSize.includes('temprature') || lockedSize.includes('temperature') || lockedSize.includes('temp')) {
-      setValue('sizeUnit', '°C');
+    setValue("productSize", "");
+    setValue("measurementUnit", "");
+    setValue("flavor", "");
+    setValue("offeringType", "");
+    setValue("dateOfEvent", "");
+    setValue("variantName", "");
+    setValue("productColor", "");
+    const lockedSize = (getValues("selectedSize") || "").toLowerCase();
+    if (lockedSize.includes("weight") || lockedSize === "gsm") {
+      setValue("sizeUnit", lockedSize === "gsm" ? "gsm" : "kg");
+    } else if (lockedSize.includes("battery") || lockedSize.includes("power")) {
+      setValue("sizeUnit", lockedSize.includes("battery") ? "mAh" : "W");
+    } else if (
+      lockedSize.includes("volume") ||
+      lockedSize.includes("capacity")
+    ) {
+      setValue("sizeUnit", "ml");
+    } else if (lockedSize.includes("calorie")) {
+      setValue("sizeUnit", "kcal");
+    } else if (lockedSize.includes("nutritional")) {
+      setValue("sizeUnit", "g");
+    } else if (
+      lockedSize.includes("shelf life") ||
+      lockedSize.includes("shelflife")
+    ) {
+      setValue("sizeUnit", "Months");
+    } else if (
+      lockedSize.includes("temprature") ||
+      lockedSize.includes("temperature") ||
+      lockedSize.includes("temp")
+    ) {
+      setValue("sizeUnit", "°C");
     } else {
-      setValue('sizeUnit', 'cm');
+      setValue("sizeUnit", "cm");
     }
-    setValue('shoeMeasurementUnit', 'US');
-    setValue('isSample', false);
-    setValue('sampleAvailability', '');
-    setValue('priceOfSample', '');
+    setValue("shoeMeasurementUnit", "US");
+    setValue("isSample", false);
+    setValue("sampleAvailability", "");
+    setValue("priceOfSample", "");
   };
 
   const handleRemoveVariation = (idx) => {
     setProductsVariations((prev) => {
       const next = prev.filter((_, i) => i !== idx);
       if (hasHsn) {
-        const shared = String(next[0]?.HSN ?? '').trim();
-        setValue('hsn', shared);
+        const shared = String(next[0]?.HSN ?? "").trim();
+        setValue("hsn", shared);
       }
       return next;
     });
@@ -1798,60 +2364,74 @@ export const ProductInfo = ({ category }) => {
 
   // Date requirements per category
   const dateRequirements = {
-    electronics: { manufacturing: 'mandatory', expiry: 'optional' },
-    fmcg: { manufacturing: 'mandatory', expiry: 'mandatory' },
-    officesupply: { manufacturing: 'optional', expiry: 'optional' },
-    mobility: { manufacturing: 'optional', expiry: 'optional' },
-    restaurant: { manufacturing: 'optional', expiry: 'optional' },
-    others: { manufacturing: 'mandatory', expiry: 'optional' },
-    lifestyle: { manufacturing: 'mandatory', expiry: 'optional' },
+    electronics: { manufacturing: "mandatory", expiry: "optional" },
+    fmcg: { manufacturing: "mandatory", expiry: "mandatory" },
+    officesupply: { manufacturing: "optional", expiry: "optional" },
+    mobility: { manufacturing: "optional", expiry: "optional" },
+    restaurant: { manufacturing: "optional", expiry: "optional" },
+    others: { manufacturing: "mandatory", expiry: "optional" },
+    lifestyle: { manufacturing: "mandatory", expiry: "optional" },
   };
-  const currentDateReqs = dateRequirements[category] || { manufacturing: 'optional', expiry: 'optional' };
+  const currentDateReqs = dateRequirements[category] || {
+    manufacturing: "optional",
+    expiry: "optional",
+  };
   const toInputDateValue = (dateValue) =>
-    dateValue instanceof Date && !Number.isNaN(dateValue.getTime()) ? format(dateValue, 'yyyy-MM-dd') : '';
+    dateValue instanceof Date && !Number.isNaN(dateValue.getTime())
+      ? format(dateValue, "yyyy-MM-dd")
+      : "";
   const parseInputDate = (value) => {
     if (!value) return null;
-    const [year, month, day] = String(value).split('-').map(Number);
+    const [year, month, day] = String(value).split("-").map(Number);
     if (!year || !month || !day) return null;
     const parsed = new Date(year, month - 1, day);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
-  const { register, formState: { errors }, setValue, watch, getValues, setError, clearErrors, trigger } = useForm({
+  const {
+    register,
+    formState: { errors },
+    setValue,
+    watch,
+    getValues,
+    setError,
+    clearErrors,
+    trigger,
+  } = useForm({
     defaultValues: {
-      price: '',
-      discountedPrice: '',
-      minOrderQty: '',
-      gst: '18',
-      hsn: '',
-      selectedSize: '',
-      sizeValue: '',
-      sizeUnit: 'cm',
-      productForm: 'Dry',
+      price: "",
+      discountedPrice: "",
+      minOrderQty: "",
+      gst: "18",
+      hsn: "",
+      selectedSize: "",
+      sizeValue: "",
+      sizeUnit: "cm",
+      productForm: "Dry",
 
-      productIdType: '',
-      length: '',
-      width: '',
-      height: '',
-      weight: '',
-      isSample: '',
-      gender: 'Unisex',
-      shoeSize: '',
-      shoeMeasurementUnit: 'US',
-      sampleAvailability: '',
-      priceOfSample: '',
-      volume: '',
-      registrationDetails: '',
-      insuranceDetails: '',
-      taxesDetails: '',
-      validityOfVoucherValue: '12',
-      validityOfVoucherUnit: 'Months',
-      flavor: '',
-      offeringType: '',
-      dateOfEvent: '',
-      variantName: '',
-      productColor: '',
-    }
+      productIdType: "",
+      length: "",
+      width: "",
+      height: "",
+      weight: "",
+      isSample: "",
+      gender: "Unisex",
+      shoeSize: "",
+      shoeMeasurementUnit: "US",
+      sampleAvailability: "",
+      priceOfSample: "",
+      volume: "",
+      registrationDetails: "",
+      insuranceDetails: "",
+      taxesDetails: "",
+      validityOfVoucherValue: "12",
+      validityOfVoucherUnit: "Months",
+      flavor: "",
+      offeringType: "",
+      dateOfEvent: "",
+      variantName: "",
+      productColor: "",
+    },
   });
 
   useEffect(() => {
@@ -1869,22 +2449,27 @@ export const ProductInfo = ({ category }) => {
           setFeatureList(data.ProductFeatures);
         }
         if (data.OtherCost && Array.isArray(data.OtherCost)) {
-          setOtherCosts(data.OtherCost.map(oc => ({
-            AdCostApplicableOn: oc.AdCostApplicableOn || 'All',
-            CostPrice: oc.CostPrice || 0,
-            currencyType: oc.currencyType || '₹',
-            AdCostHSN: oc.AdCostHSN || '',
-            AdCostGST: oc.AdCostGST || 18,
-            ReasonOfCost: oc.ReasonOfCost || ''
-          })));
+          setOtherCosts(
+            data.OtherCost.map((oc) => ({
+              AdCostApplicableOn: oc.AdCostApplicableOn || "All",
+              CostPrice: oc.CostPrice || 0,
+              currencyType: oc.currencyType || "₹",
+              AdCostHSN: oc.AdCostHSN || "",
+              AdCostGST: oc.AdCostGST || 18,
+              ReasonOfCost: oc.ReasonOfCost || "",
+            })),
+          );
         }
         if (data.LocationDetails) {
-          setLocationDetails(prev => ({
+          setLocationDetails((prev) => ({
             ...prev,
-            ...data.LocationDetails
+            ...data.LocationDetails,
           }));
         }
-        if (data.ProductsVariantions && Array.isArray(data.ProductsVariantions)) {
+        if (
+          data.ProductsVariantions &&
+          Array.isArray(data.ProductsVariantions)
+        ) {
           setProductsVariations(data.ProductsVariantions);
         }
         if (data.ManufacturingDate) {
@@ -1894,30 +2479,34 @@ export const ProductInfo = ({ category }) => {
           setExpiryDate(new Date(data.ExpiryDate));
           setHasExpiryDate(true);
         }
-        
+
         // Populate registration details from existing data
-        if (data.RegistrationDetails || data.InsuranceDetails || data.TaxesDetails) {
-          setValue('registrationDetails', data.RegistrationDetails || '');
-          setValue('insuranceDetails', data.InsuranceDetails || '');
-          setValue('taxesDetails', data.TaxesDetails || '');
+        if (
+          data.RegistrationDetails ||
+          data.InsuranceDetails ||
+          data.TaxesDetails
+        ) {
+          setValue("registrationDetails", data.RegistrationDetails || "");
+          setValue("insuranceDetails", data.InsuranceDetails || "");
+          setValue("taxesDetails", data.TaxesDetails || "");
         }
 
         if (data.ProductTags && Array.isArray(data.ProductTags)) {
           setTags(data.ProductTags);
         }
         if (data.fromLocation) setFromLocation(data.fromLocation);
-        if (data.destinationLocation) setDestinationLocation(data.destinationLocation);
+        if (data.destinationLocation)
+          setDestinationLocation(data.destinationLocation);
         if (data.redeemedValue) setRedeemedValue(data.redeemedValue);
 
         if (data.Gender) {
-          setValue('gender', data.Gender);
+          setValue("gender", data.Gender);
         }
         if (data.ProductForm) {
-          setValue('productForm', data.ProductForm);
+          setValue("productForm", data.ProductForm);
         }
-        
       } catch (error) {
-        GlobalToast('Error fetching product in ProductInfo:', error);
+        GlobalToast("Error fetching product in ProductInfo:", error);
       }
     };
     fetchProduct();
@@ -1926,7 +2515,8 @@ export const ProductInfo = ({ category }) => {
   const isGstChained = useMemo(() => {
     if (editVariationIndex === 0) return false;
     if (productsVariations.length === 0) return false;
-    if (editVariationIndex === null && productsVariations.length >= 1) return true;
+    if (editVariationIndex === null && productsVariations.length >= 1)
+      return true;
     if (editVariationIndex != null && editVariationIndex > 0) return true;
     return false;
   }, [editVariationIndex, productsVariations]);
@@ -1935,72 +2525,103 @@ export const ProductInfo = ({ category }) => {
     if (!hasHsn) return false;
     if (editVariationIndex === 0) return false;
     if (productsVariations.length === 0) return false;
-    if (editVariationIndex === null && productsVariations.length >= 1) return true;
+    if (editVariationIndex === null && productsVariations.length >= 1)
+      return true;
     if (editVariationIndex != null && editVariationIndex > 0) return true;
     return false;
   }, [hasHsn, editVariationIndex, productsVariations]);
 
   const firstVariantGst = useMemo(
-    () => String(productsVariations[0]?.GST ?? '18'),
-    [productsVariations]
+    () => String(productsVariations[0]?.GST ?? "18"),
+    [productsVariations],
   );
 
   const firstVariantHsn = useMemo(
-    () => String(productsVariations[0]?.HSN ?? '').trim(),
-    [productsVariations]
+    () => String(productsVariations[0]?.HSN ?? "").trim(),
+    [productsVariations],
   );
 
   const gstFormOptions = useMemo(() => {
     if (!isGstChained) return LISTING_GST_RATE_OPTIONS;
-    return firstVariantGst === '0' ? ['0'] : LISTING_NON_ZERO_GST_RATE_OPTIONS;
+    return firstVariantGst === "0" ? ["0"] : LISTING_NON_ZERO_GST_RATE_OPTIONS;
   }, [isGstChained, firstVariantGst]);
 
   useEffect(() => {
     if (!isGstChained) return;
-    if (firstVariantGst === '0') {
-      setValue('gst', '0');
+    if (firstVariantGst === "0") {
+      setValue("gst", "0");
       return;
     }
-    const cur = getValues('gst');
-    if (cur === '0' || cur === '' || cur === undefined) {
-      setValue('gst', firstVariantGst);
+    const cur = getValues("gst");
+    if (cur === "0" || cur === "" || cur === undefined) {
+      setValue("gst", firstVariantGst);
     }
-  }, [isGstChained, firstVariantGst, editVariationIndex, setValue, getValues, productsVariations.length]);
+  }, [
+    isGstChained,
+    firstVariantGst,
+    editVariationIndex,
+    setValue,
+    getValues,
+    productsVariations.length,
+  ]);
 
   useEffect(() => {
     if (!isHsnChained || !firstVariantHsn) return;
-    setValue('hsn', firstVariantHsn, { shouldDirty: false, shouldValidate: true });
-  }, [isHsnChained, firstVariantHsn, editVariationIndex, setValue, productsVariations.length]);
+    setValue("hsn", firstVariantHsn, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [
+    isHsnChained,
+    firstVariantHsn,
+    editVariationIndex,
+    setValue,
+    productsVariations.length,
+  ]);
 
-  const selectedSize = watch('selectedSize');
-  const isDimensionSelectionLocked = hasSizeOptions && productsVariations.length > 0;
+  const selectedSize = watch("selectedSize");
+  const isDimensionSelectionLocked =
+    hasSizeOptions && productsVariations.length > 0;
 
   useEffect(() => {
     // BXI Frontend parity: once one variant exists, keep the selected dimension fixed.
     if (!isDimensionSelectionLocked || selectedSize) return;
-    const inferred = inferSelectedSizeFromVariation(productsVariations[0], effectiveSizeOptions);
-    if (inferred) setValue('selectedSize', inferred);
-  }, [isDimensionSelectionLocked, selectedSize, productsVariations, effectiveSizeOptions, setValue]);
+    const inferred = inferSelectedSizeFromVariation(
+      productsVariations[0],
+      effectiveSizeOptions,
+    );
+    if (inferred) setValue("selectedSize", inferred);
+  }, [
+    isDimensionSelectionLocked,
+    selectedSize,
+    productsVariations,
+    effectiveSizeOptions,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (!selectedSize) return;
     const s = selectedSize.toLowerCase();
-    if (s.includes('weight') || s === 'gsm') {
-      setValue('sizeUnit', s === 'gsm' ? 'gsm' : 'kg');
-    } else if (s.includes('battery') || s.includes('power')) {
-      setValue('sizeUnit', s.includes('battery') ? 'mAh' : 'W');
-    } else if (s.includes('volume') || s.includes('capacity')) {
-      setValue('sizeUnit', 'ml');
-    } else if (s.includes('calorie')) {
-      setValue('sizeUnit', 'kcal');
-    } else if (s.includes('nutritional')) {
-      setValue('sizeUnit', 'g');
-    } else if (s.includes('shelf life') || s.includes('shelflife')) {
-      setValue('sizeUnit', 'Months');
-    } else if (s.includes('temprature') || s.includes('temperature') || s.includes('temp')) {
-      setValue('sizeUnit', '°C');
+    if (s.includes("weight") || s === "gsm") {
+      setValue("sizeUnit", s === "gsm" ? "gsm" : "kg");
+    } else if (s.includes("battery") || s.includes("power")) {
+      setValue("sizeUnit", s.includes("battery") ? "mAh" : "W");
+    } else if (s.includes("volume") || s.includes("capacity")) {
+      setValue("sizeUnit", "ml");
+    } else if (s.includes("calorie")) {
+      setValue("sizeUnit", "kcal");
+    } else if (s.includes("nutritional")) {
+      setValue("sizeUnit", "g");
+    } else if (s.includes("shelf life") || s.includes("shelflife")) {
+      setValue("sizeUnit", "Months");
+    } else if (
+      s.includes("temprature") ||
+      s.includes("temperature") ||
+      s.includes("temp")
+    ) {
+      setValue("sizeUnit", "°C");
     } else {
-      setValue('sizeUnit', 'cm');
+      setValue("sizeUnit", "cm");
     }
   }, [selectedSize, setValue]);
 
@@ -2010,8 +2631,15 @@ export const ProductInfo = ({ category }) => {
     }
 
     const saveFieldsToValidate = [];
-    if (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes') {
-      saveFieldsToValidate.push('registrationDetails', 'insuranceDetails', 'taxesDetails');
+    if (
+      category === "mobility" &&
+      productData?.HasRegistrationProcess === "Yes"
+    ) {
+      saveFieldsToValidate.push(
+        "registrationDetails",
+        "insuranceDetails",
+        "taxesDetails",
+      );
     }
     if (saveFieldsToValidate.length > 0) {
       const ok = await trigger(saveFieldsToValidate);
@@ -2023,7 +2651,7 @@ export const ProductInfo = ({ category }) => {
 
   const onSubmit = async (data) => {
     if (!id) {
-      toast.error('Product ID missing. Please start from General Information.');
+      toast.error("Product ID missing. Please start from General Information.");
       return;
     }
     if (productsVariations.length === 0) {
@@ -2037,7 +2665,10 @@ export const ProductInfo = ({ category }) => {
         return;
       }
       for (let i = 0; i < productsVariations.length; i += 1) {
-        const rowCheck = validateListingHsn(productsVariations[i]?.HSN, hsnValidateOpts);
+        const rowCheck = validateListingHsn(
+          productsVariations[i]?.HSN,
+          hsnValidateOpts,
+        );
         if (!rowCheck.ok) {
           toast.error(`Variation ${i + 1}: ${rowCheck.message}`);
           return;
@@ -2045,17 +2676,19 @@ export const ProductInfo = ({ category }) => {
       }
     }
     if (requiresProductId) {
-      clearErrors('productIdType');
+      clearErrors("productIdType");
     }
     if (
       requiresProductId &&
-      productsVariations.some((v) => !String(v.ProductIdType ?? '').trim())
+      productsVariations.some((v) => !String(v.ProductIdType ?? "").trim())
     ) {
-      toast.error('Each variation must have a Product Id');
+      toast.error("Each variation must have a Product Id");
       return;
     }
     if (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) {
-      toast.error(`Minimum ${PRODUCT_FEATURE_MIN} features required. Add ${PRODUCT_FEATURE_MIN - featureList.length} more.`);
+      toast.error(
+        `Minimum ${PRODUCT_FEATURE_MIN} features required. Add ${PRODUCT_FEATURE_MIN - featureList.length} more.`,
+      );
       return;
     }
     if (hasFeatures && featureList.length > PRODUCT_FEATURE_MAX) {
@@ -2063,90 +2696,115 @@ export const ProductInfo = ({ category }) => {
       return;
     }
     if (isVoucherCategory && tags.length < 1) {
-      toast.error('Please add at least one tag');
+      toast.error("Please add at least one tag");
       return;
     }
 
     if (productsVariations.length > 0) {
-      clearErrors(['selectedSize']);
+      clearErrors(["selectedSize"]);
     }
-    if (hasSizeOptions && productsVariations.length === 0 && !watch('selectedSize')) {
-      setError('selectedSize', { type: 'required', message: 'Please select at least one dimension/description option.' });
-      toast.error('Please select at least one dimension/description option.');
+    if (
+      hasSizeOptions &&
+      productsVariations.length === 0 &&
+      !watch("selectedSize")
+    ) {
+      setError("selectedSize", {
+        type: "required",
+        message: "Please select at least one dimension/description option.",
+      });
+      toast.error("Please select at least one dimension/description option.");
       return;
     }
-    
+
     // Validate Manufacturing Date (mandatory for electronics, fmcg, others)
-    if (currentDateReqs.manufacturing === 'mandatory' && !manufacturingDate) {
-      toast.error('Manufacturing date is required for this category');
+    if (currentDateReqs.manufacturing === "mandatory" && !manufacturingDate) {
+      toast.error("Manufacturing date is required for this category");
       return;
     }
-    
+
     // Validate Expiry Date (mandatory for FMCG, optional for others if checkbox checked)
-    if (category === 'fmcg' && !expiryDate) {
-      toast.error('Expiry date is required for FMCG products');
+    if (category === "fmcg" && !expiryDate) {
+      toast.error("Expiry date is required for FMCG products");
       return;
     }
-    if (hasExpiryDate && !expiryDate && category !== 'fmcg') {
-      toast.error('Please select an expiry date or uncheck the expiry date option');
+    if (hasExpiryDate && !expiryDate && category !== "fmcg") {
+      toast.error(
+        "Please select an expiry date or uncheck the expiry date option",
+      );
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const variants = productsVariations;
-      const sampleVariant = variants.find(v => v.SampleQty || v.SamplePrice);
+      const sampleVariant = variants.find((v) => v.SampleQty || v.SamplePrice);
       const anySample = !!sampleVariant;
       const payload = {
         _id: id,
-        ProductUploadStatus: isVoucherCategory ? 'technicalinformation' : 'productinformation',
+        ProductUploadStatus: isVoucherCategory
+          ? "technicalinformation"
+          : "productinformation",
         ProductsVariantions: variants,
         IsSample: anySample,
         ...(anySample && {
           SampleAvailability: sampleVariant.SampleQty || 0,
           PriceOfSample: sampleVariant.SamplePrice || 0,
         }),
-        ...(hasGenderInProductInfo && { Gender: data.gender, gender: data.gender }),
+        ...(hasGenderInProductInfo && {
+          Gender: data.gender,
+          gender: data.gender,
+        }),
         ...(hasFeatures && { ProductFeatures: featureList }),
         ...(hasOtherCosts && { OtherCost: otherCosts }),
         ...(hasLocationDetails && { LocationDetails: locationDetails }),
         ...(isVoucherCategory && { ProductTags: tags }),
-        ...(category === 'airlineVoucher' && {
+        ...(category === "airlineVoucher" && {
           fromLocation,
           destinationLocation,
           redeemedValue,
         }),
-        ...(manufacturingDate && { ManufacturingDate: format(manufacturingDate, 'yyyy-MM-dd') }),
-        ...(expiryDate && { ExpiryDate: format(expiryDate, 'yyyy-MM-dd') }),
-        ...(category === 'fmcg' && data.productForm && { ProductForm: data.productForm }),
-        ...(category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && {
-          RegistrationDetails: data.registrationDetails || '',
-          InsuranceDetails: data.insuranceDetails || '',
-          TaxesDetails: data.taxesDetails || '',
+        ...(manufacturingDate && {
+          ManufacturingDate: format(manufacturingDate, "yyyy-MM-dd"),
         }),
+        ...(expiryDate && { ExpiryDate: format(expiryDate, "yyyy-MM-dd") }),
+        ...(category === "fmcg" &&
+          data.productForm && { ProductForm: data.productForm }),
+        ...(category === "mobility" &&
+          productData?.HasRegistrationProcess === "Yes" && {
+            RegistrationDetails: data.registrationDetails || "",
+            InsuranceDetails: data.insuranceDetails || "",
+            TaxesDetails: data.taxesDetails || "",
+          }),
       };
 
       if (isVoucherCategory) {
         const voucherPayload = {
           ...payload,
           id: id,
-          ProductUploadStatus: 'productinformation',
+          ProductUploadStatus: "productinformation",
         };
         await productApi.productMutation(voucherPayload);
       } else {
         await productApi.updateProduct(payload);
       }
-      toast.success('Product information saved!');
+      toast.success("Product information saved!");
       navigate(`/${category}/${nextPath}/${id}`);
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to save. Please try again.');
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="product-info-page">
+    <div
+      className="min-h-screen bg-[#F8F9FA] py-8"
+      data-testid="product-info-page"
+    >
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
@@ -2156,23 +2814,40 @@ export const ProductInfo = ({ category }) => {
           <main className="stepper-content">
             <div className="form-section">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-lg font-semibold">{isVoucherCategory ? 'Voucher Information' : 'Product Information'} - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}</h2>
+                <h2 className="text-lg font-semibold">
+                  {isVoucherCategory
+                    ? "Voucher Information"
+                    : "Product Information"}{" "}
+                  -{" "}
+                  {category
+                    .replace(/voucher$/i, "")
+                    .charAt(0)
+                    .toUpperCase() + category.replace(/voucher$/i, "").slice(1)}
+                </h2>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
-                      <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
+                      <button
+                        type="button"
+                        className="text-[#6B7A99] hover:text-[#C64091]"
+                      >
                         <Info className="w-4 h-4" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="w-48 text-white rounded-md padding-1">
-                      <p>Product Information encompasses essential details and specifications about a specific product/vouchers, including its name, description, features, pricing, and other relevant data.</p>
+                      <p>
+                        Product Information encompasses essential details and
+                        specifications about a specific product/vouchers,
+                        including its name, description, features, pricing, and
+                        other relevant data.
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-          
-          {/* Template Download for Bulk Upload Categories */}
-          {/* {supportsBulkUpload(category) && (
+
+              {/* Template Download for Bulk Upload Categories */}
+              {/* {supportsBulkUpload(category) && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -2205,1483 +2880,2042 @@ export const ProductInfo = ({ category }) => {
               </div>
             </div>
           )} */}
-          
-          <form noValidate onSubmit={(e) => { e.preventDefault(); handleSaveAndNext(); }} className="space-y-6">
-            {/* Gender selection – for textile */}
-            {hasGenderInProductInfo && (
-              <div className="space-y-2">
-                <Label>Gender (Which gender is your product designed for?)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {['Male', 'Female', 'Kids', 'Unisex', 'Other'].map((g) => (
-                    <Button
-                      key={g}
-                      type="button"
-                      variant="outline"
-                      className={cn(
-                        watch('gender') === g && 'border-[#C64091] bg-[#FCE7F3] text-[#C64091]'
-                      )}
-                      onClick={() => setValue('gender', g)}
-                    >
-                      {g}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Dimensions/Description – as clickable cards */}
-            {hasSizeOptions && (
-              <div className="space-y-2 mb-2">
-                <Label>Select what best suits your {isVoucherCategory ? 'voucher' : 'product'} Dimensions/Description?</Label>
-                <div className="flex flex-wrap gap-2">
-                  {effectiveSizeOptions.map((opt) => (
-                    <Button
-                      key={opt}
-                      type="button"
-                      variant="outline"
-                      disabled={isDimensionSelectionLocked}
-                      className={cn(
-                        selectedSize === opt && 'border-[#C64091] bg-[#FCE7F3] text-[#C64091]',
-                        isDimensionSelectionLocked && 'opacity-50 cursor-not-allowed'
+              <form
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSaveAndNext();
+                }}
+                className="space-y-6"
+              >
+                {/* Gender selection – for textile */}
+                {hasGenderInProductInfo && (
+                  <div className="space-y-2">
+                    <Label>
+                      Gender (Which gender is your product designed for?)
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {["Male", "Female", "Kids", "Unisex", "Other"].map(
+                        (g) => (
+                          <Button
+                            key={g}
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              watch("gender") === g &&
+                                "border-[#C64091] bg-[#FCE7F3] text-[#C64091]",
+                            )}
+                            onClick={() => setValue("gender", g)}
+                          >
+                            {g}
+                          </Button>
+                        ),
                       )}
-                      onClick={() => {
-                        if (isDimensionSelectionLocked) return;
-                        setValue('selectedSize', opt);
-                        setValue('length', '');
-                        setValue('width', '');
-                        setValue('height', '');
-                        setValue('weight', '');
-                        setValue('sizeValue', '');
-                        setValue('volume', '');
-                        setValue('shoeSize', '');
-                        if (errors.selectedSize) {
-                          setError('selectedSize', { type: 'manual', message: '' });
-                        }
-                      }}
-                    >
-                      {opt === 'Length x Height'
-                        ? 'L x H'
-                        : opt === 'Length x Height x Width'
-                          ? 'L x H x W'
-                          : formatSizeOptionButtonLabel(opt)}
-                    </Button>
-                  ))}
-                </div>
-                {errors.selectedSize && (
-                  <p className="text-sm text-red-500">{errors.selectedSize.message}</p>
-                )}
-              </div>
-            )}
-
-            {/* Shoes size – ShoeSize dropdown + MeasurementUnit (US/UK/EU) */}
-            {hasSizeOptions && selectedSize === 'Shoes Size' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Shoe Size <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={watch('shoeMeasurementUnit')}
-                      onValueChange={(v) => {
-                        setValue('shoeMeasurementUnit', v);
-                        setValue('shoeSize', '');
-                      }}
-                    >
-                      <SelectTrigger className="w-24">
-                        <SelectValue placeholder="Unit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="US">US</SelectItem>
-                        <SelectItem value="UK">UK</SelectItem>
-                        <SelectItem value="EU">EU</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={watch('shoeSize')}
-                      onValueChange={(v) => setValue('shoeSize', v)}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {((watch('shoeMeasurementUnit') || 'US') === 'US' ? US_SHOE_SIZES : (watch('shoeMeasurementUnit') || 'US') === 'UK' ? UK_SHOE_SIZES : EU_SHOE_SIZES).map((s) => (
-                          <SelectItem key={s} value={String(s)}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Generic size value + unit – For any size option not caught by specialized blocks (incl. Custom Size: free-text value + unit) */}
-            {hasSizeOptions && selectedSize && !CLOTHING_SIZES.includes(selectedSize) && selectedSize !== 'Shoes Size' && 
-             !['Length', 'Length x Height', 'Length x Height x Width', 'Weight', 'Volume'].includes(selectedSize) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>
-                    {selectedSize === 'Custom Size' ? 'Custom size / description' : selectedSize}{' '}
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="flex gap-2 items-end">
-                    <Input
-                      type={selectedSize === 'Custom Size' ? 'text' : 'number'}
-                      placeholder={selectedSize === 'Custom Size' ? 'e.g. 10 x 12, Large, As per spec' : 'e.g. 10'}
-                      {...register('sizeValue')}
-                      className="flex-1"
-                    />
-                    <div className={selectedSize === 'Custom Size' ? 'w-40' : 'w-28'}>
-                      <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
-                      {selectedSize === 'Custom Size' ? (
-                        <Input
-                          id="sizeUnit"
-                          type="text"
-                          placeholder="e.g. cm, pcs"
-                          className="mt-1"
-                          {...register('sizeUnit')}
-                        />
-                      ) : (
-                        <Select
-                          value={watch('sizeUnit')}
-                          onValueChange={(v) => setValue('sizeUnit', v)}
+                {/* Dimensions/Description – as clickable cards */}
+                {hasSizeOptions && (
+                  <div className="space-y-2 mb-2">
+                    <Label>
+                      Select what best suits your{" "}
+                      {isVoucherCategory ? "voucher" : "product"}{" "}
+                      Dimensions/Description?
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {effectiveSizeOptions.map((opt) => (
+                        <Button
+                          key={opt}
+                          type="button"
+                          variant="outline"
+                          disabled={isDimensionSelectionLocked}
+                          className={cn(
+                            selectedSize === opt &&
+                              "border-[#C64091] bg-[#FCE7F3] text-[#C64091]",
+                            isDimensionSelectionLocked &&
+                              "opacity-50 cursor-not-allowed",
+                          )}
+                          onClick={() => {
+                            if (isDimensionSelectionLocked) return;
+                            setValue("selectedSize", opt);
+                            setValue("length", "");
+                            setValue("width", "");
+                            setValue("height", "");
+                            setValue("weight", "");
+                            setValue("sizeValue", "");
+                            setValue("volume", "");
+                            setValue("shoeSize", "");
+                            if (errors.selectedSize) {
+                              setError("selectedSize", {
+                                type: "manual",
+                                message: "",
+                              });
+                            }
+                          }}
                         >
-                          <SelectTrigger className="w-full mt-1">
+                          {opt === "Length x Height"
+                            ? "L x H"
+                            : opt === "Length x Height x Width"
+                              ? "L x H x W"
+                              : formatSizeOptionButtonLabel(opt)}
+                        </Button>
+                      ))}
+                    </div>
+                    {errors.selectedSize && (
+                      <p className="text-sm text-red-500">
+                        {errors.selectedSize.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Shoes size – ShoeSize dropdown + MeasurementUnit (US/UK/EU) */}
+                {hasSizeOptions && selectedSize === "Shoes Size" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>
+                        Shoe Size <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <Select
+                          value={watch("shoeMeasurementUnit")}
+                          onValueChange={(v) => {
+                            setValue("shoeMeasurementUnit", v);
+                            setValue("shoeSize", "");
+                          }}
+                        >
+                          <SelectTrigger className="w-24">
                             <SelectValue placeholder="Unit" />
                           </SelectTrigger>
                           <SelectContent>
-                            {getSizeUnitOptions(selectedSize).map((unit) => (
-                              <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                            <SelectItem value="US">US</SelectItem>
+                            <SelectItem value="UK">UK</SelectItem>
+                            <SelectItem value="EU">EU</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={watch("shoeSize")}
+                          onValueChange={(v) => setValue("shoeSize", v)}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select size" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {((watch("shoeMeasurementUnit") || "US") === "US"
+                              ? US_SHOE_SIZES
+                              : (watch("shoeMeasurementUnit") || "US") === "UK"
+                                ? UK_SHOE_SIZES
+                                : EU_SHOE_SIZES
+                            ).map((s) => (
+                              <SelectItem key={s} value={String(s)}>
+                                {s}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Clothing sizes (XS, S, M, L, etc.) – ProductSize = selectedSize, no extra input */}
-            {hasSizeOptions && selectedSize && CLOTHING_SIZES.includes(selectedSize) && (
-              <div className="space-y-2">
-                <Label>Selected Size</Label>
-                <p className="text-sm text-[#6B7A99]">Size: <span className="font-medium text-[#111827]">{selectedSize}</span></p>
-              </div>
-            )}
-
-            {/* Dimension fields – Length / L×H / L×H×W / Weight (Custom Size uses free-text value + unit above) */}
-            {hasSizeOptions && selectedSize && ['Length', 'Length x Height', 'Length x Height x Width', 'Weight'].includes(selectedSize) && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {(selectedSize === 'Length' || selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width') && (
-                  <div className="space-y-2">
-                    <Label>Length ({watch('sizeUnit') || 'cm'})</Label>
-                    <Input type="number" step="0.01" placeholder="0" {...register('length')} />
-                  </div>
-                )}
-
-                {/* Height should appear for both LxH and LxHxW */}
-                {(selectedSize === 'Length x Height' || selectedSize === 'Length x Height x Width') && (
-                  <div className="space-y-2">
-                    <Label>Height ({watch('sizeUnit') || 'cm'})</Label>
-                    <Input type="number" step="0.01" placeholder="0" {...register('height')} />
-                  </div>
-                )}
-
-                {selectedSize === 'Length x Height x Width' && (
-                  <div className="space-y-2">
-                    <Label>Width ({watch('sizeUnit') || 'cm'})</Label>
-                    <Input type="number" step="0.01" placeholder="0" {...register('width')} />
-                  </div>
-                )}
-
-                {selectedSize === 'Weight' && (
-                  <div className="space-y-2">
-                    <Label>Weight </Label>
-                    <Input type="number" step="0.01" placeholder="0" {...register('weight')} />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
-                  <Select
-                    value={watch('sizeUnit')}
-                    onValueChange={(v) => setValue('sizeUnit', v)}
-                  >
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getSizeUnitOptions(selectedSize).map((unit) => (
-                        <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* Volume – for lifestyle, others, fmcg, restaurant, mobility */}
-            {hasSizeOptions && selectedSize === 'Volume' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Volume <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2 items-end">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 500"
-                      {...register('volume')}
-                      className="flex-1"
-                    />
-                    <div className="w-24 space-y-1">
-                      <Label htmlFor="sizeUnit" className="text-xs font-medium text-slate-700">Unit</Label>
-                      <Select
-                        value={watch('sizeUnit')}
-                        onValueChange={(v) => setValue('sizeUnit', v)}
-                      >
-                        <SelectTrigger className="w-full mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {getSizeUnitOptions(selectedSize).map((unit) => (
-                            <SelectItem key={unit} value={unit}>{unit}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Product ID + optional color */}
-            {(requiresProductId || showProductColor) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {requiresProductId && (
-                  <div className="space-y-2">
-                    <Label htmlFor="productIdType">Product Id <span className="text-red-500">*</span></Label>
-                    <Input
-                      id="productIdType"
-                      placeholder="e.g. 1910WH23"
-                      {...register('productIdType')}
-                    />
-                    {errors.productIdType && (
-                      <p className="text-sm text-red-600">{errors.productIdType.message}</p>
-                    )}
-                  </div>
-                )}
-                {showProductColor && (
-                  <div className={cn('space-y-2', !requiresProductId && 'md:col-span-2')}>
-                    <Label htmlFor="productColor">
-                      Color <span className="text-gray-400 font-normal">(optional)</span>
-                    </Label>
-                    <div className="flex gap-3 items-center">
-                      <input
-                        id="productColor"
-                        type="color"
-                        value={watch('productColor') || '#ffffff'}
-                        onChange={(e) => setValue('productColor', e.target.value)}
-                        className="w-12 h-12 rounded cursor-pointer border border-gray-300 bg-white"
-                        aria-label="Product color"
-                      />
-                      {watch('productColor') ? (
-                        <>
-                          <span className="text-sm text-gray-600 font-mono">
-                            {watch('productColor')}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setValue('productColor', '')}
-                            className="text-xs text-[#6B7A99] hover:text-[#C64091] underline"
-                          >
-                            Clear
-                          </button>
-                        </>
-                      ) : (
-                        <span className="text-sm text-gray-500">No color selected</span>
-                      )}
+                      </div>
                     </div>
                   </div>
                 )}
-              </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="variantName">
-                Variant Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="variantName"
-                placeholder="e.g. Small — Navy, 500ml Pack"
-                maxLength={120}
-                {...register('variantName', {
-                  maxLength: { value: 120, message: 'Maximum 120 characters' },
-                })}
-              />
-              {errors.variantName && (
-                <p className="text-sm text-red-600">{errors.variantName.message}</p>
-              )}
-              <p className="text-xs text-gray-500"> Max 120 characters.</p>
-            </div>
-
-            {/* HSN + GST (same row) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* HSN – when config has HSN */}
-              {hasHsn && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-1">
-                    <Label htmlFor="hsn">HSN <span className="text-red-500">*</span></Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                            <Info className="w-3.5 h-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{hsnRequirementHint(requiredHsnLength, { isAdmin })}. Same HSN applies to all variants.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <Input
-                    id="hsn"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={hsnMaxLength}
-                    placeholder={isAdmin || requiredHsnLength !== 6 ? 'e.g. 9983' : 'e.g. 998346'}
-                    disabled={isHsnChained}
-                    {...register('hsn', {
-                      setValueAs: (v) => sanitizeHsnInput(v, hsnMaxLength),
-                      onChange: (e) => {
-                        if (isHsnChained) return;
-                        const next = sanitizeHsnInput(e?.target?.value, hsnMaxLength);
-                        setValue('hsn', next, { shouldValidate: true, shouldDirty: true });
-                      },
-                    })}
-                  />
-                  <p className="text-xs text-gray-500">
-                    {hsnLengthLabel(requiredHsnLength, { isAdmin })} required
-                    {isHsnChained ? ' · locked to first variant' : ''}
-                  </p>
-                </div>
-              )}
-
-              {/* GST */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label>GST <span className="text-red-500">*</span></Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                          <Info className="w-3.5 h-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Collecting maximum GST of the entire product range is recommended</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Select
-                  value={watch('gst') || (gstFormOptions[0] ?? '18')}
-                  onValueChange={(value) => setValue('gst', value)}
-                  disabled={isGstChained && firstVariantGst === '0'}
-                >
-                  <SelectTrigger data-testid="select-gst">
-                    <SelectValue placeholder="Select GST rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {gstFormOptions.map((rate) => (
-                      <SelectItem key={rate} value={rate}>
-                        {formatListingGstPercentLabel(rate)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* FMCG: Dry/Wet form selection (not for vouchers) */}
-            {piConfig.hasFormSelection && !isVoucherCategory && (
-              <div className="space-y-1 pt-3">
-                <Label>Product Form</Label>
-                <ToggleGroup
-                  type="single"
-                  value={watch('productForm') || 'Dry'}
-                  onValueChange={(value) => setValue('productForm', value)}
-                  className="w-max"
-                  aria-label="Product form"
-                >
-                  <ToggleGroupItem value="Dry">Dry</ToggleGroupItem>
-                  <ToggleGroupItem value="Wet">Wet</ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-            )}
-
-            {/* GST moved next to HSN above */}
-
-            {/* Pricing */}
-            <div className={cn('grid grid-cols-1 gap-6', shouldUseDiscountedPrice && 'md:grid-cols-2')}>
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="price">
-                    {isVoucherCategory ? 'Price / Voucher' : 'MRP'} <span className="text-red-500">*</span> {isVoucherCategory ? '' : '(Incl of GST)'}
-                  </Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                          <Info className="w-3.5 h-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Maximum Retail Price including GST</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Input
-                  id="price"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="1000"
-                  {...register('price', { min: 0 })}
-                  value={watch('price') || ''}
-                  onChange={(e) => handleIndianCurrencyChange('price', e.target.value)}
-                  className={errors.price ? 'border-red-500' : ''}
-                  data-testid="input-price"
-                />
-              </div>
-
-              {shouldUseDiscountedPrice && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="discountedPrice">Discounted MRP <span className="text-red-500">*</span></Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                          <Info className="w-3.5 h-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Discounted price after any offers</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <Input
-                  id="discountedPrice"
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="900"
-                  {...register('discountedPrice', { min: 0 })}
-                  value={watch('discountedPrice') || ''}
-                  onChange={(e) =>
-                    handleIndianCurrencyChange('discountedPrice', e.target.value)
-                  }
-                  data-testid="input-discounted-price"
-                />
-              </div>
-              )}
-            </div>
-
-            {/* Quantity */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="minOrderQty">Minimum Order Quantity</Label>
-                <Input
-                  id="minOrderQty"
-                  type="number"
-                  placeholder="1"
-                  min={1}
-                  {...register('minOrderQty', { min: 1 })}
-                  onWheel={(e) => e.target.blur()}
-                  data-testid="input-min-qty"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="maxOrderQty">Maximum Order Quantity</Label>
-                <Input
-                  id="maxOrderQty"
-                  type="number"
-                  placeholder="100"
-                  min={1}
-                  {...register('maxOrderQty', { min: 1 })}
-                  onWheel={(e) => e.target.blur()}
-                  data-testid="input-max-qty"
-                />
-                {errors.maxOrderQty && (
-                  <p className="text-sm text-red-500">{errors.maxOrderQty.message}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Sample provision */}
-            {hasSampleCheckbox && (
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="isSample"
-                    {...register('isSample')}
-                    className="w-4 h-4 rounded border-gray-300 text-[#C64091] focus:ring-[#C64091]"
-                  />
-                  <Label htmlFor="isSample" className="cursor-pointer font-normal">
-                    Do you wish to provide a Sample?
-                  </Label>
-                </div>
-                {watch('isSample') && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="sampleAvailability">Sample Availability (Quantity)</Label>
-                      <Input
-                        id="sampleAvailability"
-                        type="number"
-                        placeholder="e.g. 5"
-                        min={1}
-                        {...register('sampleAvailability', {
-                          validate: (value) => {
-                            if (!watch('isSample')) return true;
-                            const qty = parseInt(value, 10);
-                            return Number.isFinite(qty) && qty > 0
-                              ? true
-                              : 'Sample quantity must be greater than 0';
-                          },
-                        })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="priceOfSample" className="flex items-center ">Price of Sample (<img src={bxitoken} alt="BXI Token" className="w-4 h-4" />)</Label>
-                      <Input
-                        id="priceOfSample"
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="e.g. 100"
-                        min={0.01}
-                        step="0.01"
-                        {...register('priceOfSample', {
-                          validate: (value) => {
-                            if (!watch('isSample')) return true;
-                            const amount = parseFloat(String(value || '').replace(/,/g, ''));
-                            return Number.isFinite(amount) && amount > 0
-                              ? true
-                              : 'Sample price must be greater than 0';
-                          },
-                        })}
-                        value={watch('priceOfSample') || ''}
-                        onChange={(e) =>
-                          handleIndianCurrencyChange('priceOfSample', e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Voucher extra fields: Validity */}
-            {isVoucherCategory  && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Validity of Voucher</Label>
-                  <Select
-                    value={watch('validityOfVoucherValue')}
-                    onValueChange={(v) => setValue('validityOfVoucherValue', v)}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select validity" /></SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
-                        <SelectItem key={n} value={String(n)}>{n} Month{n > 1 ? 's' : ''}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className='text-gray-600 text-xs'>Should start from the date buyer activate the voucher after purchase.</p>
-                </div>
-              </div>
-            )}
-
-            {/* Voucher extra variant column: Flavor (FMCG) */}
-            {activeVoucherConfig?.extraVariantColumn === 'flavor' && (
-              <div className="space-y-2">
-                <Label htmlFor="flavor">Flavor</Label>
-                <Input id="flavor" placeholder="e.g. Chocolate" {...register('flavor')} />
-              </div>
-            )}
-
-            {/* Voucher extra variant column: Offering Type (QSR) */}
-            {activeVoucherConfig?.extraVariantColumn === 'offeringType' && (
-              <div className="space-y-2">
-                <Label htmlFor="offeringType">Offering Type</Label>
-                <Input id="offeringType" placeholder="e.g. Single Room, Buffet" {...register('offeringType')} />
-              </div>
-            )}
-
-            {/* Voucher extra variant column: Date of Event (EE Events only, per bxi) */}
-            {showDateOfEvent && (
-              <div className="space-y-2">
-                <Label htmlFor="dateOfEvent">Date of the Event</Label>
-                <Input id="dateOfEvent" type="date" {...register('dateOfEvent')} />
-              </div>
-            )}
-
-            {/* Airline Voucher: Airport selectors */}
-            {voucherPiConfig?.hasAirportSelectors && (
-              <div className="space-y-4 pt-2">
-                <h3 className="text-base font-semibold text-[#111827]">Route Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label>From (Origin) <span className="text-red-500">*</span></Label>
-                    <Input
-                      placeholder="e.g. Mumbai (BOM)"
-                      value={fromLocation}
-                      onChange={(e) => setFromLocation(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Destination <span className="text-red-500">*</span></Label>
-                    <Input
-                      placeholder="e.g. Delhi (DEL)"
-                      value={destinationLocation}
-                      onChange={(e) => setDestinationLocation(e.target.value)}
-                    />
-                  </div>
-                </div>
-                {voucherPiConfig?.hasRedeemedValue && (
-                  <div className="space-y-2">
-                    <Label>Redeemed Value</Label>
-                    <div className="flex gap-4">
-                      {['Domestic', 'International', 'Both'].map((opt) => (
-                        <label key={opt} className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="redeemedValue"
-                            value={opt}
-                            checked={redeemedValue === opt}
-                            onChange={() => setRedeemedValue(opt)}
-                            className="w-4 h-4 text-[#C64091] focus:ring-[#C64091]"
-                          />
-                          <span className="text-sm">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Add Variation */}
-            <div className="space-y-4 pt-4">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={handleAddVariation}
-                  className="w-full"
-                  data-testid="btn-add-variation"
-                >
-                  {editVariationIndex !== null ? 'Update variation' : 'Proceed to Add'}
-                </Button>
-                {editVariationIndex !== null && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    className="shrink-0"
-                  >
-                    Cancel
-                  </Button>
-                )}
-              </div>
-              {productsVariations.length === 0 && (
-                <p className="text-sm text-gray-500 mt-3">No variations added yet</p>
-              )}
-              {productsVariations.length > 0 && (
-                <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
-                  <table className="w-full border-collapse bg-white text-sm">
-                    <thead className="bg-[#F9FAFB] text-[#374151]">
-                      <tr>
-                        {showSizeColumn && <th className="px-3 py-2 text-center font-medium">Size</th>}
-                        {showProductColor && <th className="px-3 py-2 text-center font-medium">Color</th>}
-                        {activeVoucherConfig?.extraVariantColumn === 'color' && <th className="px-3 py-2 text-center font-medium">Color</th>}
-                        {activeVoucherConfig?.extraVariantColumn === 'flavor' && <th className="px-3 py-2 text-center font-medium">Flavor</th>}
-                        {activeVoucherConfig?.extraVariantColumn === 'offeringType' && <th className="px-3 py-2 text-center font-medium">Offering Type</th>}
-                        {showDateOfEvent && <th className="px-3 py-2 text-center font-medium">Event Date</th>}
-                        <th className="px-3 py-2 text-center font-medium">Variant name</th>
-
-                        <th className="px-3 py-2 text-center font-medium">HSN</th>
-                        <th className="px-3 py-2 text-center font-medium">GST</th>
-                        <th className="px-3 py-2 text-center font-medium">{isVoucherCategory ? 'Price / Voucher' : 'MRP'}</th>
-                        {shouldUseDiscountedPrice && <th className="px-3 py-2 text-center font-medium">Disc. MRP</th>}
-                        <th className="px-3 py-2 text-center font-medium">Min</th>
-                        <th className="px-3 py-2 text-center font-medium">Max</th>
-                        {isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Validity</th>}
-                        {!isVoucherCategory && <th className="px-3 py-2 text-center font-medium">Product ID</th>}
-                        {showSamplePriceColumn && <th className="px-3 py-2 text-center font-medium">Sample Price</th>}
-                        {showSampleQtyColumn && <th className="px-3 py-2 text-center font-medium">Sample Qty</th>}
-                        <th className="px-3 py-2 text-center font-medium">Action</th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="text-center">
-                      {productsVariations.map((v, idx) => (
-                        <tr
-                          key={v.ProductIdType || idx}
-                          className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
-                        >
-                          {showSizeColumn && (
-                            <td className="px-3 py-2">
-                              {formatVariationSize(v)}
-                            </td>
-                          )}
-                          {showProductColor && (
-                            <td className="px-3 py-2">
-                              {v.ProductColor ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
-                                  <span>{v.ProductColor}</span>
-                                </div>
-                              ) : '—'}
-                            </td>
-                          )}
-                          {activeVoucherConfig?.extraVariantColumn === 'color' && (
-                            <td className="px-3 py-2">
-                              {v.ProductColor ? (
-                                <div className="flex items-center justify-center gap-2">
-                                  <span className="w-3 h-3 rounded-full border border-[#E5E8EB]" style={{ backgroundColor: v.ProductColor }} />
-                                  <span>{v.ProductColor}</span>
-                                </div>
-                              ) : '—'}
-                            </td>
-                          )}
-                          {activeVoucherConfig?.extraVariantColumn === 'flavor' && (
-                            <td className="px-3 py-2">{v.Flavor || '—'}</td>
-                          )}
-                          {activeVoucherConfig?.extraVariantColumn === 'offeringType' && (
-                            <td className="px-3 py-2">{v.OfferingType || '—'}</td>
-                          )}
-                          {showDateOfEvent && (
-                            <td className="px-3 py-2">{v.DateOfTheEvent || '—'}</td>
-                          )}
-                          <td className="px-3 py-2 font-medium text-[#111827]">{v.VariantName?.trim() || '—'}</td>
-
-                          <td className="px-3 py-2">{v.HSN || '—'}</td>
-                          <td className="px-3 py-2">{v.GST ? `${v.GST}%` : '—'}</td>
-                          <td className="px-3 py-2 font-medium">{v.PricePerUnit ? `${Number(v.PricePerUnit).toLocaleString('en-IN')}` : '—'}</td>
-                          {shouldUseDiscountedPrice && <td className="px-3 py-2 font-medium">{v.DiscountedPrice ? `${Number(v.DiscountedPrice).toLocaleString('en-IN')}` : '—'}</td>}
-                          <td className="px-3 py-2">{v.MinOrderQuantity ?? '—'}</td>
-                          <td className="px-3 py-2">{v.MaxOrderQuantity ?? '—'}</td>
-                          {isVoucherCategory && <td className="px-3 py-2">{v.validityOfVoucherValue ? `${v.validityOfVoucherValue} Month${v.validityOfVoucherValue > 1 ? 's' : ''}` : '—'}</td>}
-                          {!isVoucherCategory && <td className="px-3 py-2">{v.ProductIdType || '—'}</td>}
-                          {showSamplePriceColumn && (
-                            <td className="px-3 py-2">
-                              {v.SamplePrice ? `${Number(v.SamplePrice).toLocaleString('en-IN')}` : ''}
-                            </td>
-                          )}
-                          {showSampleQtyColumn && (
-                            <td className="px-3 py-2">
-                              {v.SampleQty ? `${Number(v.SampleQty).toLocaleString('en-IN')}` : ''}
-                            </td>
-                          )}
-                          <td className="px-3 py-2 text-center">
-                            <div className="inline-flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEditVariation(idx)}
-                                className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveVariation(idx)}
-                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
-                                aria-label="Remove variation"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Mobility Registration & Compliance Details – only when hasRegistrationProcess === 'Yes' */}
-            {category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
-              <>
-              <Divider/>
-              <div className="space-y-4 pt-4 pb-4">
-                <h3 className="text-base font-semibold text-[#111827]">Registration & Compliance Details</h3>
-                <p className="text-sm text-[#6B7A99]">
-                  Provide registration, insurance, and tax details for this mobility product
-                </p>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="registrationDetails">Registration Details <span className="text-red-500">*</span></Label>
-                    <Textarea
-                      id="registrationDetails"
-                      placeholder="Enter registration requirements and process details..."
-                      rows={3}
-                      {...register('registrationDetails', {
-                        validate: (value) => {
-                          if (
-                            category === 'mobility' &&
-                            productData?.HasRegistrationProcess === 'Yes' &&
-                            !value?.trim()
-                          ) {
-                            return 'Registration details are required';
-                          }
-                          return true;
-                        }
-                      })}
-                      
-                    />
-                    {errors.registrationDetails && (
-                        <p className="text-sm text-red-500">{errors.registrationDetails.message}</p>
-                      )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="insuranceDetails">Insurance Details <span className="text-red-500">*</span></Label>
-                    <Textarea
-                      id="insuranceDetails"
-                      placeholder="Enter insurance requirements and coverage details..."
-                      rows={3}
-                      {...register('insuranceDetails', {
-                        validate: (value) => {
-                          if (
-                            category === 'mobility' &&
-                            productData?.HasRegistrationProcess === 'Yes' &&
-                            !value?.trim()
-                          ) {
-                            return 'Insurance details are required';
-                          }
-                          return true;
-                        }
-                      })}
-                    />
-                    {errors.insuranceDetails && (
-                        <p className="text-sm text-red-500">{errors.insuranceDetails.message}</p>
-                      )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="taxesDetails">Taxes Details <span className="text-red-500">*</span></Label>
-                    <Textarea
-                      id="taxesDetails"
-                      placeholder="Enter applicable taxes and related information..."
-                      rows={3}
-                      {...register('taxesDetails', {
-                        validate: (value) => {
-                          if (
-                            category === 'mobility' &&
-                            productData?.HasRegistrationProcess === 'Yes' &&
-                            !value?.trim()
-                          ) {
-                            return 'Taxes details are required';
-                          }
-                          return true;
-                        }
-                      })}
-                    />
-                    {errors.taxesDetails && (
-                      <p className="text-sm text-red-500">{errors.taxesDetails.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              </>
-            )}
-
-            {/* Product Pickup Location */}
-            {hasLocationDetails && (
-            <>
-            <Divider/>
-              <div className="space-y-4 pt-4">
-                <h3 className="text-base font-semibold text-[#111827]">Product Pickup Location</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Pincode <span className="text-red-500">*</span></Label>
-                    <Input
-                      placeholder="Enter 6-digit pincode"
-                      maxLength={6}
-                      value={locationDetails.pincode}
-                      onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, '');
-                        setLocationDetails((prev) => ({ ...prev, pincode: v }));
-                        if (v.length === 6) handlePincodeLookup(v);
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Region</Label>
-                    <Select
-                      value={locationDetails.region}
-                      onValueChange={(v) => setLocationDetails((prev) => ({ ...prev, region: v }))}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select region" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="North">North</SelectItem>
-                        <SelectItem value="South">South</SelectItem>
-                        <SelectItem value="East">East</SelectItem>
-                        <SelectItem value="West">West</SelectItem>
-                        <SelectItem value="Central">Central</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>State</Label>
-                    <Select
-                      value={locationDetails.state}
-                      onValueChange={(v) => setLocationDetails((prev) => ({ ...prev, state: v }))}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
-                      <SelectContent>
-                        {StateData?.map((s, i) => (
-                          <SelectItem key={i} value={s.name}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>City</Label>
-                    <Select
-                      value={locationDetails.city}
-                      onValueChange={(v) => setLocationDetails((prev) => ({ ...prev, city: v }))}
-                    >
-                      <SelectTrigger>
-                        {locationDetails.city ? (
-                          <span className="text-sm text-foreground">{String(locationDetails.city)}</span>
-                        ) : (
-                          <SelectValue placeholder="Select city" />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(() => {
-                          const normalize = (s) => String(s || '').toLowerCase().replace(/\s+/g, '');
-                          const base = Array.isArray(cityArray) ? cityArray : [];
-                          // Always include the currently selected city string first.
-                          // This guarantees the Select can match `value={locationDetails.city}`
-                          // to an existing `SelectItem` even if the cityArray contains a
-                          // slightly differently-formatted duplicate.
-                          const merged = [locationDetails.city, ...base].filter((c) => String(c || '').trim() !== '');
-                          const seen = new Set();
-                          const unique = [];
-                          for (const c of merged) {
-                            const key = normalize(c);
-                            if (!key || seen.has(key)) continue;
-                            seen.add(key);
-                            unique.push(c);
-                          }
-                          return unique.map((c, i) => (
-                            <SelectItem key={`${String(c)}-${i}`} value={String(c)}>
-                              {String(c)}
-                            </SelectItem>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Landmark</Label>
-                    <Input
-                      placeholder="Eg. Near Metro Station"
-                      value={locationDetails.landmark}
-                      onChange={(e) => setLocationDetails((prev) => ({ ...prev, landmark: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              </div>
-              </>
-            )}
-
-            
-            {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
-            {hasManufacturingDates && ['electronics', 'fmcg', 'officesupply', 'mobility', 'restaurant', 'others', 'lifestyle'].includes(category) && (
-              <div className="space-y-4 pt-4">
-                <h3 className="text-base font-semibold text-[#111827]">Product Dates</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
-                  {/* Row 1 / mobile: manufacturing label */}
-                  <div className="md:col-start-1 md:row-start-1">
-                    <Label>
-                      Manufacturing Date{' '}
-                      {currentDateReqs.manufacturing === 'mandatory' && <span className="text-red-500">*</span>}
-                    </Label>
-                  </div>
-                  {/* Row 2 / mobile: manufacturing date */}
-                  <div className="md:col-start-1 md:row-start-2">
-                    <Input
-                      type="date"
-                      className="w-full"
-                      max={format(new Date(), 'yyyy-MM-dd')}
-                      value={toInputDateValue(manufacturingDate)}
-                      onChange={(e) => setManufacturingDate(parseInputDate(e.target.value))}
-                    />
-                  </div>
-
-                  {/* Row 1 col 2 / mobile: expiry label or checkbox */}
-                  <div className="md:col-start-2 md:row-start-1">
-                    {category === 'fmcg' ? (
-                      <Label>
-                        Expiry Date <span className="text-red-500">*</span>
-                      </Label>
-                    ) : (
-                      <div className="h-6 flex items-center gap-2">
-                        <Checkbox
-                          id="has-expiry"
-                          checked={hasExpiryDate}
-                          onCheckedChange={setHasExpiryDate}
-                        />
-                        <Label htmlFor="has-expiry" className="cursor-pointer leading-none">
-                          This product has an expiry date
+                {/* Generic size value + unit – For any size option not caught by specialized blocks (incl. Custom Size: free-text value + unit) */}
+                {hasSizeOptions &&
+                  selectedSize &&
+                  !CLOTHING_SIZES.includes(selectedSize) &&
+                  selectedSize !== "Shoes Size" &&
+                  ![
+                    "Length",
+                    "Length x Height",
+                    "Length x Height x Width",
+                    "Weight",
+                    "Volume",
+                  ].includes(selectedSize) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>
+                          {selectedSize === "Custom Size"
+                            ? "Custom size / description"
+                            : selectedSize}{" "}
+                          <span className="text-red-500">*</span>
                         </Label>
+                        <div className="flex gap-2 items-end">
+                          <Input
+                            type={
+                              selectedSize === "Custom Size" ? "text" : "number"
+                            }
+                            placeholder={
+                              selectedSize === "Custom Size"
+                                ? "e.g. 10 x 12, Large, As per spec"
+                                : "e.g. 10"
+                            }
+                            {...register("sizeValue")}
+                            className="flex-1"
+                          />
+                          <div
+                            className={
+                              selectedSize === "Custom Size" ? "w-40" : "w-28"
+                            }
+                          >
+                            <Label
+                              htmlFor="sizeUnit"
+                              className="text-xs font-medium text-slate-700"
+                            >
+                              Unit
+                            </Label>
+                            {selectedSize === "Custom Size" ? (
+                              <Input
+                                id="sizeUnit"
+                                type="text"
+                                placeholder="e.g. cm, pcs"
+                                className="mt-1"
+                                {...register("sizeUnit")}
+                              />
+                            ) : (
+                              <Select
+                                value={watch("sizeUnit")}
+                                onValueChange={(v) => setValue("sizeUnit", v)}
+                              >
+                                <SelectTrigger className="w-full mt-1">
+                                  <SelectValue placeholder="Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {getSizeUnitOptions(selectedSize).map(
+                                    (unit) => (
+                                      <SelectItem key={unit} value={unit}>
+                                        {unit}
+                                      </SelectItem>
+                                    ),
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Clothing sizes (XS, S, M, L, etc.) – ProductSize = selectedSize, no extra input */}
+                {hasSizeOptions &&
+                  selectedSize &&
+                  CLOTHING_SIZES.includes(selectedSize) && (
+                    <div className="space-y-2">
+                      <Label>Selected Size</Label>
+                      <p className="text-sm text-[#6B7A99]">
+                        Size:{" "}
+                        <span className="font-medium text-[#111827]">
+                          {selectedSize}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+
+                {/* Dimension fields – Length / L×H / L×H×W / Weight (Custom Size uses free-text value + unit above) */}
+                {hasSizeOptions &&
+                  selectedSize &&
+                  [
+                    "Length",
+                    "Length x Height",
+                    "Length x Height x Width",
+                    "Weight",
+                  ].includes(selectedSize) && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {(selectedSize === "Length" ||
+                        selectedSize === "Length x Height" ||
+                        selectedSize === "Length x Height x Width") && (
+                        <div className="space-y-2">
+                          <Label>Length ({watch("sizeUnit") || "cm"})</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            {...register("length")}
+                          />
+                        </div>
+                      )}
+
+                      {/* Height should appear for both LxH and LxHxW */}
+                      {(selectedSize === "Length x Height" ||
+                        selectedSize === "Length x Height x Width") && (
+                        <div className="space-y-2">
+                          <Label>Height ({watch("sizeUnit") || "cm"})</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            {...register("height")}
+                          />
+                        </div>
+                      )}
+
+                      {selectedSize === "Length x Height x Width" && (
+                        <div className="space-y-2">
+                          <Label>Width ({watch("sizeUnit") || "cm"})</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            {...register("width")}
+                          />
+                        </div>
+                      )}
+
+                      {selectedSize === "Weight" && (
+                        <div className="space-y-2">
+                          <Label>Weight </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            {...register("weight")}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="sizeUnit"
+                          className="text-xs font-medium text-slate-700"
+                        >
+                          Unit
+                        </Label>
+                        <Select
+                          value={watch("sizeUnit")}
+                          onValueChange={(v) => setValue("sizeUnit", v)}
+                        >
+                          <SelectTrigger className="w-full mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getSizeUnitOptions(selectedSize).map((unit) => (
+                              <SelectItem key={unit} value={unit}>
+                                {unit}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+
+                {/* Volume – for lifestyle, others, fmcg, restaurant, mobility */}
+                {hasSizeOptions && selectedSize === "Volume" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>
+                        Volume <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2 items-end">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="e.g. 500"
+                          {...register("volume")}
+                          className="flex-1"
+                        />
+                        <div className="w-24 space-y-1">
+                          <Label
+                            htmlFor="sizeUnit"
+                            className="text-xs font-medium text-slate-700"
+                          >
+                            Unit
+                          </Label>
+                          <Select
+                            value={watch("sizeUnit")}
+                            onValueChange={(v) => setValue("sizeUnit", v)}
+                          >
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getSizeUnitOptions(selectedSize).map((unit) => (
+                                <SelectItem key={unit} value={unit}>
+                                  {unit}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Product ID + optional color */}
+                {(requiresProductId || showProductColor) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {requiresProductId && (
+                      <div className="space-y-2">
+                        <Label htmlFor="productIdType">
+                          Product Id <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="productIdType"
+                          placeholder="e.g. 1910WH23"
+                          {...register("productIdType")}
+                        />
+                        {errors.productIdType && (
+                          <p className="text-sm text-red-600">
+                            {errors.productIdType.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {showProductColor && (
+                      <div
+                        className={cn(
+                          "space-y-2",
+                          !requiresProductId && "md:col-span-2",
+                        )}
+                      >
+                        <Label htmlFor="productColor">
+                          Color{" "}
+                          <span className="text-gray-400 font-normal">
+                            (optional)
+                          </span>
+                        </Label>
+                        <div className="flex gap-3 items-center">
+                          <input
+                            id="productColor"
+                            type="color"
+                            value={watch("productColor") || "#ffffff"}
+                            onChange={(e) =>
+                              setValue("productColor", e.target.value)
+                            }
+                            className="w-12 h-12 rounded cursor-pointer border border-gray-300 bg-white"
+                            aria-label="Product color"
+                          />
+                          {watch("productColor") ? (
+                            <>
+                              <span className="text-sm text-gray-600 font-mono">
+                                {watch("productColor")}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setValue("productColor", "")}
+                                className="text-xs text-[#6B7A99] hover:text-[#C64091] underline"
+                              >
+                                Clear
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-500">
+                              No color selected
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
-                  {/* Row 2 col 2 / mobile: expiry date */}
-                  <div className="md:col-start-2 md:row-start-2">
-                    {(category === 'fmcg' || hasExpiryDate) && (
-                      <Input
-                        type="date"
-                        className="w-full"
-                        min={manufacturingDate ? format(manufacturingDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')}
-                        value={toInputDateValue(expiryDate)}
-                        onChange={(e) => setExpiryDate(parseInputDate(e.target.value))}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            <Divider/>
-            {/* Additional Cost */}
-            {hasOtherCosts && (
-              <div className="space-y-4 pt-4 ">
-                <h3 className="text-base font-semibold text-[#111827]">
-                  Additional Cost <span className="text-sm font-normal text-[#6B7A99]">(Additional cost is not mandatory)</span>
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="variantName">
+                    Variant Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="variantName"
+                    placeholder="e.g. Small — Navy, 500ml Pack"
+                    maxLength={120}
+                    {...register("variantName", {
+                      maxLength: {
+                        value: 120,
+                        message: "Maximum 120 characters",
+                      },
+                    })}
+                  />
+                  {errors.variantName && (
+                    <p className="text-sm text-red-600">
+                      {errors.variantName.message}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500"> Max 120 characters.</p>
+                </div>
+
+                {/* HSN + GST (same row) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* HSN – when config has HSN */}
+                  {hasHsn && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="hsn">
+                          HSN <span className="text-red-500">*</span>
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="text-[#6B7A99] hover:text-[#C64091]"
+                              >
+                                <Info className="w-3.5 h-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {hsnRequirementHint(requiredHsnLength, {
+                                  isAdmin,
+                                })}
+                                . Same HSN applies to all variants.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Input
+                        id="hsn"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={hsnMaxLength}
+                        placeholder={
+                          isAdmin || requiredHsnLength !== 6
+                            ? "e.g. 9983"
+                            : "e.g. 998346"
+                        }
+                        disabled={isHsnChained}
+                        {...register("hsn", {
+                          setValueAs: (v) => sanitizeHsnInput(v, hsnMaxLength),
+                          onChange: (e) => {
+                            if (isHsnChained) return;
+                            const next = sanitizeHsnInput(
+                              e?.target?.value,
+                              hsnMaxLength,
+                            );
+                            setValue("hsn", next, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            });
+                          },
+                        })}
+                      />
+                      <p className="text-xs text-gray-500">
+                        {hsnLengthLabel(requiredHsnLength, { isAdmin })}{" "}
+                        required
+                        {isHsnChained ? " · locked to first variant" : ""}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* GST */}
                   <div className="space-y-2">
-                    <Label>Applicable On</Label>
+                    <div className="flex items-center gap-1">
+                      <Label>
+                        GST <span className="text-red-500">*</span>
+                      </Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-[#6B7A99] hover:text-[#C64091]"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Collecting maximum GST of the entire product range
+                              is recommended
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Select
-                      value={otherCostForm.AdCostApplicableOn}
-                      onValueChange={(v) => setOtherCostForm((prev) => ({ ...prev, AdCostApplicableOn: v }))}
+                      value={watch("gst") || (gstFormOptions[0] ?? "18")}
+                      onValueChange={(value) => setValue("gst", value)}
+                      disabled={isGstChained && firstVariantGst === "0"}
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger data-testid="select-gst">
+                        <SelectValue placeholder="Select GST rate" />
+                      </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="All">One Time Cost</SelectItem>
-                        <SelectItem value="PerUnit">Per Unit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cost Price</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={otherCostForm.CostPrice}
-                      onChange={(e) => setOtherCostForm((prev) => ({ ...prev, CostPrice: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Currency</Label>
-                    <Select
-                      value={otherCostForm.currencyType}
-                      onValueChange={(v) => setOtherCostForm((prev) => ({ ...prev, currencyType: v }))}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="₹">INR (₹)</SelectItem>
-                        <SelectItem value="BXITokens">Trade Credits <img src={bxitoken} alt="Trade Credits" className="w-4 h-4 inline-block ml-1" /></SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>HSN ({hsnLengthLabel(requiredHsnLength, { isAdmin })})</Label>
-                    <Input
-                      placeholder={isAdmin || requiredHsnLength !== 6 ? 'e.g. 9983' : 'e.g. 998346'}
-                      maxLength={hsnMaxLength}
-                      value={otherCostForm.AdCostHSN}
-                      onChange={(e) => setOtherCostForm((prev) => ({
-                        ...prev,
-                        AdCostHSN: sanitizeHsnInput(e.target.value, hsnMaxLength),
-                      }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>GST %</Label>
-                    <Select
-                      value={String(otherCostForm.AdCostGST)}
-                      onValueChange={(v) => setOtherCostForm((prev) => ({ ...prev, AdCostGST: Number(v) }))}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {LISTING_GST_RATE_OPTIONS.map((n) => (
-                          <SelectItem key={n} value={n}>{formatListingGstPercentLabel(n)}</SelectItem>
+                        {gstFormOptions.map((rate) => (
+                          <SelectItem key={rate} value={rate}>
+                            {formatListingGstPercentLabel(rate)}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Reason of Cost</Label>
+                </div>
+
+                {/* FMCG: Dry/Wet form selection (not for vouchers) */}
+                {piConfig.hasFormSelection && !isVoucherCategory && (
+                  <div className="space-y-1 pt-3">
+                    <Label>Product Form</Label>
+                    <ToggleGroup
+                      type="single"
+                      value={watch("productForm") || "Dry"}
+                      onValueChange={(value) => setValue("productForm", value)}
+                      className="w-max"
+                      aria-label="Product form"
+                    >
+                      <ToggleGroupItem value="Dry">Dry</ToggleGroupItem>
+                      <ToggleGroupItem value="Wet">Wet</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                )}
+
+                {/* GST moved next to HSN above */}
+
+                {/* Pricing */}
+                <div
+                  className={cn(
+                    "grid grid-cols-1 gap-6",
+                    shouldUseDiscountedPrice && "md:grid-cols-2",
+                  )}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="price">
+                        {isVoucherCategory ? "Price / Voucher" : "MRP"}{" "}
+                        <span className="text-red-500">*</span>{" "}
+                        {isVoucherCategory ? "" : "(Incl of GST)"}
+                      </Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="text-[#6B7A99] hover:text-[#C64091]"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Maximum Retail Price including GST</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <Input
-                      placeholder="Describe the cost"
-                      value={otherCostForm.ReasonOfCost}
-                      onChange={(e) => setOtherCostForm((prev) => ({ ...prev, ReasonOfCost: e.target.value }))}
+                      id="price"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="1000"
+                      {...register("price", { min: 0 })}
+                      value={watch("price") || ""}
+                      onChange={(e) =>
+                        handleIndianCurrencyChange("price", e.target.value)
+                      }
+                      className={errors.price ? "border-red-500" : ""}
+                      data-testid="input-price"
                     />
                   </div>
-                  <div className="flex items-end gap-2">
+
+                  {shouldUseDiscountedPrice && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="discountedPrice">
+                          Discounted MRP <span className="text-red-500">*</span>
+                        </Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="text-[#6B7A99] hover:text-[#C64091]"
+                              >
+                                <Info className="w-3.5 h-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Discounted price after any offers</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Input
+                        id="discountedPrice"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="900"
+                        {...register("discountedPrice", { min: 0 })}
+                        value={watch("discountedPrice") || ""}
+                        onChange={(e) =>
+                          handleIndianCurrencyChange(
+                            "discountedPrice",
+                            e.target.value,
+                          )
+                        }
+                        data-testid="input-discounted-price"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Quantity */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="minOrderQty">Minimum Order Quantity</Label>
+                    <Input
+                      id="minOrderQty"
+                      type="number"
+                      placeholder="1"
+                      min={1}
+                      {...register("minOrderQty", { min: 1 })}
+                      onWheel={(e) => e.target.blur()}
+                      data-testid="input-min-qty"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="maxOrderQty">Maximum Order Quantity</Label>
+                    <Input
+                      id="maxOrderQty"
+                      type="number"
+                      placeholder="100"
+                      min={1}
+                      {...register("maxOrderQty", { min: 1 })}
+                      onWheel={(e) => e.target.blur()}
+                      data-testid="input-max-qty"
+                    />
+                    {errors.maxOrderQty && (
+                      <p className="text-sm text-red-500">
+                        {errors.maxOrderQty.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sample provision */}
+                {hasSampleCheckbox && (
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isSample"
+                        {...register("isSample")}
+                        className="w-4 h-4 rounded border-gray-300 text-[#C64091] focus:ring-[#C64091]"
+                      />
+                      <Label
+                        htmlFor="isSample"
+                        className="cursor-pointer font-normal"
+                      >
+                        Do you wish to provide a Sample?
+                      </Label>
+                    </div>
+                    {watch("isSample") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="sampleAvailability">
+                            Sample Availability (Quantity)
+                          </Label>
+                          <Input
+                            id="sampleAvailability"
+                            type="number"
+                            placeholder="e.g. 5"
+                            min={1}
+                            {...register("sampleAvailability", {
+                              validate: (value) => {
+                                if (!watch("isSample")) return true;
+                                const qty = parseInt(value, 10);
+                                return Number.isFinite(qty) && qty > 0
+                                  ? true
+                                  : "Sample quantity must be greater than 0";
+                              },
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="priceOfSample"
+                            className="flex items-center "
+                          >
+                            Price of Sample (
+                            <img
+                              src={bxitoken}
+                              alt="BXI Token"
+                              className="w-4 h-4"
+                            />
+                            )
+                          </Label>
+                          <Input
+                            id="priceOfSample"
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="e.g. 100"
+                            min={0.01}
+                            step="0.01"
+                            {...register("priceOfSample", {
+                              validate: (value) => {
+                                if (!watch("isSample")) return true;
+                                const amount = parseFloat(
+                                  String(value || "").replace(/,/g, ""),
+                                );
+                                return Number.isFinite(amount) && amount > 0
+                                  ? true
+                                  : "Sample price must be greater than 0";
+                              },
+                            })}
+                            value={watch("priceOfSample") || ""}
+                            onChange={(e) =>
+                              handleIndianCurrencyChange(
+                                "priceOfSample",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Voucher extra fields: Validity */}
+                {isVoucherCategory && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Validity of Voucher</Label>
+                      <Select
+                        value={watch("validityOfVoucherValue")}
+                        onValueChange={(v) =>
+                          setValue("validityOfVoucherValue", v)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select validity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                            (n) => (
+                              <SelectItem key={n} value={String(n)}>
+                                {n} Month{n > 1 ? "s" : ""}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-gray-600 text-xs">
+                        Should start from the date buyer activate the voucher
+                        after purchase.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Voucher extra variant column: Flavor (FMCG) */}
+                {activeVoucherConfig?.extraVariantColumn === "flavor" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="flavor">Flavor</Label>
+                    <Input
+                      id="flavor"
+                      placeholder="e.g. Chocolate"
+                      {...register("flavor")}
+                    />
+                  </div>
+                )}
+
+                {/* Voucher extra variant column: Offering Type (QSR) */}
+                {activeVoucherConfig?.extraVariantColumn === "offeringType" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="offeringType">Offering Type</Label>
+                    <Input
+                      id="offeringType"
+                      placeholder="e.g. Single Room, Buffet"
+                      {...register("offeringType")}
+                    />
+                  </div>
+                )}
+
+                {/* Voucher extra variant column: Date of Event (EE Events only, per bxi) */}
+                {showDateOfEvent && (
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfEvent">Date of the Event</Label>
+                    <Input
+                      id="dateOfEvent"
+                      type="date"
+                      {...register("dateOfEvent")}
+                    />
+                  </div>
+                )}
+
+                {/* Airline Voucher: Airport selectors */}
+                {voucherPiConfig?.hasAirportSelectors && (
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-base font-semibold text-[#111827]">
+                      Route Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label>
+                          From (Origin) <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          placeholder="e.g. Mumbai (BOM)"
+                          value={fromLocation}
+                          onChange={(e) => setFromLocation(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>
+                          Destination <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          placeholder="e.g. Delhi (DEL)"
+                          value={destinationLocation}
+                          onChange={(e) =>
+                            setDestinationLocation(e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                    {voucherPiConfig?.hasRedeemedValue && (
+                      <div className="space-y-2">
+                        <Label>Redeemed Value</Label>
+                        <div className="flex gap-4">
+                          {["Domestic", "International", "Both"].map((opt) => (
+                            <label
+                              key={opt}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <input
+                                type="radio"
+                                name="redeemedValue"
+                                value={opt}
+                                checked={redeemedValue === opt}
+                                onChange={() => setRedeemedValue(opt)}
+                                className="w-4 h-4 text-[#C64091] focus:ring-[#C64091]"
+                              />
+                              <span className="text-sm">{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Add Variation */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex gap-2">
                     <Button
                       type="button"
-                      onClick={handleAddOtherCost}
+                      onClick={handleAddVariation}
                       className="w-full"
+                      data-testid="btn-add-variation"
                     >
-                      {editOtherCostIndex !== null
-                        ? 'Update Additional Cost'
-                        : 'Add Additional Cost'}
+                      {editVariationIndex !== null
+                        ? "Update variation"
+                        : "Proceed to Add"}
                     </Button>
-                    {editOtherCostIndex !== null && (
+                    {editVariationIndex !== null && (
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          setEditOtherCostIndex(null);
-                          setOtherCostForm({ ...emptyOtherCostForm });
-                        }}
+                        onClick={handleCancelEdit}
                         className="shrink-0"
                       >
                         Cancel
                       </Button>
                     )}
                   </div>
-                </div>
-                {otherCosts.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-3">
-                    No additional costs added yet.
-                  </p>
-                )}
-                {otherCosts.length > 0 && (
-                <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
-                  <table className="w-full border-collapse bg-white text-sm">
-                    <thead className="bg-[#F9FAFB] text-[#374151]">
-                      <tr>
-                        <th className="px-3 py-2 text-center font-medium">Applicable On</th>
-                        <th className="px-3 py-2 text-center font-medium">Cost Price</th>
-                        <th className="px-3 py-2 text-center font-medium">Currency</th>
-                        <th className="px-3 py-2 text-center font-medium">HSN</th>
-                        <th className="px-3 py-2 text-center font-medium">GST</th>
-                        <th className="px-3 py-2 text-center font-medium">Reason</th>
-                        <th className="px-3 py-2 text-center font-medium">Action</th>
-                      </tr>
-                    </thead>
+                  {productsVariations.length === 0 && (
+                    <p className="text-sm text-gray-500 mt-3">
+                      No variations added yet
+                    </p>
+                  )}
+                  {productsVariations.length > 0 && (
+                    <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                      <table className="w-full border-collapse bg-white text-sm">
+                        <thead className="bg-[#F9FAFB] text-[#374151]">
+                          <tr>
+                            {showSizeColumn && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Size
+                              </th>
+                            )}
+                            {showProductColor && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Color
+                              </th>
+                            )}
+                            {activeVoucherConfig?.extraVariantColumn ===
+                              "color" && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Color
+                              </th>
+                            )}
+                            {activeVoucherConfig?.extraVariantColumn ===
+                              "flavor" && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Flavor
+                              </th>
+                            )}
+                            {activeVoucherConfig?.extraVariantColumn ===
+                              "offeringType" && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Offering Type
+                              </th>
+                            )}
+                            {showDateOfEvent && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Event Date
+                              </th>
+                            )}
+                            <th className="px-3 py-2 text-center font-medium">
+                              Variant name
+                            </th>
 
-                    <tbody className="text-center">
-                      {otherCosts.map((oc, idx) => (
-                        <tr
-                          key={idx}
-                          className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
-                        >
-                          <td className="px-3 py-2">
-                            {oc.AdCostApplicableOn === 'All' ? 'One Time' : 'Per Unit'}
-                          </td>
+                            <th className="px-3 py-2 text-center font-medium">
+                              HSN
+                            </th>
+                            <th className="px-3 py-2 text-center font-medium">
+                              GST
+                            </th>
+                            <th className="px-3 py-2 text-center font-medium">
+                              {isVoucherCategory ? "Price / Voucher" : "MRP"}
+                            </th>
+                            {shouldUseDiscountedPrice && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Disc. MRP
+                              </th>
+                            )}
+                            <th className="px-3 py-2 text-center font-medium">
+                              Min
+                            </th>
+                            <th className="px-3 py-2 text-center font-medium">
+                              Max
+                            </th>
+                            {isVoucherCategory && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Validity
+                              </th>
+                            )}
+                            {!isVoucherCategory && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Product ID
+                              </th>
+                            )}
+                            {showSamplePriceColumn && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Sample Price
+                              </th>
+                            )}
+                            {showSampleQtyColumn && (
+                              <th className="px-3 py-2 text-center font-medium">
+                                Sample Qty
+                              </th>
+                            )}
+                            <th className="px-3 py-2 text-center font-medium">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
 
-                          <td className="px-3 py-2 font-medium">
-                            {oc.CostPrice}
-                          </td>
+                        <tbody className="text-center">
+                          {productsVariations.map((v, idx) => (
+                            <tr
+                              key={v.ProductIdType || idx}
+                              className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                            >
+                              {showSizeColumn && (
+                                <td className="px-3 py-2">
+                                  {formatVariationSize(v)}
+                                </td>
+                              )}
+                              {showProductColor && (
+                                <td className="px-3 py-2">
+                                  {v.ProductColor ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                      <span
+                                        className="w-3 h-3 rounded-full border border-[#E5E8EB]"
+                                        style={{
+                                          backgroundColor: v.ProductColor,
+                                        }}
+                                      />
+                                      <span>{v.ProductColor}</span>
+                                    </div>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                              )}
+                              {activeVoucherConfig?.extraVariantColumn ===
+                                "color" && (
+                                <td className="px-3 py-2">
+                                  {v.ProductColor ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                      <span
+                                        className="w-3 h-3 rounded-full border border-[#E5E8EB]"
+                                        style={{
+                                          backgroundColor: v.ProductColor,
+                                        }}
+                                      />
+                                      <span>{v.ProductColor}</span>
+                                    </div>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                              )}
+                              {activeVoucherConfig?.extraVariantColumn ===
+                                "flavor" && (
+                                <td className="px-3 py-2">{v.Flavor || "—"}</td>
+                              )}
+                              {activeVoucherConfig?.extraVariantColumn ===
+                                "offeringType" && (
+                                <td className="px-3 py-2">
+                                  {v.OfferingType || "—"}
+                                </td>
+                              )}
+                              {showDateOfEvent && (
+                                <td className="px-3 py-2">
+                                  {v.DateOfTheEvent || "—"}
+                                </td>
+                              )}
+                              <td className="px-3 py-2 font-medium text-[#111827]">
+                                {v.VariantName?.trim() || "—"}
+                              </td>
 
-                          <td className="px-3 py-2">
-                            {oc.currencyType === 'BXITokens' ? <img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /> : '₹'}
-                          </td>
-
-                          <td className="px-3 py-2">
-                            {oc.AdCostHSN}
-                          </td>
-
-                          <td className="px-3 py-2">
-                            {oc.AdCostGST}%
-                          </td>
-
-                          <td className="px-3 py-2 max-w-[250px] truncate">
-                            {oc.ReasonOfCost}
-                          </td>
-
-                          <td className="px-3 py-2 text-center">
-                            <div className="inline-flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleEditOtherCost(idx)}
-                                className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveOtherCost(idx)}
-                                className="text-[#6B7A99] hover:text-[#C64091] p-1"
-                                aria-label="Remove additional cost"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              </div>
-            )}
-
-            <Divider/>
-            {/* Product Features */}
-            {hasFeatures && (
-            <div className="space-y-4 pt-4">
-              {/* Header */}
-              <div>
-                <h3 className="text-base font-semibold text-[#111827]">
-                  {isVoucherCategory ? 'Voucher Features' : 'Product Features'}
-                </h3>
-                <p className="text-sm font-normal text-[#6B7A99]">
-                  Select the best features that describe your brand/product.
-                  <span className="block">
-                    (The more features you write, the more you are discovered)
-                  </span>
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-                {featureOptions.length > 0 ? (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Select Best Features
-                    </Label>
-                    <Select
-                      value={selectedFeature}
-                      onValueChange={setSelectedFeature}
-                      disabled={featuresLoading}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={featuresLoading ? 'Loading...' : 'Select a feature'}
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {featureOptions
-                          .filter(
-                            (o) =>
-                              isOtherFeatureOption(o.value) ||
-                              !featureList.some((f) => f.name === o.value)
-                          )
-                          .map((o) => (
-                            <SelectItem key={o.value} value={o.value}>
-                              {o.label}
-                            </SelectItem>
+                              <td className="px-3 py-2">{v.HSN || "—"}</td>
+                              <td className="px-3 py-2">
+                                {v.GST ? `${v.GST}%` : "—"}
+                              </td>
+                              <td className="px-3 py-2 font-medium">
+                                {v.PricePerUnit
+                                  ? `${Number(v.PricePerUnit).toLocaleString("en-IN")}`
+                                  : "—"}
+                              </td>
+                              {shouldUseDiscountedPrice && (
+                                <td className="px-3 py-2 font-medium">
+                                  {v.DiscountedPrice
+                                    ? `${Number(v.DiscountedPrice).toLocaleString("en-IN")}`
+                                    : "—"}
+                                </td>
+                              )}
+                              <td className="px-3 py-2">
+                                {v.MinOrderQuantity ?? "—"}
+                              </td>
+                              <td className="px-3 py-2">
+                                {v.MaxOrderQuantity ?? "—"}
+                              </td>
+                              {isVoucherCategory && (
+                                <td className="px-3 py-2">
+                                  {v.validityOfVoucherValue
+                                    ? `${v.validityOfVoucherValue} Month${v.validityOfVoucherValue > 1 ? "s" : ""}`
+                                    : "—"}
+                                </td>
+                              )}
+                              {!isVoucherCategory && (
+                                <td className="px-3 py-2">
+                                  {v.ProductIdType || "—"}
+                                </td>
+                              )}
+                              {showSamplePriceColumn && (
+                                <td className="px-3 py-2">
+                                  {v.SamplePrice
+                                    ? `${Number(v.SamplePrice).toLocaleString("en-IN")}`
+                                    : ""}
+                                </td>
+                              )}
+                              {showSampleQtyColumn && (
+                                <td className="px-3 py-2">
+                                  {v.SampleQty
+                                    ? `${Number(v.SampleQty).toLocaleString("en-IN")}`
+                                    : ""}
+                                </td>
+                              )}
+                              <td className="px-3 py-2 text-center">
+                                <div className="inline-flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditVariation(idx)}
+                                    className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveVariation(idx)}
+                                    className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                                    aria-label="Remove variation"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
                           ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">
-                      Feature Name
-                    </Label>
-                    <Input
-                      placeholder="e.g. Water Resistant"
-                      value={selectedFeature}
-                      onChange={(e) => setSelectedFeature(e.target.value)}
-                    />
-                  </div>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobility Registration & Compliance Details – only when hasRegistrationProcess === 'Yes' */}
+                {category === "mobility" &&
+                  productData?.HasRegistrationProcess === "Yes" && (
+                    <>
+                      <Divider />
+                      <div className="space-y-4 pt-4 pb-4">
+                        <h3 className="text-base font-semibold text-[#111827]">
+                          Registration & Compliance Details
+                        </h3>
+                        <p className="text-sm text-[#6B7A99]">
+                          Provide registration, insurance, and tax details for
+                          this mobility product
+                        </p>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="registrationDetails">
+                              Registration Details{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Textarea
+                              id="registrationDetails"
+                              placeholder="Enter registration requirements and process details..."
+                              rows={3}
+                              {...register("registrationDetails", {
+                                validate: (value) => {
+                                  if (
+                                    category === "mobility" &&
+                                    productData?.HasRegistrationProcess ===
+                                      "Yes" &&
+                                    !value?.trim()
+                                  ) {
+                                    return "Registration details are required";
+                                  }
+                                  return true;
+                                },
+                              })}
+                            />
+                            {errors.registrationDetails && (
+                              <p className="text-sm text-red-500">
+                                {errors.registrationDetails.message}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="insuranceDetails">
+                              Insurance Details{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Textarea
+                              id="insuranceDetails"
+                              placeholder="Enter insurance requirements and coverage details..."
+                              rows={3}
+                              {...register("insuranceDetails", {
+                                validate: (value) => {
+                                  if (
+                                    category === "mobility" &&
+                                    productData?.HasRegistrationProcess ===
+                                      "Yes" &&
+                                    !value?.trim()
+                                  ) {
+                                    return "Insurance details are required";
+                                  }
+                                  return true;
+                                },
+                              })}
+                            />
+                            {errors.insuranceDetails && (
+                              <p className="text-sm text-red-500">
+                                {errors.insuranceDetails.message}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="taxesDetails">
+                              Taxes Details{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                            <Textarea
+                              id="taxesDetails"
+                              placeholder="Enter applicable taxes and related information..."
+                              rows={3}
+                              {...register("taxesDetails", {
+                                validate: (value) => {
+                                  if (
+                                    category === "mobility" &&
+                                    productData?.HasRegistrationProcess ===
+                                      "Yes" &&
+                                    !value?.trim()
+                                  ) {
+                                    return "Taxes details are required";
+                                  }
+                                  return true;
+                                },
+                              })}
+                            />
+                            {errors.taxesDetails && (
+                              <p className="text-sm text-red-500">
+                                {errors.taxesDetails.message}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                {/* Product Pickup Location */}
+                {hasLocationDetails && (
+                  <>
+                    <Divider />
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-base font-semibold text-[#111827]">
+                        Product Pickup Location
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>
+                            Pincode <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            placeholder="Enter 6-digit pincode"
+                            maxLength={6}
+                            value={locationDetails.pincode}
+                            onChange={(e) => {
+                              const v = e.target.value.replace(/\D/g, "");
+                              setLocationDetails((prev) => ({
+                                ...prev,
+                                pincode: v,
+                              }));
+                              if (v.length === 6) handlePincodeLookup(v);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Region</Label>
+                          <Select
+                            value={locationDetails.region}
+                            onValueChange={(v) =>
+                              setLocationDetails((prev) => ({
+                                ...prev,
+                                region: v,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select region" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="North">North</SelectItem>
+                              <SelectItem value="South">South</SelectItem>
+                              <SelectItem value="East">East</SelectItem>
+                              <SelectItem value="West">West</SelectItem>
+                              <SelectItem value="Central">Central</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>State</Label>
+                          <Select
+                            value={locationDetails.state}
+                            onValueChange={(v) =>
+                              setLocationDetails((prev) => ({
+                                ...prev,
+                                state: v,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {StateData?.map((s, i) => (
+                                <SelectItem key={i} value={s.name}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>City</Label>
+                          <Select
+                            value={locationDetails.city}
+                            onValueChange={(v) =>
+                              setLocationDetails((prev) => ({
+                                ...prev,
+                                city: v,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              {locationDetails.city ? (
+                                <span className="text-sm text-foreground">
+                                  {String(locationDetails.city)}
+                                </span>
+                              ) : (
+                                <SelectValue placeholder="Select city" />
+                              )}
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(() => {
+                                const normalize = (s) =>
+                                  String(s || "")
+                                    .toLowerCase()
+                                    .replace(/\s+/g, "");
+                                const base = Array.isArray(cityArray)
+                                  ? cityArray
+                                  : [];
+                                // Always include the currently selected city string first.
+                                // This guarantees the Select can match `value={locationDetails.city}`
+                                // to an existing `SelectItem` even if the cityArray contains a
+                                // slightly differently-formatted duplicate.
+                                const merged = [
+                                  locationDetails.city,
+                                  ...base,
+                                ].filter((c) => String(c || "").trim() !== "");
+                                const seen = new Set();
+                                const unique = [];
+                                for (const c of merged) {
+                                  const key = normalize(c);
+                                  if (!key || seen.has(key)) continue;
+                                  seen.add(key);
+                                  unique.push(c);
+                                }
+                                return unique.map((c, i) => (
+                                  <SelectItem
+                                    key={`${String(c)}-${i}`}
+                                    value={String(c)}
+                                  >
+                                    {String(c)}
+                                  </SelectItem>
+                                ));
+                              })()}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Landmark</Label>
+                          <Input
+                            placeholder="Eg. Near Metro Station"
+                            value={locationDetails.landmark}
+                            onChange={(e) =>
+                              setLocationDetails((prev) => ({
+                                ...prev,
+                                landmark: e.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    Feature Description *
-                  </Label>
-                  <Input
-                    ref={descriptionRef}
-                    placeholder="Eg. Smart watch (max 75 characters)"
-                    maxLength={75}
-                    value={featureDescription}
-                    onChange={(e) => setFeatureDescription(e.target.value)}
-                  />
-                </div>
+                {/* Manufacturing & Expiry Dates – for electronics, fmcg, officesupply, mobility, restaurant, others */}
+                {hasManufacturingDates &&
+                  [
+                    "electronics",
+                    "fmcg",
+                    "officesupply",
+                    "mobility",
+                    "restaurant",
+                    "others",
+                    "lifestyle",
+                  ].includes(category) && (
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-base font-semibold text-[#111827]">
+                        Product Dates
+                      </h3>
 
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    onClick={handleAddFeature}
-                    disabled={
-                      featureList.length >= PRODUCT_FEATURE_MAX ||
-                      !selectedFeature ||
-                      !featureDescription?.trim()
-                    }
-                    className="w-full"
-                  >
-                    Add Feature
-                  </Button>
-                </div>
-              </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                        {/* Row 1 / mobile: manufacturing label */}
+                        <div className="md:col-start-1 md:row-start-1">
+                          <Label>
+                            Manufacturing Date{" "}
+                            {currentDateReqs.manufacturing === "mandatory" && (
+                              <span className="text-red-500">*</span>
+                            )}
+                          </Label>
+                        </div>
+                        {/* Row 2 / mobile: manufacturing date */}
+                        <div className="md:col-start-1 md:row-start-2">
+                          <Input
+                            type="date"
+                            className="w-full"
+                            max={format(new Date(), "yyyy-MM-dd")}
+                            value={toInputDateValue(manufacturingDate)}
+                            onChange={(e) =>
+                              setManufacturingDate(
+                                parseInputDate(e.target.value),
+                              )
+                            }
+                          />
+                        </div>
 
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-[#6B7A99]">
-                  Minimum {PRODUCT_FEATURE_MIN} required • Max {PRODUCT_FEATURE_MAX}
-                </p>
+                        {/* Row 1 col 2 / mobile: expiry label or checkbox */}
+                        <div className="md:col-start-2 md:row-start-1">
+                          {category === "fmcg" ? (
+                            <Label>
+                              Expiry Date{" "}
+                              <span className="text-red-500">*</span>
+                            </Label>
+                          ) : (
+                            <div className="h-6 flex items-center gap-2">
+                              <Checkbox
+                                id="has-expiry"
+                                checked={hasExpiryDate}
+                                onCheckedChange={setHasExpiryDate}
+                              />
+                              <Label
+                                htmlFor="has-expiry"
+                                className="cursor-pointer leading-none"
+                              >
+                                This product has an expiry date
+                              </Label>
+                            </div>
+                          )}
+                        </div>
+                        {/* Row 2 col 2 / mobile: expiry date */}
+                        <div className="md:col-start-2 md:row-start-2">
+                          {(category === "fmcg" || hasExpiryDate) && (
+                            <Input
+                              type="date"
+                              className="w-full"
+                              min={
+                                manufacturingDate
+                                  ? format(manufacturingDate, "yyyy-MM-dd")
+                                  : format(new Date(), "yyyy-MM-dd")
+                              }
+                              value={toInputDateValue(expiryDate)}
+                              onChange={(e) =>
+                                setExpiryDate(parseInputDate(e.target.value))
+                              }
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                <span className={`px-3 py-1 text-xs font-medium rounded-full 
-                  ${featureList.length >= PRODUCT_FEATURE_MIN 
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-yellow-100 text-yellow-700'
-                  }`}
-                >
-                  {featureList.length}/{PRODUCT_FEATURE_MAX}
-                </span>
-              </div>
-
-              {featureList.length > 0 ? (
-                <div className="space-y-3">
-                  {featureList.map((f, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start justify-between gap-3 rounded-lg border border-[#E5E8EB] bg-[#F9FAFB] px-4 py-3 hover:shadow-sm transition"
-                    >
-                      <div>
-                        <p className="font-medium text-[#111827]">
-                          {f.name}
-                        </p>
-                        {f.description && f.description !== f.name && (
-                          <p className="text-sm text-[#6B7A99] mt-1">
-                            {f.description}
-                          </p>
+                <Divider />
+                {/* Additional Cost */}
+                {hasOtherCosts && (
+                  <div className="space-y-4 pt-4 ">
+                    <h3 className="text-base font-semibold text-[#111827]">
+                      Additional Cost{" "}
+                      <span className="text-sm font-normal text-[#6B7A99]">
+                        (Additional cost is not mandatory)
+                      </span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label>Applicable On</Label>
+                        <Select
+                          value={otherCostForm.AdCostApplicableOn}
+                          onValueChange={(v) =>
+                            setOtherCostForm((prev) => ({
+                              ...prev,
+                              AdCostApplicableOn: v,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="All">One Time Cost</SelectItem>
+                            <SelectItem value="PerUnit">Per Unit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Cost Price</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={otherCostForm.CostPrice}
+                          onChange={(e) =>
+                            setOtherCostForm((prev) => ({
+                              ...prev,
+                              CostPrice: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Currency</Label>
+                        <Select
+                          value={otherCostForm.currencyType}
+                          onValueChange={(v) =>
+                            setOtherCostForm((prev) => ({
+                              ...prev,
+                              currencyType: v,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="₹">INR (₹)</SelectItem>
+                            <SelectItem value="BXITokens">
+                              Trade Credits{" "}
+                              <img
+                                src={bxitoken}
+                                alt="Trade Credits"
+                                className="w-4 h-4 inline-block ml-1"
+                              />
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>
+                          HSN ({hsnLengthLabel(requiredHsnLength, { isAdmin })})
+                        </Label>
+                        <Input
+                          placeholder={
+                            isAdmin || requiredHsnLength !== 6
+                              ? "e.g. 9983"
+                              : "e.g. 998346"
+                          }
+                          maxLength={hsnMaxLength}
+                          value={otherCostForm.AdCostHSN}
+                          onChange={(e) =>
+                            setOtherCostForm((prev) => ({
+                              ...prev,
+                              AdCostHSN: sanitizeHsnInput(
+                                e.target.value,
+                                hsnMaxLength,
+                              ),
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>GST %</Label>
+                        <Select
+                          value={String(otherCostForm.AdCostGST)}
+                          onValueChange={(v) =>
+                            setOtherCostForm((prev) => ({
+                              ...prev,
+                              AdCostGST: Number(v),
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LISTING_GST_RATE_OPTIONS.map((n) => (
+                              <SelectItem key={n} value={n}>
+                                {formatListingGstPercentLabel(n)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>Reason of Cost</Label>
+                        <Input
+                          placeholder="Describe the cost"
+                          value={otherCostForm.ReasonOfCost}
+                          onChange={(e) =>
+                            setOtherCostForm((prev) => ({
+                              ...prev,
+                              ReasonOfCost: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <Button
+                          type="button"
+                          onClick={handleAddOtherCost}
+                          className="w-full"
+                        >
+                          {editOtherCostIndex !== null
+                            ? "Update Additional Cost"
+                            : "Add Additional Cost"}
+                        </Button>
+                        {editOtherCostIndex !== null && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setEditOtherCostIndex(null);
+                              setOtherCostForm({ ...emptyOtherCostForm });
+                            }}
+                            className="shrink-0"
+                          >
+                            Cancel
+                          </Button>
                         )}
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFeature(idx)}
-                        className="text-[#6B7A99] hover:text-[#C64091]"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
-                  No features added yet. Add at least {PRODUCT_FEATURE_MIN} features.
-                </div>
-              )}
-            </div>
-          )}
+                    {otherCosts.length === 0 && (
+                      <p className="text-sm text-gray-500 mt-3">
+                        No additional costs added yet.
+                      </p>
+                    )}
+                    {otherCosts.length > 0 && (
+                      <div className="mt-4 overflow-x-auto rounded-md border border-[#E5E8EB]">
+                        <table className="w-full border-collapse bg-white text-sm">
+                          <thead className="bg-[#F9FAFB] text-[#374151]">
+                            <tr>
+                              <th className="px-3 py-2 text-center font-medium">
+                                Applicable On
+                              </th>
+                              <th className="px-3 py-2 text-center font-medium">
+                                Cost Price
+                              </th>
+                              <th className="px-3 py-2 text-center font-medium">
+                                Currency
+                              </th>
+                              <th className="px-3 py-2 text-center font-medium">
+                                HSN
+                              </th>
+                              <th className="px-3 py-2 text-center font-medium">
+                                GST
+                              </th>
+                              <th className="px-3 py-2 text-center font-medium">
+                                Reason
+                              </th>
+                              <th className="px-3 py-2 text-center font-medium">
+                                Action
+                              </th>
+                            </tr>
+                          </thead>
 
-          {/* Tags – voucher categories */}
-          {isVoucherCategory && (
-              <>
-              <Divider/>
-              <div className="space-y-4 pt-4">
-                <h3 className="text-base font-semibold text-[#111827]">
-                  Tags <span className="text-sm font-normal text-[#6B7A99]">(Keywords that improve search visibility)</span> <span className="text-red-500">*</span>
-                </h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter a tag (max 15 chars)"
-                    maxLength={15}
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const t = tagInput.trim();
-                        if (t && !tags.includes(t)) {
-                          setTags((prev) => [...prev, t]);
-                          setTagInput('');
-                        }
-                      }
-                    }}
-                  />
+                          <tbody className="text-center">
+                            {otherCosts.map((oc, idx) => (
+                              <tr
+                                key={idx}
+                                className="border-t border-[#E5E8EB] hover:bg-[#F9FAFB]"
+                              >
+                                <td className="px-3 py-2">
+                                  {oc.AdCostApplicableOn === "All"
+                                    ? "One Time"
+                                    : "Per Unit"}
+                                </td>
+
+                                <td className="px-3 py-2 font-medium">
+                                  {oc.CostPrice}
+                                </td>
+
+                                <td className="px-3 py-2">
+                                  {oc.currencyType === "BXITokens" ? (
+                                    <img
+                                      src={bxitoken}
+                                      alt="BXI Token"
+                                      className="w-4 h-4 inline-block ml-1"
+                                    />
+                                  ) : (
+                                    "₹"
+                                  )}
+                                </td>
+
+                                <td className="px-3 py-2">{oc.AdCostHSN}</td>
+
+                                <td className="px-3 py-2">{oc.AdCostGST}%</td>
+
+                                <td className="px-3 py-2 max-w-[250px] truncate">
+                                  {oc.ReasonOfCost}
+                                </td>
+
+                                <td className="px-3 py-2 text-center">
+                                  <div className="inline-flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditOtherCost(idx)}
+                                      className="text-[#6B7A99] hover:text-[#C64091] px-2 py-1 text-xs font-medium rounded border border-[#E5E8EB] hover:border-[#C64091]"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveOtherCost(idx)}
+                                      className="text-[#6B7A99] hover:text-[#C64091] p-1"
+                                      aria-label="Remove additional cost"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Divider />
+                {/* Product Features */}
+                {hasFeatures && (
+                  <div className="space-y-4 pt-4">
+                    {/* Header */}
+                    <div>
+                      <h3 className="text-base font-semibold text-[#111827]">
+                        {isVoucherCategory
+                          ? "Voucher Features"
+                          : "Product Features"}
+                      </h3>
+                      <p className="text-sm font-normal text-[#6B7A99]">
+                        Select the best features that describe your
+                        brand/product.
+                        <span className="block">
+                          (The more features you write, the more you are
+                          discovered)
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {featureOptions.length > 0 ? (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Select Best Features
+                          </Label>
+                          <Select
+                            value={selectedFeature}
+                            onValueChange={setSelectedFeature}
+                            disabled={featuresLoading}
+                          >
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  featuresLoading
+                                    ? "Loading..."
+                                    : "Select a feature"
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {featureOptions
+                                .filter(
+                                  (o) =>
+                                    isOtherFeatureOption(o.value) ||
+                                    !featureList.some(
+                                      (f) => f.name === o.value,
+                                    ),
+                                )
+                                .map((o) => (
+                                  <SelectItem key={o.value} value={o.value}>
+                                    {o.label}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Feature Name
+                          </Label>
+                          <Input
+                            placeholder="e.g. Water Resistant"
+                            value={selectedFeature}
+                            onChange={(e) => setSelectedFeature(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">
+                          Feature Description *
+                        </Label>
+                        <Input
+                          ref={descriptionRef}
+                          placeholder="Eg. Smart watch (max 75 characters)"
+                          maxLength={75}
+                          value={featureDescription}
+                          onChange={(e) =>
+                            setFeatureDescription(e.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          onClick={handleAddFeature}
+                          disabled={
+                            featureList.length >= PRODUCT_FEATURE_MAX ||
+                            !selectedFeature ||
+                            !featureDescription?.trim()
+                          }
+                          className="w-full"
+                        >
+                          Add Feature
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-[#6B7A99]">
+                        Minimum {PRODUCT_FEATURE_MIN} required • Max{" "}
+                        {PRODUCT_FEATURE_MAX}
+                      </p>
+
+                      <span
+                        className={`px-3 py-1 text-xs font-medium rounded-full 
+                  ${
+                    featureList.length >= PRODUCT_FEATURE_MIN
+                      ? "bg-green-100 text-green-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                      >
+                        {featureList.length}/{PRODUCT_FEATURE_MAX}
+                      </span>
+                    </div>
+
+                    {featureList.length > 0 ? (
+                      <div className="space-y-3">
+                        {featureList.map((f, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start justify-between gap-3 rounded-lg border border-[#E5E8EB] bg-[#F9FAFB] px-4 py-3 hover:shadow-sm transition"
+                          >
+                            <div>
+                              <p className="font-medium text-[#111827]">
+                                {f.name}
+                              </p>
+                              {f.description && f.description !== f.name && (
+                                <p className="text-sm text-[#6B7A99] mt-1">
+                                  {f.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFeature(idx)}
+                              className="text-[#6B7A99] hover:text-[#C64091]"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-md border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+                        No features added yet. Add at least{" "}
+                        {PRODUCT_FEATURE_MIN} features.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tags – voucher categories */}
+                {isVoucherCategory && (
+                  <>
+                    <Divider />
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-base font-semibold text-[#111827]">
+                        Tags{" "}
+                        <span className="text-sm font-normal text-[#6B7A99]">
+                          (Keywords that improve search visibility)
+                        </span>{" "}
+                        <span className="text-red-500">*</span>
+                      </h3>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter a tag (max 15 chars)"
+                          maxLength={15}
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const t = tagInput.trim();
+                              if (t && !tags.includes(t)) {
+                                setTags((prev) => [...prev, t]);
+                                setTagInput("");
+                              }
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            const t = tagInput.trim();
+                            if (t && !tags.includes(t)) {
+                              setTags((prev) => [...prev, t]);
+                              setTagInput("");
+                            }
+                          }}
+                          disabled={
+                            !tagInput.trim() || tags.includes(tagInput.trim())
+                          }
+                        >
+                          <Tag className="w-4 h-4 mr-1" /> Add
+                        </Button>
+                      </div>
+                      {tags.length === 0 && (
+                        <p className="text-sm text-[#6B7A99]">
+                          Add at least one tag to continue.
+                        </p>
+                      )}
+                      {tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {tags.map((t, i) => (
+                            <div
+                              key={i}
+                              className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FCE7F3] to-[#FDE2F2] text-[#9D174D] text-sm font-medium border border-[#F9A8D4] shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.03]"
+                            >
+                              <span className="truncate max-w-[140px]">
+                                {t}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setTags((prev) =>
+                                    prev.filter((_, idx) => idx !== i),
+                                  )
+                                }
+                                className="flex items-center justify-center w-5 h-5 rounded-full bg-white/60 text-[#C64091] transition-all duration-200 hover:bg-red-100 hover:text-red-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                {/* Actions */}
+                <div className="flex justify-between pt-6">
                   <Button
                     type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      const t = tagInput.trim();
-                      if (t && !tags.includes(t)) {
-                        setTags((prev) => [...prev, t]);
-                        setTagInput('');
-                      }
-                    }}
-                    disabled={!tagInput.trim() || tags.includes(tagInput.trim())}
+                    variant="outline"
+                    onClick={() =>
+                      navigate(`/${category}/${prevPath}${id ? `/${id}` : ""}`)
+                    }
+                    data-testid="btn-back"
                   >
-                    <Tag className="w-4 h-4 mr-1" /> Add
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSaveAndNext}
+                    disabled={
+                      isSubmitting ||
+                      productsVariations.length === 0 ||
+                      (hasFeatures &&
+                        featureList.length < PRODUCT_FEATURE_MIN) ||
+                      (isVoucherCategory && tags.length < 1) ||
+                      (category === "mobility" &&
+                        productData?.HasRegistrationProcess === "Yes" &&
+                        (!watch("registrationDetails")?.trim() ||
+                          !watch("insuranceDetails")?.trim() ||
+                          !watch("taxesDetails")?.trim()))
+                    }
+                    className="bg-[#C64091] hover:bg-[#A03375]"
+                    data-testid="btn-save-next"
+                  >
+                    {isSubmitting ? "Saving..." : "Save & Next"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
-                {tags.length === 0 && (
-                  <p className="text-sm text-[#6B7A99]">Add at least one tag to continue.</p>
-                )}
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                  {tags.map((t, i) => (
-                    <div
-                      key={i}
-                      className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#FCE7F3] to-[#FDE2F2] text-[#9D174D] text-sm font-medium border border-[#F9A8D4] shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.03]" >
-                      <span className="truncate max-w-[140px]">{t}</span>
-                
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setTags((prev) => prev.filter((_, idx) => idx !== i))
-                        }
-                        className="flex items-center justify-center w-5 h-5 rounded-full bg-white/60 text-[#C64091] transition-all duration-200 hover:bg-red-100 hover:text-red-600" >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                )}
-              </div>
-              </>
-            )}
-            {/* Actions */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/${category}/${prevPath}${id ? `/${id}` : ''}`)}
-                data-testid="btn-back"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                type="button"
-                onClick={handleSaveAndNext}
-                disabled={
-                  isSubmitting || 
-                  productsVariations.length === 0 || 
-                  (hasFeatures && featureList.length < PRODUCT_FEATURE_MIN) ||
-                  (isVoucherCategory && tags.length < 1) ||
-                  (category === 'mobility' && productData?.HasRegistrationProcess === 'Yes' && (
-                    !watch('registrationDetails')?.trim() || 
-                    !watch('insuranceDetails')?.trim() || 
-                    !watch('taxesDetails')?.trim()
-                  ))
-                }
-                className="bg-[#C64091] hover:bg-[#A03375]"
-                data-testid="btn-save-next"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </form>
+              </form>
             </div>
           </main>
         </div>
@@ -3699,23 +4933,33 @@ export const TechInfo = ({ category }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
   const [tags, setTags] = useState([]);
-  const [currentTag, setCurrentTag] = useState('');
+  const [currentTag, setCurrentTag] = useState("");
 
-  const { prev: prevPath, next: nextPath } = getPrevNextStepPaths(category, 'techInfo', location?.pathname);
-  const prevStepPath = prevPath || 'product-info';
-  const nextStepPath = nextPath || 'go-live';
+  const { prev: prevPath, next: nextPath } = getPrevNextStepPaths(
+    category,
+    "techInfo",
+    location?.pathname,
+  );
+  const prevStepPath = prevPath || "product-info";
+  const nextStepPath = nextPath || "go-live";
 
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useForm({
     defaultValues: {
-      warrantyValue: '',
-      warrantyPeriod: 'Year',
-      guaranteeValue: '',
-      guaranteePeriod: 'Year',
-      weightBeforePacking: '',
-      weightUnit: 'Grams',
-      packagingInstructions: '',
-      usageInstructions: '',
-    }
+      warrantyValue: "",
+      warrantyPeriod: "Year",
+      guaranteeValue: "",
+      guaranteePeriod: "Year",
+      weightBeforePacking: "",
+      weightUnit: "Grams",
+      packagingInstructions: "",
+      usageInstructions: "",
+    },
   });
 
   // Fetch product data
@@ -3731,18 +4975,34 @@ export const TechInfo = ({ category }) => {
         // Pre-fill if data exists
         const techInfo = data?.ProductTechInfo || {};
         if (techInfo) {
-          if (techInfo.Warranty != null) setValue('warrantyValue', String(techInfo.Warranty));
-          if (data?.WarrantyPeriod) setValue('warrantyPeriod', data.WarrantyPeriod);
-          if (techInfo.Guarantee != null) setValue('guaranteeValue', String(techInfo.Guarantee));
-          if (data?.GuaranteePeriod) setValue('guaranteePeriod', data.GuaranteePeriod);
-          if (techInfo.WeightBeforePackingPerUnit != null) setValue('weightBeforePacking', String(techInfo.WeightBeforePackingPerUnit));
-          if (data?.WeightBeforePackingPerUnitMeasurUnit) setValue('weightUnit', data.WeightBeforePackingPerUnitMeasurUnit);
-          setValue('packagingInstructions', techInfo.PackagingAndDeliveryInstructionsIfAny || '');
-          setValue('usageInstructions', techInfo.InstructionsToUseProduct || '');
-          if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0) setTags(techInfo.Tags);
+          if (techInfo.Warranty != null)
+            setValue("warrantyValue", String(techInfo.Warranty));
+          if (data?.WarrantyPeriod)
+            setValue("warrantyPeriod", data.WarrantyPeriod);
+          if (techInfo.Guarantee != null)
+            setValue("guaranteeValue", String(techInfo.Guarantee));
+          if (data?.GuaranteePeriod)
+            setValue("guaranteePeriod", data.GuaranteePeriod);
+          if (techInfo.WeightBeforePackingPerUnit != null)
+            setValue(
+              "weightBeforePacking",
+              String(techInfo.WeightBeforePackingPerUnit),
+            );
+          if (data?.WeightBeforePackingPerUnitMeasurUnit)
+            setValue("weightUnit", data.WeightBeforePackingPerUnitMeasurUnit);
+          setValue(
+            "packagingInstructions",
+            techInfo.PackagingAndDeliveryInstructionsIfAny || "",
+          );
+          setValue(
+            "usageInstructions",
+            techInfo.InstructionsToUseProduct || "",
+          );
+          if (Array.isArray(techInfo.Tags) && techInfo.Tags.length > 0)
+            setTags(techInfo.Tags);
         }
       } catch (error) {
-        GlobalToast('Error fetching product:', error);
+        GlobalToast("Error fetching product:", error);
       }
     };
     fetchProduct();
@@ -3750,11 +5010,11 @@ export const TechInfo = ({ category }) => {
 
   const onSubmit = async (data) => {
     if (!id) {
-      toast.error('Product ID missing. Please start from General Information.');
+      toast.error("Product ID missing. Please start from General Information.");
       return;
     }
     if (!tags || tags.length < 1) {
-      toast.error('Please add at least one tag');
+      toast.error("Please add at least one tag");
       return;
     }
     setIsSubmitting(true);
@@ -3762,7 +5022,7 @@ export const TechInfo = ({ category }) => {
       const payload = {
         _id: id,
         // Save the last completed step as "Technical Information" so "Edit" routes correctly.
-        ProductUploadStatus: 'technicalinformation',
+        ProductUploadStatus: "technicalinformation",
         WarrantyPeriod: data.warrantyPeriod,
         GuaranteePeriod: data.guaranteePeriod,
         WeightBeforePackingPerUnitMeasurUnit: data.weightUnit,
@@ -3774,245 +5034,346 @@ export const TechInfo = ({ category }) => {
           InstructionsToUseProduct: data.usageInstructions,
           Tags: tags,
           // Keep nested status aligned with root so Seller Hub routing does not read "golive" before Go Live is saved.
-          ProductUploadStatus: 'technicalinformation',
+          ProductUploadStatus: "technicalinformation",
         },
       };
       await productApi.updateProduct(payload);
-      toast.success('Technical information saved!');
+      toast.success("Technical information saved!");
       const targetPath = `/${category}/${nextStepPath}/${id}`;
       navigate(targetPath);
     } catch (error) {
-      toast.error(error?.response?.data?.message || error?.message || 'Failed to save. Please try again.');
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] py-4" data-testid="tech-info-page">
+    <div
+      className="min-h-screen bg-[#F8F9FA] py-4"
+      data-testid="tech-info-page"
+    >
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={3} category={category} completedSteps={[1, 2]} />
+            <Stepper
+              currentStep={3}
+              category={category}
+              completedSteps={[1, 2]}
+            />
           </aside>
 
           <main className="stepper-content">
             <div className="form-section">
               <h2 className="form-section-title">
-                Technical Information - {category.replace(/voucher$/i, '').charAt(0).toUpperCase() + category.replace(/voucher$/i, '').slice(1)}
+                Technical Information -{" "}
+                {category
+                  .replace(/voucher$/i, "")
+                  .charAt(0)
+                  .toUpperCase() + category.replace(/voucher$/i, "").slice(1)}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
                       <InfoIcon className="w-4 h-4 ml-2" />
                     </TooltipTrigger>
                     <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
-                      Technical Information refers to specific details and specifications about a product's technical aspects, packaging material, packaging size, Dimensions, logistics, go live information for your offered product, This is Crucial Information from Logistics and Buying Perspective for making Informed Decisions.
+                      Technical Information refers to specific details and
+                      specifications about a product's technical aspects,
+                      packaging material, packaging size, Dimensions, logistics,
+                      go live information for your offered product, This is
+                      Crucial Information from Logistics and Buying Perspective
+                      for making Informed Decisions.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </h2>
-              
+
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Warranty & Guarantee */}
-            <div className="space-y-4">
-              <h3 className="text-base font-semibold text-[#111827]">Warranty & Guarantee</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Warranty <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder="1"
-                      {...register('warrantyValue', { required: 'Warranty is required', min: 0 })}
-                      className={errors.warrantyValue ? 'border-red-500' : ''}
-                    />
-                    <Select value={watch('warrantyPeriod')} onValueChange={(v) => setValue('warrantyPeriod', v)}>
-                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Year">Year</SelectItem>
-                        <SelectItem value="Month">Month</SelectItem>
-                        <SelectItem value="Days">Days</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {/* Warranty & Guarantee */}
+                <div className="space-y-4">
+                  <h3 className="text-base font-semibold text-[#111827]">
+                    Warranty & Guarantee
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>
+                        Warranty <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="1"
+                          {...register("warrantyValue", {
+                            required: "Warranty is required",
+                            min: 0,
+                          })}
+                          className={
+                            errors.warrantyValue ? "border-red-500" : ""
+                          }
+                        />
+                        <Select
+                          value={watch("warrantyPeriod")}
+                          onValueChange={(v) => setValue("warrantyPeriod", v)}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Year">Year</SelectItem>
+                            <SelectItem value="Month">Month</SelectItem>
+                            <SelectItem value="Days">Days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {errors.warrantyValue && (
+                        <p className="text-sm text-red-500">
+                          {errors.warrantyValue.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>
+                        Guarantee <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="1"
+                          {...register("guaranteeValue", {
+                            required: "Guarantee is required",
+                            min: 0,
+                          })}
+                          className={
+                            errors.guaranteeValue ? "border-red-500" : ""
+                          }
+                        />
+                        <Select
+                          value={watch("guaranteePeriod")}
+                          onValueChange={(v) => setValue("guaranteePeriod", v)}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Year">Year</SelectItem>
+                            <SelectItem value="Month">Month</SelectItem>
+                            <SelectItem value="Days">Days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {errors.guaranteeValue && (
+                        <p className="text-sm text-red-500">
+                          {errors.guaranteeValue.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {errors.warrantyValue && <p className="text-sm text-red-500">{errors.warrantyValue.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Guarantee <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder="1"
-                      {...register('guaranteeValue', { required: 'Guarantee is required', min: 0 })}
-                      className={errors.guaranteeValue ? 'border-red-500' : ''}
-                    />
-                    <Select value={watch('guaranteePeriod')} onValueChange={(v) => setValue('guaranteePeriod', v)}>
-                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Year">Year</SelectItem>
-                        <SelectItem value="Month">Month</SelectItem>
-                        <SelectItem value="Days">Days</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {/* Weight before packing */}
+                <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
+                  <h3 className="text-base font-semibold text-[#111827]">
+                    Weight Before Packing (per unit)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>
+                        Weight <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="1"
+                          {...register("weightBeforePacking", {
+                            required: "Weight is required",
+                            min: 1,
+                          })}
+                          className={
+                            errors.weightBeforePacking ? "border-red-500" : ""
+                          }
+                        />
+                        <Select
+                          value={watch("weightUnit")}
+                          onValueChange={(v) => setValue("weightUnit", v)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Grams">Grams</SelectItem>
+                            <SelectItem value="KiloGrams">KiloGrams</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {errors.weightBeforePacking && (
+                        <p className="text-sm text-red-500">
+                          {errors.weightBeforePacking.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {errors.guaranteeValue && <p className="text-sm text-red-500">{errors.guaranteeValue.message}</p>}
                 </div>
-              </div>
-            </div>
 
-            {/* Weight before packing */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E8EB]">
-              <h3 className="text-base font-semibold text-[#111827]">Weight Before Packing (per unit)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Weight <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="1"
-                      {...register('weightBeforePacking', { required: 'Weight is required', min: 1 })}
-                      className={errors.weightBeforePacking ? 'border-red-500' : ''}
-                    />
-                    <Select value={watch('weightUnit')} onValueChange={(v) => setValue('weightUnit', v)}>
-                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Grams">Grams</SelectItem>
-                        <SelectItem value="KiloGrams">KiloGrams</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {errors.weightBeforePacking && <p className="text-sm text-red-500">{errors.weightBeforePacking.message}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* Packaging instructions */}
-            <div className="space-y-2 pt-4 border-t border-[#E5E8EB]">
-              <Label>
-                Packaging instructions <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                rows={4}
-                placeholder="Add packaging and delivery instructions..."
-                {...register('packagingInstructions', { required: 'Packaging instructions are required' })}
-                className={errors.packagingInstructions ? 'border-red-500' : ''}
-              />
-              {errors.packagingInstructions && <p className="text-sm text-red-500">{errors.packagingInstructions.message}</p>}
-            </div>
-
-            {/* Usage instructions */}
-            <div className="space-y-2">
-              <Label>
-                Instructions to use product <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                rows={4}
-                placeholder="Add instructions to use this product..."
-                {...register('usageInstructions', { required: 'Instructions are required' })}
-                className={errors.usageInstructions ? 'border-red-500' : ''}
-              />
-              {errors.usageInstructions && <p className="text-sm text-red-500">{errors.usageInstructions.message}</p>}
-            </div>
-
-            {/* Tags (min 1) */}
-            <div className="space-y-3 pt-4 border-t border-[#E5E8EB]">
-              <Label>Tags <span className="text-red-500">*</span></Label>
-              <div className="flex gap-2">
-                <Input
-                  value={currentTag}
-                  onChange={(e) => setCurrentTag(e.target.value.slice(0, 20))}
-                  onKeyDown={(e) => {
-                    if (e.key === ' ' && e.target.selectionStart === 0) e.preventDefault();
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const v = currentTag.trim();
-                      if (!v) return;
-                      if (tags.includes(v)) return;
-                      setTags((p) => [...p, v]);
-                      setCurrentTag('');
+                {/* Packaging instructions */}
+                <div className="space-y-2 pt-4 border-t border-[#E5E8EB]">
+                  <Label>
+                    Packaging instructions{" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    rows={4}
+                    placeholder="Add packaging and delivery instructions..."
+                    {...register("packagingInstructions", {
+                      required: "Packaging instructions are required",
+                    })}
+                    className={
+                      errors.packagingInstructions ? "border-red-500" : ""
                     }
-                  }}
-                  placeholder="Type a tag and press Enter"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-[#C64091] text-[#C64091]"
-                  onClick={() => {
-                    const v = currentTag.trim();
-                    if (!v) return;
-                    if (tags.includes(v)) return;
-                    setTags((p) => [...p, v]);
-                    setCurrentTag('');
-                  }}
-                >
-                  Add
-                </Button>
-              </div>
-              {tags.length === 0 && (
-                <p className="text-sm text-[#6B7A99]">Add at least one tag to continue.</p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center px-3 py-1 rounded-full 
-                              bg-[#FCE7F3] text-[#C64091] text-sm font-medium"
-                  >
-                    {t}
-                    <button
-                      type="button"
-                      onClick={() => setTags((p) => p.filter((x) => x !== t))}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
+                  />
+                  {errors.packagingInstructions && (
+                    <p className="text-sm text-red-500">
+                      {errors.packagingInstructions.message}
+                    </p>
+                  )}
+                </div>
 
-            {/* Actions */}
-            <div className="flex justify-between pt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate(`/${category}/${prevStepPath}${id ? `/${id}` : ''}`)}
-                data-testid="btn-back"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  watch('warrantyValue') === '' ||
-                  watch('warrantyValue') === undefined ||
-                  watch('warrantyValue') === null ||
-                  Number.isNaN(Number(watch('warrantyValue'))) ||
-                  Number(watch('warrantyValue')) < 0 ||
-                  watch('guaranteeValue') === '' ||
-                  watch('guaranteeValue') === undefined ||
-                  watch('guaranteeValue') === null ||
-                  Number.isNaN(Number(watch('guaranteeValue'))) ||
-                  Number(watch('guaranteeValue')) < 0 ||
-                  !watch('weightBeforePacking') ||
-                  !watch('packagingInstructions')?.trim() ||
-                  !watch('usageInstructions')?.trim() ||
-                  tags.length < 1
-                }
-                className="bg-[#C64091] hover:bg-[#A03375]"
-                data-testid="btn-save-next"
-              >
-                {isSubmitting ? 'Saving...' : 'Save & Next'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
+                {/* Usage instructions */}
+                <div className="space-y-2">
+                  <Label>
+                    Instructions to use product{" "}
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    rows={4}
+                    placeholder="Add instructions to use this product..."
+                    {...register("usageInstructions", {
+                      required: "Instructions are required",
+                    })}
+                    className={errors.usageInstructions ? "border-red-500" : ""}
+                  />
+                  {errors.usageInstructions && (
+                    <p className="text-sm text-red-500">
+                      {errors.usageInstructions.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Tags (min 1) */}
+                <div className="space-y-3 pt-4 border-t border-[#E5E8EB]">
+                  <Label>
+                    Tags <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={currentTag}
+                      onChange={(e) =>
+                        setCurrentTag(e.target.value.slice(0, 20))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === " " && e.target.selectionStart === 0)
+                          e.preventDefault();
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          const v = currentTag.trim();
+                          if (!v) return;
+                          if (tags.includes(v)) return;
+                          setTags((p) => [...p, v]);
+                          setCurrentTag("");
+                        }
+                      }}
+                      placeholder="Type a tag and press Enter"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-[#C64091] text-[#C64091]"
+                      onClick={() => {
+                        const v = currentTag.trim();
+                        if (!v) return;
+                        if (tags.includes(v)) return;
+                        setTags((p) => [...p, v]);
+                        setCurrentTag("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {tags.length === 0 && (
+                    <p className="text-sm text-[#6B7A99]">
+                      Add at least one tag to continue.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center px-3 py-1 rounded-full 
+                              bg-[#FCE7F3] text-[#C64091] text-sm font-medium"
+                      >
+                        {t}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTags((p) => p.filter((x) => x !== t))
+                          }
+                          className="ml-2 text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-between pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      navigate(
+                        `/${category}/${prevStepPath}${id ? `/${id}` : ""}`,
+                      )
+                    }
+                    data-testid="btn-back"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      isSubmitting ||
+                      watch("warrantyValue") === "" ||
+                      watch("warrantyValue") === undefined ||
+                      watch("warrantyValue") === null ||
+                      Number.isNaN(Number(watch("warrantyValue"))) ||
+                      Number(watch("warrantyValue")) < 0 ||
+                      watch("guaranteeValue") === "" ||
+                      watch("guaranteeValue") === undefined ||
+                      watch("guaranteeValue") === null ||
+                      Number.isNaN(Number(watch("guaranteeValue"))) ||
+                      Number(watch("guaranteeValue")) < 0 ||
+                      !watch("weightBeforePacking") ||
+                      !watch("packagingInstructions")?.trim() ||
+                      !watch("usageInstructions")?.trim() ||
+                      tags.length < 1
+                    }
+                    className="bg-[#C64091] hover:bg-[#A03375]"
+                    data-testid="btn-save-next"
+                  >
+                    {isSubmitting ? "Saving..." : "Save & Next"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               </form>
             </div>
           </main>
@@ -4023,17 +5384,22 @@ export const TechInfo = ({ category }) => {
 };
 
 // Go Live Step – Product Images, Size Chart, Listing Period (from bxi-dashboard GoLive)
-const MEDIA_CATEGORIES = ['mediaonline', 'mediaoffline'];
-const RESTRICTED_ASPECT_CATEGORIES = ['textile', 'officesupply', 'lifestyle', 'others'];
+const MEDIA_CATEGORIES = ["mediaonline", "mediaoffline"];
+const RESTRICTED_ASPECT_CATEGORIES = [
+  "textile",
+  "officesupply",
+  "lifestyle",
+  "others",
+];
 const MAX_GO_LIVE_IMAGE_SIZE_BYTES = 1 * 1024 * 1024;
 
 function isHoardingMediaProduct(data) {
   if (!data) return false;
   if (data.Hoarding_list_id) return true;
-  const sub = String(data.ProductSubCategoryName || '').toLowerCase();
-  if (sub.includes('hoard')) return true;
-  const cat = String(data.ProductCategoryName || '').toLowerCase();
-  if (cat.includes('hoard')) return true;
+  const sub = String(data.ProductSubCategoryName || "").toLowerCase();
+  if (sub.includes("hoard")) return true;
+  const cat = String(data.ProductCategoryName || "").toLowerCase();
+  if (cat.includes("hoard")) return true;
   return false;
 }
 
@@ -4057,39 +5423,53 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   const inputRef = React.useRef(null);
   const sizechartRef = React.useRef(null);
 
-  const { register, control, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm({
     defaultValues: {
-      listPeriod: '',
+      listPeriod: "",
     },
   });
 
   const isMediaCategory = MEDIA_CATEGORIES.includes(category);
   const requiresListingPeriod = !isMediaCategory;
   const hasRestrictedAspect = RESTRICTED_ASPECT_CATEGORIES.includes(category);
-  const totalGoLiveImageCount = files.length + (productData?.ProductImages?.length || 0);
+  const totalGoLiveImageCount =
+    files.length + (productData?.ProductImages?.length || 0);
   const goLiveImagesStillNeeded = Math.max(0, 3 - totalGoLiveImageCount);
 
-  const isVoucherDesignStep = location.pathname.includes('voucherdesign');
-  const stepKey = isVoucherDesignStep ? 'voucherDesign' : 'goLive';
-  const fromHoarding = searchParams.get('from') === 'hoarding';
+  const isVoucherDesignStep = location.pathname.includes("voucherdesign");
+  const stepKey = isVoucherDesignStep ? "voucherDesign" : "goLive";
+  const fromHoarding = searchParams.get("from") === "hoarding";
   const treatAsHoardingGoLive =
     Boolean(id) &&
-    category === 'mediaonline' &&
+    category === "mediaonline" &&
     (fromHoarding || isHoardingMediaProduct(productData));
-  const { prev: prevStepPath } = getPrevNextStepPaths(category, stepKey, location?.pathname);
+  const { prev: prevStepPath } = getPrevNextStepPaths(
+    category,
+    stepKey,
+    location?.pathname,
+  );
   const goLiveBackPath = treatAsHoardingGoLive
-    ? 'mediaofflinehoardingtechinfo'
-    : prevStepPath || 'tech-info';
-  const goLiveBackCategory = treatAsHoardingGoLive ? 'mediaoffline' : category;
+    ? "mediaofflinehoardingtechinfo"
+    : prevStepPath || "tech-info";
+  const goLiveBackCategory = treatAsHoardingGoLive ? "mediaoffline" : category;
 
   useEffect(() => {
     if (!id) return;
-    productApi.getProductById(id)
+    productApi
+      .getProductById(id)
       .then((res) => {
         const data = res?.data?.body ?? res?.data ?? res;
         setProductData(data);
-        if (data?.listperiod) setValue('listPeriod', String(data.listperiod));
-        if (data?.ProductImages?.[0]?.url && !selectedPreviewImage) setSelectedPreviewImage(data.ProductImages[0].url);
+        if (data?.listperiod) setValue("listPeriod", String(data.listperiod));
+        if (data?.ProductImages?.[0]?.url && !selectedPreviewImage)
+          setSelectedPreviewImage(data.ProductImages[0].url);
         const existingSizeChartUrl = data?.SizeChart?.[0]?.url;
         if (existingSizeChartUrl) {
           setSizeChartPreview(existingSizeChartUrl);
@@ -4099,34 +5479,48 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   }, [id]);
 
   const processFiles = (newFiles) => {
-    const valid = Array.from(newFiles).filter((f) => f.type?.startsWith('image/'));
+    const valid = Array.from(newFiles).filter((f) =>
+      f.type?.startsWith("image/"),
+    );
     if (valid.length === 0) return;
 
-    const oversized = valid.filter((f) => f.size > MAX_GO_LIVE_IMAGE_SIZE_BYTES);
+    const oversized = valid.filter(
+      (f) => f.size > MAX_GO_LIVE_IMAGE_SIZE_BYTES,
+    );
     if (oversized.length > 0) {
-      const names = oversized.slice(0, 2).map((f) => f.name).join(', ');
-      const more = oversized.length > 2 ? ` and ${oversized.length - 2} more` : '';
-      toast.error(`Image size exceeds 1MB. Please re-upload smaller image(s): ${names}${more}`);
-      if (inputRef.current) inputRef.current.value = '';
+      const names = oversized
+        .slice(0, 2)
+        .map((f) => f.name)
+        .join(", ");
+      const more =
+        oversized.length > 2 ? ` and ${oversized.length - 2} more` : "";
+      toast.error(
+        `Image size exceeds 1MB. Please re-upload smaller image(s): ${names}${more}`,
+      );
+      if (inputRef.current) inputRef.current.value = "";
       return;
     }
 
     const toAdd = valid.filter((f) => !files.some((p) => p.name === f.name));
     if (toAdd.length < valid.length) {
-      toast.error('Duplicate files are not allowed');
+      toast.error("Duplicate files are not allowed");
       return;
     }
     const nextFiles = [...files, ...toAdd];
     if (nextFiles.length > 6) {
-      toast.error('Maximum 6 images allowed');
+      toast.error("Maximum 6 images allowed");
       return;
     }
 
     setFiles(nextFiles);
-    const added = toAdd.map((f) => ({ file: f, preview: URL.createObjectURL(f) }));
+    const added = toAdd.map((f) => ({
+      file: f,
+      preview: URL.createObjectURL(f),
+    }));
     setImagePreviews((p) => [...p, ...added]);
-    if (!selectedPreviewImage && added[0]) setSelectedPreviewImage(added[0].preview);
-    if (inputRef.current) inputRef.current.value = '';
+    if (!selectedPreviewImage && added[0])
+      setSelectedPreviewImage(added[0].preview);
+    if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleDrop = (e) => {
@@ -4142,12 +5536,14 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
 
   const handleDeleteFile = (idx) => {
     const prev = imagePreviews[idx];
-    if (prev?.preview?.startsWith('blob:')) URL.revokeObjectURL(prev.preview);
+    if (prev?.preview?.startsWith("blob:")) URL.revokeObjectURL(prev.preview);
     setFiles((f) => f.filter((_, i) => i !== idx));
     setImagePreviews((p) => p.filter((_, i) => i !== idx));
     if (selectedPreviewImage === prev?.preview && imagePreviews.length > 1) {
       const next = imagePreviews[idx === 0 ? 1 : 0];
-      setSelectedPreviewImage(next?.preview || productData?.ProductImages?.[0]?.url);
+      setSelectedPreviewImage(
+        next?.preview || productData?.ProductImages?.[0]?.url,
+      );
     } else if (imagePreviews.length === 1) {
       setSelectedPreviewImage(productData?.ProductImages?.[0]?.url || null);
     }
@@ -4157,14 +5553,14 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Size chart max 5MB');
+      toast.error("Size chart max 5MB");
       return;
     }
     setSizechart(file);
     const reader = new FileReader();
     reader.onloadend = () => setSizeChartPreview(reader.result);
     reader.readAsDataURL(file);
-    if (sizechartRef.current) sizechartRef.current.value = '';
+    if (sizechartRef.current) sizechartRef.current.value = "";
   };
 
   const handleSizeChartDrop = (e) => {
@@ -4183,28 +5579,32 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   ]
     .filter(Boolean)
     .find((src) => !failedPreviewSources.includes(src));
-  const previewPrice = productData?.ProductsVariantions?.[0]?.DiscountedPrice ?? productData?.ProductsVariantions?.[0]?.PricePerUnit ?? 0;
+  const previewPrice =
+    productData?.ProductsVariantions?.[0]?.DiscountedPrice ??
+    productData?.ProductsVariantions?.[0]?.PricePerUnit ??
+    0;
 
   const handleGoToPreview = async (data) => {
     setUploadError(null);
-    const totalImages = files.length + (productData?.ProductImages?.length || 0);
+    const totalImages =
+      files.length + (productData?.ProductImages?.length || 0);
     if (totalImages < 3) {
-      toast.error('Please upload at least 3 images');
+      toast.error("Please upload at least 3 images");
       return;
     }
     if (files.length > 6) {
-      toast.error('Maximum 6 images allowed');
+      toast.error("Maximum 6 images allowed");
       return;
     }
     if (requiresListingPeriod) {
       const val = data.listPeriod?.toString()?.trim();
       if (!val && !productData?.listperiod) {
-        toast.error('Please enter the listing period (days)');
+        toast.error("Please enter the listing period (days)");
         return;
       }
-      const num = parseInt(val || productData?.listperiod || '0', 10);
+      const num = parseInt(val || productData?.listperiod || "0", 10);
       if (num < 1 || num > 365) {
-        toast.error('Listing period must be between 1 and 365 days');
+        toast.error("Listing period must be between 1 and 365 days");
         return;
       }
       if (productData?.ManufacturingData && productData?.ExpiryDate) {
@@ -4212,60 +5612,75 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
         const exp = new Date(productData.ExpiryDate);
         const maxDays = Math.round((exp - mfg) / (1000 * 3600 * 24));
         if (num > maxDays) {
-          toast.error(`Listing period cannot exceed ${maxDays} days (manufacturing to expiry)`);
+          toast.error(
+            `Listing period cannot exceed ${maxDays} days (manufacturing to expiry)`,
+          );
           return;
         }
       }
     }
     for (const f of files) {
-      if (!f.type?.startsWith('image/')) {
-        toast.error('Only image files are allowed');
+      if (!f.type?.startsWith("image/")) {
+        toast.error("Only image files are allowed");
         return;
       }
     }
     const formData = new FormData();
-    formData.append('id', id);
-    formData.append('ProductUploadStatus', 'golive');
+    formData.append("id", id);
+    formData.append("ProductUploadStatus", "golive");
     // Media is not delisted by listing period; do not send listperiod (avoids legacy "1 day" payloads).
     if (!isMediaCategory) {
       formData.append(
-        'listperiod',
-        data.listPeriod || productData?.listperiod || '70'
+        "listperiod",
+        data.listPeriod || productData?.listperiod || "70",
       );
     }
-    formData.append('ListingType', productData?.ListingType || 'Product');
-    formData.append('productName', productData?.ProductName || '');
-    formData.append('productSubCategory', productData?.ProductSubCategory || '');
-    formData.append('productDescription', productData?.ProductDescription || '');
-    files.forEach((f) => formData.append('files', f));
-    if (sizechart) formData.append('sizechart', sizechart);
+    formData.append("ListingType", productData?.ListingType || "Product");
+    formData.append("productName", productData?.ProductName || "");
+    formData.append(
+      "productSubCategory",
+      productData?.ProductSubCategory || "",
+    );
+    formData.append(
+      "productDescription",
+      productData?.ProductDescription || "",
+    );
+    files.forEach((f) => formData.append("files", f));
+    if (sizechart) formData.append("sizechart", sizechart);
     setIsUploading(true);
     setUploadProgress(0);
     try {
-      const response = await productApi.productMutationFormData(formData, (ev) => {
-        if (ev.total) setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
-      });
-      toast.success('Images uploaded! Redirecting to preview.');
+      const response = await productApi.productMutationFormData(
+        formData,
+        (ev) => {
+          if (ev.total)
+            setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
+        },
+      );
+      toast.success("Images uploaded! Redirecting to preview.");
       if (isMediaCategory) {
         const base = treatAsHoardingGoLive
-          ? '/hoardingmediaofflineproductpreview'
-          : (mediaOnlinePreviewPath || '/mediaonlineproductpreview').replace(/\/$/, '');
+          ? "/hoardingmediaofflineproductpreview"
+          : (mediaOnlinePreviewPath || "/mediaonlineproductpreview").replace(
+              /\/$/,
+              "",
+            );
         navigate(`${base}/${id}`);
       } else {
         navigate(`/allproductpreview/${id}`);
       }
     } catch (err) {
-      const apiMessage = err?.response?.data?.message || '';
-      const apiError = err?.response?.data?.error || '';
-      const rawMessage = String(err?.message || '');
+      const apiMessage = err?.response?.data?.message || "";
+      const apiError = err?.response?.data?.error || "";
+      const rawMessage = String(err?.message || "");
       const isFileTooLarge =
         /file too large/i.test(apiMessage) ||
         /file too large/i.test(apiError) ||
         /file too large/i.test(rawMessage) ||
-        err?.response?.data?.code === 'LIMIT_FILE_SIZE';
+        err?.response?.data?.code === "LIMIT_FILE_SIZE";
       const friendlyMessage = isFileTooLarge
-        ? 'One or more images exceed 1MB. Please upload smaller images and try again.'
-        : (apiMessage || rawMessage || 'Upload failed. Please try again.');
+        ? "One or more images exceed 1MB. Please upload smaller images and try again."
+        : apiMessage || rawMessage || "Upload failed. Please try again.";
       setUploadError(friendlyMessage);
       toast.error(friendlyMessage);
     } finally {
@@ -4279,285 +5694,402 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
       <div className="form-container">
         <div className="stepper-layout">
           <aside className="stepper-rail">
-            <Stepper currentStep={4} category={category} completedSteps={[1, 2, 3]} />
+            <Stepper
+              currentStep={4}
+              category={category}
+              completedSteps={[1, 2, 3]}
+            />
           </aside>
 
           <main className="stepper-content">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <div className="form-section">
-              <div className="flex items-start justify-between gap-4 mb-6">
-                <div>
-                  <h2 className="form-section-title text-[#C64091]">Go Live - Product Images</h2>
-                  <p className="text-sm text-[#6B7A99] mt-1">Upload high-quality product images to showcase your product</p>
-                </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                        <Info className="w-5 h-5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
-                      <p>Go to preview at which something becomes available to use and purchased by other members on the platform.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              <form onSubmit={handleSubmit(handleGoToPreview)} className="space-y-6">
-                <div>
-                  <Label className="text-base font-semibold flex items-center gap-1">
-                    Product Images <span className="text-red-500">*</span>
+                  <div className="flex items-start justify-between gap-4 mb-6">
+                    <div>
+                      <h2 className="form-section-title text-[#C64091]">
+                        Go Live - Product Images
+                      </h2>
+                      <p className="text-sm text-[#6B7A99] mt-1">
+                        Upload high-quality product images to showcase your
+                        product
+                      </p>
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                            <Info className="w-4 h-4" />
+                          <button
+                            type="button"
+                            className="text-[#6B7A99] hover:text-[#C64091]"
+                          >
+                            <Info className="w-5 h-5" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
-                          Mandatory Photos: Please upload 3 clear product photos with a white background, high resolution, including both close and distant views. If the product is on display or shown in use, kindly include those views as well.
+                          <p>
+                            Go to preview at which something becomes available
+                            to use and purchased by other members on the
+                            platform.
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                  </Label>
-                  <div
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={handleDrop}
-                    onClick={() => !isProcessing && inputRef.current?.click()}
-                    className={cn(
-                      'mt-2 border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all',
-                      'border-[#C64091] bg-white hover:bg-[#FCE7F3]',
-                      isProcessing && 'opacity-70 pointer-events-none'
-                    )}
-                  >
-                    <CloudUpload className="w-16 h-16 mx-auto text-[#C64091] mb-3" />
-                    <p className="font-semibold text-[#C64091]">Drag & Drop images here</p>
-                    <p className="text-sm text-[#6B7A99] mt-1">or <span className="text-[#C64091] font-semibold underline">browse files</span> (Select multiple)</p>
-                    <div className="flex flex-wrap justify-center gap-2 mt-3">
-                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs font-semibold">Min. 3 images</span>
-                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">JPEG, PNG, GIF</span>
-                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">Max 1MB</span>
-                      <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
-                        {hasRestrictedAspect ? '4:3, 3:2, 16:9' : '4:3, 3:2, 16:9 or 32:9'}
-                      </span>
-                    </div>
-                    <input
-                      ref={inputRef}
-                      type="file"
-                      multiple
-                      accept="image/png,image/jpeg,image/gif,image/webp,image/jpg"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
                   </div>
 
-                  {uploadError && (
-                    <div className="mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-                      {uploadError}
-                    </div>
-                  )}
-
-                  {(files.length > 0 || imagePreviews.length > 0) && (
-                    <div className="mt-6">
-                      <Label className="text-base font-semibold flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span>Uploaded Images ({totalGoLiveImageCount})</span>
-                        {goLiveImagesStillNeeded > 0 && (
-                          <span className="text-sm font-normal text-amber-800">
-                            — {goLiveImagesStillNeeded} more required
-                          </span>
-                        )}
-                      </Label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
-                        {imagePreviews.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className={cn(
-                              'relative rounded-lg overflow-hidden border-2 transition-all',
-                              selectedPreviewImage === item.preview ? 'border-[#C64091]' : 'border-gray-200'
-                            )}
-                          >
-                            <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center">
-                              <img src={item.preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-contain" />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleDeleteFile(idx); }}
-                              className="absolute top-2 right-2 p-1.5 rounded bg-white/90 text-red-500 hover:bg-red-500 hover:text-white z-20"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                            {selectedPreviewImage === item.preview && (
-                              <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-[#C64091] text-white text-xs font-medium z-10">Preview</span>
-                            )}
-                            <div
-                              className="absolute inset-0 cursor-pointer"
-                              onClick={() => setSelectedPreviewImage(item.preview)}
-                            />
-                            <p className="text-xs truncate px-2 py-1 bg-white">{item.file?.name}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {!isMediaCategory && (
-                    <>
-                      <div className="mt-8">
-                        <div className="flex items-center gap-1">
-                          <Label className="text-base font-semibold">Size Chart & Additional Documents</Label>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button type="button" className="text-[#6B7A99] hover:text-[#C64091]">
-                                  <Info className="w-4 h-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
-                                Size Chart & Additional Documents: upload clear dimension/size chart files and any product packing or logistics documents. Include details on dimensions, material, and assembly instructions for accurate listing and buyer confidence.
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={handleSizeChartDrop}
-                          onClick={() => sizechartRef.current?.click()}
-                          className="mt-2 border-2 border-dashed border-[#C64091] rounded-xl p-6 text-center cursor-pointer hover:bg-[#FCE7F3] transition-all"
-                        >
-                          {sizechart ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <ImageIcon className="w-10 h-10 text-[#C64091]" />
-                              <span className="font-semibold text-[#C64091]">{sizechart.name}</span>
+                  <form
+                    onSubmit={handleSubmit(handleGoToPreview)}
+                    className="space-y-6"
+                  >
+                    <div>
+                      <Label className="text-base font-semibold flex items-center gap-1">
+                        Product Images <span className="text-red-500">*</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
                               <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); setSizechart(null); setSizeChartPreview(null); }}
-                                className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                className="text-[#6B7A99] hover:text-[#C64091]"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Info className="w-4 h-4" />
                               </button>
-                            </div>
-                          ) : (
-                            <>
-                              <ImageIcon className="w-12 h-12 mx-auto text-[#C64091] mb-2" />
-                              <p className="font-semibold text-[#C64091]">Upload Size Chart / Dimensions</p>
-                              <p className="text-xs text-[#6B7A99] mt-1">JPG, PNG, JPEG, WEBP, SVG (Max 5 MB)</p>
-                            </>
-                          )}
-                          <input ref={sizechartRef} type="file" accept=".png,.jpeg,.jpg,.webp,.svg" onChange={handleSizeChartChange} className="hidden" />
+                            </TooltipTrigger>
+                            <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                              Mandatory Photos: Please upload 3 clear product
+                              photos with a white background, high resolution,
+                              including both close and distant views. If the
+                              product is on display or shown in use, kindly
+                              include those views as well.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                      <div
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleDrop}
+                        onClick={() =>
+                          !isProcessing && inputRef.current?.click()
+                        }
+                        className={cn(
+                          "mt-2 border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
+                          "border-[#C64091] bg-white hover:bg-[#FCE7F3]",
+                          isProcessing && "opacity-70 pointer-events-none",
+                        )}
+                      >
+                        <CloudUpload className="w-16 h-16 mx-auto text-[#C64091] mb-3" />
+                        <p className="font-semibold text-[#C64091]">
+                          Drag & Drop images here
+                        </p>
+                        <p className="text-sm text-[#6B7A99] mt-1">
+                          or{" "}
+                          <span className="text-[#C64091] font-semibold underline">
+                            browse files
+                          </span>{" "}
+                          (Select multiple)
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2 mt-3">
+                          <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs font-semibold">
+                            Min. 3 images
+                          </span>
+                          <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
+                            JPEG, PNG, GIF
+                          </span>
+                          <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
+                            Max 1MB
+                          </span>
+                          <span className="px-2 py-1 rounded bg-[#FCE7F3] text-[#C64091] text-xs">
+                            {hasRestrictedAspect
+                              ? "4:3, 3:2, 16:9"
+                              : "4:3, 3:2, 16:9 or 32:9"}
+                          </span>
                         </div>
+                        <input
+                          ref={inputRef}
+                          type="file"
+                          multiple
+                          accept="image/png,image/jpeg,image/gif,image/webp,image/jpg"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
                       </div>
 
-                      {requiresListingPeriod && (
-                        <div className="mt-6">
-                          <Label className="text-base font-semibold">
-                            Listing Period <span className="text-red-500">*</span>
-                          </Label>
-                          <div className="flex items-center gap-2 mt-2 max-w-[300px]">
-                            <Input
-                              type="number"
-                              min={1}
-                              max={365}
-                              placeholder="70"
-                              {...register('listPeriod', {
-                                required: requiresListingPeriod ? 'Listing period is required' : false,
-                                min: 1,
-                                max: 365
-                              })}
-                              className="text-center font-semibold text-[#C64091]"
-                            />
-                            <span className="text-sm text-[#6B7A99] py-2 px-3 bg-gray-100 rounded">Days</span>
-                          </div>
-                          <p className="text-xs text-[#6B7A99] mt-1">Maximum 365 days</p>
+                      {uploadError && (
+                        <div className="mt-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                          {uploadError}
                         </div>
                       )}
-                    </>
-                  )}
 
-                  {isUploading && (
-                    <div className="mt-4">
-                      <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#C64091] transition-all" style={{ width: `${uploadProgress}%` }} />
+                      {(files.length > 0 || imagePreviews.length > 0) && (
+                        <div className="mt-6">
+                          <Label className="text-base font-semibold flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                            <span>
+                              Uploaded Images ({totalGoLiveImageCount})
+                            </span>
+                            {goLiveImagesStillNeeded > 0 && (
+                              <span className="text-sm font-normal text-amber-800">
+                                — {goLiveImagesStillNeeded} more required
+                              </span>
+                            )}
+                          </Label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
+                            {imagePreviews.map((item, idx) => (
+                              <div
+                                key={idx}
+                                className={cn(
+                                  "relative rounded-lg overflow-hidden border-2 transition-all",
+                                  selectedPreviewImage === item.preview
+                                    ? "border-[#C64091]"
+                                    : "border-gray-200",
+                                )}
+                              >
+                                <div className="aspect-[3/4] bg-gray-100 flex items-center justify-center">
+                                  <img
+                                    src={item.preview}
+                                    alt={`Preview ${idx + 1}`}
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteFile(idx);
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 rounded bg-white/90 text-red-500 hover:bg-red-500 hover:text-white z-20"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                {selectedPreviewImage === item.preview && (
+                                  <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-[#C64091] text-white text-xs font-medium z-10">
+                                    Preview
+                                  </span>
+                                )}
+                                <div
+                                  className="absolute inset-0 cursor-pointer"
+                                  onClick={() =>
+                                    setSelectedPreviewImage(item.preview)
+                                  }
+                                />
+                                <p className="text-xs truncate px-2 py-1 bg-white">
+                                  {item.file?.name}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {!isMediaCategory && (
+                        <>
+                          <div className="mt-8">
+                            <div className="flex items-center gap-1">
+                              <Label className="text-base font-semibold">
+                                Size Chart & Additional Documents
+                              </Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="text-[#6B7A99] hover:text-[#C64091]"
+                                    >
+                                      <Info className="w-4 h-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
+                                    Size Chart & Additional Documents: upload
+                                    clear dimension/size chart files and any
+                                    product packing or logistics documents.
+                                    Include details on dimensions, material, and
+                                    assembly instructions for accurate listing
+                                    and buyer confidence.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <div
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={handleSizeChartDrop}
+                              onClick={() => sizechartRef.current?.click()}
+                              className="mt-2 border-2 border-dashed border-[#C64091] rounded-xl p-6 text-center cursor-pointer hover:bg-[#FCE7F3] transition-all"
+                            >
+                              {sizechart ? (
+                                <div className="flex items-center justify-center gap-2">
+                                  <ImageIcon className="w-10 h-10 text-[#C64091]" />
+                                  <span className="font-semibold text-[#C64091]">
+                                    {sizechart.name}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSizechart(null);
+                                      setSizeChartPreview(null);
+                                    }}
+                                    className="p-1 text-red-500 hover:bg-red-50 rounded"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <ImageIcon className="w-12 h-12 mx-auto text-[#C64091] mb-2" />
+                                  <p className="font-semibold text-[#C64091]">
+                                    Upload Size Chart / Dimensions
+                                  </p>
+                                  <p className="text-xs text-[#6B7A99] mt-1">
+                                    JPG, PNG, JPEG, WEBP, SVG (Max 5 MB)
+                                  </p>
+                                </>
+                              )}
+                              <input
+                                ref={sizechartRef}
+                                type="file"
+                                accept=".png,.jpeg,.jpg,.webp,.svg"
+                                onChange={handleSizeChartChange}
+                                className="hidden"
+                              />
+                            </div>
+                          </div>
+
+                          {requiresListingPeriod && (
+                            <div className="mt-6">
+                              <Label className="text-base font-semibold">
+                                Listing Period{" "}
+                                <span className="text-red-500">*</span>
+                              </Label>
+                              <div className="flex items-center gap-2 mt-2 max-w-[300px]">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={365}
+                                  placeholder="70"
+                                  {...register("listPeriod", {
+                                    required: requiresListingPeriod
+                                      ? "Listing period is required"
+                                      : false,
+                                    min: 1,
+                                    max: 365,
+                                  })}
+                                  className="text-center font-semibold text-[#C64091]"
+                                />
+                                <span className="text-sm text-[#6B7A99] py-2 px-3 bg-gray-100 rounded">
+                                  Days
+                                </span>
+                              </div>
+                              <p className="text-xs text-[#6B7A99] mt-1">
+                                Maximum 365 days
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {isUploading && (
+                        <div className="mt-4">
+                          <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                            <div
+                              className="h-full bg-[#C64091] transition-all"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between pt-6 border-t border-gray-200">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            navigate(
+                              `/${goLiveBackCategory}/${goLiveBackPath}${id ? `/${id}` : ""}`,
+                            )
+                          }
+                          data-testid="btn-back"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Back
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={
+                            isUploading ||
+                            (requiresListingPeriod && !watch("listPeriod")) ||
+                            files.length +
+                              (productData?.ProductImages?.length || 0) <
+                              3
+                          }
+                          className="bg-[#C64091] hover:bg-[#A03375]"
+                          data-testid="btn-go-preview"
+                        >
+                          {isUploading
+                            ? `Uploading ${uploadProgress}%...`
+                            : "Go to Preview"}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
                       </div>
                     </div>
-                  )}
+                  </form>
+                </div>
+              </div>
 
-                  <div className="flex justify-between pt-6 border-t border-gray-200">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() =>
-                        navigate(
-                          `/${goLiveBackCategory}/${goLiveBackPath}${id ? `/${id}` : ''}`,
-                        )
-                      }
-                      data-testid="btn-back"
-                    >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={
-                        isUploading || 
-                        (requiresListingPeriod && !watch('listPeriod')) ||
-                        (files.length + (productData?.ProductImages?.length || 0)) < 3
-                      }
-                      className="bg-[#C64091] hover:bg-[#A03375]"
-                      data-testid="btn-go-preview"
-                    >
-                      {isUploading ? `Uploading ${uploadProgress}%...` : 'Go to Preview'}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+              <div className="lg:col-span-1">
+                <div className="form-section sticky top-6">
+                  <h3 className="font-semibold text-[#111827] mb-4">
+                    Marketplace Preview
+                  </h3>
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+                    <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                      {marketplacePreviewImage ? (
+                        <img
+                          src={marketplacePreviewImage}
+                          alt="Preview"
+                          className="w-full h-full object-contain"
+                          onError={() => {
+                            setFailedPreviewSources((prev) =>
+                              prev.includes(marketplacePreviewImage)
+                                ? prev
+                                : [...prev, marketplacePreviewImage],
+                            );
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-sm text-[#6B7A99]">
+                          No preview image
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <p className="font-semibold text-[#111827] truncate">
+                        {productData?.ProductName || "Product Name"}
+                      </p>
+                      <p className="text-[#C64091] font-bold mt-1">
+                        <img
+                          src={bxitoken}
+                          alt="BXI Token"
+                          className="w-4 h-4 inline-block ml-1"
+                        />{" "}
+                        {CommaSeparator(previewPrice || 0)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 rounded-lg bg-[#F8F9FA]">
+                    <p className="text-sm font-semibold text-[#6B7A99] mb-1">
+                      Tip
+                    </p>
+                    <p className="text-xs text-[#6B7A99]">
+                      Upload multiple images to see them in a carousel. Click
+                      any uploaded image to set it as the preview.
+                    </p>
                   </div>
                 </div>
-              </form>
-            </div>
-          </div>
-
-          <div className="lg:col-span-1">
-            <div className="form-section sticky top-6">
-              <h3 className="font-semibold text-[#111827] mb-4">Marketplace Preview</h3>
-              <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-                <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  {marketplacePreviewImage ? (
-                    <img
-                      src={marketplacePreviewImage}
-                      alt="Preview"
-                      className="w-full h-full object-contain"
-                      onError={() => {
-                        setFailedPreviewSources((prev) =>
-                          prev.includes(marketplacePreviewImage)
-                            ? prev
-                            : [...prev, marketplacePreviewImage]
-                        );
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-sm text-[#6B7A99]">
-                      No preview image
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <p className="font-semibold text-[#111827] truncate">{productData?.ProductName || 'Product Name'}</p>
-                  <p className="text-[#C64091] font-bold mt-1"><img src={bxitoken} alt="BXI Token" className="w-4 h-4 inline-block ml-1" /> {CommaSeparator(previewPrice || 0)}</p>
-                </div>
-              </div>
-              <div className="mt-4 p-4 rounded-lg bg-[#F8F9FA]">
-                <p className="text-sm font-semibold text-[#6B7A99] mb-1">Tip</p>
-                <p className="text-xs text-[#6B7A99]">
-                  Upload multiple images to see them in a carousel. Click any uploaded image to set it as the preview.
-                </p>
-              </div>
-            </div>
               </div>
             </div>
 
             {(productData?.ProductImages?.length > 0 || sizeChartPreview) && (
               <div className="mt-8 form-section">
-                <h3 className="font-semibold text-[#111827] mb-4">Previously Uploaded</h3>
+                <h3 className="font-semibold text-[#111827] mb-4">
+                  Previously Uploaded
+                </h3>
                 {productData?.ProductImages?.length > 0 && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                     {productData.ProductImages.map((img, i) => (
@@ -4566,7 +6098,11 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                         className="rounded-lg overflow-hidden border cursor-pointer hover:border-[#C64091]"
                         onClick={() => setSelectedPreviewImage(img.url)}
                       >
-                        <img src={img.url} alt={`Previous ${i + 1}`} className="w-full aspect-square object-contain bg-gray-50" />
+                        <img
+                          src={img.url}
+                          alt={`Previous ${i + 1}`}
+                          className="w-full aspect-square object-contain bg-gray-50"
+                        />
                       </div>
                     ))}
                   </div>
@@ -4574,14 +6110,18 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                 {sizeChartPreview && (
                   <div className="mt-4">
                     <Label className="text-sm font-semibold">Size Chart</Label>
-                    <img src={sizeChartPreview} alt="Size chart" className="mt-2 max-w-xs rounded border" />
+                    <img
+                      src={sizeChartPreview}
+                      alt="Size chart"
+                      className="mt-2 max-w-xs rounded border"
+                    />
                   </div>
                 )}
               </div>
             )}
           </main>
         </div>
-      </div> 
+      </div>
     </div>
   );
 };
