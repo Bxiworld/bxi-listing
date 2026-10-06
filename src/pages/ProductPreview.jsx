@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Scale, Package, ArrowLeft, ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import CloseIcon from '@mui/icons-material/Close';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  Scale,
+  Package,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+} from "lucide-react";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
   Button,
@@ -31,69 +38,77 @@ import {
   useTheme,
   Popover,
   Divider,
-} from '@mui/material';
-import { productApi, keyFeatureApi } from '../utils/api';
-import useAuthUser from '../hooks/useAuthUser';
-import { toast } from 'sonner';
-import BXIIcon from '../assets/BXI_COIN.png';
-import BXITokenIcon from '../assets/bxi-token.svg';
-import { getMediaListingProfile } from '../config/mediaListingProfiles';
-import { formatCampaignDurationPreview } from '../utils/digitalAdsCampaignDuration';
-import * as XLSX from 'xlsx';
-import { isMediaListing } from '../utils/listingProductFields';
+} from "@mui/material";
+import { productApi, keyFeatureApi } from "../utils/api";
+import useAuthUser from "../hooks/useAuthUser";
+import { toast } from "sonner";
+import BXIIcon from "../assets/BXI_COIN.png";
+import BXITokenIcon from "../assets/bxi-token.svg";
+import { getMediaListingProfile } from "../config/mediaListingProfiles";
+import { formatCampaignDurationPreview } from "../utils/digitalAdsCampaignDuration";
+import * as XLSX from "xlsx";
+import { isMediaListing } from "../utils/listingProductFields";
 import {
   VOUCHER_LOCATION_ADDRESS_MODE,
   inferVoucherLocationModesFromProduct,
   normalizeManualStoreLocations,
-} from '../utils/voucherLocation';
+} from "../utils/voucherLocation";
 
 function shouldHideMinMaxOrderQtyForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
-  const mc = String(product?.mediaCategory || '').toLowerCase().trim();
-  if (mc === 'print') return true;
-  const journey = String(product?.mediaJourney || '').toLowerCase().trim();
-  if (journey === 'newspaper') return true;
+  const mc = String(product?.mediaCategory || "")
+    .toLowerCase()
+    .trim();
+  if (mc === "print") return true;
+  const journey = String(product?.mediaJourney || "")
+    .toLowerCase()
+    .trim();
+  if (journey === "newspaper") return true;
   const sub = String(
-    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '',
+    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? "",
   )
     .toLowerCase()
     .trim();
-  if (sub === 'static') return true;
+  if (sub === "static") return true;
   return false;
 }
 
 function shouldHideMinMaxOrderTimelineForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
-  const mc = String(product?.mediaCategory || '').toLowerCase().trim();
-  if (mc === 'print' || mc === 'hoarding') return true;
-  const journey = String(product?.mediaJourney || '').toLowerCase().trim();
-  if (journey === 'newspaper' || journey === 'hoarding') return true;
+  const mc = String(product?.mediaCategory || "")
+    .toLowerCase()
+    .trim();
+  if (mc === "print" || mc === "hoarding") return true;
+  const journey = String(product?.mediaJourney || "")
+    .toLowerCase()
+    .trim();
+  if (journey === "newspaper" || journey === "hoarding") return true;
   if (product?.Hoarding_list_id) return true;
-  const sub = String(product?.ProductSubCategoryName || '').toLowerCase();
-  if (sub.includes('hoarding')) return true;
+  const sub = String(product?.ProductSubCategoryName || "").toLowerCase();
+  if (sub.includes("hoarding")) return true;
   return false;
 }
 
 const defaultImage =
-  'https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop';
+  "https://images.unsplash.com/photo-1612538498488-226257115cc4?w=400&h=400&fit=crop";
 
 const CATEGORY_TO_SLUG = {
-  Textile: 'textile',
-  'Office Supply': 'officesupply',
-  Lifestyle: 'lifestyle',
-  Others: 'others',
-  Electronics: 'electronics',
-  FMCG: 'fmcg',
-  Mobility: 'mobility',
-  QSR: 'restaurant',
-  Media: 'mediaonline',
+  Textile: "textile",
+  "Office Supply": "officesupply",
+  Lifestyle: "lifestyle",
+  Others: "others",
+  Electronics: "electronics",
+  FMCG: "fmcg",
+  Mobility: "mobility",
+  QSR: "restaurant",
+  Media: "mediaonline",
 };
 
 function formatPrice(value) {
-  if (value == null || value === '') return 'N/A';
-  const num = typeof value === 'number' ? value : parseFloat(value);
+  if (value == null || value === "") return "N/A";
+  const num = typeof value === "number" ? value : parseFloat(value);
   if (Number.isNaN(num)) return String(value);
-  return num.toLocaleString('en-IN', {
+  return num.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -111,7 +126,7 @@ function FeatureItem({ name, description }) {
         const url = data?.URL ?? data?.url;
         if (url) setIconUrl(url);
       })
-      .catch(() => { });
+      .catch(() => {});
   }, [name]);
   const showImg = iconUrl && !imgError;
   return (
@@ -122,21 +137,21 @@ function FeatureItem({ name, description }) {
           height: 40,
           flexShrink: 0,
           borderRadius: 1,
-          bgcolor: 'grey.100',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          bgcolor: "grey.100",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {showImg ? (
           <img
             src={iconUrl}
             alt={name}
-            style={{ width: 40, height: 40, objectFit: 'contain' }}
+            style={{ width: 40, height: 40, objectFit: "contain" }}
             onError={() => setImgError(true)}
           />
         ) : (
-          <Package style={{ width: 24, height: 24, color: 'grey.500' }} />
+          <Package style={{ width: 24, height: 24, color: "grey.500" }} />
         )}
       </Box>
       <Box>
@@ -151,7 +166,12 @@ function FeatureItem({ name, description }) {
   );
 }
 
-function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, priceBasis = 'inclusive' }) {
+function DiscountedPriceDisplay({
+  regularPrice,
+  discountPrice,
+  percentage,
+  priceBasis = "inclusive",
+}) {
   const reg = Number(regularPrice) || 0;
   const disc = Number(discountPrice) || 0;
   const pct = Number(percentage) || 0;
@@ -161,16 +181,26 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, price
   const gstAmountInclusive = disc - gstPrice;
   const gstOnTopExclusive = pct > 0 ? (disc * pct) / 100 : 0;
 
-  if (priceBasis === 'exclusive') {
+  if (priceBasis === "exclusive") {
     return (
       <Stack spacing={0.5}>
-        <Stack direction="row" flexWrap="wrap" alignItems="baseline" spacing={1}>
+        <Stack
+          direction="row"
+          flexWrap="wrap"
+          alignItems="baseline"
+          spacing={1}
+        >
           {discountPercent > 0 && (
             <Typography variant="body1" fontWeight="bold" color="error.main">
               -{discountPercent.toFixed(2)}%
             </Typography>
           )}
-          <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ fontSize: { md: '1.75rem' } }}>
+          <Typography
+            variant="h5"
+            fontWeight="bold"
+            color="text.primary"
+            sx={{ fontSize: { md: "1.75rem" } }}
+          >
             {formatPrice(disc)}
           </Typography>
           {pct > 0 && (
@@ -181,8 +211,11 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, price
         </Stack>
         {discountPercent > 0 && (
           <Typography variant="body2" color="text.disabled">
-            MRP:{' '}
-            <Typography component="span" sx={{ textDecoration: 'line-through' }}>
+            MRP:{" "}
+            <Typography
+              component="span"
+              sx={{ textDecoration: "line-through" }}
+            >
               {formatPrice(reg)}
             </Typography>
           </Typography>
@@ -202,7 +235,12 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, price
             -{discountPercent.toFixed(2)}%
           </Typography>
         )}
-        <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ fontSize: { md: '1.75rem' } }}>
+        <Typography
+          variant="h5"
+          fontWeight="bold"
+          color="text.primary"
+          sx={{ fontSize: { md: "1.75rem" } }}
+        >
           {formatPrice(disc)}
         </Typography>
         <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -217,7 +255,10 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, price
       </Stack>
       {discountPercent > 0 && (
         <Typography variant="body2" color="text.disabled">
-          MRP: <Typography component="span" sx={{ textDecoration: 'line-through' }}>{formatPrice(reg)}</Typography>
+          MRP:{" "}
+          <Typography component="span" sx={{ textDecoration: "line-through" }}>
+            {formatPrice(reg)}
+          </Typography>
         </Typography>
       )}
       <Typography variant="caption" color="text.secondary">
@@ -230,54 +271,71 @@ function DiscountedPriceDisplay({ regularPrice, discountPrice, percentage, price
 function TabPanel({ children, value, index, ...rest }) {
   return (
     <div role="tabpanel" hidden={value !== index} {...rest}>
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+      {value === index && (
+        <Box
+          sx={{
+            pt: 2,
+            minWidth: index === 1 ? { xs: 600, sm: "auto" } : "100%",
+          }}
+        >
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
 
 function getVariantSizesDisplay(v) {
-  if (!v) return '';
-  if (v.ShoeSize != null && v.ShoeSize !== '') {
-    return `${v.ShoeSize} ${v.MeasurementUnit || ''}`.trim();
+  if (!v) return "";
+  if (v.ShoeSize != null && v.ShoeSize !== "") {
+    return `${v.ShoeSize} ${v.MeasurementUnit || ""}`.trim();
   }
-  if (v.NutritionInfo != null && v.NutritionInfo !== '') return String(v.NutritionInfo);
+  if (v.NutritionInfo != null && v.NutritionInfo !== "")
+    return String(v.NutritionInfo);
   const lenDim = v?.Length ?? v?.length;
-  if (lenDim != null && lenDim !== '' && v?.MeasurementUnit) {
+  if (lenDim != null && lenDim !== "" && v?.MeasurementUnit) {
     return `${lenDim} ${v.MeasurementUnit}`;
   }
-  return '';
+  return "";
 }
 
 function variantQtyHasValue(q) {
-  return q != null && q !== '' && !Number.isNaN(Number(q));
+  return q != null && q !== "" && !Number.isNaN(Number(q));
 }
 
 function formatMinMaxOrderQtySummary(minVal, maxVal) {
-  const hasMin = minVal != null && String(minVal).trim() !== '';
-  const hasMax = maxVal != null && String(maxVal).trim() !== '';
+  const hasMin = minVal != null && String(minVal).trim() !== "";
+  const hasMax = maxVal != null && String(maxVal).trim() !== "";
   if (!hasMin && !hasMax) return null;
-  const minPart = hasMin ? String(minVal).trim() : '—';
-  const maxPart = hasMax ? String(maxVal).trim() : '—';
+  const minPart = hasMin ? String(minVal).trim() : "—";
+  const maxPart = hasMax ? String(maxVal).trim() : "—";
   return `${minPart} - ${maxPart}`;
 }
 
 function getVoucherOfflineAddress(product) {
-  const empty = { address: '', area: '', landmark: '', city: '', state: '', pincode: '' };
+  const empty = {
+    address: "",
+    area: "",
+    landmark: "",
+    city: "",
+    state: "",
+    pincode: "",
+  };
   if (!product) return empty;
 
   if (product.OfflineAddress) {
     try {
       const parsed =
-        typeof product.OfflineAddress === 'string'
+        typeof product.OfflineAddress === "string"
           ? JSON.parse(product.OfflineAddress)
           : product.OfflineAddress;
       return {
-        address: parsed?.address ?? '',
-        area: parsed?.area ?? '',
-        landmark: parsed?.landmark ?? '',
-        city: parsed?.city ?? '',
-        state: parsed?.state ?? '',
-        pincode: parsed?.pincode ?? parsed?.Pincode ?? product.Pincode ?? '',
+        address: parsed?.address ?? "",
+        area: parsed?.area ?? "",
+        landmark: parsed?.landmark ?? "",
+        city: parsed?.city ?? "",
+        state: parsed?.state ?? "",
+        pincode: parsed?.pincode ?? parsed?.Pincode ?? product.Pincode ?? "",
       };
     } catch {
       return empty;
@@ -285,58 +343,64 @@ function getVoucherOfflineAddress(product) {
   }
 
   return {
-    address: product.Address ?? '',
-    area: product.Area ?? '',
-    landmark: product.Landmark ?? '',
-    city: product.City ?? '',
-    state: product.State ?? '',
-    pincode: product.Pincode ?? '',
+    address: product.Address ?? "",
+    area: product.Area ?? "",
+    landmark: product.Landmark ?? "",
+    city: product.City ?? "",
+    state: product.State ?? "",
+    pincode: product.Pincode ?? "",
   };
 }
 
 function getStoreListUrl(product) {
   const list = product?.HotelsListUrls;
-  if (!Array.isArray(list) || list.length === 0) return '';
+  if (!Array.isArray(list) || list.length === 0) return "";
   const first = list[0];
-  if (typeof first === 'string') return first;
-  return first?.url || '';
+  if (typeof first === "string") return first;
+  return first?.url || "";
 }
 
 function normalizeStoreLocationRow(row = {}) {
   const read = (keys = []) => {
     for (const key of keys) {
       const value = row?.[key];
-      if (value != null && String(value).trim() !== '') return String(value).trim();
+      if (value != null && String(value).trim() !== "")
+        return String(value).trim();
     }
-    return '';
+    return "";
   };
   return {
-    address: read(['address', 'Address', 'ADDRESS']),
-    area: read(['area', 'Area', 'AREA']),
-    landmark: read(['landmark', 'Landmark', 'LANDMARK']),
-    city: read(['city', 'City', 'CITY']),
-    state: read(['state', 'State', 'STATE']),
-    pincode: read(['pincode', 'Pincode', 'PINCODE']),
+    address: read(["address", "Address", "ADDRESS"]),
+    area: read(["area", "Area", "AREA"]),
+    landmark: read(["landmark", "Landmark", "LANDMARK"]),
+    city: read(["city", "City", "CITY"]),
+    state: read(["state", "State", "STATE"]),
+    pincode: read(["pincode", "Pincode", "PINCODE"]),
   };
 }
 
 function hasStoreLocationContent(location = {}) {
   const loc = normalizeStoreLocationRow(location);
-  return [loc.pincode, loc.address, loc.area, loc.landmark, loc.city, loc.state].some(
-    (v) => String(v || '').trim() !== ''
-  );
+  return [
+    loc.pincode,
+    loc.address,
+    loc.area,
+    loc.landmark,
+    loc.city,
+    loc.state,
+  ].some((v) => String(v || "").trim() !== "");
 }
 
 function StoreLocationDetailGrid({ location, compact = false }) {
   const loc = normalizeStoreLocationRow(location);
   const fields = [
-    { label: 'Pincode', value: loc.pincode },
-    { label: 'State', value: loc.state },
-    { label: 'City', value: loc.city },
-    { label: 'Area', value: loc.area },
-    { label: 'Landmark', value: loc.landmark },
-    { label: 'Address', value: loc.address },
-  ].filter((row) => String(row.value || '').trim());
+    { label: "Pincode", value: loc.pincode },
+    { label: "State", value: loc.state },
+    { label: "City", value: loc.city },
+    { label: "Area", value: loc.area },
+    { label: "Landmark", value: loc.landmark },
+    { label: "Address", value: loc.address },
+  ].filter((row) => String(row.value || "").trim());
 
   if (!fields.length) {
     return (
@@ -366,14 +430,18 @@ function parseStoreLocationsFromWorkbook(workbook) {
   if (!workbook?.SheetNames?.length) return [];
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   if (!sheet) return [];
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
   return rows
     .map(normalizeStoreLocationRow)
     .filter((row) => hasStoreLocationContent(row));
 }
 
 /** Columns for variant preview table: only shown when hasValue(variant); minWidth kept stable per column type. */
-function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product) {
+function getVariantPreviewTableColumns(
+  selectedVariantData,
+  BXIIconSrc,
+  product,
+) {
   if (!selectedVariantData) return [];
   const v = selectedVariantData;
   const hideOrderQtyCols = shouldHideMinMaxOrderQtyForMediaPreview(product);
@@ -382,18 +450,23 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
   const discRaw = v.DiscountedPrice;
   const hasDisc =
     discRaw != null &&
-    discRaw !== '' &&
-    !(typeof discRaw === 'number' && Number.isNaN(discRaw));
+    discRaw !== "" &&
+    !(typeof discRaw === "number" && Number.isNaN(discRaw));
   if (hasDisc) {
     cols.push({
-      id: 'discountedMrp',
-      heading: 'Disc. MRP',
+      id: "discountedMrp",
+      heading: "Disc. MRP",
       minWidth: 128,
       cell: (
-        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="center"
+          spacing={1}
+        >
           <img src={BXIIconSrc} alt="BXI" style={{ height: 16, width: 16 }} />
           <Typography variant="body2" fontWeight="600">
-            {formatPrice(v.DiscountedPrice) || 'N/A'}
+            {formatPrice(v.DiscountedPrice) || "N/A"}
           </Typography>
         </Stack>
       ),
@@ -403,8 +476,8 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
   const sizesText = getVariantSizesDisplay(v);
   if (sizesText) {
     cols.push({
-      id: 'sizes',
-      heading: 'Sizes',
+      id: "sizes",
+      heading: "Sizes",
       minWidth: 112,
       cell: <Typography variant="body2">{sizesText}</Typography>,
     });
@@ -417,58 +490,72 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
     );
     if (minMaxOrderQty) {
       cols.push({
-        id: 'minMaxQty',
-        heading: 'Min - Max QTY',
+        id: "minMaxQty",
+        heading: "Min - Max QTY",
         minWidth: 120,
         cell: (
-          <Chip label={minMaxOrderQty} size="small" color="primary" variant="outlined" />
+          <Chip
+            label={minMaxOrderQty}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
         ),
       });
     }
   }
 
-  if (v.GST != null && v.GST !== '' && !(typeof v.GST === 'number' && Number.isNaN(v.GST))) {
+  if (
+    v.GST != null &&
+    v.GST !== "" &&
+    !(typeof v.GST === "number" && Number.isNaN(v.GST))
+  ) {
     cols.push({
-      id: 'gst',
-      heading: 'GST',
+      id: "gst",
+      heading: "GST",
       minWidth: 72,
       cell: <Typography variant="body2">{`${v.GST}%`}</Typography>,
     });
   }
 
-  if (v.HSN != null && v.HSN !== '') {
+  if (v.HSN != null && v.HSN !== "") {
     cols.push({
-      id: 'hsn',
-      heading: 'HSN',
+      id: "hsn",
+      heading: "HSN",
       minWidth: 88,
       cell: <Typography variant="body2">{v.HSN}</Typography>,
     });
   }
 
-  if (v.ProductIdType != null && v.ProductIdType !== '') {
+  if (v.ProductIdType != null && v.ProductIdType !== "") {
     cols.push({
-      id: 'productId',
-      heading: 'Product ID',
+      id: "productId",
+      heading: "Product ID",
       minWidth: 120,
       cell: <Typography variant="body2">{v.ProductIdType}</Typography>,
     });
   }
 
-  const colorValue = String(v.ProductColor || '').trim();
+  const colorValue = String(v.ProductColor || "").trim();
   if (colorValue) {
     cols.push({
-      id: 'color',
-      heading: 'Color',
+      id: "color",
+      heading: "Color",
       minWidth: 88,
       cell: (
-        <Stack direction="row" alignItems="center" justifyContent="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="center"
+          spacing={1}
+        >
           <Box
             sx={{
               width: 18,
               height: 18,
-              borderRadius: '4px',
-              border: '1px solid',
-              borderColor: 'grey.300',
+              borderRadius: "4px",
+              border: "1px solid",
+              borderColor: "grey.300",
               bgcolor: colorValue,
             }}
           />
@@ -483,7 +570,7 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
 
 export default function ProductPreview() {
   const theme = useTheme();
-  const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
   const { id } = useParams();
   const { isAdmin } = useAuthUser();
@@ -494,13 +581,14 @@ export default function ProductPreview() {
   const [tabValue, setTabValue] = useState(0);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [sizeChartDialogOpen, setSizeChartDialogOpen] = useState(false);
-  const [storeLocationsDialogOpen, setStoreLocationsDialogOpen] = useState(false);
+  const [storeLocationsDialogOpen, setStoreLocationsDialogOpen] =
+    useState(false);
   const [multipleStoreLocations, setMultipleStoreLocations] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!id) {
-      setError('No product ID');
+      setError("No product ID");
       setLoading(false);
       return;
     }
@@ -522,7 +610,7 @@ export default function ProductPreview() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err?.message || 'Failed to load product');
+          setError(err?.message || "Failed to load product");
           setProduct(null);
         }
       })
@@ -544,10 +632,12 @@ export default function ProductPreview() {
       }
 
       if (Array.isArray(product?.OfflineAddressList)) {
-        setMultipleStoreLocations(normalizeManualStoreLocations(product.OfflineAddressList));
+        setMultipleStoreLocations(
+          normalizeManualStoreLocations(product.OfflineAddressList),
+        );
         return;
       }
-      if (typeof product?.OfflineAddressList === 'string') {
+      if (typeof product?.OfflineAddressList === "string") {
         try {
           const parsed = JSON.parse(product.OfflineAddressList);
           if (Array.isArray(parsed)) {
@@ -569,7 +659,7 @@ export default function ProductPreview() {
         const response = await fetch(fileUrl);
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
         const parsedLocations = parseStoreLocationsFromWorkbook(workbook);
         if (!cancelled) setMultipleStoreLocations(parsedLocations);
       } catch {
@@ -588,7 +678,9 @@ export default function ProductPreview() {
     if (
       product &&
       (product.Hoarding_list_id ||
-        String(product.ProductSubCategoryName || '').toLowerCase().includes('hoard'))
+        String(product.ProductSubCategoryName || "")
+          .toLowerCase()
+          .includes("hoard"))
     ) {
       navigate(`/mediaonline/go-live/${id}?from=hoarding`);
       return;
@@ -598,7 +690,7 @@ export default function ProductPreview() {
     if (slug) {
       navigate(`/${slug}/go-live/${id}`);
     } else {
-      navigate('/sellerhub');
+      navigate("/sellerhub");
     }
   };
 
@@ -606,22 +698,26 @@ export default function ProductPreview() {
     if (!id || uploading) return;
     if (
       !window.confirm(
-        'Submit this listing for admin approval? You can go back to edit if you select Cancel.',
+        "Submit this listing for admin approval? You can go back to edit if you select Cancel.",
       )
     ) {
       return;
     }
     setUploading(true);
-    const isVoucherListing = product?.ListingType === 'Voucher';
+    const isVoucherListing = product?.ListingType === "Voucher";
     productApi
-      .productMutation({ id, ProductUploadStatus: 'pendingapproval' })
+      .productMutation({ id, ProductUploadStatus: "pendingapproval" })
       .then(() => {
-        toast.success('Once uploaded, changes are subject to approval and edits can be made later.');
-        setTimeout(() => navigate('/sellerhub'), 2000);
+        toast.success(
+          "Once uploaded, changes are subject to approval and edits can be made later.",
+        );
+        setTimeout(() => navigate("/sellerhub"), 2000);
       })
       .catch(() => {
         toast.error(
-          isVoucherListing ? 'Failed to upload voucher' : 'Failed to upload products'
+          isVoucherListing
+            ? "Failed to upload voucher"
+            : "Failed to upload products",
         );
       })
       .finally(() => setUploading(false));
@@ -631,50 +727,67 @@ export default function ProductPreview() {
   const variants = Array.isArray(rawVariantsList) ? rawVariantsList : [];
   const uniqueProductColors = [
     ...new Set(
-      variants
-        .map((v) => String(v?.ProductColor || '').trim())
-        .filter(Boolean),
+      variants.map((v) => String(v?.ProductColor || "").trim()).filter(Boolean),
     ),
   ];
-  const isVoucherListing = product?.ListingType === 'Voucher';
+  const isVoucherListing = product?.ListingType === "Voucher";
   const isMediaProduct = isMediaListing(product);
   const selectedVariantData =
     variants.find((v) => (v._id ?? v.id) === selectedVariant) ||
     variants[0] ||
-    (isMediaProduct && product?.mediaVariation ? { ...product.mediaVariation } : undefined);
+    (isMediaProduct && product?.mediaVariation
+      ? { ...product.mediaVariation }
+      : undefined);
   const rawImages =
-    product?.ListingType === 'Product' || isMediaProduct
+    product?.ListingType === "Product" || isMediaProduct
       ? product?.ProductImages
       : product?.VoucherImages;
   const images = Array.isArray(rawImages) ? rawImages : [];
   const sizeChartUrl = product?.SizeChart?.[0]?.url;
   const canShowUpload =
-    product?.ProductUploadStatus !== 'Approved' &&
-    product?.ProductUploadStatus !== 'pendingapproval' &&
+    product?.ProductUploadStatus !== "Approved" &&
+    product?.ProductUploadStatus !== "pendingapproval" &&
     images?.length > 0;
-  const canShowComplete = isAdmin && product?.ProductUploadStatus === 'Approved';
-  const uploadCtaLabel = isMediaProduct ? 'Upload Media' : isVoucherListing ? 'Upload Voucher' : 'Upload Product';
+  const canShowComplete =
+    isAdmin && product?.ProductUploadStatus === "Approved";
+  const uploadCtaLabel = isMediaProduct
+    ? "Upload Media"
+    : isVoucherListing
+      ? "Upload Voucher"
+      : "Upload Product";
 
-  const primaryColor = '#C64091';
-  const primaryDark = '#A03375';
+  const primaryColor = "#C64091";
+  const primaryDark = "#A03375";
 
   if (loading) {
     return (
       <Box
         sx={{
-          minHeight: '100vh',
-          bgcolor: '#f8fafc',
+          minHeight: "100vh",
+          bgcolor: "#f8fafc",
           py: 3,
           pb: 6,
           px: { xs: 2, sm: 3, lg: 4 },
         }}
       >
-        <Box sx={{ maxWidth: 1152, mx: 'auto', width: '100%' }}>
-          <Skeleton variant="rectangular" height={40} width={192} sx={{ mb: 3 }} />
-          <Paper elevation={0} sx={{ overflow: 'hidden', border: '1px solid', borderColor: 'grey.200' }}>
+        <Box sx={{ maxWidth: 1152, mx: "auto", width: "100%" }}>
+          <Skeleton
+            variant="rectangular"
+            height={40}
+            width={192}
+            sx={{ mb: 3 }}
+          />
+          <Paper
+            elevation={0}
+            sx={{
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: "grey.200",
+            }}
+          >
             <Grid container>
               <Grid item xs={12} md={6}>
-                <Skeleton variant="rectangular" sx={{ aspectRatio: '1' }} />
+                <Skeleton variant="rectangular" sx={{ aspectRatio: "1" }} />
               </Grid>
               <Grid item xs={12} md={6}>
                 <Box sx={{ p: { xs: 3, md: 4 } }}>
@@ -696,18 +809,22 @@ export default function ProductPreview() {
     return (
       <Box
         sx={{
-          minHeight: '100vh',
-          bgcolor: '#f8fafc',
+          minHeight: "100vh",
+          bgcolor: "#f8fafc",
           py: 3,
           pb: 6,
           px: { xs: 2, sm: 3, lg: 4 },
         }}
       >
-        <Box sx={{ maxWidth: 1152, mx: 'auto', width: '100%' }}>
+        <Box sx={{ maxWidth: 1152, mx: "auto", width: "100%" }}>
           <Button
             startIcon={<ArrowLeft size={20} />}
-            onClick={() => navigate('/sellerhub')}
-            sx={{ mb: 3, color: 'grey.600', '&:hover': { color: primaryColor, bgcolor: 'transparent' } }}
+            onClick={() => navigate("/sellerhub")}
+            sx={{
+              mb: 3,
+              color: "grey.600",
+              "&:hover": { color: primaryColor, bgcolor: "transparent" },
+            }}
           >
             Back to My Products
           </Button>
@@ -715,15 +832,15 @@ export default function ProductPreview() {
             elevation={0}
             sx={{
               p: 4,
-              textAlign: 'center',
-              border: '1px solid',
-              borderColor: 'error.light',
+              textAlign: "center",
+              border: "1px solid",
+              borderColor: "error.light",
             }}
           >
             <Typography color="error" fontWeight="medium" sx={{ mb: 2 }}>
-              {error || 'Product not found'}
+              {error || "Product not found"}
             </Typography>
-            <Button variant="outlined" onClick={() => navigate('/sellerhub')}>
+            <Button variant="outlined" onClick={() => navigate("/sellerhub")}>
               Go to Seller Hub
             </Button>
           </Paper>
@@ -733,8 +850,8 @@ export default function ProductPreview() {
   }
 
   const isTextileStyle =
-    ['Textile', 'Lifestyle', 'Office Supply', 'Others'].includes(
-      product?.ProductCategoryName
+    ["Textile", "Lifestyle", "Office Supply", "Others"].includes(
+      product?.ProductCategoryName,
     ) || !product?.ProductCategoryName;
 
   const variantPreviewColumns = getVariantPreviewTableColumns(
@@ -742,42 +859,54 @@ export default function ProductPreview() {
     BXIIcon,
     product,
   );
-  const variantTableMinTotal = variantPreviewColumns.reduce((sum, c) => sum + c.minWidth, 0);
+  const variantTableMinTotal = variantPreviewColumns.reduce(
+    (sum, c) => sum + c.minWidth,
+    0,
+  );
 
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        bgcolor: '#f8fafc',
+        minHeight: "100vh",
+        bgcolor: "#f8fafc",
         py: 3,
         pb: 6,
         px: { xs: 2, sm: 3, lg: 4 },
+        "@media (max-width: 599.95px)": {
+          py: 1,
+          pb: 2,
+          px: 1,
+          "& .MuiTypography-root": { fontSize: "0.875rem !important" },
+          "& .MuiTypography-h4": { fontSize: "1.2rem !important" },
+          "& .MuiTypography-h5": { fontSize: "1.2rem !important" },
+          "& .MuiTypography-h6": { fontSize: "1rem !important" },
+        },
       }}
       data-testid="product-preview-page"
     >
-      <Box sx={{ maxWidth: '100vw', mx: 'auto', width: '100%' }}>
+      <Box sx={{ maxWidth: "100vw", mx: "auto", width: "100%" }}>
         {/* Header */}
         <Paper
           elevation={0}
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            py: 3,
-            borderBottom: '1px solid',
-            borderColor: 'grey.100',
-            p: 3,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+            py: { xs: 1.25, sm: 3 },
+            borderBottom: "1px solid",
+            borderColor: "grey.100",
+            p: { xs: 1.25, sm: 3 },
             borderRadius: 2,
           }}
         >
           <IconButton
             onClick={() => navigate(-1)}
             sx={{
-              position: 'absolute',
+              position: "absolute",
               left: 0,
-              color: 'grey.600',
-              '&:hover': { color: primaryColor },
+              color: "grey.600",
+              "&:hover": { color: primaryColor },
             }}
           >
             <ArrowLeft size={24} />
@@ -788,25 +917,38 @@ export default function ProductPreview() {
         </Paper>
 
         {/* Main content */}
-        <Grid container spacing={4} sx={{ mt: 3 }}>
+        <Grid
+          container
+          spacing={{ xs: 1, sm: 4 }}
+          sx={{ mt: { xs: 0, sm: 3 } }}
+        >
           {/* Image carousel */}
           <Grid item xs={12} lg={6}>
-            <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 0.75, sm: 3 },
+                border: "1px solid",
+                borderColor: "grey.200",
+                height: "100%",
+                borderRadius: 2,
+              }}
+            >
               <Stack alignItems="center">
                 {images?.length === 0 ? (
                   <Paper
                     elevation={0}
                     sx={{
-                      width: '100%',
+                      width: "100%",
                       maxWidth: 450,
-                      aspectRatio: '1',
+                      aspectRatio: "1",
                       borderRadius: 2,
-                      border: '2px dashed',
-                      borderColor: 'grey.300',
-                      bgcolor: 'grey.50',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      border: "2px dashed",
+                      borderColor: "grey.300",
+                      bgcolor: "grey.50",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
                     <Typography color="text.secondary" fontWeight="medium">
@@ -814,41 +956,61 @@ export default function ProductPreview() {
                     </Typography>
                   </Paper>
                 ) : (
-                  <Paper elevation={0} sx={{ width: '100%', maxWidth: 450, position: 'relative' }}>
+                  <Paper
+                    elevation={0}
+                    sx={{ width: "100%", maxWidth: 450, position: "relative" }}
+                  >
                     <Box
                       sx={{
-                        aspectRatio: '1',
+                        aspectRatio: "1",
                         borderRadius: 2,
-                        backgroundSize: product?.ListingType === 'Product' ? 'cover' : 'contain',
-                        backgroundPosition: product?.ListingType === 'Product' ? 'center' : 'center',
-                        backgroundRepeat: product?.ListingType === 'Product' ? 'no-repeat' : 'no-repeat',
+                        backgroundSize:
+                          product?.ListingType === "Product"
+                            ? "cover"
+                            : "contain",
+                        backgroundPosition:
+                          product?.ListingType === "Product"
+                            ? "center"
+                            : "center",
+                        backgroundRepeat:
+                          product?.ListingType === "Product"
+                            ? "no-repeat"
+                            : "no-repeat",
                         backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
                       }}
                     />
                     {images?.length > 1 && (
                       <>
                         <IconButton
-                          onClick={() => setCarouselIndex((i) => (i === 0 ? images?.length - 1 : i - 1))}
+                          onClick={() =>
+                            setCarouselIndex((i) =>
+                              i === 0 ? images?.length - 1 : i - 1,
+                            )
+                          }
                           sx={{
-                            position: 'absolute',
+                            position: "absolute",
                             left: 8,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            bgcolor: 'rgba(255,255,255,0.9)',
-                            '&:hover': { bgcolor: 'white' },
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            bgcolor: "rgba(255,255,255,0.9)",
+                            "&:hover": { bgcolor: "white" },
                           }}
                         >
                           <ChevronLeft size={24} />
                         </IconButton>
                         <IconButton
-                          onClick={() => setCarouselIndex((i) => (i === images?.length - 1 ? 0 : i + 1))}
+                          onClick={() =>
+                            setCarouselIndex((i) =>
+                              i === images?.length - 1 ? 0 : i + 1,
+                            )
+                          }
                           sx={{
-                            position: 'absolute',
+                            position: "absolute",
                             right: 8,
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            bgcolor: 'rgba(255,255,255,0.9)',
-                            '&:hover': { bgcolor: 'white' },
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            bgcolor: "rgba(255,255,255,0.9)",
+                            "&:hover": { bgcolor: "white" },
                           }}
                         >
                           <ChevronRight size={24} />
@@ -863,25 +1025,53 @@ export default function ProductPreview() {
 
           {/* Product info */}
           <Grid item xs={12} lg={6}>
-            <Paper elevation={0} sx={{ p: 4, backgroundImage: 'linear-gradient(to bottom, #ffffff, #F3F6F9)', border: '1px solid', borderColor: 'grey.200', height: '100%', borderRadius: 2 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 1.5, sm: 4 },
+                backgroundImage: "linear-gradient(to bottom, #ffffff, #F3F6F9)",
+                border: "1px solid",
+                borderColor: "grey.200",
+                height: "100%",
+                borderRadius: 2,
+              }}
+            >
               <Stack spacing={2}>
                 <Box>
                   <Chip
-                    label={product?.ProductUploadStatus || 'Draft'}
+                    label={product?.ProductUploadStatus || "Draft"}
                     size="small"
                     sx={{
                       mb: 1,
-                      bgcolor: product?.ProductUploadStatus === 'Approved' ? 'success.light' : 'warning.light',
-                      color: '#ffffff',
+                      bgcolor:
+                        product?.ProductUploadStatus === "Approved"
+                          ? "success.light"
+                          : "warning.light",
+                      color: "#ffffff",
                       fontWeight: 500,
                       p: 1,
                     }}
                   />
-                  <Typography variant="h4" fontWeight="600" color="text.primary" data-testid="product-name" sx={{ mt: 1 }}>
+                  <Typography
+                    variant="h4"
+                    fontWeight="600"
+                    color="text.primary"
+                    data-testid="product-name"
+                    sx={{ mt: 1 }}
+                  >
                     {product?.ProductName}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {[product?.ProductCategoryName, product?.ProductSubCategoryName].filter(Boolean).join(' / ')}
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 0.5 }}
+                  >
+                    {[
+                      product?.ProductCategoryName,
+                      product?.ProductSubCategoryName,
+                    ]
+                      .filter(Boolean)
+                      .join(" / ")}
                   </Typography>
                 </Box>
 
@@ -889,7 +1079,7 @@ export default function ProductPreview() {
                   <FormControl size="small" sx={{ minWidth: 280 }}>
                     <InputLabel>Select Variant</InputLabel>
                     <Select
-                      value={selectedVariant ?? ''}
+                      value={selectedVariant ?? ""}
                       label="Select Variant"
                       onChange={(e) => setSelectedVariant(e.target.value)}
                     >
@@ -900,7 +1090,7 @@ export default function ProductPreview() {
                             v.ProductIdType ||
                             v.ProductSize ||
                             v.NutritionInfo ||
-                            'N/A'}
+                            "N/A"}
                         </MenuItem>
                       ))}
                     </Select>
@@ -911,17 +1101,22 @@ export default function ProductPreview() {
                   regularPrice={selectedVariantData?.PricePerUnit}
                   discountPrice={selectedVariantData?.DiscountedPrice}
                   percentage={selectedVariantData?.GST}
-                  priceBasis={isMediaProduct ? 'exclusive' : 'inclusive'}
+                  priceBasis={isMediaProduct ? "exclusive" : "inclusive"}
                 />
 
                 {!isVoucherListing &&
                   !isMediaProduct &&
                   uniqueProductColors.length > 0 && (
                     <Box>
-                      <Typography variant="body2" fontWeight="medium" color="text.secondary" sx={{ mb: 1 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="medium"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
                         Available Color
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                         {uniqueProductColors.map((color) => (
                           <Box
                             key={color}
@@ -929,11 +1124,11 @@ export default function ProductPreview() {
                               width: 40,
                               height: 40,
                               borderRadius: 2,
-                              border: '2px solid',
+                              border: "2px solid",
                               borderColor:
                                 selectedVariantData?.ProductColor === color
-                                  ? 'primary.main'
-                                  : 'grey.300',
+                                  ? "primary.main"
+                                  : "grey.300",
                               bgcolor: color,
                             }}
                           />
@@ -945,22 +1140,22 @@ export default function ProductPreview() {
                 {/* Variant table — only columns with values; each column keeps a fixed minWidth */}
                 {selectedVariantData && variantPreviewColumns.length > 0 && (
                   <>
-                    <Divider sx={{ borderColor: 'grey.200', my: 2 }} />
+                    <Divider sx={{ borderColor: "grey.200", my: 2 }} />
                     <TableContainer
                       component={Paper}
                       elevation={0}
                       sx={{
-                        border: '1px solid',
-                        borderColor: 'grey.200',
+                        border: "1px solid",
+                        borderColor: "grey.200",
                         borderRadius: 2,
-                        overflowX: 'auto',
+                        overflowX: "auto",
                       }}
                     >
                       <Table
                         size="small"
                         sx={{
-                          tableLayout: 'fixed',
-                          width: '100%',
+                          tableLayout: "fixed",
+                          width: "100%",
                           minWidth: Math.max(variantTableMinTotal, 320),
                         }}
                       >
@@ -980,7 +1175,11 @@ export default function ProductPreview() {
                               <TableCell
                                 key={col.id}
                                 align="center"
-                                sx={{ fontWeight: 600, py: 1.5, bgcolor: 'grey.50' }}
+                                sx={{
+                                  fontWeight: 600,
+                                  py: 1.5,
+                                  bgcolor: "grey.50",
+                                }}
                               >
                                 {col.heading}
                               </TableCell>
@@ -988,9 +1187,16 @@ export default function ProductPreview() {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          <TableRow hover sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
+                          <TableRow
+                            hover
+                            sx={{ "&:hover": { bgcolor: "grey.50" } }}
+                          >
                             {variantPreviewColumns.map((col) => (
-                              <TableCell key={col.id} align="center" sx={{ py: 2 }}>
+                              <TableCell
+                                key={col.id}
+                                align="center"
+                                sx={{ py: 2 }}
+                              >
                                 {col.cell}
                               </TableCell>
                             ))}
@@ -1003,7 +1209,8 @@ export default function ProductPreview() {
 
                 {/* Size chart */}
                 {!isVoucherListing &&
-                  (isTextileStyle || product?.ProductCategoryName === 'Textile') && (
+                  (isTextileStyle ||
+                    product?.ProductCategoryName === "Textile") && (
                     <Box>
                       <Typography
                         component="button"
@@ -1011,11 +1218,11 @@ export default function ProductPreview() {
                         variant="body2"
                         fontWeight="600"
                         sx={{
-                          color: '#1A56DB',
-                          cursor: 'pointer',
-                          border: 'none',
-                          background: 'none',
-                          '&:hover': { textDecoration: 'underline' },
+                          color: "#1A56DB",
+                          cursor: "pointer",
+                          border: "none",
+                          background: "none",
+                          "&:hover": { textDecoration: "underline" },
                         }}
                         onClick={() => setSizeChartDialogOpen(true)}
                       >
@@ -1032,13 +1239,13 @@ export default function ProductPreview() {
                           paper: {
                             sx: sizeChartFullScreen
                               ? {
-                                m: 0,
-                                maxHeight: '100%',
-                                height: '100%',
-                                borderRadius: 0,
-                                pt: 'env(safe-area-inset-top)',
-                                pb: 'env(safe-area-inset-bottom)',
-                              }
+                                  m: 0,
+                                  maxHeight: "100%",
+                                  height: "100%",
+                                  borderRadius: 0,
+                                  pt: "env(safe-area-inset-top)",
+                                  pb: "env(safe-area-inset-bottom)",
+                                }
                               : undefined,
                           },
                         }}
@@ -1046,9 +1253,9 @@ export default function ProductPreview() {
                         <DialogTitle
                           id="size-chart-dialog-title"
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
                             gap: 1,
                             pr: 1,
                             flexShrink: 0,
@@ -1067,10 +1274,10 @@ export default function ProductPreview() {
                         </DialogTitle>
                         <DialogContent
                           sx={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'flex-start',
-                            overflow: 'auto',
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "flex-start",
+                            overflow: "auto",
                             pt: 1,
                             pb: 2,
                             minHeight: 0,
@@ -1082,17 +1289,21 @@ export default function ProductPreview() {
                               src={sizeChartUrl}
                               alt="Size chart"
                               sx={{
-                                maxWidth: '100%',
-                                width: 'auto',
-                                height: 'auto',
+                                maxWidth: "100%",
+                                width: "auto",
+                                height: "auto",
                                 maxHeight: sizeChartFullScreen
-                                  ? 'calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))'
-                                  : 'min(70vh, 520px)',
-                                objectFit: 'contain',
+                                  ? "calc(100vh - 140px - env(safe-area-inset-top) - env(safe-area-inset-bottom))"
+                                  : "min(70vh, 520px)",
+                                objectFit: "contain",
                               }}
                             />
                           ) : (
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ py: 2 }}
+                            >
                               Size Chart Unavailable
                             </Typography>
                           )}
@@ -1106,26 +1317,69 @@ export default function ProductPreview() {
         </Grid>
 
         {/* Tabs */}
-        <Paper elevation={0} sx={{ mt: 5, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden', p: 1 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            mt: { xs: 2, sm: 5 },
+            border: "1px solid",
+            borderColor: "grey.200",
+            borderRadius: 2,
+            overflow: "hidden",
+            p: { xs: 0.5, sm: 1 },
+          }}
+        >
           <Tabs
             value={tabValue}
             onChange={(_, v) => setTabValue(v)}
+            variant="scrollable"
+            scrollButtons={false}
             sx={{
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              bgcolor: '#ffffff',
-              px: 2,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              bgcolor: "#ffffff",
+              px: { xs: 0, sm: 2 },
               minHeight: 56,
-              '& .MuiTab-root': { fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' },
-              '& .Mui-selected': { color: '#1E40AF', fontWeight: 700 },
-              '& .MuiTabs-indicator': { backgroundColor: '#1E40AF', height: 3 },
+
+              "& .MuiTabs-scroller": {
+                overflowX: "auto !important",
+              },
+
+              "& .MuiTabs-flexContainer": {
+                width: "max-content",
+              },
+
+              "& .MuiTab-root": {
+                fontWeight: 600,
+                fontSize: { xs: "0.95rem", sm: "1.1rem" },
+                minWidth: { xs: "auto", sm: 90 },
+                px: { xs: 1.5, sm: 2 },
+                textTransform: "none",
+                whiteSpace: "nowrap",
+              },
+
+              "& .Mui-selected": {
+                color: "#1E40AF",
+                fontWeight: 700,
+              },
+
+              "& .MuiTabs-indicator": {
+                backgroundColor: "#1E40AF",
+                height: 3,
+              },
             }}
           >
             <Tab label="Description" />
             <Tab label="Technical Information" />
             <Tab label="Key Features" />
           </Tabs>
-          <Box sx={{ p: 3 }}>
+          <Box
+            sx={{
+              p: { xs: 1.5, sm: 3 },
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+              "& .MuiTableContainer-root": { maxWidth: "100%" },
+            }}
+          >
             <TabPanel value={tabValue} index={0}>
               {(() => {
                 const loc =
@@ -1133,29 +1387,39 @@ export default function ProductPreview() {
                   product?.locationDetails ||
                   product?.GeographicalData ||
                   {};
-                const hasLoc = loc.region || loc.state || loc.city || loc.landmark || loc.pincode;
+                const hasLoc =
+                  loc.region ||
+                  loc.state ||
+                  loc.city ||
+                  loc.landmark ||
+                  loc.pincode;
                 const mediaSubtitle =
                   product?.ProductSubtittle ||
                   product?.ProductSubtitle ||
                   product?.productSubtitle ||
-                  '';
+                  "";
                 const mediaDescriptionBody =
                   product?.ProductDescription ||
                   product?.productDescription ||
-                  '';
+                  "";
                 const onlineProfile = isMediaProduct
                   ? getMediaListingProfile(product || {})
                   : null;
                 const mediaNameForDescription =
-                  product?.medianame || product?.ProductName || '';
+                  product?.medianame || product?.ProductName || "";
                 const productSubtitle = String(mediaSubtitle).trim();
                 return (
                   <Stack spacing={isMediaProduct ? 2 : 3}>
                     {isMediaProduct &&
                       onlineProfile?.previewHideMediaNameFromTech &&
-                      String(mediaNameForDescription).trim() !== '' && (
+                      String(mediaNameForDescription).trim() !== "" && (
                         <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 0.5 }}
+                          >
                             Media name
                           </Typography>
                           <Typography variant="body1" color="text.secondary">
@@ -1163,9 +1427,14 @@ export default function ProductPreview() {
                           </Typography>
                         </Box>
                       )}
-                    {productSubtitle !== '' && (
+                    {productSubtitle !== "" && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 0.5 }}
+                        >
                           Product subtitle
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
@@ -1174,20 +1443,50 @@ export default function ProductPreview() {
                       </Box>
                     )}
                     <Box>
-                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="600"
+                        color="#1E40AF"
+                        sx={{ mb: 0.5 }}
+                      >
                         Product Description
                       </Typography>
-                      <Typography variant="body1" color="text.secondary">
-                        {(() => {
-                          const body = String(mediaDescriptionBody || '').trim();
-                          if (body !== '') return body;
-                          return 'No description available.';
-                        })()}
-                      </Typography>
+                      <Box
+                        sx={{
+                          width: "100%",
+                          maxWidth: "100%",
+                          overflowX: { xs: "auto", sm: "visible" },
+                          WebkitOverflowScrolling: "touch",
+                          "&::-webkit-scrollbar": { height: 6 },
+                        }}
+                      >
+                        <Typography
+                          variant="body1"
+                          color="text.secondary"
+                          sx={{
+                            width: { xs: "max-content", sm: "auto" },
+                            maxWidth: { xs: "none", sm: "100%" },
+                            whiteSpace: { xs: "pre", sm: "normal" },
+                          }}
+                        >
+                          {(() => {
+                            const body = String(
+                              mediaDescriptionBody || "",
+                            ).trim();
+                            if (body !== "") return body;
+                            return "No description available.";
+                          })()}
+                        </Typography>
+                      </Box>
                     </Box>
                     {product?.ProductsVariantions.at(0).OfferingType && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 0.5 }}
+                        >
                           Offering Type
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
@@ -1195,12 +1494,15 @@ export default function ProductPreview() {
                         </Typography>
                       </Box>
                     )}
-                    <Box>
-
-                    </Box>
+                    <Box></Box>
                     {product?.ModelName && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 0.5 }}
+                        >
                           Model Name
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
@@ -1210,24 +1512,52 @@ export default function ProductPreview() {
                     )}
                     {!isMediaProduct && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
                           Sample Details
                         </Typography>
                         <Grid container spacing={2}>
                           <Grid item xs={6} md={4}>
-                            <Typography variant="caption" color="text.secondary">Sample Available</Typography>
-                            <Typography variant="body2" display="block">{variants.some((v) => v.SampleQty > 0) ? 'Yes' : 'No'}</Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              Sample Available
+                            </Typography>
+                            <Typography variant="body2" display="block">
+                              {variants.some((v) => v.SampleQty > 0)
+                                ? "Yes"
+                                : "No"}
+                            </Typography>
                           </Grid>
                           {variants.some((v) => v.SampleQty > 0) && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">Sample Quantity</Typography>
-                              <Typography variant="body2" display="block">{variants.at(0).SampleQty}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Sample Quantity
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {variants.at(0).SampleQty}
+                              </Typography>
                             </Grid>
                           )}
                           {variants.some((v) => v.SamplePrice > 0) && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">Sample Price</Typography>
-                              <Typography variant="body2" display="block">{variants.at(0).SamplePrice}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Sample Price
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {variants.at(0).SamplePrice}
+                              </Typography>
                             </Grid>
                           )}
                         </Grid>
@@ -1235,38 +1565,80 @@ export default function ProductPreview() {
                     )}
                     {hasLoc && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
-                          {isMediaProduct ? 'Geographic coverage' : 'Product Pickup Location & Pincode'}
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 2, mt: 2 }}
+                        >
+                          {isMediaProduct
+                            ? "Geographic coverage"
+                            : "Product Pickup Location & Pincode"}
                         </Typography>
                         <Grid container spacing={2}>
                           {loc.region && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">Region</Typography>
-                              <Typography variant="body2" display="block">{loc.region}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Region
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {loc.region}
+                              </Typography>
                             </Grid>
                           )}
                           {loc.state && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">State</Typography>
-                              <Typography variant="body2" display="block">{loc.state}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                State
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {loc.state}
+                              </Typography>
                             </Grid>
                           )}
                           {loc.city && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">City</Typography>
-                              <Typography variant="body2" display="block">{loc.city}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                City
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {loc.city}
+                              </Typography>
                             </Grid>
                           )}
                           {loc.landmark && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">Landmark</Typography>
-                              <Typography variant="body2" display="block">{loc.landmark}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Landmark
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {loc.landmark}
+                              </Typography>
                             </Grid>
                           )}
                           {loc.pincode && (
                             <Grid item xs={6} md={4}>
-                              <Typography variant="caption" color="text.secondary">Pincode</Typography>
-                              <Typography variant="body2" display="block">{loc.pincode}</Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Pincode
+                              </Typography>
+                              <Typography variant="body2" display="block">
+                                {loc.pincode}
+                              </Typography>
                             </Grid>
                           )}
                         </Grid>
@@ -1274,7 +1646,12 @@ export default function ProductPreview() {
                     )}
                     {product?.listperiod && !isMediaProduct && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 0.5, mt: 2 }}
+                        >
                           This product is listed for
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
@@ -1283,23 +1660,44 @@ export default function ProductPreview() {
                       </Box>
                     )}
                     <Box>
-                      <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 2, mt: 2 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="600"
+                        color="#1E40AF"
+                        sx={{ mb: 2, mt: 2 }}
+                      >
                         Additional Cost
                       </Typography>
                       {product?.OtherCost?.length > 0 ? (
                         <TableContainer
                           component={Paper}
                           elevation={0}
-                          sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 1, maxWidth: 720 }}
+                          sx={{
+                            border: "1px solid",
+                            borderColor: "grey.200",
+                            borderRadius: 1,
+                            maxWidth: 720,
+                          }}
                         >
                           <Table size="small">
                             <TableHead>
-                              <TableRow sx={{ bgcolor: 'grey.50' }}>
-                                <TableCell sx={{ fontWeight: 600 }}>Applicable on</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>HSN</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>GST</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }} align="right">
+                              <TableRow sx={{ bgcolor: "grey.50" }}>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  Applicable on
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  Reason
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  HSN
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>
+                                  GST
+                                </TableCell>
+                                <TableCell
+                                  sx={{ fontWeight: 600 }}
+                                  align="right"
+                                >
                                   Cost
                                 </TableCell>
                               </TableRow>
@@ -1307,30 +1705,55 @@ export default function ProductPreview() {
                             <TableBody>
                               {product.OtherCost.map((cost, i) => (
                                 <TableRow key={cost._id ?? cost.id ?? i}>
-                                  <TableCell>{cost.AdCostApplicableOn ?? '—'}</TableCell>
-                                  <TableCell>{cost.ReasonOfCost ?? '—'}</TableCell>
-                                  <TableCell>{cost.AdCostHSN ?? '—'}</TableCell>
                                   <TableCell>
-                                    {cost.AdCostGST != null && cost.AdCostGST !== ''
+                                    {cost.AdCostApplicableOn ?? "—"}
+                                  </TableCell>
+                                  <TableCell>
+                                    {cost.ReasonOfCost ?? "—"}
+                                  </TableCell>
+                                  <TableCell>{cost.AdCostHSN ?? "—"}</TableCell>
+                                  <TableCell>
+                                    {cost.AdCostGST != null &&
+                                    cost.AdCostGST !== ""
                                       ? `${cost.AdCostGST}%`
-                                      : '—'}
+                                      : "—"}
                                   </TableCell>
                                   <TableCell align="right">
-                                    {cost.CostPrice != null && cost.CostPrice !== '' ? (
-                                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, justifyContent: 'flex-end' }}>
-                                        <Typography variant="body2" component="span" fontWeight="medium">
+                                    {cost.CostPrice != null &&
+                                    cost.CostPrice !== "" ? (
+                                      <Box
+                                        sx={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 0.5,
+                                          justifyContent: "flex-end",
+                                        }}
+                                      >
+                                        <Typography
+                                          variant="body2"
+                                          component="span"
+                                          fontWeight="medium"
+                                        >
                                           {formatPrice(cost.CostPrice)}
                                         </Typography>
-                                        {cost.currencyType === 'BXITokens' ? (
-                                          <Box component="img" src={BXITokenIcon} alt="" sx={{ width: 16, height: 16 }} />
+                                        {cost.currencyType === "BXITokens" ? (
+                                          <Box
+                                            component="img"
+                                            src={BXITokenIcon}
+                                            alt=""
+                                            sx={{ width: 16, height: 16 }}
+                                          />
                                         ) : (
-                                          <Typography variant="body2" component="span">
+                                          <Typography
+                                            variant="body2"
+                                            component="span"
+                                          >
                                             ₹
                                           </Typography>
                                         )}
                                       </Box>
                                     ) : (
-                                      '—'
+                                      "—"
                                     )}
                                   </TableCell>
                                 </TableRow>
@@ -1339,25 +1762,45 @@ export default function ProductPreview() {
                           </Table>
                         </TableContainer>
                       ) : (
-                        <Typography variant="body1" color="text.secondary">No</Typography>
+                        <Typography variant="body1" color="text.secondary">
+                          No
+                        </Typography>
                       )}
                     </Box>
-                    {(product?.ManufacturingDate || product?.ManufacturingData) && (
+                    {(product?.ManufacturingDate ||
+                      product?.ManufacturingData) && (
                       <Stack direction="row" flexWrap="wrap" spacing={4}>
                         <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 0.5, mt: 2 }}
+                          >
                             Manufacturing Date
                           </Typography>
                           <Typography variant="body1" color="text.secondary">
-                            {new Date(product.ManufacturingDate || product.ManufacturingData).toLocaleDateString()}
+                            {new Date(
+                              product.ManufacturingDate ||
+                                product.ManufacturingData,
+                            ).toLocaleDateString()}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 0.5, mt: 2 }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 0.5, mt: 2 }}
+                          >
                             Expiry Date
                           </Typography>
                           <Typography variant="body1" color="text.secondary">
-                            {product?.ExpiryDate ? new Date(product.ExpiryDate).toLocaleDateString() : 'Not Given'}
+                            {product?.ExpiryDate
+                              ? new Date(
+                                  product.ExpiryDate,
+                                ).toLocaleDateString()
+                              : "Not Given"}
                           </Typography>
                         </Box>
                       </Stack>
@@ -1377,22 +1820,26 @@ export default function ProductPreview() {
                   const redemptionSteps =
                     product?.RedemptionSteps || product?.redemptionSteps;
                   const redemptionType = product?.redemptionType;
-                  const normalizedRedemptionType = String(redemptionType || '')
+                  const normalizedRedemptionType = String(redemptionType || "")
                     .trim()
                     .toLowerCase();
                   const redemptionUrl = product?.Link || product?.redemptionURL;
                   const storeListUrl = getStoreListUrl(product);
                   const offlineAddress = getVoucherOfflineAddress(product);
-                  const locationModes = inferVoucherLocationModesFromProduct(product);
-                  const normalizedMultipleLocations = normalizeManualStoreLocations(
-                    multipleStoreLocations
-                  ).filter(hasStoreLocationContent);
-                  const hasMultipleStoreLocations = normalizedMultipleLocations.length > 0;
+                  const locationModes =
+                    inferVoucherLocationModesFromProduct(product);
+                  const normalizedMultipleLocations =
+                    normalizeManualStoreLocations(
+                      multipleStoreLocations,
+                    ).filter(hasStoreLocationContent);
+                  const hasMultipleStoreLocations =
+                    normalizedMultipleLocations.length > 0;
                   const isMultipleLocationMode =
                     locationModes.voucherLocationAddressMode ===
                       VOUCHER_LOCATION_ADDRESS_MODE.MULTIPLE ||
                     normalizedMultipleLocations.length > 1;
-                  const hasSingleStoreAddress = hasStoreLocationContent(offlineAddress);
+                  const hasSingleStoreAddress =
+                    hasStoreLocationContent(offlineAddress);
                   const showSingleStoreAddress =
                     hasSingleStoreAddress && !isMultipleLocationMode;
                   const showMultipleStoreLocations =
@@ -1401,11 +1848,12 @@ export default function ProductPreview() {
                     Boolean(storeListUrl);
                   const inlineLocationPreviewCount = Math.min(
                     normalizedMultipleLocations.length,
-                    2
+                    2,
                   );
                   const voucherTagsRaw = product?.ProductTags ?? product?.Tags;
                   const voucherValidity = product?.ListThisProductForAmount;
-                  const voucherValidityUnit = product?.ListThisProductForUnitOfTime;
+                  const voucherValidityUnit =
+                    product?.ListThisProductForUnitOfTime;
                   const voucherTags = Array.isArray(voucherTagsRaw)
                     ? voucherTagsRaw
                     : voucherTagsRaw != null && String(voucherTagsRaw).trim()
@@ -1439,30 +1887,57 @@ export default function ProductPreview() {
                           <Stack spacing={3}>
                             {inclusions && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
                                   Inclusions
                                 </Typography>
-                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                <Typography
+                                  variant="body1"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: "pre-wrap" }}
+                                >
                                   {inclusions}
                                 </Typography>
                               </Box>
                             )}
                             {exclusions && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
                                   Exclusions
                                 </Typography>
-                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                <Typography
+                                  variant="body1"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: "pre-wrap" }}
+                                >
                                   {exclusions}
                                 </Typography>
                               </Box>
                             )}
                             {termsAndConditions && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
                                   Terms and Conditions
                                 </Typography>
-                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                <Typography
+                                  variant="body1"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: "pre-wrap" }}
+                                >
                                   {termsAndConditions}
                                 </Typography>
                               </Box>
@@ -1475,25 +1950,46 @@ export default function ProductPreview() {
                           <Stack spacing={3}>
                             {redemptionSteps && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
                                   Redemption Steps
                                 </Typography>
-                                <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: 'pre-wrap' }}>
+                                <Typography
+                                  variant="body1"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: "pre-wrap" }}
+                                >
                                   {redemptionSteps}
                                 </Typography>
                               </Box>
                             )}
                             {redemptionType && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
                                   Redemption Type
                                 </Typography>
-                                <Typography fontWeight="500">{redemptionType}</Typography>
+                                <Typography fontWeight="500">
+                                  {redemptionType}
+                                </Typography>
                               </Box>
                             )}
                             {redemptionUrl && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
                                   Redemption URL
                                 </Typography>
                                 <Typography
@@ -1501,35 +1997,49 @@ export default function ProductPreview() {
                                   href={redemptionUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                                  sx={{
+                                    color: "#1A56DB",
+                                    textDecoration: "underline",
+                                  }}
                                 >
                                   {redemptionUrl}
                                 </Typography>
                               </Box>
                             )}
-                            {(showSingleStoreAddress || showMultipleStoreLocations) && (
+                            {(showSingleStoreAddress ||
+                              showMultipleStoreLocations) && (
                               <Box>
-                                <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
-                                  {showMultipleStoreLocations && !showSingleStoreAddress
-                                    ? 'Applicable locations'
-                                    : 'Store address'}
+                                <Typography
+                                  variant="body2"
+                                  fontWeight="600"
+                                  color="#1E40AF"
+                                  sx={{ mb: 1 }}
+                                >
+                                  {showMultipleStoreLocations &&
+                                  !showSingleStoreAddress
+                                    ? "Applicable locations"
+                                    : "Store address"}
                                 </Typography>
 
                                 {showSingleStoreAddress && (
                                   <Box
                                     sx={{
-                                      bgcolor: '#F9FAFB',
+                                      bgcolor: "#F9FAFB",
                                       p: 2,
-                                      borderRadius: '12px',
-                                      border: '1px solid #E5E8EB',
+                                      borderRadius: "12px",
+                                      border: "1px solid #E5E8EB",
                                     }}
                                   >
-                                    <StoreLocationDetailGrid location={offlineAddress} />
+                                    <StoreLocationDetailGrid
+                                      location={offlineAddress}
+                                    />
                                   </Box>
                                 )}
 
                                 {showMultipleStoreLocations && (
-                                  <Box sx={{ mt: showSingleStoreAddress ? 2 : 0 }}>
+                                  <Box
+                                    sx={{ mt: showSingleStoreAddress ? 2 : 0 }}
+                                  >
                                     {hasMultipleStoreLocations ? (
                                       <Stack spacing={1.5}>
                                         {normalizedMultipleLocations
@@ -1539,9 +2049,9 @@ export default function ProductPreview() {
                                               key={`preview-loc-${idx}`}
                                               sx={{
                                                 p: 1.5,
-                                                border: '1px solid #E5E8EB',
+                                                border: "1px solid #E5E8EB",
                                                 borderRadius: 1,
-                                                bgcolor: '#FAFBFC',
+                                                bgcolor: "#FAFBFC",
                                               }}
                                             >
                                               <Typography
@@ -1552,23 +2062,31 @@ export default function ProductPreview() {
                                               >
                                                 Location {idx + 1}
                                               </Typography>
-                                              <StoreLocationDetailGrid location={loc} compact />
+                                              <StoreLocationDetailGrid
+                                                location={loc}
+                                                compact
+                                              />
                                             </Box>
                                           ))}
-                                        {normalizedMultipleLocations.length > inlineLocationPreviewCount && (
+                                        {normalizedMultipleLocations.length >
+                                          inlineLocationPreviewCount && (
                                           <Button
                                             type="button"
                                             variant="outlined"
                                             size="small"
-                                            onClick={() => setStoreLocationsDialogOpen(true)}
+                                            onClick={() =>
+                                              setStoreLocationsDialogOpen(true)
+                                            }
                                             sx={{
-                                              alignSelf: 'flex-start',
-                                              textTransform: 'none',
-                                              borderColor: '#2563EB',
-                                              color: '#2563EB',
+                                              alignSelf: "flex-start",
+                                              textTransform: "none",
+                                              borderColor: "#2563EB",
+                                              color: "#2563EB",
                                             }}
                                           >
-                                            View all {normalizedMultipleLocations.length} locations
+                                            View all{" "}
+                                            {normalizedMultipleLocations.length}{" "}
+                                            locations
                                           </Button>
                                         )}
                                       </Stack>
@@ -1578,12 +2096,18 @@ export default function ProductPreview() {
                                         href={storeListUrl}
                                         target="_blank"
                                         rel="noreferrer"
-                                        sx={{ color: '#1A56DB', textDecoration: 'underline' }}
+                                        sx={{
+                                          color: "#1A56DB",
+                                          textDecoration: "underline",
+                                        }}
                                       >
                                         Download uploaded store list
                                       </Typography>
                                     ) : (
-                                      <Typography variant="body1" color="text.secondary">
+                                      <Typography
+                                        variant="body1"
+                                        color="text.secondary"
+                                      >
                                         No store locations available.
                                       </Typography>
                                     )}
@@ -1596,13 +2120,28 @@ export default function ProductPreview() {
                         {/* Tags at Bottom */}
                         {voucherTags.length > 0 && (
                           <Grid item>
-                            <Box >
-                              <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                fontWeight="600"
+                                color="#1E40AF"
+                                sx={{ mb: 1 }}
+                              >
                                 Tags
                               </Typography>
-                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: 1,
+                                }}
+                              >
                                 {voucherTags.map((tag, index) => (
-                                  <Chip key={index} label={String(tag)} size="small" />
+                                  <Chip
+                                    key={index}
+                                    label={String(tag)}
+                                    size="small"
+                                  />
                                 ))}
                               </Box>
                             </Box>
@@ -1611,17 +2150,21 @@ export default function ProductPreview() {
                         {voucherValidity && voucherValidityUnit && (
                           <Grid item>
                             <Box>
-                              <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                              <Typography
+                                variant="body2"
+                                fontWeight="600"
+                                color="#1E40AF"
+                                sx={{ mb: 1 }}
+                              >
                                 Validity
                               </Typography>
                             </Box>
                             <Typography variant="body1" color="text.secondary">
-                              {voucherValidity + ' ' + voucherValidityUnit}
+                              {voucherValidity + " " + voucherValidityUnit}
                             </Typography>
                           </Grid>
                         )}
                       </Grid>
-
                     </Stack>
                   );
                 }
@@ -1630,10 +2173,12 @@ export default function ProductPreview() {
                   const mv = product?.mediaVariation || {};
                   const v0 =
                     selectedVariantData ||
-                    (Array.isArray(product?.ProductsVariantions) && product.ProductsVariantions[0]) ||
+                    (Array.isArray(product?.ProductsVariantions) &&
+                      product.ProductsVariantions[0]) ||
                     {};
                   const pick = (a, b) => {
-                    const isFilled = (x) => x != null && String(x).trim() !== '';
+                    const isFilled = (x) =>
+                      x != null && String(x).trim() !== "";
                     if (isFilled(a)) return a;
                     if (isFilled(b)) return b;
                     return null;
@@ -1642,21 +2187,35 @@ export default function ProductPreview() {
                   const pickOrderQty = () =>
                     pick(
                       mv.minOrderQuantityunit,
-                      v0.minOrderQuantityunit ?? v0.MinOrderQuantity ?? mv.MinOrderQuantity,
+                      v0.minOrderQuantityunit ??
+                        v0.MinOrderQuantity ??
+                        mv.MinOrderQuantity,
                     );
                   const pickMaxOrderQty = () =>
-                    pick(mv.maxOrderQuantityunit, v0.maxOrderQuantityunit ?? v0.MaxOrderQuantity);
+                    pick(
+                      mv.maxOrderQuantityunit,
+                      v0.maxOrderQuantityunit ?? v0.MaxOrderQuantity,
+                    );
                   const orderQtySummary = formatMinMaxOrderQtySummary(
                     pickOrderQty(),
                     pickMaxOrderQty(),
                   );
                   const pickUnit = () => pick(mv.unit, v0.unit);
-                  const minTs = pick(mv.minTimeslotSeconds, v0.minTimeslotSeconds);
-                  const maxTs = pick(mv.maxTimeslotSeconds, v0.maxTimeslotSeconds);
+                  const minTs = pick(
+                    mv.minTimeslotSeconds,
+                    v0.minTimeslotSeconds,
+                  );
+                  const maxTs = pick(
+                    mv.maxTimeslotSeconds,
+                    v0.maxTimeslotSeconds,
+                  );
                   const timeslotSummary =
                     minTs != null || maxTs != null
-                      ? `${minTs != null && String(minTs).trim() !== '' ? String(minTs) : '—'} - ${maxTs != null && String(maxTs).trim() !== '' ? String(maxTs) : '—'
-                      } seconds`
+                      ? `${minTs != null && String(minTs).trim() !== "" ? String(minTs) : "—"} - ${
+                          maxTs != null && String(maxTs).trim() !== ""
+                            ? String(maxTs)
+                            : "—"
+                        } seconds`
                       : null;
                   const minOrderTimeline = pick(
                     mv.minOrderQuantitytimeline,
@@ -1666,36 +2225,50 @@ export default function ProductPreview() {
                     mv.maxOrderQuantitytimeline,
                     v0.maxOrderQuantitytimeline,
                   );
-                  const timelineUnit = pick(mv.Timeline, v0.Timeline, product?.timeline);
+                  const timelineUnit = pick(
+                    mv.Timeline,
+                    v0.Timeline,
+                    product?.timeline,
+                  );
                   const isDigitalAdsPreview =
-                    String(product?.mediaJourney || '').toLowerCase() === 'digital-ads';
+                    String(product?.mediaJourney || "").toLowerCase() ===
+                    "digital-ads";
                   const orderTimelineSummary = isDigitalAdsPreview
                     ? formatCampaignDurationPreview(product, mv, v0)
                     : minOrderTimeline != null || maxOrderTimeline != null
-                      ? `${minOrderTimeline != null && String(minOrderTimeline).trim() !== '' ? String(minOrderTimeline) : '—'} - ${maxOrderTimeline != null && String(maxOrderTimeline).trim() !== '' ? String(maxOrderTimeline) : '—'}${timelineUnit ? ` / ${timelineUnit}` : ''}`
+                      ? `${minOrderTimeline != null && String(minOrderTimeline).trim() !== "" ? String(minOrderTimeline) : "—"} - ${maxOrderTimeline != null && String(maxOrderTimeline).trim() !== "" ? String(maxOrderTimeline) : "—"}${timelineUnit ? ` / ${timelineUnit}` : ""}`
                       : null;
                   const loopSeconds =
-                    product?.loopTimeSeconds != null && String(product.loopTimeSeconds).trim() !== ''
+                    product?.loopTimeSeconds != null &&
+                    String(product.loopTimeSeconds).trim() !== ""
                       ? String(product.loopTimeSeconds).trim()
-                      : product?.loopTimeMinutes != null && String(product.loopTimeMinutes).trim() !== ''
+                      : product?.loopTimeMinutes != null &&
+                          String(product.loopTimeMinutes).trim() !== ""
                         ? String(product.loopTimeMinutes).trim()
                         : null;
                   const geo = product?.GeographicalData || {};
                   const tags = product?.tags || [];
                   const prevProfile = getMediaListingProfile(product || {});
-                  const hideOrderQty = shouldHideMinMaxOrderQtyForMediaPreview(product);
+                  const hideOrderQty =
+                    shouldHideMinMaxOrderQtyForMediaPreview(product);
                   const hideOrderTimeline =
                     shouldHideMinMaxOrderTimelineForMediaPreview(product) ||
                     prevProfile.hideMinMaxOrderQtyTimelineInPreview === true;
                   const dimLabel =
-                    prevProfile.dimensionLabel === 'AD Duration'
-                      ? 'AD Duration'
-                      : 'Dimension (creative)';
-                  const hideInsertions = prevProfile.hideAvailableInsertionsInTechPreview === true;
+                    prevProfile.dimensionLabel === "AD Duration"
+                      ? "AD Duration"
+                      : "Dimension (creative)";
+                  const hideInsertions =
+                    prevProfile.hideAvailableInsertionsInTechPreview === true;
                   const techRows = [
                     ...(prevProfile.previewHideMediaNameFromTech
                       ? []
-                      : [['Media name', product?.medianame || product?.ProductName]]),
+                      : [
+                          [
+                            "Media name",
+                            product?.medianame || product?.ProductName,
+                          ],
+                        ]),
                     // ...(prevProfile.previewHideMediaMetaFromTech
                     //   ? []
                     //   : [
@@ -1703,42 +2276,64 @@ export default function ProductPreview() {
                     //       ['Media journey', product?.mediaJourney],
                     //     ]
                     //   ),
-                    ['Offering this media at', pick(mv.offerningbrandat, product?.offerningbrandat)],
-                    ['Ad position', product?.adPosition],
-                    ['Edition', pick(mv.edition, v0.edition)],
-                    ['Language', pick(mv.language, v0.language)],
-                    ['Type', pick(mv.Type, v0.Type)],
-                    ['Release details', pick(mv.releasedetails, v0.releasedetails)],
+                    [
+                      "Offering this media at",
+                      pick(mv.offerningbrandat, product?.offerningbrandat),
+                    ],
+                    ["Ad position", product?.adPosition],
+                    ["Edition", pick(mv.edition, v0.edition)],
+                    ["Language", pick(mv.language, v0.language)],
+                    ["Type", pick(mv.Type, v0.Type)],
+                    [
+                      "Release details",
+                      pick(mv.releasedetails, v0.releasedetails),
+                    ],
                     ...(hideInsertions
                       ? []
-                      : [['Available insertions', pick(mv.availableInsertions, v0.availableInsertions)]]),
+                      : [
+                          [
+                            "Available insertions",
+                            pick(
+                              mv.availableInsertions,
+                              v0.availableInsertions,
+                            ),
+                          ],
+                        ]),
                     [dimLabel, pick(mv.dimensionSize, v0.dimensionSize)],
-                    ['Ad type', pick(mv.adType, v0.adType)],
-                    ['Placement / ad type', pick(mv.location, v0.location)],
-                    ['Timeline', `Per ${pick(mv.Timeline, v0.Timeline)}`],
+                    ["Ad type", pick(mv.adType, v0.adType)],
+                    ["Placement / ad type", pick(mv.location, v0.location)],
+                    ["Timeline", `Per ${pick(mv.Timeline, v0.Timeline)}`],
                     ...(hideOrderQty
                       ? []
-                      : [['Min - Max Order Qty', orderQtySummary]]),
-                    ['Repetition', pick(mv.repetition, v0.repetition ?? product?.repetition)],
+                      : [["Min - Max Order Qty", orderQtySummary]]),
+                    [
+                      "Repetition",
+                      pick(mv.repetition, v0.repetition ?? product?.repetition),
+                    ],
                     ...(hideOrderTimeline
                       ? []
                       : [
                           [
                             isDigitalAdsPreview
-                              ? 'Campaign duration'
-                              : 'Min - Max order (timeline)',
+                              ? "Campaign duration"
+                              : "Min - Max order (timeline)",
                             orderTimelineSummary,
                           ],
                         ]),
-                    ['Order unit', 'Per '+pickUnit()],
-                    ...(String(product?.estimatedFleets || '').trim()
-                      ? [['Estimated fleets', String(product.estimatedFleets).trim()]]
+                    ["Order unit", "Per " + pickUnit()],
+                    ...(String(product?.estimatedFleets || "").trim()
+                      ? [
+                          [
+                            "Estimated fleets",
+                            String(product.estimatedFleets).trim(),
+                          ],
+                        ]
                       : []),
-                    ['Min - Max timeslot (seconds)', timeslotSummary],
+                    ["Min - Max timeslot (seconds)", timeslotSummary],
                     ...(prevProfile.loopTimeField && loopSeconds
-                      ? [['Loop time (seconds)', loopSeconds]]
+                      ? [["Loop time (seconds)", loopSeconds]]
                       : []),
-                    ['Other dimensions', product?.Dimensions],
+                    ["Other dimensions", product?.Dimensions],
                   ];
                   const hasGeo =
                     (geo.region && String(geo.region).trim()) ||
@@ -1746,7 +2341,7 @@ export default function ProductPreview() {
                     (geo.city && String(geo.city).trim()) ||
                     (geo.landmark && String(geo.landmark).trim());
                   const filledRows = techRows.filter(
-                    ([, val]) => val != null && String(val).trim() !== ''
+                    ([, val]) => val != null && String(val).trim() !== "",
                   );
                   if (!filledRows.length && !hasGeo) {
                     return (
@@ -1761,7 +2356,11 @@ export default function ProductPreview() {
                         <Grid container spacing={2}>
                           {filledRows.map(([label, val]) => (
                             <Grid item xs={12} sm={6} md={4} key={label}>
-                              <Typography variant="caption" color="text.secondary" display="block">
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                display="block"
+                              >
                                 {label}
                               </Typography>
                               <Typography variant="body2" fontWeight={500}>
@@ -1773,38 +2372,79 @@ export default function ProductPreview() {
                       )}
                       {hasGeo && (
                         <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 1 }}
+                          >
                             Geographic coverage
                           </Typography>
                           <Grid container spacing={2}>
                             {geo.region && String(geo.region).trim() && (
                               <Grid item xs={6} md={4}>
-                                <Typography variant="caption" color="text.secondary">Region</Typography>
-                                <Typography variant="body2" display="block" fontWeight={500}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Region
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  display="block"
+                                  fontWeight={500}
+                                >
                                   {geo.region}
                                 </Typography>
                               </Grid>
                             )}
                             {geo.state && String(geo.state).trim() && (
                               <Grid item xs={6} md={4}>
-                                <Typography variant="caption" color="text.secondary">State</Typography>
-                                <Typography variant="body2" display="block" fontWeight={500}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  State
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  display="block"
+                                  fontWeight={500}
+                                >
                                   {geo.state}
                                 </Typography>
                               </Grid>
                             )}
                             {geo.city && String(geo.city).trim() && (
                               <Grid item xs={6} md={4}>
-                                <Typography variant="caption" color="text.secondary">City</Typography>
-                                <Typography variant="body2" display="block" fontWeight={500}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  City
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  display="block"
+                                  fontWeight={500}
+                                >
                                   {geo.city}
                                 </Typography>
                               </Grid>
                             )}
                             {geo.landmark && String(geo.landmark).trim() && (
                               <Grid item xs={12} sm={6} md={4}>
-                                <Typography variant="caption" color="text.secondary">Landmark</Typography>
-                                <Typography variant="body2" display="block" fontWeight={500}>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  Landmark
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  display="block"
+                                  fontWeight={500}
+                                >
                                   {geo.landmark}
                                 </Typography>
                               </Grid>
@@ -1814,24 +2454,46 @@ export default function ProductPreview() {
                       )}
                       {tags.length > 0 && (
                         <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 1 }}
+                          >
                             Tags
                           </Typography>
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}
+                          >
                             {tags.map((tag, index) => (
-                              <Chip key={index} label={String(tag)} size="small" />
+                              <Chip
+                                key={index}
+                                label={String(tag)}
+                                size="small"
+                              />
                             ))}
                           </Box>
                         </Box>
                       )}
                       {product?.OtherInformationBuyerMustKnowOrRemarks && (
                         <Box>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 1 }}
+                          >
                             Other Information Buyer Must Know/ Remarks
                           </Typography>
-                          <Typography variant="body1" color="text.secondary">{product?.OtherInformationBuyerMustKnowOrRemarks.map((remark, index) => (
-                            <Typography key={index}>{index + 1}. {remark}</Typography>
-                          ))}</Typography>
+                          <Typography variant="body1" color="text.secondary">
+                            {product?.OtherInformationBuyerMustKnowOrRemarks.map(
+                              (remark, index) => (
+                                <Typography key={index}>
+                                  {index + 1}. {remark}
+                                </Typography>
+                              ),
+                            )}
+                          </Typography>
                         </Box>
                       )}
                     </Stack>
@@ -1856,81 +2518,160 @@ export default function ProductPreview() {
                   ti?.SafetyWarnings ||
                   ti?.Certifications;
                 if (!hasAny) {
-                  return <Typography color="text.secondary">No technical information available.</Typography>;
+                  return (
+                    <Typography color="text.secondary">
+                      No technical information available.
+                    </Typography>
+                  );
                 }
                 return (
                   <Stack spacing={3}>
                     <Grid container spacing={2}>
                       {ti?.Warranty && (
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Warranty</Typography>
-                          <Typography fontWeight="500">{ti.Warranty}</Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 1 }}
+                          >
+                            Warranty
+                          </Typography>
+                          <Typography fontWeight="500">
+                            {ti.Warranty}
+                          </Typography>
                         </Grid>
                       )}
                       {ti?.Guarantee && (
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Guarantee Period</Typography>
-                          <Typography fontWeight="500">{ti.Guarantee}</Typography>
+                          <Typography
+                            variant="body2"
+                            fontWeight="600"
+                            color="#1E40AF"
+                            sx={{ mb: 1 }}
+                          >
+                            Guarantee Period
+                          </Typography>
+                          <Typography fontWeight="500">
+                            {ti.Guarantee}
+                          </Typography>
                         </Grid>
                       )}
                     </Grid>
                     {product?.redemptionType && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Redemption Type</Typography>
-                        <Typography fontWeight="500">{product?.redemptionType}</Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
+                          Redemption Type
+                        </Typography>
+                        <Typography fontWeight="500">
+                          {product?.redemptionType}
+                        </Typography>
                       </Box>
                     )}
                     {(ti?.Height || ti?.Width || ti?.Length) && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Dimensions</Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
+                          Dimensions
+                        </Typography>
                         <Grid container spacing={2}>
                           {ti?.Height && (
                             <Grid item xs={4}>
-                              <Typography variant="body2" color="text.secondary">Height</Typography>
-                              <Typography fontWeight="500">{ti.Height}</Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Height
+                              </Typography>
+                              <Typography fontWeight="500">
+                                {ti.Height}
+                              </Typography>
                             </Grid>
                           )}
                           {ti?.Width && (
                             <Grid item xs={4}>
-                              <Typography variant="body2" color="text.secondary">Width</Typography>
-                              <Typography fontWeight="500">{ti.Width}</Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Width
+                              </Typography>
+                              <Typography fontWeight="500">
+                                {ti.Width}
+                              </Typography>
                             </Grid>
                           )}
                           {ti?.Length && (
                             <Grid item xs={4}>
-                              <Typography variant="body2" color="text.secondary">Length</Typography>
-                              <Typography fontWeight="500">{ti?.Length}</Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Length
+                              </Typography>
+                              <Typography fontWeight="500">
+                                {ti?.Length}
+                              </Typography>
                             </Grid>
                           )}
                         </Grid>
                       </Box>
                     )}
-                    {(ti?.WeightBeforePackingPerUnit || ti?.WeightAfterPackingPerUnit) && (
+                    {(ti?.WeightBeforePackingPerUnit ||
+                      ti?.WeightAfterPackingPerUnit) && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
                           Product weight
                         </Typography>
-                        <Stack direction="row" spacing={2} alignItems="flex-start">
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="flex-start"
+                        >
                           <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
                             {ti?.WeightBeforePackingPerUnit && (
                               <Box>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   Before packaging
                                 </Typography>
                                 <Typography fontWeight="500">
-                                  {ti.WeightBeforePackingPerUnit}{' '}
-                                  {product.WeightBeforePackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                                  {ti.WeightBeforePackingPerUnit}{" "}
+                                  {product.WeightBeforePackingPerUnitMeasurUnit ||
+                                    product.UnitOfWeight ||
+                                    "Kg"}
                                 </Typography>
                               </Box>
                             )}
                             {ti?.WeightAfterPackingPerUnit && (
                               <Box>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
                                   After packaging
                                 </Typography>
                                 <Typography fontWeight="500">
-                                  {ti.WeightAfterPackingPerUnit}{' '}
-                                  {product.WeightAfterPackingPerUnitMeasurUnit || product.UnitOfWeight || 'Kg'}
+                                  {ti.WeightAfterPackingPerUnit}{" "}
+                                  {product.WeightAfterPackingPerUnitMeasurUnit ||
+                                    product.UnitOfWeight ||
+                                    "Kg"}
                                 </Typography>
                               </Box>
                             )}
@@ -1940,7 +2681,14 @@ export default function ProductPreview() {
                     )}
                     {ti?.InstructionsToUseProduct && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Instructions to Use Product</Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
+                          Instructions to Use Product
+                        </Typography>
                         <Typography variant="body1" color="text.secondary">
                           {ti.InstructionsToUseProduct}
                         </Typography>
@@ -1948,7 +2696,14 @@ export default function ProductPreview() {
                     )}
                     {ti?.PackagingAndDeliveryInstructionsIfAny && (
                       <Box>
-                        <Typography variant="body2" fontWeight="600" color="#1E40AF" sx={{ mb: 1 }}>Packaging and Delivery Instructions</Typography>
+                        <Typography
+                          variant="body2"
+                          fontWeight="600"
+                          color="#1E40AF"
+                          sx={{ mb: 1 }}
+                        >
+                          Packaging and Delivery Instructions
+                        </Typography>
                         <Typography variant="body1" color="text.secondary">
                           {ti.PackagingAndDeliveryInstructionsIfAny}
                         </Typography>
@@ -1992,22 +2747,35 @@ export default function ProductPreview() {
 
             <TabPanel value={tabValue} index={2}>
               <Box>
-                <Typography variant="body2" fontWeight="600" color="#156DB6" sx={{ mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="600"
+                  color="#156DB6"
+                  sx={{ mb: 2 }}
+                >
                   Key Features
                 </Typography>
-                {Array.isArray(product?.ProductFeatures) && product.ProductFeatures.length > 0 ? (
+                {Array.isArray(product?.ProductFeatures) &&
+                product.ProductFeatures.length > 0 ? (
                   <Grid container spacing={3}>
                     {product.ProductFeatures.map((f, i) => (
-                      <Grid item xs={12} sm={6} lg={4} key={i}>
+                      <Grid item xs={6} sm={6} lg={4} key={i}>
                         <FeatureItem
                           name={f?.FeatureName || f?.name}
-                          description={f?.FeatureDesc || f?.FeatureDescription || f?.description || ''}
+                          description={
+                            f?.FeatureDesc ||
+                            f?.FeatureDescription ||
+                            f?.description ||
+                            ""
+                          }
                         />
                       </Grid>
                     ))}
                   </Grid>
                 ) : (
-                  <Typography color="text.secondary">No key features available.</Typography>
+                  <Typography color="text.secondary">
+                    No key features available.
+                  </Typography>
                 )}
               </Box>
             </TabPanel>
@@ -2015,7 +2783,9 @@ export default function ProductPreview() {
         </Paper>
 
         {(canShowUpload || canShowComplete) && (
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+          <Box
+            sx={{ mt: 4, display: "flex", justifyContent: "center", gap: 2 }}
+          >
             {canShowUpload && (
               <Button
                 variant="contained"
@@ -2026,23 +2796,23 @@ export default function ProductPreview() {
                   px: 4,
                   minWidth: 140,
                   minHeight: 40,
-                  '&:hover': { bgcolor: primaryDark },
+                  "&:hover": { bgcolor: primaryDark },
                 }}
               >
-                {uploading ? 'Uploading...' : uploadCtaLabel}
+                {uploading ? "Uploading..." : uploadCtaLabel}
               </Button>
             )}
             {canShowComplete && (
               <Button
                 variant="contained"
-                onClick={() => navigate('/sellerhub')}
+                onClick={() => navigate("/sellerhub")}
                 data-testid="admin-listing-complete-btn"
                 sx={{
                   bgcolor: primaryColor,
                   px: 4,
                   minWidth: 140,
                   minHeight: 40,
-                  '&:hover': { bgcolor: primaryDark },
+                  "&:hover": { bgcolor: primaryDark },
                 }}
               >
                 Complete
@@ -2060,26 +2830,33 @@ export default function ProductPreview() {
           <DialogTitle>
             {multipleStoreLocations.length > 1
               ? `Store locations (${multipleStoreLocations.length})`
-              : 'Store location'}
+              : "Store location"}
           </DialogTitle>
           <DialogContent dividers>
             {multipleStoreLocations.length === 0 ? (
-              <Typography color="text.secondary">No store locations available.</Typography>
+              <Typography color="text.secondary">
+                No store locations available.
+              </Typography>
             ) : (
               <Stack spacing={1.5}>
                 {normalizeManualStoreLocations(multipleStoreLocations)
                   .filter(hasStoreLocationContent)
                   .map((loc, idx) => (
                     <Box
-                      key={`${loc.address || loc.pincode || 'location'}-${idx}`}
+                      key={`${loc.address || loc.pincode || "location"}-${idx}`}
                       sx={{
                         p: 2,
-                        border: '1px solid #E5E8EB',
+                        border: "1px solid #E5E8EB",
                         borderRadius: 1,
-                        bgcolor: '#FAFBFC',
+                        bgcolor: "#FAFBFC",
                       }}
                     >
-                      <Typography variant="body2" fontWeight={600} color="#111827" sx={{ mb: 1 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color="#111827"
+                        sx={{ mb: 1 }}
+                      >
                         Location {idx + 1}
                       </Typography>
                       <StoreLocationDetailGrid location={loc} compact />
@@ -2087,8 +2864,12 @@ export default function ProductPreview() {
                   ))}
               </Stack>
             )}
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button type="button" variant="outlined" onClick={() => setStoreLocationsDialogOpen(false)}>
+            <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                type="button"
+                variant="outlined"
+                onClick={() => setStoreLocationsDialogOpen(false)}
+              >
                 Close
               </Button>
             </Box>
