@@ -5,12 +5,10 @@ import GoBackWhite from "../../assets/GoBackWhite.svg";
 import { Link } from "react-router-dom";
 
 const ADMIN_BASE_URL = (
-  process.env.REACT_APP_ADMIN_URL ||
-  "https://development-admin-coagb.ondigitalocean.app"
+  process.env.REACT_APP_ADMIN_URL || "https://development-admin-coagb.ondigitalocean.app"
 ).replace(/\/+$/, "");
 const DASHBOARD_BASE_URL = (
-  process.env.REACT_APP_DASHBOARD_URL ||
-  "https://bxi-dashboard-skrsv.ondigitalocean.app"
+  process.env.REACT_APP_DASHBOARD_URL || "https://bxi-dashboard-skrsv.ondigitalocean.app"
 ).replace(/\/+$/, "");
 const ADMIN_PANEL_URL = `${ADMIN_BASE_URL}/admindashboard/userdashboard`;
 const USER_MARKETPLACE_HOME_URL = `${DASHBOARD_BASE_URL}/home`;
