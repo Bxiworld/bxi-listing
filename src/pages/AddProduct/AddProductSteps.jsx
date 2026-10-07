@@ -286,6 +286,7 @@ export const Stepper = ({
 // General Information Step
 export const GeneralInformation = ({ category }) => {
   useScrollToTopOnStepEnter();
+  const [generalInfoOpen, setGeneralInfoOpen] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
   const [pendingTextileGenderHydrate, setPendingTextileGenderHydrate] =
@@ -917,9 +918,17 @@ export const GeneralInformation = ({ category }) => {
               <h2 className="form-section-title">
                 General Information - {categoryLabel}
                 <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <InfoIcon className="w-4 h-4 ml-2" />
+                  <Tooltip open={generalInfoOpen} onOpenChange={setGeneralInfoOpen}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setGeneralInfoOpen((open) => !open)}
+                        className="ml-2 inline-flex text-[#6B7A99] hover:text-[#C64091]"
+                        aria-label="More about General Information"
+                        aria-expanded={generalInfoOpen}
+                      >
+                        <InfoIcon className="w-4 h-4" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent className="w-48 text-white rounded-md padding-1">
                       <p>
@@ -1447,6 +1456,11 @@ const isOtherFeatureOption = (value) => {
 
 export const ProductInfo = ({ category }) => {
   useScrollToTopOnStepEnter();
+  const [productInfoOpen, setProductInfoOpen] = useState(false);
+  const [hsnInfoOpen, setHsnInfoOpen] = useState(false);
+  const [gstInfoOpen, setGstInfoOpen] = useState(false);
+  const [mrpInfoOpen, setMrpInfoOpen] = useState(false);
+  const [discountedMrpInfoOpen, setDiscountedMrpInfoOpen] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -2825,11 +2839,14 @@ export const ProductInfo = ({ category }) => {
                     .toUpperCase() + category.replace(/voucher$/i, "").slice(1)}
                 </h2>
                 <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
+                  <Tooltip open={productInfoOpen} onOpenChange={setProductInfoOpen}>
+                    <TooltipTrigger asChild>
                       <button
                         type="button"
+                        onClick={() => setProductInfoOpen((open) => !open)}
                         className="text-[#6B7A99] hover:text-[#C64091]"
+                        aria-label="More about Product Information"
+                        aria-expanded={productInfoOpen}
                       >
                         <Info className="w-4 h-4" />
                       </button>
@@ -3344,11 +3361,14 @@ export const ProductInfo = ({ category }) => {
                           HSN <span className="text-red-500">*</span>
                         </Label>
                         <TooltipProvider>
-                          <Tooltip>
+                          <Tooltip open={hsnInfoOpen} onOpenChange={setHsnInfoOpen}>
                             <TooltipTrigger asChild>
                               <button
                                 type="button"
+                                onClick={() => setHsnInfoOpen((open) => !open)}
                                 className="text-[#6B7A99] hover:text-[#C64091]"
+                                aria-label="More about HSN"
+                                aria-expanded={hsnInfoOpen}
                               >
                                 <Info className="w-3.5 h-3.5" />
                               </button>
@@ -3406,11 +3426,14 @@ export const ProductInfo = ({ category }) => {
                         GST <span className="text-red-500">*</span>
                       </Label>
                       <TooltipProvider>
-                        <Tooltip>
+                        <Tooltip open={gstInfoOpen} onOpenChange={setGstInfoOpen}>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
+                              onClick={() => setGstInfoOpen((open) => !open)}
                               className="text-[#6B7A99] hover:text-[#C64091]"
+                              aria-label="More about GST"
+                              aria-expanded={gstInfoOpen}
                             >
                               <Info className="w-3.5 h-3.5" />
                             </button>
@@ -3477,11 +3500,14 @@ export const ProductInfo = ({ category }) => {
                         {isVoucherCategory ? "" : "(Incl of GST)"}
                       </Label>
                       <TooltipProvider>
-                        <Tooltip>
+                        <Tooltip open={mrpInfoOpen} onOpenChange={setMrpInfoOpen}>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
+                              onClick={() => setMrpInfoOpen((open) => !open)}
                               className="text-[#6B7A99] hover:text-[#C64091]"
+                              aria-label="More about MRP including GST"
+                              aria-expanded={mrpInfoOpen}
                             >
                               <Info className="w-3.5 h-3.5" />
                             </button>
@@ -3514,11 +3540,14 @@ export const ProductInfo = ({ category }) => {
                           Discounted MRP <span className="text-red-500">*</span>
                         </Label>
                         <TooltipProvider>
-                          <Tooltip>
+                          <Tooltip open={discountedMrpInfoOpen} onOpenChange={setDiscountedMrpInfoOpen}>
                             <TooltipTrigger asChild>
                               <button
                                 type="button"
+                                onClick={() => setDiscountedMrpInfoOpen((open) => !open)}
                                 className="text-[#6B7A99] hover:text-[#C64091]"
+                                aria-label="More about Discounted MRP"
+                                aria-expanded={discountedMrpInfoOpen}
                               >
                                 <Info className="w-3.5 h-3.5" />
                               </button>
@@ -4927,6 +4956,7 @@ export const ProductInfo = ({ category }) => {
 // Technical Information Step – weight, dimensions, warranty, additional info
 export const TechInfo = ({ category }) => {
   useScrollToTopOnStepEnter();
+  const [techInfoOpen, setTechInfoOpen] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -5076,9 +5106,17 @@ export const TechInfo = ({ category }) => {
                   .charAt(0)
                   .toUpperCase() + category.replace(/voucher$/i, "").slice(1)}
                 <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <InfoIcon className="w-4 h-4 ml-2" />
+                  <Tooltip open={techInfoOpen} onOpenChange={setTechInfoOpen}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setTechInfoOpen((open) => !open)}
+                        className="ml-2 inline-flex text-[#6B7A99] hover:text-[#C64091]"
+                        aria-label="More about Technical Information"
+                        aria-expanded={techInfoOpen}
+                      >
+                        <InfoIcon className="w-4 h-4" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent className="w-48 text-white rounded-md p-2 text-xs leading-relaxed">
                       Technical Information refers to specific details and
@@ -5405,6 +5443,9 @@ function isHoardingMediaProduct(data) {
 
 export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
   useScrollToTopOnStepEnter();
+  const [goLiveInfoOpen, setGoLiveInfoOpen] = useState(false);
+  const [productImagesInfoOpen, setProductImagesInfoOpen] = useState(false);
+  const [sizeChartInfoOpen, setSizeChartInfoOpen] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -5716,11 +5757,14 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                       </p>
                     </div>
                     <TooltipProvider>
-                      <Tooltip>
+                      <Tooltip open={goLiveInfoOpen} onOpenChange={setGoLiveInfoOpen}>
                         <TooltipTrigger asChild>
                           <button
                             type="button"
+                            onClick={() => setGoLiveInfoOpen((open) => !open)}
                             className="text-[#6B7A99] hover:text-[#C64091]"
+                            aria-label="More about Go Live"
+                            aria-expanded={goLiveInfoOpen}
                           >
                             <Info className="w-5 h-5" />
                           </button>
@@ -5744,11 +5788,14 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                       <Label className="text-base font-semibold flex items-center gap-1">
                         Product Images <span className="text-red-500">*</span>
                         <TooltipProvider>
-                          <Tooltip>
+                          <Tooltip open={productImagesInfoOpen} onOpenChange={setProductImagesInfoOpen}>
                             <TooltipTrigger asChild>
                               <button
                                 type="button"
+                                onClick={() => setProductImagesInfoOpen((open) => !open)}
                                 className="text-[#6B7A99] hover:text-[#C64091]"
+                                aria-label="More about Product Images"
+                                aria-expanded={productImagesInfoOpen}
                               >
                                 <Info className="w-4 h-4" />
                               </button>
@@ -5886,11 +5933,14 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                                 Size Chart & Additional Documents
                               </Label>
                               <TooltipProvider>
-                                <Tooltip>
+                                <Tooltip open={sizeChartInfoOpen} onOpenChange={setSizeChartInfoOpen}>
                                   <TooltipTrigger asChild>
                                     <button
                                       type="button"
+                                      onClick={() => setSizeChartInfoOpen((open) => !open)}
                                       className="text-[#6B7A99] hover:text-[#C64091]"
+                                      aria-label="More about Size Chart and Additional Documents"
+                                      aria-expanded={sizeChartInfoOpen}
                                     >
                                       <Info className="w-4 h-4" />
                                     </button>
