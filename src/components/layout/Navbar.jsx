@@ -14,7 +14,7 @@ const ADMIN_PANEL_URL = `${ADMIN_BASE_URL}/admindashboard/userdashboard`;
 const USER_MARKETPLACE_HOME_URL = `${DASHBOARD_BASE_URL}/home`;
 
 export default function TopNavbar() {
-  const { user, companyAvatar, isAdmin } = useAuthUser();
+  const { user, companyAvatar, isAdmin } = useAuthUser(); 
 
   return (
     <nav className="w-full bg-[#f3f4f6] border-b border-gray-200 px-6 py-2">
