@@ -67,6 +67,7 @@ export default function TechInfo() {
   const ProductId = useParams().id;
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
+  const [techInfoTooltipOpen, setTechInfoTooltipOpen] = useState(false);
   const [dateArr, setDateArr] = useState([]);
   const [fetchproductData, setfetchProductData] = useState();
   const [startDate, setStartDate] = useState(new Date());
@@ -400,9 +401,15 @@ export default function TechInfo() {
                 Technical Information
               </h2>
               <TooltipProvider>
-                <Tooltip>
+                <Tooltip open={techInfoTooltipOpen} onOpenChange={setTechInfoTooltipOpen}>
                   <TooltipTrigger asChild>
-                    <button type="button" className="text-[#6B7A99] hover:text-[#C64091] shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setTechInfoTooltipOpen((isOpen) => !isOpen)}
+                      className="text-[#6B7A99] hover:text-[#C64091] shrink-0"
+                      aria-label="More about Technical Information"
+                      aria-expanded={techInfoTooltipOpen}
+                    >
                       <Info className="w-4 h-4" />
                     </button>
                   </TooltipTrigger>

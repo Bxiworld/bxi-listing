@@ -163,6 +163,7 @@ export default function PhysicalDigital() {
   const [digitalData, setDigitalData] = useState(null);
   const [selectedBulkUpload, setSelectedBulkUpload] = useState(false);
   const [openView, setOpenView] = useState(0);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const showAdminView = adminContext;
   const isVoucherOnly = isVoucherOnlyCompanyType(effectiveCompanyType);
@@ -319,12 +320,14 @@ export default function PhysicalDigital() {
                     {genericOneLineTitle}
                   </h1>
 
-                  <Tooltip>
+                  <Tooltip open={infoOpen} onOpenChange={setInfoOpen}>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
+                        onClick={() => setInfoOpen((open) => !open)}
                         className="inline-flex shrink-0 rounded-full text-[#6b7280] outline-none transition-colors hover:text-[#C64091] focus-visible:ring-2 focus-visible:ring-[#C64091]/40 focus-visible:ring-offset-2"
                         aria-label="More about Product vs Voucher"
+                        aria-expanded={infoOpen}
                       >
                         <Info className="h-5 w-5" strokeWidth={2} />
                       </button>
