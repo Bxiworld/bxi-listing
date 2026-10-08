@@ -68,11 +68,11 @@ function HorizontalStepTrack({ steps }) {
                 className={cn(
                   'flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors',
                   step.status === 'complete' &&
-                    'border-emerald-200 bg-emerald-50 text-emerald-700',
+                  'border-emerald-200 bg-emerald-50 text-emerald-700',
                   step.status === 'active' &&
-                    'border-[#C64091]/50 bg-[#FCE7F3] text-[#C64091] ring-2 ring-[#C64091]/15',
+                  'border-[#C64091]/50 bg-[#FCE7F3] text-[#C64091] ring-2 ring-[#C64091]/15',
                   step.status === 'error' &&
-                    'border-amber-200 bg-amber-50 text-amber-800',
+                  'border-amber-200 bg-amber-50 text-amber-800',
                   step.status === 'upcoming' && 'border-gray-200 bg-gray-50 text-gray-400',
                 )}
               >
@@ -251,8 +251,8 @@ export default function BulkUploadProcessing() {
         if (cancelled) return;
         setPollError(
           err?.response?.data?.message ||
-            err?.message ||
-            'Could not check processing status.',
+          err?.message ||
+          'Could not check processing status.',
         );
       }
     };
@@ -571,20 +571,20 @@ export default function BulkUploadProcessing() {
   ];
   const railSteps = showCorrectedUpload
     ? [
-        ...railBase,
-        {
-          key: 'validate',
-          shortLabel: 'Validate',
-          status:
-            step4Status === 'complete'
-              ? 'complete'
-              : step4Status === 'error'
-                ? 'error'
-                : step4Status === 'active'
-                  ? 'active'
-                  : 'upcoming',
-        },
-      ]
+      ...railBase,
+      {
+        key: 'validate',
+        shortLabel: 'Validate',
+        status:
+          step4Status === 'complete'
+            ? 'complete'
+            : step4Status === 'error'
+              ? 'error'
+              : step4Status === 'active'
+                ? 'active'
+                : 'upcoming',
+      },
+    ]
     : railBase;
 
   const headline = isComplete
@@ -597,69 +597,69 @@ export default function BulkUploadProcessing() {
 
   return (
     <>
-    <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="bulk-upload-processing">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/sellerhub')}
-          className="mb-4 text-gray-600 hover:text-[#C64091]"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Seller Hub
-        </Button>
+      <div className="min-h-screen bg-[#F8F9FA] py-8" data-testid="bulk-upload-processing">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/sellerhub')}
+            className="mb-4 text-gray-600 hover:text-[#C64091]"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Seller Hub
+          </Button>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-br from-[#FCE7F3]/40 to-white">
-            <div className="flex items-start gap-4">
-              <div
-                className={cn(
-                  'flex h-14 w-14 shrink-0 items-center justify-center rounded-full',
-                  isComplete
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : isFailed || completedWithIssues
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-[#FCE7F3] text-[#C64091]',
-                )}
-              >
-                {isComplete ? (
-                  <CheckCircle2 className="h-7 w-7" />
-                ) : isFailed || completedWithIssues ? (
-                  <AlertTriangle className="h-7 w-7" />
-                ) : showSpinner ? (
-                  <Loader2 className="h-7 w-7 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="h-7 w-7" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-[#C64091]">
-                  Bulk upload · {categoryLabel}
-                </p>
-                <h1
-                  className="text-2xl font-bold text-gray-900 mt-1"
-                  style={{ fontFamily: 'Manrope, sans-serif' }}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-br from-[#FCE7F3]/40 to-white">
+              <div className="flex items-start gap-4">
+                <div
+                  className={cn(
+                    'flex h-14 w-14 shrink-0 items-center justify-center rounded-full',
+                    isComplete
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : isFailed || completedWithIssues
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-[#FCE7F3] text-[#C64091]',
+                  )}
                 >
-                  {headline}
-                </h1>
-                {fileName && (
-                  <p className="text-sm text-gray-500 mt-2 font-mono truncate">
-                    {fileName}
+                  {isComplete ? (
+                    <CheckCircle2 className="h-7 w-7" />
+                  ) : isFailed || completedWithIssues ? (
+                    <AlertTriangle className="h-7 w-7" />
+                  ) : showSpinner ? (
+                    <Loader2 className="h-7 w-7 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="h-7 w-7" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#C64091]">
+                    Bulk upload · {categoryLabel}
                   </p>
-                )}
-                {jobId && (
-                  <p className="text-xs text-gray-400 mt-1">Job ID: {jobId}</p>
-                )}
+                  <h1
+                    className="text-md sm:text-xl md:text-2xl font-bold text-gray-900 mt-1"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    {headline}
+                  </h1>
+                  {fileName && (
+                    <p className="text-sm text-gray-500 mt-2 font-mono truncate">
+                      {fileName}
+                    </p>
+                  )}
+                  {jobId && (
+                    <p className="text-xs text-gray-400 mt-1">Job ID: {jobId}</p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="mt-6">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Progress
-              </p>
-              <HorizontalStepTrack steps={railSteps} />
-            </div>
+              <div className="mt-6">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  Progress
+                </p>
+                <HorizontalStepTrack steps={railSteps} />
+              </div>
 
-            {/* <div className="flex flex-wrap gap-3 mt-6">
+              {/* <div className="flex flex-wrap gap-3 mt-6">
               <Button
                 className="bg-[#C64091] hover:bg-[#A03375]"
                 onClick={() => navigate('/sellerhub')}
@@ -672,298 +672,298 @@ export default function BulkUploadProcessing() {
                 </Button>
               )}
             </div> */}
-          </div>
+            </div>
 
-          <div className="p-6 sm:p-8 bg-[#FAFBFC]">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Step details
-            </p>
-            <div
-              className={cn(
-                'grid gap-4 items-stretch',
-                showCorrectedUpload
-                  ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
-                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
-              )}
-            >
-              <StepDetailCard
-                stepNumber={1}
-                title="File submitted"
-                description="Your spreadsheet is saved and linked to your company profile for this bulk job."
-                status={step1Status}
+            <div className="p-6 sm:p-8 bg-[#FAFBFC]">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Step details
+              </p>
+              <div
+                className={cn(
+                  'grid gap-4 items-stretch',
+                  showCorrectedUpload
+                    ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
+                    : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+                )}
               >
-                {registerError ? (
-                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2">
-                    {registerError} You can still wait for the email notification.
+                <StepDetailCard
+                  stepNumber={1}
+                  title="File submitted"
+                  description="Your spreadsheet is saved and linked to your company profile for this bulk job."
+                  status={step1Status}
+                >
+                  {registerError ? (
+                    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-2">
+                      {registerError} You can still wait for the email notification.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">Registered for this job.</p>
+                  )}
+                </StepDetailCard>
+
+                <StepDetailCard
+                  stepNumber={2}
+                  title="AI processing"
+                  description="Data is cleaned and transformed off-site. Status refreshes every few seconds in this tab."
+                  status={step2Status}
+                >
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                    {processingPayload?.message ||
+                      state?.initialMessage ||
+                      'Waiting for the first status update…'}
                   </p>
-                ) : (
-                  <p className="text-xs text-gray-500">Registered for this job.</p>
-                )}
-              </StepDetailCard>
-
-              <StepDetailCard
-                stepNumber={2}
-                title="AI processing"
-                description="Data is cleaned and transformed off-site. Status refreshes every few seconds in this tab."
-                status={step2Status}
-              >
-                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
-                  {processingPayload?.message ||
-                    state?.initialMessage ||
-                    'Waiting for the first status update…'}
-                </p>
-                {pollError && <p className="text-xs text-red-600 mt-2">{pollError}</p>}
-                <p className="text-[11px] text-gray-400 mt-2 flex items-start gap-1.5">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-[#C64091] mt-0.5" />
-                  You may also get an email when the file is ready.
-                </p>
-              </StepDetailCard>
-
-              <StepDetailCard
-                stepNumber={3}
-                title="Download Excel"
-                description="Fix highlighted cells, then validate in the next column when available."
-                status={step3Status}
-              >
-                {showSpinner && (
-                  <p className="text-xs text-gray-500">Unlocks when AI processing finishes.</p>
-                )}
-                {isFailed && !showSpinner && (
-                  <p className="text-xs text-amber-900">
-                    No output file for this run. Try uploading again from Seller Hub or contact support.
+                  {pollError && <p className="text-xs text-red-600 mt-2">{pollError}</p>}
+                  <p className="text-[11px] text-gray-400 mt-2 flex items-start gap-1.5">
+                    <Mail className="h-3.5 w-3.5 shrink-0 text-[#C64091] mt-0.5" />
+                    You may also get an email when the file is ready.
                   </p>
-                )}
-                {!showSpinner && !isFailed && hasDownload && (
-                  <button
-                    type="button"
-                    onClick={handleDownloadProcessed}
-                    disabled={downloading}
-                    className="inline-flex items-center gap-2 text-[#C64091] font-medium text-xs sm:text-sm hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {downloading ? (
-                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 shrink-0" />
-                    )}
-                    {downloading ? 'Preparing download…' : 'Download processed file'}
-                  </button>
-                )}
-                {!showSpinner &&
-                  !isFailed &&
-                  (isComplete || completedWithIssues) &&
-                  !processingPayload?.download_url && (
-                    <p className="text-xs text-gray-600">
-                      Download link not ready yet—check email or refresh this page.
+                </StepDetailCard>
+
+                <StepDetailCard
+                  stepNumber={3}
+                  title="Download Excel"
+                  description="Fix highlighted cells, then validate in the next column when available."
+                  status={step3Status}
+                >
+                  {showSpinner && (
+                    <p className="text-xs text-gray-500">Unlocks when AI processing finishes.</p>
+                  )}
+                  {isFailed && !showSpinner && (
+                    <p className="text-xs text-amber-900">
+                      No output file for this run. Try uploading again from Seller Hub or contact support.
                     </p>
                   )}
-              </StepDetailCard>
-
-              {showCorrectedUpload && (
-                <StepDetailCard
-                  stepNumber={4}
-                  title="BXI validation"
-                  description="Re-upload your corrected file. No second AI pass—checks run on BXI only."
-                  status={step4Status}
-                >
-                  <div className="flex flex-col gap-3">
-                    <input
-                      ref={correctedInputRef}
-                      type="file"
-                      accept=".xlsx,.xls"
-                      className="hidden"
-                      onChange={(e) => handleCorrectedFile(e.target.files?.[0])}
-                    />
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] w-full sm:w-auto"
-                        onClick={() => correctedInputRef.current?.click()}
-                        disabled={correctedUploading}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Choose Excel
-                      </Button>
-                      {correctedFile && (
-                        <div className="flex items-center gap-2 text-xs text-gray-700 min-w-0">
-                          <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-600" />
-                          <span className="truncate font-mono">{correctedFile.name}</span>
-                          <button
-                            type="button"
-                            className="p-1 rounded hover:bg-gray-200 text-gray-500"
-                            onClick={() => {
-                              setCorrectedFile(null);
-                              setCorrectedUploadOk(false);
-                              if (correctedInputRef.current) correctedInputRef.current.value = '';
-                            }}
-                            aria-label="Remove file"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                  {!showSpinner && !isFailed && hasDownload && (
+                    <button
+                      type="button"
+                      onClick={handleDownloadProcessed}
+                      disabled={downloading}
+                      className="inline-flex items-center gap-2 text-[#C64091] font-medium text-xs sm:text-sm hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {downloading ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 shrink-0" />
                       )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
-                        disabled={!correctedFile || correctedUploading}
-                        onClick={submitCorrectedFile}
-                      >
-                        {correctedUploading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Validating…
-                          </>
-                        ) : (
-                          'Validate upload'
-                        )}
-                      </Button>
-                    </div>
-
-                    {validationMeta &&
-                      (validationMeta.totalRows != null || validationMeta.validatedRows != null) && (
-                        <p className="text-[11px] text-gray-500">
-                          {validationMeta.validatedRows != null && (
-                            <>Rows checked: {validationMeta.validatedRows}</>
-                          )}
-                          {validationMeta.totalRows != null && (
-                            <>
-                              {validationMeta.validatedRows != null ? ' · ' : null}
-                              Total rows: {validationMeta.totalRows}
-                            </>
-                          )}
-                        </p>
-                      )}
-
-                    {correctedUploadOk && (
-                      <div className="flex flex-col gap-2">
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
-                          {reviewDone
-                            ? 'Submitted for admin review. Track it in Seller Hub → Admin Review.'
-                            : 'Validation passed with no issues. Send these products for admin review.'}
-                        </div>
-                        {reviewDone ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] w-full sm:w-auto"
-                            onClick={() => navigate('/sellerhub')}
-                          >
-                            Go to Seller Hub
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
-                            disabled={submittingReview}
-                            onClick={handleSendForReview}
-                          >
-                            {submittingReview ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Submitting…
-                              </>
-                            ) : (
-                              'Send for admin review'
-                            )}
-                          </Button>
-                        )}
-                      </div>
+                      {downloading ? 'Preparing download…' : 'Download processed file'}
+                    </button>
+                  )}
+                  {!showSpinner &&
+                    !isFailed &&
+                    (isComplete || completedWithIssues) &&
+                    !processingPayload?.download_url && (
+                      <p className="text-xs text-gray-600">
+                        Download link not ready yet—check email or refresh this page.
+                      </p>
                     )}
+                </StepDetailCard>
 
-                    {correctedValidationErrors.length > 0 && (
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3 w-full min-w-0">
-                        <p className="text-xs text-red-900 font-medium leading-relaxed min-w-0">
-                          {correctedValidationErrors.length} validation issue
-                          {correctedValidationErrors.length === 1 ? '' : 's'} found. Open the full list
-                          to review row and field details.
-                        </p>
+                {showCorrectedUpload && (
+                  <StepDetailCard
+                    stepNumber={4}
+                    title="BXI validation"
+                    description="Re-upload your corrected file. No second AI pass—checks run on BXI only."
+                    status={step4Status}
+                  >
+                    <div className="flex flex-col gap-3">
+                      <input
+                        ref={correctedInputRef}
+                        type="file"
+                        accept=".xlsx,.xls"
+                        className="hidden"
+                        onChange={(e) => handleCorrectedFile(e.target.files?.[0])}
+                      />
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] w-full sm:w-auto"
+                          onClick={() => correctedInputRef.current?.click()}
+                          disabled={correctedUploading}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Choose Excel
+                        </Button>
+                        {correctedFile && (
+                          <div className="flex items-center gap-2 text-xs text-gray-700 min-w-0">
+                            <FileSpreadsheet className="w-4 h-4 shrink-0 text-emerald-600" />
+                            <span className="truncate font-mono">{correctedFile.name}</span>
+                            <button
+                              type="button"
+                              className="p-1 rounded hover:bg-gray-200 text-gray-500"
+                              onClick={() => {
+                                setCorrectedFile(null);
+                                setCorrectedUploadOk(false);
+                                if (correctedInputRef.current) correctedInputRef.current.value = '';
+                              }}
+                              aria-label="Remove file"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                         <Button
                           type="button"
                           size="sm"
-                          className="bg-red-700 hover:bg-red-800 text-white w-full justify-center"
-                          onClick={() => setIssuesModalOpen(true)}
+                          className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
+                          disabled={!correctedFile || correctedUploading}
+                          onClick={submitCorrectedFile}
                         >
-                          <AlertTriangle className="w-4 h-4 mr-2 shrink-0" />
-                          View all issues
+                          {correctedUploading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Validating…
+                            </>
+                          ) : (
+                            'Validate upload'
+                          )}
                         </Button>
                       </div>
-                    )}
-                  </div>
-                </StepDetailCard>
-              )}
+
+                      {validationMeta &&
+                        (validationMeta.totalRows != null || validationMeta.validatedRows != null) && (
+                          <p className="text-[11px] text-gray-500">
+                            {validationMeta.validatedRows != null && (
+                              <>Rows checked: {validationMeta.validatedRows}</>
+                            )}
+                            {validationMeta.totalRows != null && (
+                              <>
+                                {validationMeta.validatedRows != null ? ' · ' : null}
+                                Total rows: {validationMeta.totalRows}
+                              </>
+                            )}
+                          </p>
+                        )}
+
+                      {correctedUploadOk && (
+                        <div className="flex flex-col gap-2">
+                          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                            {reviewDone
+                              ? 'Submitted for admin review. Track it in Seller Hub → Admin Review.'
+                              : 'Validation passed with no issues. Send these products for admin review.'}
+                          </div>
+                          {reviewDone ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="border-[#C64091] text-[#C64091] hover:bg-[#FCE7F3] w-full sm:w-auto"
+                              onClick={() => navigate('/sellerhub')}
+                            >
+                              Go to Seller Hub
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
+                              disabled={submittingReview}
+                              onClick={handleSendForReview}
+                            >
+                              {submittingReview ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Submitting…
+                                </>
+                              ) : (
+                                'Send for admin review'
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {correctedValidationErrors.length > 0 && (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex flex-col gap-3 w-full min-w-0">
+                          <p className="text-xs text-red-900 font-medium leading-relaxed min-w-0">
+                            {correctedValidationErrors.length} validation issue
+                            {correctedValidationErrors.length === 1 ? '' : 's'} found. Open the full list
+                            to review row and field details.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="bg-red-700 hover:bg-red-800 text-white w-full justify-center"
+                            onClick={() => setIssuesModalOpen(true)}
+                          >
+                            <AlertTriangle className="w-4 h-4 mr-2 shrink-0" />
+                            View all issues
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </StepDetailCard>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <Dialog open={issuesModalOpen} onOpenChange={setIssuesModalOpen}>
-      <DialogContent
-        className={cn(
-          'max-w-[min(96vw,56rem)] w-full gap-0 p-0 flex flex-col max-h-[min(90vh,900px)]',
-          'sm:rounded-xl border-red-100',
-        )}
-      >
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-red-100 shrink-0 text-left space-y-2 pr-12">
-          <DialogTitle
-            className="text-xl text-red-950 flex items-center gap-2 font-bold"
-            style={{ fontFamily: 'Manrope, sans-serif' }}
-          >
-            <AlertTriangle className="h-6 w-6 shrink-0 text-red-600" />
-            Validation issues ({correctedValidationErrors.length})
-          </DialogTitle>
-          <DialogDescription className="text-sm text-gray-600 text-left">
-            Correct the highlighted problems in your Excel file, then save and use &quot;Validate upload&quot;
-            again. This list is scrollable if you have many rows to fix.
-          </DialogDescription>
-          {validationMeta &&
-            (validationMeta.totalRows != null || validationMeta.validatedRows != null) && (
-              <p className="text-xs text-gray-500 pt-1">
-                {validationMeta.validatedRows != null && (
-                  <>Rows checked: {validationMeta.validatedRows}</>
-                )}
-                {validationMeta.totalRows != null && (
-                  <>
-                    {validationMeta.validatedRows != null ? ' · ' : null}
-                    Total rows: {validationMeta.totalRows}
-                  </>
-                )}
-              </p>
-            )}
-        </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-red-50/30">
-          <ol className="space-y-3 list-none m-0 p-0">
-            {correctedValidationErrors.map((item, idx) => (
-              <li
-                key={idx}
-                className="rounded-lg border border-red-100 bg-white px-4 py-3 text-sm text-red-950 shadow-sm"
-              >
-                <span className="text-xs font-semibold text-red-600/80 tabular-nums mr-2">
-                  {idx + 1}.
-                </span>
-                <span className="leading-relaxed">{formatValidationError(item)}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-        <DialogFooter className="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50/90 sm:justify-between gap-2">
-          <p className="text-xs text-gray-500 text-left w-full sm:w-auto mr-auto">
-            Close this window to return to the upload step.
-          </p>
-          <Button
-            type="button"
-            className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
-            onClick={() => setIssuesModalOpen(false)}
-          >
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <Dialog open={issuesModalOpen} onOpenChange={setIssuesModalOpen}>
+        <DialogContent
+          className={cn(
+            'max-w-[min(96vw,56rem)] w-full gap-0 p-0 flex flex-col max-h-[min(90vh,900px)]',
+            'sm:rounded-xl border-red-100',
+          )}
+        >
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-red-100 shrink-0 text-left space-y-2 pr-12">
+            <DialogTitle
+              className="text-xl text-red-950 flex items-center gap-2 font-bold"
+              style={{ fontFamily: 'Manrope, sans-serif' }}
+            >
+              <AlertTriangle className="h-6 w-6 shrink-0 text-red-600" />
+              Validation issues ({correctedValidationErrors.length})
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 text-left">
+              Correct the highlighted problems in your Excel file, then save and use &quot;Validate upload&quot;
+              again. This list is scrollable if you have many rows to fix.
+            </DialogDescription>
+            {validationMeta &&
+              (validationMeta.totalRows != null || validationMeta.validatedRows != null) && (
+                <p className="text-xs text-gray-500 pt-1">
+                  {validationMeta.validatedRows != null && (
+                    <>Rows checked: {validationMeta.validatedRows}</>
+                  )}
+                  {validationMeta.totalRows != null && (
+                    <>
+                      {validationMeta.validatedRows != null ? ' · ' : null}
+                      Total rows: {validationMeta.totalRows}
+                    </>
+                  )}
+                </p>
+              )}
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 bg-red-50/30">
+            <ol className="space-y-3 list-none m-0 p-0">
+              {correctedValidationErrors.map((item, idx) => (
+                <li
+                  key={idx}
+                  className="rounded-lg border border-red-100 bg-white px-4 py-3 text-sm text-red-950 shadow-sm"
+                >
+                  <span className="text-xs font-semibold text-red-600/80 tabular-nums mr-2">
+                    {idx + 1}.
+                  </span>
+                  <span className="leading-relaxed">{formatValidationError(item)}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+          <DialogFooter className="px-6 py-4 border-t border-gray-100 shrink-0 bg-gray-50/90 sm:justify-between gap-2">
+            <p className="text-xs text-gray-500 text-left w-full sm:w-auto mr-auto">
+              Close this window to return to the upload step.
+            </p>
+            <Button
+              type="button"
+              className="bg-[#C64091] hover:bg-[#A03375] w-full sm:w-auto"
+              onClick={() => setIssuesModalOpen(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
