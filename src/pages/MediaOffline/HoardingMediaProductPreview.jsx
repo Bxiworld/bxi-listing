@@ -399,6 +399,7 @@ export default function HoardingMediaProductPreview() {
   const [ProductFeatures, setProfuctFeatures] = useState([]);
   const [storeVariationData, setStoreVariationData] = useState();
   const [dataGridrows, setDataGridRows] = useState([]);
+  const [excelKind, setExcelKind] = useState('');
   const [rowImagePreview, setRowImagePreview] = useState(null);
 
   const ImageDataArray = GetProductByIdData?.ProductImages;
@@ -487,69 +488,113 @@ export default function HoardingMediaProductPreview() {
       });
   };
 
-  const getHoardingListForPreview = async () => {
-    const listId = GetProductByIdData?.Hoarding_list_id;
-    if (!listId) {
-      setDataGridRows([]);
-      return;
-    }
-    try {
-      const response = await api.get(`product/HoardingListGetById/${listId}`);
-      const hoardings =
-        response?.data?.hoardings_list ||
-        response?.data?.data?.hoardings_list ||
-        [];
-      if (!Array.isArray(hoardings)) {
-        setDataGridRows([]);
-        return;
-      }
-      const sorted = [...hoardings].sort(
-        (a, b) => (a.DiscountedPrice || 0) - (b.DiscountedPrice || 0),
-      );
-      const rows = sorted.map((h, index) => ({
-        id: h._id?.toString?.() || `row-${index}`,
-        ...h,
-      }));
-      setDataGridRows(rows);
-    } catch {
-      setDataGridRows([]);
-    }
+  const readDigitalScreens = (payload) => {
+    const root = payload?.data ?? payload ?? {};
+    const nested = root?.data && typeof root.data === 'object' ? root.data : root;
+    const candidates = [
+      nested?.digitalAdsScreens,
+      nested?.screens,
+      nested?.DigitalAdsScreens?.digitalAdsScreens,
+      root?.digitalAdsScreens,
+      root?.DigitalAdsScreens?.digitalAdsScreens,
+    ];
+    return candidates.find((list) => Array.isArray(list)) || [];
   };
 
-  const getDigitalAdsScreensForPreview = async (screenDocId) => {
-    if (!screenDocId) {
-      setDataGridRows([]);
-      return;
-    }
-    try {
-      const response = await api.get(
-        `product/DigitalAdsScreenGetById/${screenDocId}`,
-      );
-      const screens = response?.data?.data?.digitalAdsScreens || [];
-      if (!Array.isArray(screens)) {
-        setDataGridRows([]);
-        return;
+  const fetchHoardingRows = async () => {
+    const listId = GetProductByIdData?.Hoarding_list_id;
+    const productId = GetProductByIdData?._id || id;
+    let hoardings = [];
+    if (listId) {
+      try {
+        const response = await api.get(`product/HoardingListGetById/${listId}`);
+        hoardings =
+          response?.data?.data?.hoardings_list ||
+          response?.data?.hoardings_list ||
+          [];
+      } catch {
+        hoardings = [];
       }
-      const sorted = [...screens].sort(
+    }
+    if ((!Array.isArray(hoardings) || hoardings.length === 0) && productId) {
+      try {
+        const response = await api.get(`product/get_hoarding_products/${productId}`);
+        const data = response?.data?.data || {};
+        hoardings =
+          data?.HoardingLists?.hoardings_list ||
+          data?.hoardings_list ||
+          [];
+      } catch {
+        hoardings = [];
+      }
+    }
+    if (!Array.isArray(hoardings)) return [];
+    return [...hoardings]
+      .sort((a, b) => (a.DiscountedPrice || 0) - (b.DiscountedPrice || 0))
+      .map((row, index) => ({
+        id: row._id?.toString?.() || `row-${index}`,
+        ...row,
+      }));
+  };
+
+  const fetchDigitalRows = async () => {
+    const screenId = GetProductByIdData?.DigitalAds_screen_id;
+    const productId = GetProductByIdData?._id || id;
+    let screens = [];
+    if (screenId) {
+      try {
+        const response = await api.get(`product/DigitalAdsScreenGetById/${screenId}`);
+        screens = readDigitalScreens(response?.data);
+      } catch {
+        screens = [];
+      }
+    }
+    if ((!Array.isArray(screens) || screens.length === 0) && productId) {
+      try {
+        const response = await api.get(`product/get_digitalads_products/${productId}`);
+        screens = readDigitalScreens(response?.data);
+      } catch {
+        screens = [];
+      }
+    }
+    if (!Array.isArray(screens)) return [];
+    return [...screens]
+      .sort(
         (a, b) =>
           (Number(a.discountedPrice ?? a.DiscountedPrice) || 0) -
           (Number(b.discountedPrice ?? b.DiscountedPrice) || 0),
-      );
-      const rows = sorted.map((s, index) => ({
-        id: s._id?.toString?.() || `dooh-row-${index}`,
-        ...s,
+      )
+      .map((row, index) => ({
+        id: row._id?.toString?.() || `dooh-row-${index}`,
+        ...row,
       }));
-      setDataGridRows(rows);
-    } catch {
-      setDataGridRows([]);
-    }
   };
 
-  const isDoohListing = useMemo(
-    () =>
-      String(GetProductByIdData?.mediaCategory || '').toLowerCase() === 'dooh',
-    [GetProductByIdData?.mediaCategory],
-  );
+  const isDoohListing = useMemo(() => {
+    const mediaCategory = String(GetProductByIdData?.mediaCategory || '').toLowerCase().trim();
+    const sub = String(GetProductByIdData?.ProductSubCategoryName || '').toLowerCase().trim();
+    if (mediaCategory === 'dooh') return true;
+    if (
+      [
+        'led ooh',
+        'scala tv',
+        'led pillar',
+        'easel standee',
+        'ccd ads',
+        'residential screen',
+        'corporate park screens',
+        'gym digital screens',
+        'mall digital media',
+      ].includes(sub)
+    ) {
+      return true;
+    }
+    return Boolean(GetProductByIdData?.DigitalAds_screen_id) && mediaCategory !== 'hoarding';
+  }, [
+    GetProductByIdData?.mediaCategory,
+    GetProductByIdData?.ProductSubCategoryName,
+    GetProductByIdData?.DigitalAds_screen_id,
+  ]);
 
   const hoardingColumns = [
     { field: 'srNo', headerName: 'Sr No', width: 75 },
@@ -634,35 +679,36 @@ export default function HoardingMediaProductPreview() {
       valueGetter: (v, row) =>
         row?.discountedPrice ?? row?.DiscountedPrice ?? v ?? '',
     },
-    {
-      field: 'rowImages',
-      headerName: 'Images',
-      width: 72,
-      sortable: false,
-      renderCell: (params) => {
-        const raw = params?.row?.images;
-        const arr = Array.isArray(raw) ? raw : [];
-        const urls = arr
-          .map((img) =>
-            typeof img === 'string' ? img : img?.url || img?.URL || '',
-          )
-          .filter(Boolean);
-        if (!urls.length) return null;
-        return (
-          <IconButton
-            size="small"
-            aria-label="View screen images"
-            onClick={() => setRowImagePreview(urls)}
-            sx={{ color: accent }}
-          >
-            <Eye size={18} />
-          </IconButton>
-        );
-      },
-    },
+    // {
+    //   field: 'rowImages',
+    //   headerName: 'Images',
+    //   width: 72,
+    //   sortable: false,
+    //   renderCell: (params) => {
+    //     const raw = params?.row?.images;
+    //     const arr = Array.isArray(raw) ? raw : [];
+    //     const urls = arr
+    //       .map((img) =>
+    //         typeof img === 'string' ? img : img?.url || img?.URL || '',
+    //       )
+    //       .filter(Boolean);
+    //     if (!urls.length) return null;
+    //     return (
+    //       <IconButton
+    //         size="small"
+    //         aria-label="View screen images"
+    //         onClick={() => setRowImagePreview(urls)}
+    //         sx={{ color: accent }}
+    //       >
+    //         <Eye size={18} />
+    //       </IconButton>
+    //     );
+    //   },
+    // },
   ];
 
-  const gridColumns = isDoohListing ? doohDigitalColumns : hoardingColumns;
+  const showDoohSheet = excelKind ? excelKind === 'dooh' : isDoohListing;
+  const gridColumns = showDoohSheet ? doohDigitalColumns : hoardingColumns;
 
   const productSubtitleText = normalizePreviewText(
     GetProductByIdData?.ProductSubtittle ||
@@ -675,30 +721,43 @@ export default function HoardingMediaProductPreview() {
     productSubtitleText,
     productDescriptionText,
   );
-  const siteListSectionTitle = isDoohListing ? 'Digital screens' : 'Hoarding sites';
+  const siteListSectionTitle = showDoohSheet ? 'Digital screens' : 'Hoarding sites';
 
   useEffect(() => {
     if (!GetProductByIdData) return;
-    if (isDoohListing) {
-      const docId = GetProductByIdData.DigitalAds_screen_id;
-      if (docId) {
-        getDigitalAdsScreensForPreview(docId);
-      } else {
-        setDataGridRows([]);
+    let cancelled = false;
+    (async () => {
+      const digitalFirst =
+        isDoohListing || Boolean(GetProductByIdData?.DigitalAds_screen_id);
+      const primary = digitalFirst ? await fetchDigitalRows() : await fetchHoardingRows();
+      const fallback = primary.length
+        ? []
+        : digitalFirst
+          ? await fetchHoardingRows()
+          : await fetchDigitalRows();
+      if (cancelled) return;
+      if (primary.length) {
+        setExcelKind(digitalFirst ? 'dooh' : 'hoarding');
+        setDataGridRows(primary);
+        return;
       }
-      return;
-    }
-    if (GetProductByIdData.Hoarding_list_id) {
-      getHoardingListForPreview();
-    } else {
+      if (fallback.length) {
+        setExcelKind(digitalFirst ? 'hoarding' : 'dooh');
+        setDataGridRows(fallback);
+        return;
+      }
       setDataGridRows([]);
-    }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [
     isDoohListing,
     GetProductByIdData,
     GetProductByIdData?.Hoarding_list_id,
     GetProductByIdData?.DigitalAds_screen_id,
     GetProductByIdData?.mediaCategory,
+    id,
   ]);
 
   const handleBack = () => {
@@ -1017,7 +1076,7 @@ export default function HoardingMediaProductPreview() {
                       <DataGrid
                         rows={dataGridrows}
                         columns={gridColumns}
-                        disableSelectionOnClick
+                        disableRowSelectionOnClick
                         hideFooterSelectedRowCount
                         disableColumnMenu
                         autoHeight

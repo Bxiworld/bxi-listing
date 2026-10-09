@@ -223,17 +223,53 @@ const normalizeKeyForMediaPreview = (key) => {
   return String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 };
 
-const resolveMediaViewRoute = (product, productId) => {
-  const mediaJourney = getMediaJourney(product?.mediaCategory);
-  const pc = normalizeKeyForMediaPreview(getProductCategoryName(product));
+const DOOH_PREVIEW_SUBCATEGORIES = new Set([
+  'led ooh',
+  'scala tv',
+  'led pillar',
+  'easel standee',
+  'ccd ads',
+  'residential screen',
+  'corporate park screens',
+  'gym digital screens',
+  'mall digital media',
+]);
 
-  if (mediaJourney === 'hoarding') {
+const HOARDING_PREVIEW_SUBCATEGORIES = new Set([
+  'ooh',
+  'metro station',
+  'mall hoardings',
+  'bus shelters',
+  'railway station boards',
+  'hoardings',
+]);
+
+const resolveMediaViewRoute = (product, productId) => {
+  const mediaCategory = String(product?.mediaCategory || '').toLowerCase().trim();
+  const mediaJourney = String(
+    product?.mediaJourney || getMediaJourney(mediaCategory) || '',
+  ).toLowerCase();
+  const sub = String(
+    product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? '',
+  )
+    .toLowerCase()
+    .trim();
+  const pc = normalizeKeyForMediaPreview(getProductCategoryName(product));
+  const isDooh =
+    mediaCategory === 'dooh' || DOOH_PREVIEW_SUBCATEGORIES.has(sub);
+  const isHoarding =
+    mediaCategory === 'hoarding' ||
+    mediaJourney === 'hoarding' ||
+    HOARDING_PREVIEW_SUBCATEGORIES.has(sub) ||
+    Boolean(product?.Hoarding_list_id);
+
+  // Hoarding and DOOH Excel live on the hoarding-style preview, not the generic media page.
+  if (isDooh || isHoarding) {
     return `/hoardingmediaofflineproductpreview/${productId}`;
   }
-  if (mediaJourney === 'multiplex' || pc === 'multiplexads') {
+  if (mediaJourney === 'multiplex' || pc === 'multiplexads' || mediaCategory === 'multiplex') {
     return `/multiplexmediaonlineproductpreview/${productId}`;
   }
-  // All other media journeys currently use the standard online preview
   return `/mediaonlineproductpreview/${productId}`;
 };
 
