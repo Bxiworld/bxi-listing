@@ -208,6 +208,14 @@ export default function PhysicalDigital() {
     return <Navigate to="/sellerhub" replace />;
   }
 
+  const openListingPath = (path, state) => {
+    const params = new URLSearchParams();
+    if (effectiveCompanyType) params.set("companyType", effectiveCompanyType);
+    if (source === "admin") params.set("source", "admin");
+    const query = params.toString();
+    navigate(query ? `${path}?${query}` : path, state ? { state } : undefined);
+  };
+
   const handleList = () => {
     if (selectedVoucher) {
       if (!digitalData) {
@@ -230,7 +238,7 @@ export default function PhysicalDigital() {
           );
           localStorage.setItem("companyType", effectiveCompanyType ?? "");
         }
-        navigate(path);
+        openListingPath(path);
       } else {
         toast.error("Voucher listing is not available for your company type.");
       }
@@ -245,15 +253,13 @@ export default function PhysicalDigital() {
       if (selectedBulkUpload) {
         const bulkUploadCategory =
           COMPANY_TYPE_TO_BULK_CATEGORY[effectiveCompanyType] ?? "textile";
-        navigate("/productbulkupload", {
-          state: { bulkUploadCategory },
-        });
+        openListingPath("/productbulkupload", { bulkUploadCategory });
       } else {
         const path = COMPANY_TYPE_TO_PRODUCT_PATH[effectiveCompanyType];
         if (path && path.includes("general")) {
-          navigate(path);
+          openListingPath(path);
         } else if (effectiveCompanyType === "Hotel") {
-          navigate("/hotelsVoucher/generalinformation");
+          openListingPath("/hotelsVoucher/generalinformation");
         } else {
           toast.error(
             "Product listing is not available for your company type.",
@@ -495,6 +501,7 @@ export default function PhysicalDigital() {
           {/* Action Buttons */}
           <div className="flex flex-col items-center gap-5 mt-12 pt-8 border-t border-gray-200">
             <Button
+              type="button"
               className="bg-[#C64091] hover:bg-[#a53575] text-white font-semibold px-12 py-6 rounded-xl text-base shadow-md"
               onClick={handleList}
             >
@@ -506,6 +513,7 @@ export default function PhysicalDigital() {
             </Button>
 
             <Button
+              type="button"
               variant="ghost"
               className="text-[#C64091] font-medium"
               onClick={() => navigate("/sellerhub")}
