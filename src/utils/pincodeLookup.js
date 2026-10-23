@@ -26,7 +26,7 @@ export async function resolveLocationFromPincode(pincode, { StateData, STATE_REG
   const postOffices = data[0].PostOffice;
   const firstPo = postOffices[0];
   const apiStateName = firstPo?.State;
-  const apiDistrict = firstPo?.District || firstPo?.Block;
+  const apiCity = firstPo?.City || firstPo?.District || firstPo?.Block;
   const apiLandmark = firstPo?.Name;
 
   const matchedState = StateData.find((s) => normalize(s.name) === normalize(apiStateName));
@@ -58,12 +58,14 @@ export async function resolveLocationFromPincode(pincode, { StateData, STATE_REG
 
   const candidateStrings = Array.from(
     new Set(
-      postOffices.flatMap((po) => [po?.District, po?.Block, po?.Region]).filter(Boolean)
+      postOffices
+        .flatMap((po) => [po?.City, po?.District, po?.Block, po?.Division, po?.Region])
+        .filter(Boolean)
     )
   );
 
   const matchedCity = candidateStrings.map((c) => findMatchingCity(c)).find(Boolean) || null;
-  const fallbackCity = apiDistrict || apiStateName || candidateStrings[0] || '';
+  const fallbackCity = apiCity || candidateStrings[0] || apiStateName || '';
   const nextCity = matchedCity || fallbackCity || cities?.[0] || '';
   const nextCityStr = String(nextCity || '').trim();
 
