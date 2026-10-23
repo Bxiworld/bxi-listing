@@ -428,15 +428,15 @@ export const GeneralInformation = ({ category }) => {
   const orderedGenderCategoryData =
     giConfig.hasGenderSelection && Array.isArray(genderCategoryData)
       ? [...genderCategoryData].sort((a, b) => {
-          const aLabel = String(a?.SubcategoryName || "").toLowerCase();
-          const bLabel = String(b?.SubcategoryName || "").toLowerCase();
-          const aIdx = textileGenderDisplayOrder.indexOf(aLabel);
-          const bIdx = textileGenderDisplayOrder.indexOf(bLabel);
-          const safeA = aIdx === -1 ? textileGenderDisplayOrder.length : aIdx;
-          const safeB = bIdx === -1 ? textileGenderDisplayOrder.length : bIdx;
-          if (safeA !== safeB) return safeA - safeB;
-          return aLabel.localeCompare(bLabel);
-        })
+        const aLabel = String(a?.SubcategoryName || "").toLowerCase();
+        const bLabel = String(b?.SubcategoryName || "").toLowerCase();
+        const aIdx = textileGenderDisplayOrder.indexOf(aLabel);
+        const bIdx = textileGenderDisplayOrder.indexOf(bLabel);
+        const safeA = aIdx === -1 ? textileGenderDisplayOrder.length : aIdx;
+        const safeB = bIdx === -1 ? textileGenderDisplayOrder.length : bIdx;
+        if (safeA !== safeB) return safeA - safeB;
+        return aLabel.localeCompare(bLabel);
+      })
       : genderCategoryData;
 
   useEffect(() => {
@@ -456,12 +456,12 @@ export const GeneralInformation = ({ category }) => {
         const curatedLabels =
           category === "hotelsVoucher"
             ? [
-                "Value Voucher",
-                "Gift Cards",
-                "Valid on All",
-                "Valid on Limited",
-                "Others",
-              ]
+              "Value Voucher",
+              "Gift Cards",
+              "Valid on All",
+              "Valid on Limited",
+              "Others",
+            ]
             : ["Value Voucher", "Gift Cards"];
         setGenderCategoryData([]);
         setSelectedGenderId(null);
@@ -971,10 +971,10 @@ export const GeneralInformation = ({ category }) => {
                             };
                             const label =
                               normalizedLabelMap[
-                                String(rawLabel).toLowerCase()
+                              String(rawLabel).toLowerCase()
                               ] ||
                               String(rawLabel).charAt(0).toUpperCase() +
-                                String(rawLabel).slice(1).toLowerCase();
+                              String(rawLabel).slice(1).toLowerCase();
                             const isActive = selectedGenderId === item?._id;
                             return (
                               <Button
@@ -1491,6 +1491,7 @@ export const ProductInfo = ({ category }) => {
     pincode: "",
   });
   const [cityArray, setCityArray] = useState([]);
+  const pincodeLookupRequestRef = useRef(0);
   const [otherCosts, setOtherCosts] = useState([]);
   const [otherCostForm, setOtherCostForm] = useState({
     AdCostApplicableOn: "All",
@@ -1746,12 +1747,17 @@ export const ProductInfo = ({ category }) => {
   }, []);
 
   const handlePincodeLookup = async (pincode) => {
-    if (String(pincode).length !== 6) return;
+    const digits = String(pincode || "").replace(/\D/g, "");
+    if (digits.length !== 6) return;
+    const requestId = ++pincodeLookupRequestRef.current;
     try {
-      const resolved = await resolveLocationFromPincode(pincode, {
+      const resolved = await resolveLocationFromPincode(digits, {
         StateData,
         STATE_REGION_MAP,
       });
+      // Ignore an older response if the user has entered a different pincode
+      // while this lookup was still in flight.
+      if (requestId !== pincodeLookupRequestRef.current) return;
       if (!resolved) {
         toast.error("Invalid pincode or no data found");
         return;
@@ -1764,7 +1770,7 @@ export const ProductInfo = ({ category }) => {
       }
       setLocationDetails((prev) => ({
         ...prev,
-        pincode: String(pincode),
+        pincode: digits,
         region: resolved.region || "North",
         state: resolved.state,
         city: resolved.city,
@@ -1773,6 +1779,7 @@ export const ProductInfo = ({ category }) => {
       setCityArray(resolved.cityOptions || []);
       toast.success("Location auto-filled!");
     } catch {
+      if (requestId !== pincodeLookupRequestRef.current) return;
       toast.error("Failed to fetch location data");
     }
   };
@@ -2108,8 +2115,8 @@ export const ProductInfo = ({ category }) => {
         (category !== "eeVoucher" ||
           (typeof localStorage !== "undefined" &&
             localStorage.getItem("eevoucherdata") === "event")) && {
-          DateOfTheEvent: d.dateOfEvent || "",
-        }),
+        DateOfTheEvent: d.dateOfEvent || "",
+      }),
     };
     if (editVariationIndex !== null) {
       setProductsVariations((prev) => {
@@ -2233,8 +2240,8 @@ export const ProductInfo = ({ category }) => {
       isDimensionSelectionLocked && currentLockedSize
         ? currentLockedSize
         : inferSelectedSizeFromVariation(row, effectiveSizeOptions) ||
-          row.ProductSize ||
-          "";
+        row.ProductSize ||
+        "";
     setValue("selectedSize", derivedSelectedSize);
 
     setValue("length", row.Length ?? "");
@@ -2785,10 +2792,10 @@ export const ProductInfo = ({ category }) => {
           data.productForm && { ProductForm: data.productForm }),
         ...(category === "mobility" &&
           productData?.HasRegistrationProcess === "Yes" && {
-            RegistrationDetails: data.registrationDetails || "",
-            InsuranceDetails: data.insuranceDetails || "",
-            TaxesDetails: data.taxesDetails || "",
-          }),
+          RegistrationDetails: data.registrationDetails || "",
+          InsuranceDetails: data.insuranceDetails || "",
+          TaxesDetails: data.taxesDetails || "",
+        }),
       };
 
       if (isVoucherCategory) {
@@ -2806,8 +2813,8 @@ export const ProductInfo = ({ category }) => {
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
-          error?.message ||
-          "Failed to save. Please try again.",
+        error?.message ||
+        "Failed to save. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -2921,7 +2928,7 @@ export const ProductInfo = ({ category }) => {
                             variant="outline"
                             className={cn(
                               watch("gender") === g &&
-                                "border-[#C64091] bg-[#FCE7F3] text-[#C64091]",
+                              "border-[#C64091] bg-[#FCE7F3] text-[#C64091]",
                             )}
                             onClick={() => setValue("gender", g)}
                           >
@@ -2950,9 +2957,9 @@ export const ProductInfo = ({ category }) => {
                           disabled={isDimensionSelectionLocked}
                           className={cn(
                             selectedSize === opt &&
-                              "border-[#C64091] bg-[#FCE7F3] text-[#C64091]",
+                            "border-[#C64091] bg-[#FCE7F3] text-[#C64091]",
                             isDimensionSelectionLocked &&
-                              "opacity-50 cursor-not-allowed",
+                            "opacity-50 cursor-not-allowed",
                           )}
                           onClick={() => {
                             if (isDimensionSelectionLocked) return;
@@ -3142,30 +3149,30 @@ export const ProductInfo = ({ category }) => {
                       {(selectedSize === "Length" ||
                         selectedSize === "Length x Height" ||
                         selectedSize === "Length x Height x Width") && (
-                        <div className="space-y-2">
-                          <Label>Length ({watch("sizeUnit") || "cm"})</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0"
-                            {...register("length")}
-                          />
-                        </div>
-                      )}
+                          <div className="space-y-2">
+                            <Label>Length ({watch("sizeUnit") || "cm"})</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0"
+                              {...register("length")}
+                            />
+                          </div>
+                        )}
 
                       {/* Height should appear for both LxH and LxHxW */}
                       {(selectedSize === "Length x Height" ||
                         selectedSize === "Length x Height x Width") && (
-                        <div className="space-y-2">
-                          <Label>Height ({watch("sizeUnit") || "cm"})</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0"
-                            {...register("height")}
-                          />
-                        </div>
-                      )}
+                          <div className="space-y-2">
+                            <Label>Height ({watch("sizeUnit") || "cm"})</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0"
+                              {...register("height")}
+                            />
+                          </div>
+                        )}
 
                       {selectedSize === "Length x Height x Width" && (
                         <div className="space-y-2">
@@ -3864,22 +3871,22 @@ export const ProductInfo = ({ category }) => {
                             )}
                             {activeVoucherConfig?.extraVariantColumn ===
                               "color" && (
-                              <th className="px-3 py-2 text-center font-medium">
-                                Color
-                              </th>
-                            )}
+                                <th className="px-3 py-2 text-center font-medium">
+                                  Color
+                                </th>
+                              )}
                             {activeVoucherConfig?.extraVariantColumn ===
                               "flavor" && (
-                              <th className="px-3 py-2 text-center font-medium">
-                                Flavor
-                              </th>
-                            )}
+                                <th className="px-3 py-2 text-center font-medium">
+                                  Flavor
+                                </th>
+                              )}
                             {activeVoucherConfig?.extraVariantColumn ===
                               "offeringType" && (
-                              <th className="px-3 py-2 text-center font-medium">
-                                Offering Type
-                              </th>
-                            )}
+                                <th className="px-3 py-2 text-center font-medium">
+                                  Offering Type
+                                </th>
+                              )}
                             {showDateOfEvent && (
                               <th className="px-3 py-2 text-center font-medium">
                                 Event Date
@@ -3965,32 +3972,32 @@ export const ProductInfo = ({ category }) => {
                               )}
                               {activeVoucherConfig?.extraVariantColumn ===
                                 "color" && (
-                                <td className="px-3 py-2">
-                                  {v.ProductColor ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                      <span
-                                        className="w-3 h-3 rounded-full border border-[#E5E8EB]"
-                                        style={{
-                                          backgroundColor: v.ProductColor,
-                                        }}
-                                      />
-                                      <span>{v.ProductColor}</span>
-                                    </div>
-                                  ) : (
-                                    "—"
-                                  )}
-                                </td>
-                              )}
+                                  <td className="px-3 py-2">
+                                    {v.ProductColor ? (
+                                      <div className="flex items-center justify-center gap-2">
+                                        <span
+                                          className="w-3 h-3 rounded-full border border-[#E5E8EB]"
+                                          style={{
+                                            backgroundColor: v.ProductColor,
+                                          }}
+                                        />
+                                        <span>{v.ProductColor}</span>
+                                      </div>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </td>
+                                )}
                               {activeVoucherConfig?.extraVariantColumn ===
                                 "flavor" && (
-                                <td className="px-3 py-2">{v.Flavor || "—"}</td>
-                              )}
+                                  <td className="px-3 py-2">{v.Flavor || "—"}</td>
+                                )}
                               {activeVoucherConfig?.extraVariantColumn ===
                                 "offeringType" && (
-                                <td className="px-3 py-2">
-                                  {v.OfferingType || "—"}
-                                </td>
-                              )}
+                                  <td className="px-3 py-2">
+                                    {v.OfferingType || "—"}
+                                  </td>
+                                )}
                               {showDateOfEvent && (
                                 <td className="px-3 py-2">
                                   {v.DateOfTheEvent || "—"}
@@ -4104,7 +4111,7 @@ export const ProductInfo = ({ category }) => {
                                   if (
                                     category === "mobility" &&
                                     productData?.HasRegistrationProcess ===
-                                      "Yes" &&
+                                    "Yes" &&
                                     !value?.trim()
                                   ) {
                                     return "Registration details are required";
@@ -4134,7 +4141,7 @@ export const ProductInfo = ({ category }) => {
                                   if (
                                     category === "mobility" &&
                                     productData?.HasRegistrationProcess ===
-                                      "Yes" &&
+                                    "Yes" &&
                                     !value?.trim()
                                   ) {
                                     return "Insurance details are required";
@@ -4164,7 +4171,7 @@ export const ProductInfo = ({ category }) => {
                                   if (
                                     category === "mobility" &&
                                     productData?.HasRegistrationProcess ===
-                                      "Yes" &&
+                                    "Yes" &&
                                     !value?.trim()
                                   ) {
                                     return "Taxes details are required";
@@ -4207,6 +4214,10 @@ export const ProductInfo = ({ category }) => {
                                 ...prev,
                                 pincode: v,
                               }));
+                              // Invalidate a pending lookup as soon as the user
+                              // edits the pincode, so stale results cannot replace
+                              // the location for the latest value.
+                              pincodeLookupRequestRef.current += 1;
                               if (v.length === 6) handlePincodeLookup(v);
                             }}
                           />
@@ -4259,60 +4270,24 @@ export const ProductInfo = ({ category }) => {
                         </div>
                         <div className="space-y-2">
                           <Label>City</Label>
-                          <Select
+                          <Input
+                            list="product-pickup-city-options"
+                            placeholder="City is filled from pincode"
                             value={locationDetails.city}
-                            onValueChange={(v) =>
+                            onChange={(e) =>
                               setLocationDetails((prev) => ({
                                 ...prev,
-                                city: v,
+                                city: e.target.value,
                               }))
                             }
-                          >
-                            <SelectTrigger>
-                              {locationDetails.city ? (
-                                <span className="text-sm text-foreground">
-                                  {String(locationDetails.city)}
-                                </span>
-                              ) : (
-                                <SelectValue placeholder="Select city" />
-                              )}
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(() => {
-                                const normalize = (s) =>
-                                  String(s || "")
-                                    .toLowerCase()
-                                    .replace(/\s+/g, "");
-                                const base = Array.isArray(cityArray)
-                                  ? cityArray
-                                  : [];
-                                // Always include the currently selected city string first.
-                                // This guarantees the Select can match `value={locationDetails.city}`
-                                // to an existing `SelectItem` even if the cityArray contains a
-                                // slightly differently-formatted duplicate.
-                                const merged = [
-                                  locationDetails.city,
-                                  ...base,
-                                ].filter((c) => String(c || "").trim() !== "");
-                                const seen = new Set();
-                                const unique = [];
-                                for (const c of merged) {
-                                  const key = normalize(c);
-                                  if (!key || seen.has(key)) continue;
-                                  seen.add(key);
-                                  unique.push(c);
-                                }
-                                return unique.map((c, i) => (
-                                  <SelectItem
-                                    key={`${String(c)}-${i}`}
-                                    value={String(c)}
-                                  >
-                                    {String(c)}
-                                  </SelectItem>
-                                ));
-                              })()}
-                            </SelectContent>
-                          </Select>
+                          />
+                          <datalist id="product-pickup-city-options">
+                            {(Array.isArray(cityArray) ? cityArray : []).map(
+                              (city, index) => (
+                                <option key={`${city}-${index}`} value={city} />
+                              ),
+                            )}
+                          </datalist>
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label>Landmark</Label>
@@ -4781,12 +4756,11 @@ export const ProductInfo = ({ category }) => {
                       </p>
 
                       <span
-                        className={`px-3 py-1 text-xs font-medium rounded-full 
-                  ${
-                    featureList.length >= PRODUCT_FEATURE_MIN
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
+                        className={`px-3 py-1 text-xs font-medium rounded-full
+                  ${featureList.length >= PRODUCT_FEATURE_MIN
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                          }`}
                       >
                         {featureList.length}/{PRODUCT_FEATURE_MAX}
                       </span>
@@ -5074,8 +5048,8 @@ export const TechInfo = ({ category }) => {
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
-          error?.message ||
-          "Failed to save. Please try again.",
+        error?.message ||
+        "Failed to save. Please try again.",
       );
     } finally {
       setIsSubmitting(false);
@@ -5353,7 +5327,7 @@ export const TechInfo = ({ category }) => {
                     {tags.map((t) => (
                       <span
                         key={t}
-                        className="inline-flex items-center px-3 py-1 rounded-full 
+                        className="inline-flex items-center px-3 py-1 rounded-full
                               bg-[#FCE7F3] text-[#C64091] text-sm font-medium"
                       >
                         {t}
@@ -5703,9 +5677,9 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
         const base = treatAsHoardingGoLive
           ? "/hoardingmediaofflineproductpreview"
           : (mediaOnlinePreviewPath || "/mediaonlineproductpreview").replace(
-              /\/$/,
-              "",
-            );
+            /\/$/,
+            "",
+          );
         navigate(`${base}/${id}`);
       } else {
         navigate(`/allproductpreview/${id}`);
@@ -6065,8 +6039,8 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
                             isUploading ||
                             (requiresListingPeriod && !watch("listPeriod")) ||
                             files.length +
-                              (productData?.ProductImages?.length || 0) <
-                              3
+                            (productData?.ProductImages?.length || 0) <
+                            3
                           }
                           className="bg-[#C64091] hover:bg-[#A03375]"
                           data-testid="btn-go-preview"
