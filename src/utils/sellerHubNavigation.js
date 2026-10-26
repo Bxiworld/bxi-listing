@@ -343,6 +343,17 @@ const resolveEditRoute = ({
 
   const normalizedReviewKey = normalizeReviewKey(reviewReasonNavigation);
   const listingStepKey = resolveListingStepKey(product, reviewReasonNavigation, normalizeReviewKey);
+  // Reaching preview stores ProductUploadStatus as productpreview and keeps the
+  // listing in draft. Edit must reopen that preview, not a wizard step.
+  if (listingStepKey === 'productpreview') {
+    return resolveViewRoute({
+      product,
+      companyType,
+      productCategory,
+      productSubCategory,
+      productId,
+    });
+  }
   const step = stepMappings[listingStepKey] || '/general-info';
 
   const normalizeKeyForCategoryCompare = (key) => {
