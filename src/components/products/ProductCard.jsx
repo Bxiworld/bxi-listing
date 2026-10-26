@@ -38,6 +38,9 @@ const isLiveListingStatus = (uploadStatus) => {
   return status === 'Approved' || status === 'Live';
 };
 
+const isDelistedListingStatus = (uploadStatus) =>
+  String(uploadStatus || '').trim().toLowerCase() === 'delist';
+
 export const ProductCard = ({
   product,
   companyType = 'Others',
@@ -122,7 +125,10 @@ export const ProductCard = ({
   const showDelistButton =
     Boolean(onDelist) &&
     (tabType === 'Live' || (tabType === 'All' && isLiveListingStatus(ProductUploadStatus)));
-  const showEditButton = tabType !== 'Delist' && !showDelistButton;
+  const showRelistButton =
+    Boolean(onRelist) &&
+    (tabType === 'Delist' || (tabType === 'All' && isDelistedListingStatus(ProductUploadStatus)));
+  const showEditButton = tabType !== 'Delist' && !showDelistButton && !showRelistButton;
 
   return (
     <div className="product-card fade-in" data-testid={`product-card-${_id}`}>
@@ -219,7 +225,7 @@ export const ProductCard = ({
               </Button>
             )}
 
-            {tabType === 'Delist' && onRelist && (
+            {showRelistButton && (
               <Button
                 variant="outline"
                 size="sm"
