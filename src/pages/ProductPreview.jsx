@@ -33,6 +33,7 @@ import {
   Divider,
 } from '@mui/material';
 import { productApi, keyFeatureApi } from '../utils/api';
+import { formatHsnForDisplay } from '../utils/hsnValidation';
 import { toast } from 'sonner';
 import BXIIcon from '../assets/BXI_COIN.png';
 import BXITokenIcon from '../assets/bxi-token.svg';
@@ -440,7 +441,7 @@ function getVariantPreviewTableColumns(selectedVariantData, BXIIconSrc, product)
       id: 'hsn',
       heading: 'HSN',
       minWidth: 88,
-      cell: <Typography variant="body2">{v.HSN}</Typography>,
+      cell: <Typography variant="body2">{formatHsnForDisplay(v.HSN)}</Typography>,
     });
   }
 
@@ -1268,7 +1269,7 @@ export default function ProductPreview() {
                                 <TableRow key={cost._id ?? cost.id ?? i}>
                                   <TableCell>{cost.AdCostApplicableOn ?? '—'}</TableCell>
                                   <TableCell>{cost.ReasonOfCost ?? '—'}</TableCell>
-                                  <TableCell>{cost.AdCostHSN ?? '—'}</TableCell>
+                                  <TableCell>{cost.AdCostHSN != null && cost.AdCostHSN !== '' ? formatHsnForDisplay(cost.AdCostHSN) : '—'}</TableCell>
                                   <TableCell>
                                     {cost.AdCostGST != null && cost.AdCostGST !== ''
                                       ? `${cost.AdCostGST}%`

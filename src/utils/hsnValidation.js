@@ -105,6 +105,14 @@ export function validateListingHsn(rawHsn, options = {}) {
   return { ok: true, value };
 }
 
+export function formatHsnForDisplay(hsn) {
+  const raw = String(hsn ?? '').trim();
+  if (!/^\d+$/.test(raw)) return raw;
+  if (raw.length === 4 || raw.length === 6 || raw.length === 8) return raw;
+  const target = raw.length < 4 ? 4 : raw.length < 6 ? 6 : 8;
+  return raw.padStart(target, '0');
+}
+
 /** Digits-only HSN input; optionally capped to maxLength. */
 export function sanitizeHsnInput(raw, maxLength) {
   const digits = String(raw ?? '').replace(/\D/g, '');
