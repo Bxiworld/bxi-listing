@@ -84,9 +84,6 @@ export function validateListingHsn(rawHsn, options = {}) {
   if (!value) {
     return { ok: false, message: 'HSN is required' };
   }
-  if (value.startsWith('0')) {
-    return { ok: false, message: 'HSN cannot start with 0' };
-  }
   if (/^0+$/.test(value)) {
     return { ok: false, message: 'HSN cannot be all zeros' };
   }
