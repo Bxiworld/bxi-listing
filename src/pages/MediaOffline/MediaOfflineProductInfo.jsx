@@ -962,7 +962,8 @@ const MediaProductInfo = () => {
                         sx={{
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 0.75,
+                          minWidth: 0,
+                          width: '100%',
                         }}
                       >
                         <Typography sx={CommonTextStyle}>
