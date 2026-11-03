@@ -249,9 +249,6 @@ export default function DigitalScreensProductInfo() {
               {excelFile && (
                 <>
                   <span className="text-sm text-[#6B7A99]">{excelFile.name}</span>
-                  <Button type="button" variant="outline" size="sm" onClick={handleUploadExcel}>
-                    Upload
-                  </Button>
                 </>
               )}
               <a
@@ -265,8 +262,6 @@ export default function DigitalScreensProductInfo() {
             </div>
             <p className="text-sm text-[#6B7A99] mt-4">Note: Inside uploaded excel rates should be as per min no. of days listed.</p>
           </div>
-          
-
           {dataGridRows.length > 0 && (
             <div className="mb-6 overflow-x-auto">
               <div className="h-[300px]">
