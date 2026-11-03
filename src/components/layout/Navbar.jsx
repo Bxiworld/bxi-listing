@@ -14,7 +14,7 @@ const ADMIN_PANEL_URL = `${ADMIN_BASE_URL}/admindashboard/userdashboard`;
 const USER_MARKETPLACE_HOME_URL = `${DASHBOARD_BASE_URL}/home`;
 
 export default function TopNavbar() {
-  const { user, companyAvatar, isAdmin } = useAuthUser(); 
+  const { user, companyAvatar, isAdmin } = useAuthUser();
 
   return (
     <nav className="w-full bg-[#f3f4f6] border-b border-gray-200 px-3 py-2 sm:px-6">
@@ -25,7 +25,7 @@ export default function TopNavbar() {
             <img
               src={BXI_logo}
               alt="BXI Logo"
-              className="h-10 w-10 shrink-0 object-contain sm:h-12 sm:w-12"
+              className="h-10 w-28 shrink-0 object-contain object-center sm:h-12 sm:w-32"
             />
             <span className="hidden text-base font-medium text-gray-800 sm:inline">
               Barter Exchange of India
