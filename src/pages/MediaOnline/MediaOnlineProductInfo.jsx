@@ -313,22 +313,22 @@ const MediaProductInfo = () => {
               ? z.any()
               : getMediaListingProfile(FetchedproductData || {})?.key === 'airport'
                 ? z.coerce
-                    .number()
-                    .positive('Total quantity must be greater than 0')
-                    .min(1, 'Total quantity must be greater than 0')
+                  .number()
+                  .positive('Total quantity must be greater than 0')
+                  .min(1, 'Total quantity must be greater than 0')
                 : z.coerce
-                    .number()
-                    .positive('Min order quantity must be greater than 0')
-                    .min(1, 'Min order quantity must be greater than 0'),
+                  .number()
+                  .positive('Min order quantity must be greater than 0')
+                  .min(1, 'Min order quantity must be greater than 0'),
 
           maxOrderQuantityunit:
             FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951' ||
-            getMediaListingProfile(FetchedproductData || {})?.key === 'airport'
+              getMediaListingProfile(FetchedproductData || {})?.key === 'airport'
               ? z.any()
               : z.coerce
-                  .number()
-                  .positive('Max order quantity must be greater than 0')
-                  .min(1, 'Max order quantity must be greater than 0'),
+                .number()
+                .positive('Max order quantity must be greater than 0')
+                .min(1, 'Max order quantity must be greater than 0'),
 
           minOrderQuantitytimeline:
             z.coerce.number().positive('Min order timeline must be greater than 0').min(1, 'Min order timeline must be greater than 0'),
@@ -1348,7 +1348,7 @@ const MediaProductInfo = () => {
     if (
       submitProfile.key !== 'airport' &&
       Number(data?.mediaVariation?.minOrderQuantityunit) >
-        Number(data?.mediaVariation?.maxOrderQuantityunit)
+      Number(data?.mediaVariation?.maxOrderQuantityunit)
     ) {
       setError('mediaVariation.maxOrderQuantityunit', {
         type: 'custom',
@@ -1643,7 +1643,6 @@ const MediaProductInfo = () => {
                                 {...register('mediaVariation.seatingCapacity')}
                                 sx={{
                                   ...inputStyles,
-                                  mt: 1.2,
                                   width: '140px',
                                   border: errors?.mediaVariation?.seatingCapacity
                                     ?.message
@@ -2734,13 +2733,23 @@ const MediaProductInfo = () => {
                                   <span style={{ color: 'red' }}> *</span>
                                 ) : null}
                               </Typography>
+                              <Typography
+                                aria-hidden="true"
+                                sx={{
+                                  ...CommonTextStyle,
+                                  fontSize: '12px',
+                                  visibility: 'hidden',
+                                  display: { xs: 'none', md: 'block' },
+                                }}
+                              >
+                                {' '}
+                              </Typography>
                               <Input
                                 disableUnderline
                                 placeholder="28 Per week"
                                 {...register('mediaVariation.repetition')}
                                 sx={{
                                   ...inputStyles,
-                                  mt: 0.5,
                                   border: errors?.mediaVariation?.repetition
                                     ?.message
                                     ? '1px solid red'
@@ -3040,27 +3049,6 @@ const MediaProductInfo = () => {
                               >
                                 GST <span style={{ color: 'red' }}> *</span>
                               </Typography>
-                              <Typography
-                                sx={{
-                                  ...CommonTextStyle,
-                                  fontSize: '12px',
-                                  fontWeight: 400,
-                                  border: errors?.mediaVariation?.GST?.message,
-                                }}
-                              >
-                                {FetchedproductData?.mediaVariation?.GST ? (
-                                  <span
-                                    style={{
-                                      fontWeight: 500,
-                                      color: '#6B7A99',
-                                    }}
-                                  >
-                                    Your Selected GST:{' '}
-                                    {FetchedproductData?.mediaVariation?.GST}
-                                  </span>
-                                ) : null}
-                              </Typography>
-
                               <Box sx={{ position: 'relative', width: '100%', maxWidth: 120 }}>
                                 <Select
                                   sx={{
@@ -3082,6 +3070,9 @@ const MediaProductInfo = () => {
                                     fontSize: '12px',
                                     color: '#111827',
                                     boxSizing: 'border-box',
+                                    '& .MuiSelect-select': {
+                                      paddingRight: '42px',
+                                    },
                                     border: errors?.mediaVariation?.GST?.message
                                       ? '1px solid red'
                                       : '1px solid #E5E8EB',
@@ -3097,20 +3088,6 @@ const MediaProductInfo = () => {
                                     );
                                   })}
                                 </Select>
-
-                                <Typography
-                                  sx={{
-                                    position: 'absolute',
-                                    right: 10,
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    color: '#979797',
-                                    fontSize: '15px',
-                                    pointerEvents: 'none',
-                                  }}
-                                >
-                                  %
-                                </Typography>
                               </Box>
                               <Typography
                                 sx={{ color: 'red', fontFamily: 'Inter, sans-serif' }}
@@ -3433,10 +3410,10 @@ const MediaProductInfo = () => {
                             {renderMinMaxOrderQtyTimelineField(
                               listingProfile.key === 'airport'
                                 ? {
-                                    compactLabel: true,
-                                    airportTimelineDropdown: true,
-                                    gridColumnSx: mediaGridColTimeline,
-                                  }
+                                  compactLabel: true,
+                                  airportTimelineDropdown: true,
+                                  gridColumnSx: mediaGridColTimeline,
+                                }
                                 : { gridColumnSx: mediaGridColTimeline },
                             )}
                             <Box
@@ -3604,40 +3581,40 @@ const MediaProductInfo = () => {
                                       : '1px solid #E5E8EB',
                                   }}
                                 >
-                                    <Select
-                                      disableUnderline
-                                      {...register(
-                                        'mediaVariation.maxTimeslotSeconds',
-                                      )}
-                                      sx={{
-                                        ...inputStyles,
-                                        flex: '1 1 0',
-                                        minWidth: 0,
-                                        width: '100%',
-                                        maxWidth: '100%',
-                                        border: 'none',
-                                        borderRadius: 0,
-                                        height: '42px',
-                                        fontSize: '12px',
-                                      }}
-                                    >
+                                  <Select
+                                    disableUnderline
+                                    {...register(
+                                      'mediaVariation.maxTimeslotSeconds',
+                                    )}
+                                    sx={{
+                                      ...inputStyles,
+                                      flex: '1 1 0',
+                                      minWidth: 0,
+                                      width: '100%',
+                                      maxWidth: '100%',
+                                      border: 'none',
+                                      borderRadius: 0,
+                                      height: '42px',
+                                      fontSize: '12px',
+                                    }}
+                                  >
 
-                                      {timeslotOptions?.map((item, idx) => {
-                                        return (
-                                          <MenuItem
-                                            key={item ?? idx}
-                                            sx={{
-                                              border: '1px white solid',
-                                            }}
-                                            onClick={() => {
-                                              setMaxtimeslotArr(
-                                                timeslotOptions.filter(
-                                                  (v) => v >= item,
-                                                ),
-                                              );
-                                            }}
-                                            value={item}
-                                          >
+                                    {timeslotOptions?.map((item, idx) => {
+                                      return (
+                                        <MenuItem
+                                          key={item ?? idx}
+                                          sx={{
+                                            border: '1px white solid',
+                                          }}
+                                          onClick={() => {
+                                            setMaxtimeslotArr(
+                                              timeslotOptions.filter(
+                                                (v) => v >= item,
+                                              ),
+                                            );
+                                          }}
+                                          value={item}
+                                        >
                                           {item}
                                         </MenuItem>
                                       );
@@ -4269,7 +4246,7 @@ const MediaProductInfo = () => {
                               />
                               {items?.length > 0 && items.length < 5 && (
                                 <Typography
-                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif', mt: 1 , fontSize: '12px' }}
+                                  sx={{ color: 'red', fontFamily: 'Inter, sans-serif', mt: 1, fontSize: '12px' }}
                                 >
                                   Enter{' '}
                                   {5 - items?.length} more feature description
@@ -4646,7 +4623,7 @@ const CommonTextStyle = {
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 600,
-  fontSize: '14px',
+  fontSize: { xs: '12px', sm: '14px' },
   lineHeight: '21px',
   color: '#374151',
 };
@@ -4660,7 +4637,7 @@ const TextFieldStyle = {
   fontFamily: 'Inter, sans-serif',
   fontStyle: 'normal',
   fontWeight: 400,
-  fontSize: '14px',
+  fontSize: { xs: '12px', sm: '14px' },
   color: '#6B7A99',
   overflow: 'auto',
   paddingLeft: '0px',
@@ -4672,7 +4649,7 @@ const mapdata = {
   color: ' #6B7A99',
   fontFamily: 'Inter, sans-serif',
   width: '100%',
-  fontSize: '12px',
+  fontSize: { xs: '12px', sm: '14px' },
   minHeight: '60px',
   height: 'auto',
 };
