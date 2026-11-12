@@ -12,10 +12,21 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
+import * as XLSX from 'xlsx';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
 import { DataGrid } from '@mui/x-data-grid';
 import { toast } from 'sonner';
 import api from '../../utils/api';
+import StateData from '../../utils/StateCityArray.json';
 import { Stepper } from '../AddProduct/AddProductSteps';
+
+const ALL_STATES_VALUE = '__all_states__';
 
 const schema = z.object({
   repetition: z.string().optional(),
@@ -51,16 +62,81 @@ const DIGITAL_SCREENS_COLUMNS = [
   { field: 'discountedPrice', headerName: 'Discounted Price', width: 140 },
 ];
 
+function readDigitalScreens(payload) {
+  const root = payload?.data ?? payload ?? {};
+  const nested = root?.data && typeof root.data === 'object' ? root.data : root;
+  const candidates = [
+    nested?.digitalAdsScreens,
+    nested?.screens,
+    nested?.DigitalAdsScreens?.digitalAdsScreens,
+    root?.digitalAdsScreens,
+    root?.DigitalAdsScreens?.digitalAdsScreens,
+  ];
+  return candidates.find(Array.isArray) || [];
+}
+
+function mapDigitalScreensToGridRows(screens) {
+  return screens.map((screen, index) => ({
+    ...screen,
+    id: screen._id?.toString?.() || screen.id || `digital-screen-${index}`,
+    srNo: screen.srNo ?? screen.Sr_No ?? screen.SrNo ?? index + 1,
+    location: screen.location ?? screen.Location ?? '',
+    city: screen.city ?? screen.City ?? '',
+    state: screen.state ?? screen.State ?? '',
+    propertyName: screen.propertyName ?? screen.PropertyName ?? '',
+    mediaSiteCode: screen.mediaSiteCode ?? screen.MediaSiteCode ?? screen.Media_Site_Code ?? '',
+    numberOfScreens: screen.numberOfScreens ?? screen.NumberOfScreens ?? '',
+    remarks: screen.remarks ?? screen.Remarks ?? '',
+    mrp: screen.mrp ?? screen.MRP ?? screen.PricePerUnit ?? '',
+    discountedPrice: screen.discountedPrice ?? screen.DiscountedPrice ?? '',
+  }));
+}
+
+async function parseDigitalScreensExcel(file) {
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const sourceRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  const normalizeKey = (key) => String(key).trim().toLowerCase();
+  const getValue = (row, names) => {
+    const key = Object.keys(row).find((name) => names.includes(normalizeKey(name)));
+    return key ? row[key] : '';
+  };
+  const rows = sourceRows
+    .filter((row) => Object.values(row).some((value) => String(value).trim() !== ''))
+    .map((row, index) => ({
+      srNo: getValue(row, ['sr no', 'sr_no']) || index + 1,
+      location: getValue(row, ['location']),
+      city: getValue(row, ['city']),
+      state: getValue(row, ['state']),
+      propertyName: getValue(row, ['property name', 'propertyname']),
+      mediaSiteCode: getValue(row, ['media/site code', 'media site code', 'media_site_code']),
+      numberOfScreens: getValue(row, ['number of screens', 'numberofscreens']),
+      remarks: getValue(row, ['remark (addittional section)', 'remarks', 'remark']),
+      mrp: getValue(row, ['mrp']),
+      discountedPrice: getValue(row, ['discounted mrp', 'discountedprice']),
+    }));
+  if (!rows.length) throw new Error('The Excel file has no screen rows');
+  return mapDigitalScreensToGridRows(rows);
+}
+
 export default function DigitalScreensProductInfo() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
   const [dataGridRows, setDataGridRows] = useState([]);
+  const [selectedState, setSelectedState] = useState(ALL_STATES_VALUE);
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [excelFile, setExcelFile] = useState(null);
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const fileInputRef = useRef(null);
+
+  const filteredRows = selectedState === ALL_STATES_VALUE
+    ? dataGridRows
+    : dataGridRows.filter(
+      (row) => String(row.state || '').trim().toLowerCase() === selectedState.toLowerCase(),
+    );
 
   const {
     register,
@@ -83,11 +159,24 @@ export default function DigitalScreensProductInfo() {
         if (data?.mediaVariation) {
           setValue('repetition', data.mediaVariation.repetition || '');
         }
+        let screens = [];
         if (data?.DigitalAds_screen_id) {
-          const screensRes = await api.get(`/product/DigitalAdsScreenGetById/${data.DigitalAds_screen_id}`);
-          const screens = screensRes?.data?.data?.digitalAdsScreens || [];
-          setDataGridRows(screens.map((s, i) => ({ id: i + 1, srNo: i + 1, ...s })));
+          try {
+            const screensRes = await api.get(`/product/DigitalAdsScreenGetById/${data.DigitalAds_screen_id}`);
+            screens = readDigitalScreens(screensRes?.data);
+          } catch {
+            // Try the product-level endpoint below if the screen-list endpoint is unavailable.
+          }
         }
+        if (!screens.length) {
+          try {
+            const productScreensRes = await api.get(`/product/get_digitalads_products/${id}`);
+            screens = readDigitalScreens(productScreensRes?.data);
+          } catch {
+            screens = [];
+          }
+        }
+        setDataGridRows(mapDigitalScreensToGridRows(screens));
       } catch (e) {
         toast.error('Failed to load product');
       }
@@ -103,29 +192,40 @@ export default function DigitalScreensProductInfo() {
     }
   };
 
-  const onExcelChange = (e) => {
+  const onExcelChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+    // Clear the input so selecting the same file again still triggers change.
+    e.target.value = '';
+    if (!file) return;
+    if (/\.(xlsx|xls)$/i.test(file.name)) {
       setExcelFile(file);
+      try {
+        const parsedRows = await parseDigitalScreensExcel(file);
+        setDataGridRows(parsedRows);
+      } catch (error) {
+        toast.error(error?.message || 'Failed to read the Excel file');
+        return;
+      }
+      await handleUploadExcel(file);
     } else {
-      setExcelFile(null);
       toast.error('Please upload a valid Excel file (.xls or .xlsx)');
     }
   };
 
-  const handleUploadExcel = async () => {
-    if (!excelFile || !id) {
+  const handleUploadExcel = async (fileToUpload = excelFile) => {
+    if (!fileToUpload || !id) {
       toast.error('Please select an Excel file');
       return;
     }
     const formData = new FormData();
-    formData.append('file', excelFile);
+    formData.append('file', fileToUpload);
     formData.append('ProductId', id);
     formData.append('ProductType', 'Media');
     formData.append('ProductSubCategory', 'Digital ADs');
     formData.append('ProductCategory', 'MediaOnline');
     formData.append('ProductUploadStatus', 'productinformation');
     formData.append('ListingType', 'Media');
+    setIsUploadingExcel(true);
     try {
       const uploadRes = await api.post('/product/DigitalAds_Excel_Process', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -141,17 +241,40 @@ export default function DigitalScreensProductInfo() {
       } else {
         toast.success('File uploaded successfully');
       }
-      setExcelFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      const res = await api.get(`/product/get_product_byId/${id}`);
-      const data = res?.data;
-      if (data?.DigitalAds_screen_id) {
-        const screensRes = await api.get(`/product/DigitalAdsScreenGetById/${data.DigitalAds_screen_id}`);
-        const screens = screensRes?.data?.data?.digitalAdsScreens || [];
-        setDataGridRows(screens.map((s, i) => ({ id: i + 1, srNo: i + 1, ...s })));
+      let screens = readDigitalScreens(uploadRes?.data);
+      if (screens.length) {
+        setDataGridRows(mapDigitalScreensToGridRows(screens));
       }
+      let product = null;
+      try {
+        const productRes = await api.get(`/product/get_product_byId/${id}`);
+        product = productRes?.data;
+        setProductData(product);
+      } catch {
+        // Rows from the upload response remain visible if the product refresh fails.
+      }
+      if (product?.DigitalAds_screen_id) {
+        try {
+          const screensRes = await api.get(`/product/DigitalAdsScreenGetById/${product.DigitalAds_screen_id}`);
+          const fetchedScreens = readDigitalScreens(screensRes?.data);
+          if (fetchedScreens.length) screens = fetchedScreens;
+        } catch {
+          // Use the product-level endpoint fallback below.
+        }
+      }
+      if (!screens.length) {
+        try {
+          const productScreensRes = await api.get(`/product/get_digitalads_products/${id}`);
+          screens = readDigitalScreens(productScreensRes?.data);
+        } catch {
+          screens = [];
+        }
+      }
+      if (screens.length) setDataGridRows(mapDigitalScreensToGridRows(screens));
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Upload failed');
+    } finally {
+      setIsUploadingExcel(false);
     }
   };
 
@@ -243,14 +366,6 @@ export default function DigitalScreensProductInfo() {
                 className="hidden"
                 id="digital-excel"
               />
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="w-4 h-4 mr-2" /> Choose file
-              </Button>
-              {excelFile && (
-                <>
-                  <span className="text-sm text-[#6B7A99]">{excelFile.name}</span>
-                </>
-              )}
               <a
                 href="https://mediajourneyexcel.sfo3.cdn.digitaloceanspaces.com/Digital_Screens_Media_Template.xlsx"
                 target="_blank"
@@ -259,14 +374,36 @@ export default function DigitalScreensProductInfo() {
               >
                 <Download className="w-4 h-4" /> Download template
               </a>
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} className="border-[#C64091] text-[#C64091]">
+                <Upload className="w-4 h-4 mr-2" /> {excelFile ? 'Change File' : 'Upload Excel'}
+              </Button>
+              {excelFile && <div className="flex items-center gap-2 text-sm text-[#6B7A99]">
+                <Badge variant="secondary">{excelFile.name}</Badge>
+                <button type="button" onClick={() => setExcelFile(null)} className="text-[#C64091] hover:underline">Remove</button>
+              </div>}
             </div>
             <p className="text-sm text-[#6B7A99] mt-4">Note: Inside uploaded excel rates should be as per min no. of days listed.</p>
           </div>
           {dataGridRows.length > 0 && (
-            <div className="mb-6 overflow-x-auto">
-              <div className="h-[300px]">
+            <div className="mb-6 space-y-4">
+              <div className="space-y-2">
+                <Label>Filter by State</Label>
+                <Select value={selectedState} onValueChange={setSelectedState}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All States" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_STATES_VALUE}>All States</SelectItem>
+                    {StateData.map((state) => (
+                      <SelectItem key={state.name} value={state.name}>{state.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Label>Digital Screens ({filteredRows.length})</Label>
+              <div className="h-[400px] w-full">
                 <DataGrid
-                  rows={dataGridRows}
+                  rows={filteredRows}
                   columns={DIGITAL_SCREENS_COLUMNS}
                   pageSize={5}
                   disableSelectionOnClick
@@ -274,6 +411,9 @@ export default function DigitalScreensProductInfo() {
                 />
               </div>
             </div>
+          )}
+          {isUploadingExcel && (
+            <p className="mb-4 text-sm text-[#6B7A99]">Uploading Excel and saving screen details…</p>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
