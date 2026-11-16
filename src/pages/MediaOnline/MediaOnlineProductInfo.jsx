@@ -805,6 +805,8 @@ const MediaProductInfo = () => {
             sx={{
               display: 'flex',
               width: '100%',
+              maxWidth: 420,
+              justifyContent: 'space-between',
               minWidth: 0,
               alignItems: 'stretch',
               background: '#fff',

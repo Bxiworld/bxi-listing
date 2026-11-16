@@ -241,6 +241,15 @@ function StoreAddressFields({
   onPincodeLookup,
   pincodeLoading = false,
 }) {
+  // Always keep the selected value in the menu. Pincode services can return
+  // a city name that is missing from the local state/city list.
+  const cityOptions = address.state
+    ? buildCitySelectOptions(
+        cities?.length ? cities : getCitiesForState(address.state, StateData),
+        address.city
+      )
+    : [];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2 md:col-span-2">
@@ -271,7 +280,7 @@ function StoreAddressFields({
           State <span className="text-red-500">*</span>
         </Label>
         <Select
-          value={address.state}
+          value={address.state || ''}
           onValueChange={(v) => onChange({ ...address, state: v, city: '' })}
         >
           <SelectTrigger id={`${idPrefix}-state`}>
@@ -288,20 +297,19 @@ function StoreAddressFields({
         <Label htmlFor={`${idPrefix}-city`}>
           City <span className="text-red-500">*</span>
         </Label>
-        <Select
-          value={address.city}
-          onValueChange={(v) => onChange({ ...address, city: v })}
+        <Input
+          id={`${idPrefix}-city`}
+          list={`${idPrefix}-city-options`}
+          placeholder={address.state ? 'Select or enter city' : 'Select a state first'}
+          value={address.city || ''}
           disabled={!address.state}
-        >
-          <SelectTrigger id={`${idPrefix}-city`}>
-            <SelectValue placeholder="Select city" />
-          </SelectTrigger>
-          <SelectContent>
-            {cities.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          onChange={(e) => onChange({ ...address, city: e.target.value })}
+        />
+        <datalist id={`${idPrefix}-city-options`}>
+          {cityOptions.map((city) => (
+            <option key={city} value={city} />
+          ))}
+        </datalist>
       </div>
       <div className="space-y-2">
         <Label htmlFor={`${idPrefix}-area`}>
@@ -773,6 +781,10 @@ export default function VoucherTechInfo({ category }) {
       if (!resolved) {
         toast.error('Invalid pincode or no data found');
         return;
+      }
+      if (resolved.state) {
+        const stateCities = getCitiesForState(resolved.state, StateData);
+        setCities(buildCitySelectOptions(stateCities, resolved.city));
       }
       setOfflineAddress((prev) => applyResolvedPincode(resolved, pincode, prev));
       toast.success('Location auto-filled from pincode!');
@@ -1466,7 +1478,7 @@ export default function VoucherTechInfo({ category }) {
                     </div>
                   )}
                 </div>
-                {/* 
+                {/*
                 <div className="space-y-4 pb-4 border-b border-[#E5E8EB]">
                   <div className="space-y-2">
                     <Label>Voucher type <span className="text-red-500">*</span></Label>
