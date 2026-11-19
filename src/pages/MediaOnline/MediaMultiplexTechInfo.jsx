@@ -787,6 +787,7 @@ export default function MediaMultiplexTechInfo() {
                         height: 'auto',
                         minHeight: '100px',
                         position: 'relative',
+
                         display: 'flex',
                         flexWrap: 'wrap',
                         gap: '20px',
@@ -902,7 +903,7 @@ export default function MediaMultiplexTechInfo() {
                       >
                         <Box
                           className="rounded-xl border border-[#E5E8EB] bg-[#fff] sm:w-[49%] w-full"
-                          sx={{ width: { xs: '100%', sm: '49%' } }}
+                          sx={{ width: { xs: '100%', sm: '49%' }, minWidth: 0 }}
                         >
                           <Box
                             sx={{
@@ -924,10 +925,12 @@ export default function MediaMultiplexTechInfo() {
                             sx={{
                               display: 'flex',
                               flexDirection: 'row',
+                              flexWrap: 'wrap',
                               gap: '10px',
                               mt: 1,
                               justifyContent: 'space-between',
                               p: 1,
+                              minWidth: 0,
                             }}
                           >
                             <Box
@@ -937,7 +940,9 @@ export default function MediaMultiplexTechInfo() {
                                 gap: '10px',
                                 mt: 1,
                                 width: '100%',
-                                maxWidth: "240px"
+                                maxWidth: '240px',
+                                minWidth: 0,
+                                flex: '1 1 205px',
                               }}
                             >
                               <Typography
@@ -1030,7 +1035,9 @@ export default function MediaMultiplexTechInfo() {
                                 gap: '10px',
                                 mt: 1,
                                 width: '100%',
-                                maxWidth: "240px"
+                                maxWidth: '240px',
+                                minWidth: 0,
+                                flex: '1 1 205px',
                               }}
                             >
                               <Typography
@@ -1129,7 +1136,7 @@ export default function MediaMultiplexTechInfo() {
 
                         <Box
                           className="rounded-xl border border-[#E5E8EB] bg-[#FFFFFF] sm:w-[49%] w-full"
-                          sx={{ width: { xs: '100%', sm: '49%' } }}
+                          sx={{ width: { xs: '100%', sm: '49%' }, minWidth: 0 }}
                         >
                           <Box
                             sx={{
@@ -1150,10 +1157,12 @@ export default function MediaMultiplexTechInfo() {
                             sx={{
                               display: 'flex',
                               flexDirection: 'row',
+                              flexWrap: 'wrap',
                               gap: '10px',
                               mt: 1,
                               justifyContent: 'space-between',
                               p: 1,
+                              minWidth: 0,
                             }}
                           >
                             <Box
@@ -1163,7 +1172,9 @@ export default function MediaMultiplexTechInfo() {
                                 gap: '10px',
                                 mt: 1,
                                 width: '100%',
-                                maxWidth: "240px"
+                                maxWidth: '240px',
+                                minWidth: 0,
+                                flex: '1 1 205px',
                               }}
                             >
                               <Typography
@@ -1247,7 +1258,9 @@ export default function MediaMultiplexTechInfo() {
                                 gap: '10px',
                                 mt: 1,
                                 width: '100%',
-                                maxWidth: "240px"
+                                maxWidth: '240px',
+                                minWidth: 0,
+                                flex: '1 1 205px',
                               }}
                             >
                               <Typography
