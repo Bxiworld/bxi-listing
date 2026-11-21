@@ -66,11 +66,14 @@ const TemplateCustomOptions = ({
       e.target.value = '';
       return;
     }
-    setFiles([
-      Object.assign(file, {
-        preview: URL.createObjectURL(file),
-      }),
-    ]);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFiles([Object.assign(file, { preview: reader.result })]);
+    };
+    reader.onerror = () => {
+      GlobalToast('The selected image could not be loaded. Please choose another image.', 'error');
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
   const colors = [

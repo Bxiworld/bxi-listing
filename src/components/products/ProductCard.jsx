@@ -43,6 +43,7 @@ const isDelistedListingStatus = (uploadStatus) =>
 
 export const ProductCard = ({
   product,
+  companyAvatar,
   companyType = 'Others',
   onDelete,
   onRelist,
@@ -65,8 +66,11 @@ export const ProductCard = ({
     reviewReason,
   } = product || {};
 
-  // Get image URL
-  const imageUrl = ProductImages?.[0]?.url || VoucherImages?.[0]?.url || defaultImage;
+  const voucherRow = isVoucherListing(product);
+  // Prefer voucher artwork on voucher rows when both image fields are present.
+  const imageUrl = voucherRow
+    ? VoucherImages?.[0]?.url || ProductImages?.[0]?.url || defaultImage
+    : ProductImages?.[0]?.url || VoucherImages?.[0]?.url || defaultImage;
 
   // Get price
   const price = ProductsVariantions?.[0]?.DiscountedPrice || ProductsVariantions?.[0]?.PricePerUnit;
@@ -74,7 +78,6 @@ export const ProductCard = ({
   // Get status config
   const status = statusConfig[ProductUploadStatus] || statusConfig['Draft'];
 
-  const voucherRow = isVoucherListing(product);
   const categoryLabel = voucherRow
     ? getVoucherVertical(product)
     : getProductCategoryName(product) || getProductType(product);
@@ -142,8 +145,15 @@ export const ProductCard = ({
             e.target.src = defaultImage;
           }}
         />
+        {voucherRow && companyAvatar && (
+          <img
+            src={companyAvatar}
+            alt="Company logo"
+            className="absolute left-[5%] top-[6.5%] z-10 aspect-square w-[9%] rounded-full bg-white object-cover shadow-sm"
+          />
+        )}
         {voucherRow && (
-          <div className="absolute top-3 left-3">
+          <div className="absolute right-3 top-3">
             <Badge className="bg-[#C64091] text-white text-xs">
               Voucher
             </Badge>

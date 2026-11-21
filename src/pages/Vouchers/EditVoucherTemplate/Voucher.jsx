@@ -67,6 +67,12 @@ function asFileFromData(data, fileName) {
 function getImageExportErrorMessage(error) {
   if (typeof error === 'string' && error.trim()) return error;
   if (error?.message) return error.message;
+  if (error?.target?.src || error?.currentTarget?.src) {
+    return `An image could not be embedded in the voucher (${error.target?.src || error.currentTarget?.src}).`;
+  }
+  if (error?.isTrusted) {
+    return 'A voucher image could not be embedded. Check that the uploaded image and company logo have finished loading, then try again.';
+  }
   if (error != null) {
     try {
       const details = JSON.stringify(error);
@@ -76,6 +82,17 @@ function getImageExportErrorMessage(error) {
     }
   }
   return 'The voucher preview could not be converted to an image.';
+}
+
+function waitForImages(element) {
+  const images = Array.from(element?.querySelectorAll('img') || []);
+  return Promise.all(images.map(image => {
+    if (image.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      image.addEventListener('load', resolve, { once: true });
+      image.addEventListener('error', resolve, { once: true });
+    });
+  }));
 }
 
 async function uploadVoucherImages(frontData, backData) {
@@ -259,10 +276,14 @@ const VoucherCard = ({ category: flowCategory }) => {
         useCORS: true,
         allowTaint: false,
         foreignObjectRendering: false,
+        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+        onImageErrorHandler: event => {
+          if (event?.currentTarget) event.currentTarget.style.display = 'none';
+        },
       };
 
-      htmlToImage
-        .toBlob(myRefFront.current, options)
+      waitForImages(myRefFront.current)
+        .then(() => htmlToImage.toBlob(myRefFront.current, options))
         .then(blob => {
           if (!blob || blob.size === 0) {
             toast.error(
@@ -315,10 +336,14 @@ const VoucherCard = ({ category: flowCategory }) => {
         useCORS: true,
         allowTaint: false,
         foreignObjectRendering: false,
+        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+        onImageErrorHandler: event => {
+          if (event?.currentTarget) event.currentTarget.style.display = 'none';
+        },
       };
 
-      htmlToImage
-        .toBlob(myRefFront.current, options)
+      waitForImages(myRefFront.current)
+        .then(() => htmlToImage.toBlob(myRefFront.current, options))
         .then(blob => {
           setDataUrlFront(blob);
         })

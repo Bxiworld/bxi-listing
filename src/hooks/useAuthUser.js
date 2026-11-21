@@ -125,15 +125,7 @@ export function useAuthUser() {
     refetch();
   }, [refetch]);
   const isAdmin = !!user?.isAdminContext;
-  const companyAvatar = [
-    company?.CompanyAvatar?.url,
-    company?.CompanyAvatar?.file,
-    typeof company?.CompanyAvatar === 'string' ? company.CompanyAvatar : '',
-    company?.CompanyLogo?.url,
-    typeof company?.CompanyLogo === 'string' ? company.CompanyLogo : '',
-    company?.companyLogo?.url,
-    typeof company?.companyLogo === 'string' ? company.companyLogo : '',
-  ].find(value => typeof value === 'string' && value.trim()) || '';
+  const companyAvatar = company?.CompanyAvatar?.url || '';
 
   return {
     user,

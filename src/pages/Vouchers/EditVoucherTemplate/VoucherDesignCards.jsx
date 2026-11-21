@@ -28,7 +28,7 @@ const getAccentColor = color => {
   return `rgb(${blended.map(channel => Math.round(light ? channel * 0.52 : channel + (255 - channel) * 0.68)).join(', ')})`;
 };
 
-/** Front card – black and gold ribbon design. */
+/** Front card – dark overlay design with a full-card uploaded image. */
 export const VoucherCardFront = React.forwardRef(
   ({ cardBgColor, cardImage, productData, companyLogo, companyName, textInverted, gradientColors }, ref) => {
     const brandName = companyName || productData?.companyName || productData?.brandName || 'Your Company';
@@ -38,18 +38,20 @@ export const VoucherCardFront = React.forwardRef(
       ? ['Offer', normalizedVoucherType.replace(/^offer\s+/i, '')]
       : /^specific$/i.test(normalizedVoucherType)
         ? ['Offer', 'Specific']
-      : /^value$/i.test(normalizedVoucherType)
-        ? ['Gift', 'Card']
-        : normalizedVoucherType.split(/\s+/);
+        : /^value$/i.test(normalizedVoucherType)
+          ? ['Gift', 'Card']
+          : normalizedVoucherType.split(/\s+/);
     const voucherHeadingDetail = voucherHeadingRest.join(' ') || 'Specific';
     const brandInitials = brandName.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'ID';
     const primaryTextColor = textInverted ? '#fff' : '#000';
     const accentColor = getAccentColor(cardBgColor);
+    const imageSrc = typeof cardImage === 'string' ? cardImage : cardImage?.preview;
+
     return (
       <div
         ref={ref}
         data-html-to-image="voucher-card"
-        data-voucher-card-version="black-gold-ribbon"
+        data-voucher-card-version="dark-overlay"
         className="relative overflow-hidden rounded-[24px] shadow-lg"
         style={{
           height: 320,
@@ -59,24 +61,19 @@ export const VoucherCardFront = React.forwardRef(
           fontFamily: 'Arial, sans-serif',
         }}
       >
-        <div className="absolute left-8 top-7 z-10 flex h-[68px] items-center gap-[22px]">
-          <div className="relative flex h-[84px] w-[84px] shrink-0 items-center justify-center overflow-hidden rounded-full border-[4px] border-[#d8b331] bg-[#511020] text-[#e6c54b] shadow-[0_5px_12px_rgba(0,0,0,0.3)]">
-            <span className="absolute" style={{ fontFamily: 'Impact, "Arial Narrow", sans-serif', fontSize: 27, fontWeight: 700 }}>{brandInitials}</span>
+        {imageSrc && <img src={imageSrc} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" style={{ opacity: 0.5 }} />}
+        <div aria-hidden="true" className="absolute inset-0" style={{ background: 'linear-gradient(115deg, rgba(13,16,14,0.52), rgba(8,15,24,0.42))' }} />
+        <div className="absolute left-6 top-5 z-10 flex h-[42px] items-center gap-3">
+          <div className="relative flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-[#111827] shadow-sm">
+            <span className="absolute text-[12px] font-bold">{brandInitials}</span>
             {companyLogo && <img src={companyLogo} alt={`${brandName} logo`} className="relative block h-full w-full object-cover" onError={event => { event.currentTarget.style.display = 'none'; }} />}
           </div>
-          <p className="max-w-[300px] truncate text-[14px] uppercase tracking-[0.22em]" style={{ color: primaryTextColor }}>{brandName}</p>
+          <p className="max-w-[330px] truncate text-[14px] font-bold uppercase" style={{ color: primaryTextColor }}>{brandName}</p>
         </div>
-        <div className="absolute left-8 top-[116px] z-10 flex items-baseline gap-2 whitespace-nowrap" style={{ maxWidth: 'calc(79% - 50px)' }}>
-          <span className="shrink-0 text-[52px] font-black uppercase leading-none" style={{ fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '-0.025em', color: accentColor }}>{voucherHeadingLead}</span>
-          <span className="min-w-0 truncate text-[48px] font-light uppercase leading-none" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 300, letterSpacing: '-0.045em', color: primaryTextColor }}>{voucherHeadingDetail}</span>
-        </div>
-        <div aria-hidden="true" className="absolute left-0 right-0 top-[70%] h-[4px]" style={{ backgroundColor: accentColor, backgroundImage: 'radial-gradient(rgba(255,255,255,0.65) 1px, transparent 1.2px)', backgroundSize: '7px 4px' }} />
-        <div aria-hidden="true" className="absolute bottom-0 left-[79%] top-0 w-[5px]" style={{ backgroundColor: accentColor, backgroundImage: 'radial-gradient(rgba(255,255,255,0.65) 1px, transparent 1.2px)', backgroundSize: '5px 7px' }} />
-        <p className="absolute left-8 top-[78%] z-10 max-w-[330px] truncate text-[21px] font-medium uppercase leading-none tracking-[0.2em]" style={{ fontFamily: 'Arial, sans-serif', color: primaryTextColor }}>{productData?.productName || 'Gift Card'}</p>
-        <div aria-hidden="true" className="absolute z-20 h-[78px] w-[100px]" style={{ left: 'calc(79% - 48px)', top: 'calc(70% - 36px)' }}>
-          <svg viewBox="0 0 100 80" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 39C42 24 31 9 18 12C5 15 7 34 18 39C27 43 40 40 50 39ZM50 39C58 24 69 9 82 12C95 15 93 34 82 39C73 43 60 40 50 39ZM49 40L22 75M51 40L78 75" stroke={accentColor} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="absolute bottom-[25px] left-6 z-10 flex max-w-[calc(100%-48px)] flex-col items-start">
+          <div aria-hidden="true" className="mb-3 h-[4px] w-[48px] rounded-full" style={{ backgroundColor: accentColor }} />
+          <p className="mb-1 truncate text-[12px] font-bold uppercase tracking-[0.16em]" style={{ color: primaryTextColor }}>{voucherHeadingLead} {voucherHeadingDetail}</p>
+          <p className="max-w-full truncate text-[38px] font-bold leading-none tracking-[-0.04em]" style={{ color: primaryTextColor }}>{productData?.productName || 'Gift Card'}</p>
         </div>
       </div>
     );

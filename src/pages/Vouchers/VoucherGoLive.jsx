@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { toast } from 'sonner';
 import api, { productApi } from '../../utils/api';
+import { useAuthUser } from '../../hooks/useAuthUser';
 import QRCode from 'react-qr-code';
 import { getPrevNextStepPaths } from '../../config/categoryFormConfig';
 import { Stepper } from '../AddProduct/AddProductSteps';
@@ -13,6 +14,7 @@ import { Stepper } from '../AddProduct/AddProductSteps';
 export default function VoucherGoLive({ category }) {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { companyAvatar } = useAuthUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productData, setProductData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,8 +107,19 @@ export default function VoucherGoLive({ category }) {
                 {productData?.VoucherImages?.length > 0 && (
                   <div>
                     <p className="text-sm text-[#6B7A99] mb-1">Voucher Image</p>
-                    <img src={productData?.VoucherImages[0].url} alt="Voucher Image" className="w-full h-full object-cover" />
-                    <img src={productData?.VoucherImages[1].url} alt="Voucher Image" className="w-full h-full object-cover" />
+                    <div className="relative overflow-hidden rounded-lg">
+                      <img src={productData?.VoucherImages[0].url} alt="Voucher Image" className="w-full h-full object-cover" />
+                      {companyAvatar && (
+                        <img
+                          src={companyAvatar}
+                          alt="Company logo"
+                          className="absolute left-[5%] top-[6.5%] aspect-square w-[9%] rounded-full bg-white object-cover shadow-sm"
+                        />
+                      )}
+                    </div>
+                    {productData?.VoucherImages[1]?.url && (
+                      <img src={productData.VoucherImages[1].url} alt="Voucher back" className="w-full h-full object-cover" />
+                    )}
                   </div>
                 )}
               </div>
