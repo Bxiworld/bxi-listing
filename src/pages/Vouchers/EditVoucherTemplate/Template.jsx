@@ -7,6 +7,8 @@ const Template = React.memo(({
   cardBgColor,
   cardImage,
   productData,
+  companyLogo,
+  companyName,
   textInverted,
   myRefFront,
   myRefBack,
@@ -31,6 +33,8 @@ const Template = React.memo(({
         cardBgColor={cardBgColor}
         cardImage={cardImage}
         productData={productData}
+        companyLogo={companyLogo}
+        companyName={companyName}
         textInverted={textInverted}
         gradientColors={gradientColors}
       />

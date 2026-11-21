@@ -421,7 +421,7 @@ export default function MediaMultiplexProductInfo() {
               <p className="text-sm text-[#6B7A99]">
                 Download the template, fill in screen details, and upload the Excel file
               </p>
-              
+
               <div className="flex gap-4">
                 <Button
                   type="button"
@@ -433,7 +433,7 @@ export default function MediaMultiplexProductInfo() {
                   <Download className="w-4 h-4 mr-2" />
                   Download Template
                 </Button>
-                
+
                 <Button
                   type="button"
                   variant="outline"

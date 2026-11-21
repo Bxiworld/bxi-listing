@@ -37,6 +37,7 @@ import TemplateCustomOptions from './TemplateCustomOptions';
 import EditVoucherForm from './EditVoucherForm';
 import EditIcon from '@mui/icons-material/Edit';
 import * as htmlToImage from 'html-to-image';
+import { useAuthUser } from '../../../hooks/useAuthUser';
 
 function dataUrlToBlob(dataUrl) {
   if (!dataUrl || typeof dataUrl !== 'string') return null;
@@ -61,6 +62,20 @@ function asFileFromData(data, fileName) {
   }
   if (!blob) return null;
   return new File([blob], fileName, { type: blob.type || 'image/png' });
+}
+
+function getImageExportErrorMessage(error) {
+  if (typeof error === 'string' && error.trim()) return error;
+  if (error?.message) return error.message;
+  if (error != null) {
+    try {
+      const details = JSON.stringify(error);
+      if (details && details !== '{}') return details;
+    } catch {
+      return String(error);
+    }
+  }
+  return 'The voucher preview could not be converted to an image.';
 }
 
 async function uploadVoucherImages(frontData, backData) {
@@ -98,6 +113,7 @@ async function uploadVoucherImages(frontData, backData) {
 
 const VoucherCard = ({ category: flowCategory }) => {
   useScrollToTopOnPathname();
+  const { company, companyAvatar } = useAuthUser();
   let id;
   id = useParams().id;
   const navigate = useNavigate();
@@ -259,7 +275,7 @@ const VoucherCard = ({ category: flowCategory }) => {
         })
         .catch(error => {
           toast.error(
-            'Failed to generate voucher front image: ' + error.message
+            'Failed to generate voucher front image: ' + getImageExportErrorMessage(error)
           );
           setShowSpinner(false);
         });
@@ -307,7 +323,7 @@ const VoucherCard = ({ category: flowCategory }) => {
           setDataUrlFront(blob);
         })
         .catch(error => {
-          toast.error('Failed to generate voucher front image');
+          toast.error('Failed to generate voucher front image: ' + getImageExportErrorMessage(error));
           setShowSpinner(false);
         });
     }, 500); // 500ms delay to ensure rendering is complete
@@ -355,7 +371,7 @@ const VoucherCard = ({ category: flowCategory }) => {
           setDataUrlBack(blob);
         })
         .catch(error => {
-          toast.error('Failed to generate voucher back image');
+          toast.error('Failed to generate voucher back image: ' + getImageExportErrorMessage(error));
           setShowSpinner(false);
         });
     }, 500); // 500ms delay to ensure rendering is complete
@@ -505,7 +521,7 @@ const VoucherCard = ({ category: flowCategory }) => {
           setDataUrlBack('');
         });
     }
-  }, [dataUrlFront, dataUrlBack]);
+  }, [dataUrlFront, dataUrlBack, isSubmitted]);
   const styleTag = document.createElement('style');
   styleTag.innerHTML = styles2;
   document.head.appendChild(styleTag);
@@ -537,6 +553,7 @@ const VoucherCard = ({ category: flowCategory }) => {
     if (result.isConfirmed) {
       setShowSpinner(true);
       setDataUrlFront('');
+      setDataUrlBack('');
       setIsSubmitted(false);
 
       if (value == 'Template1') {
@@ -674,6 +691,8 @@ const VoucherCard = ({ category: flowCategory }) => {
                           category={category ? category : 0}
                           templateId='Template1'
                           productData={productData}
+                          companyLogo={companyAvatar}
+                          companyName={company?.CompanyName || company?.companyName}
                           textInverted={checked}
                           iconInverted={invertIconChecked}
                           myRefBack={myRefBack}
