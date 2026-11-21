@@ -30,7 +30,7 @@ const getAccentColor = color => {
 
 /** Front card – black and gold ribbon design. */
 export const VoucherCardFront = React.forwardRef(
-  ({ cardBgColor, cardImage, productData, companyLogo, companyName, textInverted }, ref) => {
+  ({ cardBgColor, cardImage, productData, companyLogo, companyName, textInverted, gradientColors }, ref) => {
     const brandName = companyName || productData?.companyName || productData?.brandName || 'Your Company';
     const voucherType = (productData?.voucherType || 'Specific')
       .replace(/^offer\s+/i, '')
@@ -49,7 +49,7 @@ export const VoucherCardFront = React.forwardRef(
           height: 320,
           width: 480,
           maxWidth: '100%',
-          background: cardBgColor || 'linear-gradient(115deg, #15130b 0%, #080f10 100%)',
+          background: cardBgColor || `linear-gradient(135deg, ${gradientColors?.start || '#7c3aed'}, ${gradientColors?.end || '#3b82f6'})`,
           fontFamily: 'Arial, sans-serif',
         }}
       >
@@ -79,7 +79,7 @@ export const VoucherCardFront = React.forwardRef(
 
 /** Back card – details, inclusions, exclusions, terms */
 export const VoucherCardBack = React.forwardRef(
-  ({ cardBgColor, productData, textInverted }, ref) => {
+  ({ cardBgColor, gradientColors, productData, textInverted }, ref) => {
     const bg = (cardBgColor != null && String(cardBgColor).trim() !== '') ? cardBgColor : defaultCardBg;
     return (
       <div
@@ -92,7 +92,9 @@ export const VoucherCardBack = React.forwardRef(
           width: 480,
           maxWidth: '100%',
           backgroundColor: bg,
-          background: bg,
+          background: cardBgColor != null && String(cardBgColor).trim() !== ''
+            ? cardBgColor
+            : `linear-gradient(135deg, ${gradientColors?.start || '#7c3aed'}, ${gradientColors?.end || '#3b82f6'})`,
         }}
       >
         <div className="h-full p-5 flex flex-col gap-3 overflow-hidden">

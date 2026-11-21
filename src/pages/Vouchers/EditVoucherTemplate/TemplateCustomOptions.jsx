@@ -393,6 +393,7 @@ const TemplateCustomOptions = ({
             <Box
               key={idx}
               onClick={() => {
+                setCardBgColor(null);
                 setGradientStart(preset.start);
                 setGradientEnd(preset.end);
               }}
@@ -435,7 +436,10 @@ const TemplateCustomOptions = ({
             <input
               type="color"
               value={gradientStart}
-              onChange={(e) => setGradientStart(e.target.value)}
+              onChange={(e) => {
+                setCardBgColor(null);
+                setGradientStart(e.target.value);
+              }}
               style={{
                 width: '100%',
                 height: '40px',
@@ -459,7 +463,10 @@ const TemplateCustomOptions = ({
             <input
               type="color"
               value={gradientEnd}
-              onChange={(e) => setGradientEnd(e.target.value)}
+              onChange={(e) => {
+                setCardBgColor(null);
+                setGradientEnd(e.target.value);
+              }}
               style={{
                 width: '100%',
                 height: '40px',

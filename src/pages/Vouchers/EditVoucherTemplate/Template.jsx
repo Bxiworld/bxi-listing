@@ -41,6 +41,7 @@ const Template = React.memo(({
       <VoucherCardBack
         ref={myRefBack}
         cardBgColor={cardBgColor}
+        gradientColors={gradientColors}
         productData={productData}
         textInverted={textInverted}
       />
