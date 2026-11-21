@@ -32,10 +32,16 @@ const getAccentColor = color => {
 export const VoucherCardFront = React.forwardRef(
   ({ cardBgColor, cardImage, productData, companyLogo, companyName, textInverted, gradientColors }, ref) => {
     const brandName = companyName || productData?.companyName || productData?.brandName || 'Your Company';
-    const voucherType = (productData?.voucherType || 'Specific')
-      .replace(/^offer\s+/i, '')
-      .replace(/\s+voucher$/i, '')
-      .trim() || 'Specific';
+    const rawVoucherType = (productData?.voucherType || 'Offer Specific').trim();
+    const normalizedVoucherType = rawVoucherType.replace(/\s+voucher$/i, '').trim();
+    const [voucherHeadingLead, ...voucherHeadingRest] = /^offer\s+/i.test(normalizedVoucherType)
+      ? ['Offer', normalizedVoucherType.replace(/^offer\s+/i, '')]
+      : /^specific$/i.test(normalizedVoucherType)
+        ? ['Offer', 'Specific']
+      : /^value$/i.test(normalizedVoucherType)
+        ? ['Gift', 'Card']
+        : normalizedVoucherType.split(/\s+/);
+    const voucherHeadingDetail = voucherHeadingRest.join(' ') || 'Specific';
     const brandInitials = brandName.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'ID';
     const primaryTextColor = textInverted ? '#fff' : '#000';
     const accentColor = getAccentColor(cardBgColor);
@@ -61,8 +67,8 @@ export const VoucherCardFront = React.forwardRef(
           <p className="max-w-[300px] truncate text-[14px] uppercase tracking-[0.22em]" style={{ color: primaryTextColor }}>{brandName}</p>
         </div>
         <div className="absolute left-8 top-[116px] z-10 flex items-baseline gap-2 whitespace-nowrap" style={{ maxWidth: 'calc(79% - 50px)' }}>
-          <span className="shrink-0 text-[52px] font-black uppercase leading-none" style={{ fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '-0.025em', color: accentColor }}>Offer</span>
-          <span className="min-w-0 truncate text-[48px] font-light uppercase leading-none" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 300, letterSpacing: '-0.045em', color: primaryTextColor }}>{voucherType}</span>
+          <span className="shrink-0 text-[52px] font-black uppercase leading-none" style={{ fontFamily: 'Impact, "Arial Narrow", sans-serif', letterSpacing: '-0.025em', color: accentColor }}>{voucherHeadingLead}</span>
+          <span className="min-w-0 truncate text-[48px] font-light uppercase leading-none" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 300, letterSpacing: '-0.045em', color: primaryTextColor }}>{voucherHeadingDetail}</span>
         </div>
         <div aria-hidden="true" className="absolute left-0 right-0 top-[70%] h-[4px]" style={{ backgroundColor: accentColor, backgroundImage: 'radial-gradient(rgba(255,255,255,0.65) 1px, transparent 1.2px)', backgroundSize: '7px 4px' }} />
         <div aria-hidden="true" className="absolute bottom-0 left-[79%] top-0 w-[5px]" style={{ backgroundColor: accentColor, backgroundImage: 'radial-gradient(rgba(255,255,255,0.65) 1px, transparent 1.2px)', backgroundSize: '5px 7px' }} />
