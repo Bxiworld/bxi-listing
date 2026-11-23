@@ -7,7 +7,7 @@ if (!BXI_API_KEY) {
   throw new Error('REACT_APP_BXI_API_KEY is not set (no hardcoded fallback).');
 }
 // Env-driven (REACT_APP_API_URL, selected per environment by start:dev/start:prod).
-// Falls back to the development API. Trailing slashes normalized (BXI mounts at root, no /api).
+// Falls back to the production API. Trailing slashes normalized (BXI mounts at root, no /api).
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'https://apiv1production.bxiworld.com').replace(/\/+$/, '');
 
 // Seller auth handed off from the dashboard (app.bxiworld.com). sessionStorage is

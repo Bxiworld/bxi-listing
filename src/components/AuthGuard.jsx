@@ -5,12 +5,12 @@ import { waitForSellerHandoff } from '../utils/api';
 const LOGIN_URL = (
   process.env.REACT_APP_LOGIN_URL ||
   process.env.REACT_APP_DASHBOARD_URL ||
-  'https://bxi-dashboard-skrsv.ondigitalocean.app/login'
+  'https://app.bxiworld.com/login'
 ).replace(/\/+$/, '');
 
 const DASHBOARD_URL = (
   process.env.REACT_APP_DASHBOARD_URL ||
-  'https://bxi-dashboard-skrsv.ondigitalocean.app'
+  'https://app.bxiworld.com'
 ).replace(/\/+$/, '');
 
 function getEntrySource() {
@@ -61,8 +61,8 @@ export function AuthGuard({ children }) {
   if (LOGIN_URL && !isAuthenticated) {
     const source = getEntrySource();
     const returnTo = window.location.href;
-    // Dashboard handoff failed / missing → send back to the matching dashboard
-    // login (dev UAT), never a hardcoded production host.
+    // Dashboard handoff failed / missing → send back to the dashboard matching
+    // the listing deployment's configured environment.
     const loginBase =
       source === 'dashboard'
         ? `${DASHBOARD_URL}/login`
