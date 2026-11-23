@@ -117,9 +117,11 @@ export default function VoucherGoLive({ category }) {
                         />
                       )}
                     </div>
-                    {productData?.VoucherImages[1]?.url && (
-                      <img src={productData.VoucherImages[1].url} alt="Voucher back" className="w-full h-full object-cover" />
-                    )}
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      {productData.VoucherImages
+                        .filter(image => String(image?.id || '').startsWith('extra-') && image?.url)
+                        .map(image => <img key={image.id} src={image.url} alt="Additional product" className="w-full h-40 rounded-lg object-cover" />)}
+                    </div>
                   </div>
                 )}
               </div>
