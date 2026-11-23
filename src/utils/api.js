@@ -79,6 +79,10 @@ const captureAuthFromUrl = () => {
 if (typeof window !== 'undefined') {
   captureAuthFromUrl();
 }
+
+/** Await in-flight dashboard→listing handoff code exchange (if any). */
+export const waitForSellerHandoff = () => handoffReady;
+
 const getSellerToken = () => {
   try {
     return sessionStorage.getItem(SELLER_TOKEN_KEY);

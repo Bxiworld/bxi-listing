@@ -22,31 +22,39 @@ export default function ListingAccessGuard({ kind, category, children }) {
 
   const allowAdminAllCategories =
     isAdmin || (source === 'admin' && hasAdminToken);
-  // When admin context with URL companyType, prioritize entryCompanyType over logged-in user's type
-  const effectiveCompanyType = (allowAdminAllCategories && entryCompanyType)
-    ? entryCompanyType
-    : (companyType || entryCompanyType || 'Others');
+  const candidateTypes = [];
+  const addCandidate = (value) => {
+    const name = String(value || '').trim();
+    if (!name || candidateTypes.includes(name)) return;
+    candidateTypes.push(name);
+  };
+  addCandidate(entryCompanyType);
+  addCandidate(companyType);
+  if (!candidateTypes.length) addCandidate('Others');
 
   if (loading) {
     return null;
   }
 
-  let isAllowed = false;
-  if (kind === 'listing') {
-    const allowedCategories = getAllowedCategories(effectiveCompanyType, allowAdminAllCategories);
-    const allowedVouchers = getAllowedVouchers(effectiveCompanyType, allowAdminAllCategories);
-    isAllowed = allowedCategories.length > 0 || allowedVouchers.length > 0;
-  } else if (kind === 'voucher') {
-    const allowedVouchers = getAllowedVouchers(effectiveCompanyType, allowAdminAllCategories);
-    isAllowed = category
-      ? allowedVouchers.some((voucher) => voucher.id === category)
-      : allowedVouchers.length > 0;
-  } else {
-    const allowedCategories = getAllowedCategories(effectiveCompanyType, allowAdminAllCategories);
-    isAllowed = category
+  const typeCanOpen = (typeName) => {
+    if (kind === 'listing') {
+      const allowedCategories = getAllowedCategories(typeName, allowAdminAllCategories);
+      const allowedVouchers = getAllowedVouchers(typeName, allowAdminAllCategories);
+      return allowedCategories.length > 0 || allowedVouchers.length > 0;
+    }
+    if (kind === 'voucher') {
+      const allowedVouchers = getAllowedVouchers(typeName, allowAdminAllCategories);
+      return category
+        ? allowedVouchers.some((voucher) => voucher.id === category)
+        : allowedVouchers.length > 0;
+    }
+    const allowedCategories = getAllowedCategories(typeName, allowAdminAllCategories);
+    return category
       ? allowedCategories.some((item) => item.slug === category)
       : allowedCategories.length > 0;
-  }
+  };
+
+  const isAllowed = candidateTypes.some(typeCanOpen);
 
   if (!isAllowed) {
     return <Navigate to="/sellerhub" replace />;

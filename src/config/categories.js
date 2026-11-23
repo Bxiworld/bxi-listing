@@ -69,11 +69,24 @@ export const ALLOWED_VOUCHERS_BY_COMPANY_TYPE = {
   default: ['electronicsVoucher', 'fmcgVoucher', 'mobilityVoucher', 'officesupplyVoucher', 'eeVoucher', 'textileVoucher', 'lifestyleVoucher', 'airlineVoucher', 'qsrVoucher', 'hotelsVoucher', 'otherVoucher'],
 };
 
+function valuesForCompanyType(map, companyTypeName) {
+  if (companyTypeName && Object.prototype.hasOwnProperty.call(map, companyTypeName)) {
+    return map[companyTypeName];
+  }
+  const wanted = String(companyTypeName || '').trim().toLowerCase();
+  if (!wanted) return null;
+  const key = Object.keys(map).find(
+    (name) => name !== 'default' && name.trim().toLowerCase() === wanted,
+  );
+  return key ? map[key] : null;
+}
+
 export function getAllowedCategories(companyTypeName, isAdmin) {
   if (isAdmin) {
     return ALL_PRODUCT_CATEGORIES;
   }
-  const slugs = ALLOWED_CATEGORIES_BY_COMPANY_TYPE[companyTypeName] || ALLOWED_CATEGORIES_BY_COMPANY_TYPE.default;
+  const slugs = valuesForCompanyType(ALLOWED_CATEGORIES_BY_COMPANY_TYPE, companyTypeName)
+    || ALLOWED_CATEGORIES_BY_COMPANY_TYPE.default;
   return ALL_PRODUCT_CATEGORIES.filter((c) => slugs.includes(c.slug));
 }
 
@@ -81,6 +94,7 @@ export function getAllowedVouchers(companyTypeName, isAdmin) {
   if (isAdmin) {
     return ALL_VOUCHER_CATEGORIES;
   }
-  const voucherIds = ALLOWED_VOUCHERS_BY_COMPANY_TYPE[companyTypeName] || ALLOWED_VOUCHERS_BY_COMPANY_TYPE.default;
+  const voucherIds = valuesForCompanyType(ALLOWED_VOUCHERS_BY_COMPANY_TYPE, companyTypeName)
+    || ALLOWED_VOUCHERS_BY_COMPANY_TYPE.default;
   return ALL_VOUCHER_CATEGORIES.filter((v) => voucherIds.includes(v.id));
 }

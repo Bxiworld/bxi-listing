@@ -898,7 +898,7 @@ export default function HotelsProductInfo({ category }) {
                     type="text"
                     inputMode="numeric"
                     maxLength={hsnMaxLength}
-                    placeholder={isAdmin ? 'e.g. 998346' : (requiredHsnLength === 6 ? 'e.g. 998346' : 'e.g. 9983')}
+                    placeholder={isAdmin || requiredHsnLength !== 6 ? 'e.g. 9983' : 'e.g. 998346'}
                     value={newOtherCost.AdCostHSN}
                     onChange={(e) => { const v = sanitizeHsnInput(e.target.value, hsnMaxLength); setNewOtherCost((p) => ({ ...p, AdCostHSN: v })); setOtherCostErrors((prev) => ({ ...prev, AdCostHSN: undefined })); }}
                     className={otherCostErrors.AdCostHSN ? 'border-red-500' : ''}

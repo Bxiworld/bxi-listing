@@ -633,12 +633,10 @@ export default function SellerHub() {
       {/* Hero Section */}
       <div className="seller-hero">
         <div className="seller-hero-content" >
-          
-            <>
-              <h1>{showAdminView ? 'Ready Stock Listings' : 'Sell with BXI'}</h1>
-              <p>Manage your {totalProductsCount} {listingTypeLabel}{showAdminView ? ' (Admin view)' : ''}</p>
-            </>
-          
+          <>
+            <h1>{showAdminView ? 'Ready Stock Listings' : 'Sell with BXI'}</h1>
+            <p>Manage your {totalProductsCount} {listingTypeLabel}{showAdminView ? ' (Admin view)' : ''}</p>
+          </>
           <Button
             onClick={() => navigate(showAdminView ? '/allcategoriesadmin' : addListingPath)}
             className="bg-white text-[#C64091] hover:bg-gray-100 font-semibold px-6 py-3 h-auto shadow-lg hover:shadow-xl transition-shadow"
@@ -812,16 +810,16 @@ export default function SellerHub() {
                   </PaginationItem>
 
                   {getVisiblePages(currentPage, activeTotalPages).map((pageNum) => (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(pageNum)}
-                          isActive={currentPage === pageNum}
-                          className="cursor-pointer"
-                          data-testid={`pagination-${pageNum}`}
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNum)}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                        data-testid={`pagination-${pageNum}`}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
                   ))}
 
                   <PaginationItem>

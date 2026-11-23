@@ -1,14 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FileSpreadsheet,
   Loader2,
   CheckCircle2,
   AlertTriangle,
   ChevronRight,
-} from 'lucide-react';
-import { bulkUploadApi } from '../utils/api';
-import { cn } from '../lib/utils';
+} from "lucide-react";
+import { bulkUploadApi } from "../utils/api";
+import { cn } from "../lib/utils";
 
 /**
  * Recovery banner for bulk-upload jobs.
@@ -25,23 +25,39 @@ const POLL_MS = 10000;
 
 function statusMeta(job) {
   switch (job.status) {
-    case 'completed':
-      return { label: 'Ready', cls: 'bg-emerald-100 text-emerald-800', Icon: CheckCircle2 };
-    case 'completed_with_errors':
-      return { label: 'Finished with issues', cls: 'bg-amber-100 text-amber-800', Icon: AlertTriangle };
-    case 'failed':
-      return { label: 'Failed', cls: 'bg-red-100 text-red-800', Icon: AlertTriangle };
+    case "completed":
+      return {
+        label: "Ready",
+        cls: "bg-emerald-100 text-emerald-800",
+        Icon: CheckCircle2,
+      };
+    case "completed_with_errors":
+      return {
+        label: "Finished with issues",
+        cls: "bg-amber-100 text-amber-800",
+        Icon: AlertTriangle,
+      };
+    case "failed":
+      return {
+        label: "Failed",
+        cls: "bg-red-100 text-red-800",
+        Icon: AlertTriangle,
+      };
     default:
-      return { label: 'Processing', cls: 'bg-[#FCE7F3] text-[#C64091]', Icon: Loader2 };
+      return {
+        label: "Processing",
+        cls: "bg-[#FCE7F3] text-[#C64091]",
+        Icon: Loader2,
+      };
   }
 }
 
 function relativeTime(value) {
-  if (!value) return '';
+  if (!value) return "";
   const then = new Date(value).getTime();
-  if (Number.isNaN(then)) return '';
+  if (Number.isNaN(then)) return "";
   const diffSec = Math.round((Date.now() - then) / 1000);
-  if (diffSec < 60) return 'just now';
+  if (diffSec < 60) return "just now";
   const diffMin = Math.round(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m ago`;
   const diffHr = Math.round(diffMin / 60);
@@ -68,7 +84,7 @@ export default function BulkUploadJobsBanner() {
         setLoaded(true);
 
         // Keep polling only while something is still processing.
-        const anyProcessing = list.some((j) => j.status === 'processing');
+        const anyProcessing = list.some((j) => j.status === "processing");
         if (timerRef.current) {
           clearTimeout(timerRef.current);
           timerRef.current = null;
@@ -91,9 +107,7 @@ export default function BulkUploadJobsBanner() {
 
   // Show only jobs from the last few days, newest first, capped — and only those we can
   // actually reopen (need a webhook id).
-  const visible = jobs
-    .filter((j) => j.webhook_id)
-    .slice(0, 5);
+  const visible = jobs.filter((j) => j.webhook_id);
 
   if (!loaded || visible.length === 0) return null;
 
@@ -109,20 +123,27 @@ export default function BulkUploadJobsBanner() {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 pt-6" data-testid="bulk-jobs-banner">
+    <div
+      className="relative z-20 w-full max-w-6xl mx-auto px-4 pt-6 mb-[60px] max-md:mb-[40px]"
+      data-testid="bulk-jobs-banner"
+    >
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/60">
-          <h3 className="text-sm font-bold text-gray-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          <h3
+            className="text-sm font-bold text-gray-900"
+            style={{ fontFamily: "Manrope, sans-serif" }}
+          >
             Your bulk uploads
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Resume processing or download finished files — you don&apos;t need to re-upload.
+            Resume processing or download finished files — you don&apos;t need
+            to re-upload.
           </p>
         </div>
-        <ul className="divide-y divide-gray-100">
+        <ul className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-gray-100">
           {visible.map((job) => {
             const { label, cls, Icon } = statusMeta(job);
-            const processing = job.status === 'processing';
+            const processing = job.status === "processing";
             return (
               <li
                 key={job.webhook_id}
@@ -133,20 +154,22 @@ export default function BulkUploadJobsBanner() {
                 <FileSpreadsheet className="h-5 w-5 shrink-0 text-[#C64091]" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {job.file_name || job.category || 'Bulk upload'}
+                    {job.file_name || job.category || "Bulk upload"}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    {job.category ? `${job.category} · ` : ''}
+                    {job.category ? `${job.category} · ` : ""}
                     {relativeTime(job.submitted_at || job.created_at)}
                   </p>
                 </div>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0',
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium shrink-0",
                     cls,
                   )}
                 >
-                  <Icon className={cn('h-3.5 w-3.5', processing && 'animate-spin')} />
+                  <Icon
+                    className={cn("h-3.5 w-3.5", processing && "animate-spin")}
+                  />
                   {label}
                 </span>
                 <ChevronRight className="h-4 w-4 text-gray-300 shrink-0" />
