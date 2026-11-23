@@ -34,7 +34,6 @@ import Template from './Template';
 import { voucherStyle } from './EditVoucherStyle';
 import { styles } from './commonStyle';
 import TemplateCustomOptions from './TemplateCustomOptions';
-import { VoucherImageThumbnails } from './TemplateCustomOptions';
 import EditVoucherForm from './EditVoucherForm';
 import EditIcon from '@mui/icons-material/Edit';
 import * as htmlToImage from 'html-to-image';
@@ -96,7 +95,7 @@ function waitForImages(element) {
   }));
 }
 
-async function uploadVoucherImages(frontData, backData, sourcePhotos = []) {
+async function uploadVoucherImages(frontData, backData) {
   const uploads = [];
   // Front
   const frontFile = asFileFromData(frontData, 'front.png');
@@ -125,13 +124,6 @@ async function uploadVoucherImages(frontData, backData, sourcePhotos = []) {
 
     if (!resBack?.data?.file) throw new Error('Back upload failed');
     uploads.push({ id: 'back', url: resBack.data.file, typeOfFile: 'image' });
-  }
-  for (const photo of sourcePhotos) {
-    const form = new FormData();
-    form.append('file', photo.file, photo.file.name);
-    const response = await api.post('file/upload', form);
-    if (!response?.data?.file) throw new Error(`${photo.id} photo upload failed`);
-    uploads.push({ id: photo.id, url: response.data.file, typeOfFile: 'image' });
   }
   return uploads;
 }
@@ -185,8 +177,6 @@ const VoucherCard = ({ category: flowCategory }) => {
   const [dataUrlFront, setDataUrlFront] = useState('');
   const [dataUrlBack, setDataUrlBack] = useState('');
   const [files, setFiles] = useState([]);
-  const [selectedPreview, setSelectedPreview] = useState(null);
-  const sourcePhotosRef = useRef([]);
   const [cardBgColor, setCardBgColor] = useState('');
   const [category, setCategory] = useState('');
   const [value, setValue] = useState('Template1');
@@ -515,7 +505,7 @@ const VoucherCard = ({ category: flowCategory }) => {
     if (dataUrlFront && dataUrlBack && isSubmitted) {
       setShowSpinner(true);
       // Use the single, unified uploader to render and upload images
-      uploadVoucherImages(dataUrlFront, dataUrlBack, sourcePhotosRef.current)
+      uploadVoucherImages(dataUrlFront, dataUrlBack)
         .then(uploaded => {
           // Create properly formatted VoucherImages array from uploaded data
           const voucherImages = uploaded.map(u => ({
@@ -523,6 +513,9 @@ const VoucherCard = ({ category: flowCategory }) => {
             url: u.url,
             typeOfFile: u.typeOfFile
           }));
+
+          // Update state for UI
+          setFiles(voucherImages);
 
           const dataTopass = {
             ListThisProductForAmount: ListThisProductForAmount,
@@ -589,13 +582,11 @@ const VoucherCard = ({ category: flowCategory }) => {
       setIsSubmitted(false);
 
       if (value == 'Template1') {
-        sourcePhotosRef.current = files.filter(file => file.file);
         setIsSubmitted(true);
         downloadCardFront();
         downloadCardBack();
       }
       if (value == 'Template3') {
-        sourcePhotosRef.current = files.filter(file => file.file);
         setIsSubmitted(true);
         downloadCardFront2();
         downloadCardBack2();
@@ -695,13 +686,12 @@ const VoucherCard = ({ category: flowCategory }) => {
                     maxHeight: 'auto',
                     height: 'auto',
                     p: 1,
-                    display: 'grid',
-                    gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(330px, 0.72fr) minmax(0, 1.28fr)' },
-                    alignItems: 'start',
-                    gap: { xs: 2, lg: 3 },
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: '10px',
                   }}
                 >
-                  <Box sx={{ minWidth: 0 }}>
+                  <Box>
                     <Box className={classes.templateHeader}>
                       <Typography
                         className={classes.templateLabel}
@@ -722,7 +712,7 @@ const VoucherCard = ({ category: flowCategory }) => {
                       <div id='voucher-live-preview-front'>
                         <Template
                           cardBgColor={cardBgColor}
-                          cardImage={selectedPreview || files.find(file => file.id === 'cover')?.preview || files[0]?.preview}
+                          cardImage={files[0]?.preview}
                           category={category ? category : 0}
                           templateId='Template1'
                           productData={productData}
@@ -736,22 +726,31 @@ const VoucherCard = ({ category: flowCategory }) => {
                         />
                       </div>
                     </Box>
-                    <VoucherImageThumbnails
-                      photos={files}
-                      updatePreview={setSelectedPreview}
-                    />
                   </Box>
-                  <Box sx={{ minWidth: 0 }}>
+                  <Box>
                     <TemplateCustomOptions
-                      photos={files}
-                      updateFile={setFiles}
-                      updateBGColor={setCardBgColor}
-                      updateTextColor={setChecked}
-                      updateGradientColors={setGradientColors}
+                      updateFile={e => {
+                        setFiles(e);
+                      }}
+                      updateBGColor={e => {
+                        setCardBgColor(e);
+                      }}
+                      updateIcon={e => {
+                        setCategory(e);
+                      }}
+                      updateTextColor={e => {
+                        setChecked(e);
+                      }}
+                      updateInvertIcon={e => {
+                        setInvertIconChecked(e);
+                      }}
+                      updateGradientColors={colors => {
+                        setGradientColors(colors);
+                      }}
                     />
                   </Box>
                 </Stack>
-                <Box className={cls.fieldBox} sx={{ width: { xs: '100%', lg: '550px' }, ml: '10px', mb: 2 }}>
+                <Box className={cls.fieldBox} sx={{ width: '550px', ml: '10px' }}>
                   <Box sx={{ display: 'block', marginBottom: 1 }}>
                     <label className={cls.fieldLabel} style={{ fontSize: '16px', display: 'block' }}>
                       List voucher for no of days on platform
@@ -930,6 +929,9 @@ const VoucherCard = ({ category: flowCategory }) => {
                   className={cls.formNavigationBar}
                   style={{ padding: '0' }}
                 >
+                  <button className={cls.resetLabel} type="button">
+                    &nbsp;
+                  </button>
                   <Box
                     sx={{
                       padding: '10px',
@@ -977,9 +979,37 @@ const VoucherCard = ({ category: flowCategory }) => {
                         flexWrap: 'wrap',
                       }}
                     >
-                      <Typography sx={{ color: files.filter(file => file.file).length === 3 ? '#18834c' : '#bd2f82', fontSize: 14, fontWeight: 600, mr: 'auto' }}>
-                        {files.filter(file => file.file).length === 3 ? 'All voucher images uploaded' : `Upload ${3 - files.filter(file => file.file).length} more image${3 - files.filter(file => file.file).length === 1 ? '' : 's'} to continue`}
-                      </Typography>
+                      <Button
+                        variant="outlined"
+                        type="button"
+                        onClick={() => {
+                          const confirmLeave = window.confirm(
+                            'Are you sure you want to cancel the product?'
+                          );
+                          if (confirmLeave) {
+                            navigate('/home/sellerhub');
+                          }
+                        }}
+                        sx={{
+                          minWidth: 120,
+                          height: 40,
+                          borderRadius: '10px',
+                          borderColor: '#636161',
+                          color: '#636161',
+                          fontFamily: 'Inter, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          textTransform: 'none',
+                          boxShadow: '0px 2px 4px rgba(0,0,0,0.1)',
+                          '&:hover': {
+                            borderColor: '#000',
+                            color: '#000',
+                            backgroundColor: '#FAFBFD',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </Button>
                       <Button
                         disabled={
                           !value ||
@@ -988,32 +1018,32 @@ const VoucherCard = ({ category: flowCategory }) => {
                             ListThisProductForAmount,
                             ListThisProductForUnitOfTime || 'Days'
                           ) ||
-                          files.filter(file => file.file).length !== 3
+                          files.length === 0
                         }
                         onClick={() => uploadTemplate()}
                         sx={{
                           minWidth: 120,
                           height: 40,
                           borderRadius: '10px',
-                          backgroundColor: '#315794',
+                          backgroundColor: '#C64091',
                           color: '#fff',
                           fontFamily: 'Inter, sans-serif',
                           fontWeight: 600,
                           fontSize: '14px',
                           textTransform: 'none',
                           '&:hover': {
-                            backgroundColor: '#244579',
+                            backgroundColor: '#A03375',
                             color: '#fff',
                           },
                           '&.Mui-disabled': {
-                            backgroundColor: '#d9dce4',
+                            backgroundColor: '#C64091',
                             color: '#fff',
                             opacity: 0.5,
                             pointerEvents: 'none',
                           },
                         }}
                       >
-                        {showSpinner ? <CircularProgress size={20} color="inherit" /> : 'Go Live'}
+                        {showSpinner ? <CircularProgress size={20} color="inherit" /> : 'Next'}
                       </Button>
                     </Box>
                   </Box>

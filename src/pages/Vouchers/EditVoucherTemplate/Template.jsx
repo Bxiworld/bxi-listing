@@ -23,7 +23,7 @@ const Template = React.memo(({
         display: 'flex',
         justifyContent: 'flex-start',
         flexDirection: 'column',
-        gap: 0,
+        gap: '20px',
         alignItems: 'normal',
         backgroundColor: 'transparent',
       }}
@@ -38,15 +38,13 @@ const Template = React.memo(({
         textInverted={textInverted}
         gradientColors={gradientColors}
       />
-      <div aria-hidden="true" style={{ position: 'fixed', left: '-10000px', top: 0, pointerEvents: 'none' }}>
-        <VoucherCardBack
-          ref={myRefBack}
-          cardBgColor={cardBgColor}
-          gradientColors={gradientColors}
-          productData={productData}
-          textInverted={textInverted}
-        />
-      </div>
+      <VoucherCardBack
+        ref={myRefBack}
+        cardBgColor={cardBgColor}
+        gradientColors={gradientColors}
+        productData={productData}
+        textInverted={textInverted}
+      />
     </Box>
   );
 });
