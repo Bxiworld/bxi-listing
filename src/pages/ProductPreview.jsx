@@ -523,7 +523,7 @@ function getVariantPreviewTableColumns(
       id: "hsn",
       heading: "HSN",
       minWidth: 88,
-      cell: <Typography variant="body2">{v.HSN}</Typography>,
+      cell: <Typography variant="body2">{formatHsnForDisplay(v.HSN)}</Typography>,
     });
   }
 
@@ -1705,6 +1705,9 @@ export default function ProductPreview() {
                             <TableBody>
                               {product.OtherCost.map((cost, i) => (
                                 <TableRow key={cost._id ?? cost.id ?? i}>
+                                  <TableCell>{cost.AdCostApplicableOn ?? '—'}</TableCell>
+                                  <TableCell>{cost.ReasonOfCost ?? '—'}</TableCell>
+                                  <TableCell>{cost.AdCostHSN != null && cost.AdCostHSN !== '' ? formatHsnForDisplay(cost.AdCostHSN) : '—'}</TableCell>
                                   <TableCell>
                                     {cost.AdCostApplicableOn ?? "—"}
                                   </TableCell>
