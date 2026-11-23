@@ -354,7 +354,7 @@ export function getMediaListingProfile(product) {
   const journey =
     String(product?.mediaJourney || readStorage('mediaJourney') || '').trim() ||
     getMediaJourney(mc);
-  
+
   const subName = String(
     product?.ProductSubCategoryName ?? product?.productSubCategoryName ?? ''
   );
