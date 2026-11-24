@@ -106,7 +106,7 @@ const CATEGORY_TO_SLUG = {
 
 function formatPrice(value) {
   if (value == null || value === "") return "N/A";
-  const num = typeof value === "number" ? value : parseFloat(value);
+  const num = typeof value === "number" ? value : Number.parseFloat(value);
   if (Number.isNaN(num)) return String(value);
   return num.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
@@ -667,7 +667,7 @@ export default function ProductPreview() {
       }
     };
 
-    hydrateStoreLocations();
+    void hydrateStoreLocations();
 
     return () => {
       cancelled = true;
@@ -682,15 +682,15 @@ export default function ProductPreview() {
           .toLowerCase()
           .includes("hoard"))
     ) {
-      navigate(`/mediaonline/go-live/${id}?from=hoarding`);
+      void navigate(`/mediaonline/go-live/${id}?from=hoarding`);
       return;
     }
     const cat = product?.ProductCategoryName;
     const slug = CATEGORY_TO_SLUG[cat];
     if (slug) {
-      navigate(`/${slug}/go-live/${id}`);
+      void navigate(`/${slug}/go-live/${id}`);
     } else {
-      navigate("/sellerhub");
+      void navigate("/sellerhub");
     }
   };
 
@@ -968,14 +968,8 @@ export default function ProductPreview() {
                           product?.ListingType === "Product"
                             ? "cover"
                             : "contain",
-                        backgroundPosition:
-                          product?.ListingType === "Product"
-                            ? "center"
-                            : "center",
-                        backgroundRepeat:
-                          product?.ListingType === "Product"
-                            ? "no-repeat"
-                            : "no-repeat",
+                        backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
                         backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
                       }}
                     />
@@ -2231,7 +2225,6 @@ export default function ProductPreview() {
                   const timelineUnit = pick(
                     mv.Timeline,
                     v0.Timeline,
-                    product?.timeline,
                   );
                   const isDigitalAdsPreview =
                     String(product?.mediaJourney || "").toLowerCase() ===

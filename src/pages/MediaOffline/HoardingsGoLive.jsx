@@ -40,7 +40,7 @@ export default function HoardingsGoLive() {
 
   // Fetch hoarding list
   useEffect(() => {
-    fetchHoardingList();
+    void fetchHoardingList();
   }, [id]);
 
   const fetchHoardingList = async () => {
@@ -52,7 +52,7 @@ export default function HoardingsGoLive() {
 
       if (!listId) {
         toast.error('Hoarding List ID not found. Please complete previous steps.');
-        navigate(`/mediaoffline/mediaofflinehoardinginfo/${id}`);
+        void navigate(`/mediaoffline/mediaofflinehoardinginfo/${id}`);
         return;
       }
 
@@ -158,7 +158,7 @@ export default function HoardingsGoLive() {
       });
     });
 
-    Promise.all(imagePromises).then((images) => {
+    void Promise.all(imagePromises).then((images) => {
       const newImagesState = { ...hoardingImages };
       selectedHoardings.forEach((hoardingId) => {
         const existing = existingImagesById[hoardingId]?.length || 0;
@@ -209,7 +209,7 @@ export default function HoardingsGoLive() {
       });
     }).filter(Boolean);
 
-    Promise.all(imagePromises).then((images) => {
+    void Promise.all(imagePromises).then((images) => {
       setHoardingImages({
         ...hoardingImages,
         [hoardingId]: [...currentImages, ...images],
@@ -261,7 +261,7 @@ export default function HoardingsGoLive() {
 
       toast.success('Hoarding images saved. Opening preview…');
       setTimeout(() => {
-        navigate(`/hoardingmediaofflineproductpreview/${id}`);
+        void navigate(`/hoardingmediaofflineproductpreview/${id}`);
       }, 800);
     } catch (error) {
       console.error('Error:', error);

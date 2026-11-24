@@ -291,11 +291,11 @@ const MediaProductInfo = () => {
           repetition: z.string().optional().or(z.literal('')),
           dimensionSize: z.string().optional().or(z.literal('')),
           PricePerUnit: z.coerce.string().min(1, { message: 'Price is required' })
-            .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
+            .refine((value) => Number.parseFloat(value.replace(/,/g, '')) > 0, {
               message: 'Price cannot be zero',
             }),
           DiscountedPrice: z.coerce.string().min(1, { message: 'Discounted price is required' })
-            .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
+            .refine((value) => Number.parseFloat(value.replace(/,/g, '')) > 0, {
               message: 'Discounted price cannot be zero',
             }),
           GST: listingGstCoerceNumberZodSchema(),
@@ -539,7 +539,7 @@ const MediaProductInfo = () => {
 
   useEffect(() => {
     if (ProductId) {
-      FetchProduct();
+      void FetchProduct();
     }
   }, [ProductId]);
 
@@ -669,7 +669,7 @@ const MediaProductInfo = () => {
   }, [listingProfile.key, watchedMinOrderQtyTimeline]);
 
   const formatQtyInputEvent = (event) => {
-    const formatted = parseInt(
+    const formatted = Number.parseInt(
       event.target.value.replace(/[^\d]+/gi, '') || 0,
     ).toLocaleString('en-US');
     event.target.value = formatted;
@@ -697,7 +697,7 @@ const MediaProductInfo = () => {
 
   const handleAirportTotalQtyChange = (event) => {
     const formatted = formatQtyInputEvent(event);
-    minOrderQtyUnitField.onChange(event);
+    void minOrderQtyUnitField.onChange(event);
     setValue('mediaVariation.maxOrderQuantityunit', formatted, {
       shouldValidate: false,
     });
@@ -705,7 +705,7 @@ const MediaProductInfo = () => {
 
   const handleMinOrderQtyUnitChange = (event) => {
     const formatted = formatQtyInputEvent(event);
-    minOrderQtyUnitField.onChange(event);
+    void minOrderQtyUnitField.onChange(event);
     if (
       FetchedproductData?.ProductSubCategory === '65029534eaa5251874e8c6b4'
     ) {
@@ -717,16 +717,16 @@ const MediaProductInfo = () => {
 
   const handleMinOrderQtyTimelineChange = (event) => {
     formatQtyInputEvent(event);
-    minOrderQtyTimelineField.onChange(event);
+    void minOrderQtyTimelineField.onChange(event);
   };
 
   const handleMaxOrderQtyTimelineChange = (event) => {
     formatQtyInputEvent(event);
-    maxOrderQtyTimelineField.onChange(event);
+    void maxOrderQtyTimelineField.onChange(event);
   };
 
   const handleAirportMinTimelineChange = (event) => {
-    minOrderQtyTimelineField.onChange(event);
+    void minOrderQtyTimelineField.onChange(event);
     const next = String(event.target.value ?? '').trim();
     if (!next) return;
     const minN = Number(next);
@@ -740,7 +740,7 @@ const MediaProductInfo = () => {
   };
 
   const handleAirportMaxTimelineChange = (event) => {
-    maxOrderQtyTimelineField.onChange(event);
+    void maxOrderQtyTimelineField.onChange(event);
   };
 
   const formatTimelineUnitLabel = (timeline) => {
@@ -1063,8 +1063,8 @@ const MediaProductInfo = () => {
   ];
 
   useEffect(() => {
-    fetchMediaOnlineFeatures();
-    FetchAddedProduct();
+    void fetchMediaOnlineFeatures();
+    void FetchAddedProduct();
     if (FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951') {
       setValue('mediaVariation.unit', 'Screen');
       setValue('mediaVariation.Timeline', 'Week');
@@ -1432,7 +1432,7 @@ const MediaProductInfo = () => {
         onSuccess: (response) => {
           if (response.status === 200) {
             // Use new dynamic route
-            navigate(`/mediaonline/tech-info/${id}`);
+            void navigate(`/mediaonline/tech-info/${id}`);
           }
         },
         onError: (error) => { },
@@ -1445,7 +1445,7 @@ const MediaProductInfo = () => {
       'Are you sure you want to cancel the product?',
     );
     if (WindowConfirmation) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
   // Set GST default (18) on mount
@@ -1702,7 +1702,7 @@ const MediaProductInfo = () => {
                                   }}
                                   {...register('mediaVariation.PricePerUnit', {
                                     onChange: (event) => {
-                                      event.target.value = parseInt(
+                                      event.target.value = Number.parseInt(
                                         event.target.value.replace(
                                           /[^\d]+/gi,
                                           '',
@@ -1780,7 +1780,7 @@ const MediaProductInfo = () => {
                                   }}
                                   {...register('mediaVariation.DiscountedPrice', {
                                     onChange: (event) => {
-                                      event.target.value = parseInt(
+                                      event.target.value = Number.parseInt(
                                         event.target.value.replace(
                                           /[^\d]+/gi,
                                           '',
@@ -1942,7 +1942,6 @@ const MediaProductInfo = () => {
                               <Box sx={{ display: 'flex', gap: '10px' }}>
                                 <Box
                                   sx={{
-                                    display: 'flex',
                                     gap: '10px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -2653,7 +2652,7 @@ const MediaProductInfo = () => {
                                         variant="standard"
                                         disableUnderline
                                         fullWidth
-                                        value={field.value === 'Day' ? 'Day' : 'Day'}
+                                        value="Day"
                                         onChange={(e) =>
                                           field.onChange(String(e.target.value || 'Day'))
                                         }
@@ -2849,7 +2848,7 @@ const MediaProductInfo = () => {
                                   }}
                                   {...register('mediaVariation.PricePerUnit', {
                                     onChange: (event) => {
-                                      event.target.value = parseInt(
+                                      event.target.value = Number.parseInt(
                                         event.target.value.replace(
                                           /[^\d]+/gi,
                                           '',
@@ -2926,7 +2925,7 @@ const MediaProductInfo = () => {
                                   }}
                                   {...register('mediaVariation.DiscountedPrice', {
                                     onChange: (event) => {
-                                      event.target.value = parseInt(
+                                      event.target.value = Number.parseInt(
                                         event.target.value.replace(
                                           /[^\d]+/gi,
                                           '',
@@ -3349,7 +3348,7 @@ const MediaProductInfo = () => {
                                         inputRef={maxOrderQtyUnitField.ref}
                                         onChange={(event) => {
                                           formatQtyInputEvent(event);
-                                          maxOrderQtyUnitField.onChange(event);
+                                          void maxOrderQtyUnitField.onChange(event);
                                         }}
                                         onKeyDown={(e) => {
                                           if (
@@ -4069,7 +4068,7 @@ const MediaProductInfo = () => {
                                 e.preventDefault();
                               }
                             }}
-                            placeholder={IsDisabled === 'PAN India' ? 'Eg. Juhu' : 'Eg. Juhu'}
+                            placeholder="Eg. Juhu"
                             {...register('GeographicalData.landmark')}
                             sx={{
                               ...inputStyles,

@@ -116,8 +116,8 @@ export default function BulkUploadPreview() {
       // Validate price
       const priceIndex = headers.indexOf('Price*');
       if (priceIndex !== -1 && row[priceIndex]) {
-        const price = parseFloat(row[priceIndex]);
-        if (isNaN(price) || price <= 0) {
+        const price = Number.parseFloat(row[priceIndex]);
+        if (Number.isNaN(Number(price)) || price <= 0) {
           rowErrors.push('Price must be a positive number');
         }
       }
@@ -125,8 +125,8 @@ export default function BulkUploadPreview() {
       // Validate GST
       const gstIndex = headers.indexOf('GST*');
       if (gstIndex !== -1 && row[gstIndex]) {
-        const gst = parseFloat(row[gstIndex]);
-        if (isNaN(gst) || gst < 0 || gst > 100) {
+        const gst = Number.parseFloat(row[gstIndex]);
+        if (Number.isNaN(Number(gst)) || gst < 0 || gst > 100) {
           rowErrors.push('GST must be between 0 and 100');
         }
       }
@@ -195,7 +195,7 @@ export default function BulkUploadPreview() {
       
       // Navigate to products list
       const showProductsPath = getCategoryShowProductsPath(category);
-      navigate(`/${showProductsPath}`);
+      void navigate(`/${showProductsPath}`);
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to upload products');
     } finally {

@@ -37,7 +37,7 @@ export function AuthGuard({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         await waitForSellerHandoff();
       } catch {

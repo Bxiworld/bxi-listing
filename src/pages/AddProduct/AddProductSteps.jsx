@@ -342,7 +342,7 @@ export const GeneralInformation = ({ category }) => {
       return;
     }
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const res = await productApi.getProductById(id);
         const raw = res?.data ?? res;
@@ -605,7 +605,7 @@ export const GeneralInformation = ({ category }) => {
       }
     };
 
-    fetchSubcategories();
+    void fetchSubcategories();
   }, [category, isVoucherCategory, id, setValue]);
 
   const handleTextileGenderSelect = useCallback(
@@ -881,7 +881,7 @@ export const GeneralInformation = ({ category }) => {
       } else {
         targetPath = `/${category}/${nextStepPath}/${productId}`;
       }
-      navigate(targetPath);
+      void navigate(targetPath);
     } catch (error) {
       const errorText =
         error?.response?.data?.message ||
@@ -1728,7 +1728,7 @@ export const ProductInfo = ({ category }) => {
         setFeaturesLoading(false);
       }
     };
-    fetchFeatures();
+    void fetchFeatures();
   }, [category, hasFeatures, featureEndpoint, featureNameField]);
 
   useEffect(() => {
@@ -1829,7 +1829,7 @@ export const ProductInfo = ({ category }) => {
 
   const handleAddOtherCost = () => {
     const cp =
-      parseFloat(String(otherCostForm.CostPrice).replace(/,/g, "")) || 0;
+      Number.parseFloat(String(otherCostForm.CostPrice).replace(/,/g, "")) || 0;
     if (cp <= 0) {
       toast.error("Cost price must be greater than 0");
       return;
@@ -1899,9 +1899,9 @@ export const ProductInfo = ({ category }) => {
 
   const handleAddVariation = () => {
     const d = getValues();
-    const price = parseFloat(String(d.price || 0).replace(/,/g, "")) || 0;
+    const price = Number.parseFloat(String(d.price || 0).replace(/,/g, "")) || 0;
     const discountedPrice = shouldUseDiscountedPrice
-      ? parseFloat(String(d.discountedPrice || 0).replace(/,/g, "")) || 0
+      ? Number.parseFloat(String(d.discountedPrice || 0).replace(/,/g, "")) || 0
       : price;
     if (hasSizeOptions && !d.selectedSize) {
       setError("selectedSize", {
@@ -2011,8 +2011,8 @@ export const ProductInfo = ({ category }) => {
       toast.error("Discounted MRP cannot be greater than MRP");
       return;
     }
-    const minQty = parseInt(d.minOrderQty, 10);
-    const maxQty = parseInt(d.maxOrderQty, 10);
+    const minQty = Number.parseInt(d.minOrderQty, 10);
+    const maxQty = Number.parseInt(d.maxOrderQty, 10);
     if (!Number.isFinite(minQty) || minQty < 1) {
       toast.error("Minimum Order Quantity must be greater than 0");
       return;
@@ -2051,9 +2051,9 @@ export const ProductInfo = ({ category }) => {
     }
 
     const wantsSample = !!d.isSample;
-    const sampleQty = wantsSample ? parseInt(d.sampleAvailability, 10) : 0;
+    const sampleQty = wantsSample ? Number.parseInt(d.sampleAvailability, 10) : 0;
     const samplePrice = wantsSample
-      ? parseFloat(String(d.priceOfSample || 0).replace(/,/g, ""))
+      ? Number.parseFloat(String(d.priceOfSample || 0).replace(/,/g, ""))
       : 0;
     if (wantsSample) {
       if (!Number.isFinite(sampleQty) || sampleQty <= 0) {
@@ -2530,7 +2530,7 @@ export const ProductInfo = ({ category }) => {
         GlobalToast("Error fetching product in ProductInfo:", error);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id, category, setValue]);
 
   const isGstChained = useMemo(() => {
@@ -2809,7 +2809,7 @@ export const ProductInfo = ({ category }) => {
         await productApi.updateProduct(payload);
       }
       toast.success("Product information saved!");
-      navigate(`/${category}/${nextPath}/${id}`);
+      void navigate(`/${category}/${nextPath}/${id}`);
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
@@ -2909,7 +2909,7 @@ export const ProductInfo = ({ category }) => {
                 noValidate
                 onSubmit={(e) => {
                   e.preventDefault();
-                  handleSaveAndNext();
+                  void handleSaveAndNext();
                 }}
                 className="space-y-6"
               >
@@ -3649,7 +3649,7 @@ export const ProductInfo = ({ category }) => {
                             {...register("sampleAvailability", {
                               validate: (value) => {
                                 if (!watch("isSample")) return true;
-                                const qty = parseInt(value, 10);
+                                const qty = Number.parseInt(value, 10);
                                 return Number.isFinite(qty) && qty > 0
                                   ? true
                                   : "Sample quantity must be greater than 0";
@@ -3680,7 +3680,7 @@ export const ProductInfo = ({ category }) => {
                             {...register("priceOfSample", {
                               validate: (value) => {
                                 if (!watch("isSample")) return true;
-                                const amount = parseFloat(
+                                const amount = Number.parseFloat(
                                   String(value || "").replace(/,/g, ""),
                                 );
                                 return Number.isFinite(amount) && amount > 0
@@ -4218,7 +4218,7 @@ export const ProductInfo = ({ category }) => {
                               // edits the pincode, so stale results cannot replace
                               // the location for the latest value.
                               pincodeLookupRequestRef.current += 1;
-                              if (v.length === 6) handlePincodeLookup(v);
+                              if (v.length === 6) void handlePincodeLookup(v);
                             }}
                           />
                         </div>
@@ -5009,7 +5009,7 @@ export const TechInfo = ({ category }) => {
         GlobalToast("Error fetching product:", error);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id, setValue]);
 
   const onSubmit = async (data) => {
@@ -5044,7 +5044,7 @@ export const TechInfo = ({ category }) => {
       await productApi.updateProduct(payload);
       toast.success("Technical information saved!");
       const targetPath = `/${category}/${nextStepPath}/${id}`;
-      navigate(targetPath);
+      void navigate(targetPath);
     } catch (error) {
       toast.error(
         error?.response?.data?.message ||
@@ -5617,7 +5617,7 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
         toast.error("Please enter the listing period (days)");
         return;
       }
-      const num = parseInt(val || productData?.listperiod || "0", 10);
+      const num = Number.parseInt(val || productData?.listperiod || "0", 10);
       if (num < 1 || num > 365) {
         toast.error("Listing period must be between 1 and 365 days");
         return;
@@ -5680,9 +5680,9 @@ export const GoLive = ({ category, mediaOnlinePreviewPath }) => {
             /\/$/,
             "",
           );
-        navigate(`${base}/${id}`);
+        void navigate(`${base}/${id}`);
       } else {
-        navigate(`/allproductpreview/${id}`);
+        void navigate(`/allproductpreview/${id}`);
       }
     } catch (err) {
       const apiMessage = err?.response?.data?.message || "";

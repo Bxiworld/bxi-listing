@@ -34,7 +34,7 @@ export default function VoucherGoLive({ category }) {
         setLoading(false);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id]);
 
   // Aligned with bxi-dashboard: voucher submit uses ProductUploadStatus 'pendingapproval' (VoucherTypeOne uploadProduct)
@@ -53,7 +53,7 @@ export default function VoucherGoLive({ category }) {
 
       toast.success('Once uploaded, changes are subject to approval.');
       setTimeout(() => {
-        navigate('/sellerhub');
+        void navigate('/sellerhub');
       }, 2000);
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to publish. Please try again.');

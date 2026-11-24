@@ -26,7 +26,7 @@ export default function BulkUploadProductsList() {
   const category = location.pathname.split('/')[0] || 'unknown';
 
   useEffect(() => {
-    fetchProducts();
+    void fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
@@ -59,7 +59,7 @@ export default function BulkUploadProductsList() {
     try {
       await productApi.deleteProduct(productId);
       toast.success('Product deleted successfully');
-      fetchProducts();
+      void fetchProducts();
     } catch (error) {
       toast.error('Failed to delete product');
     }

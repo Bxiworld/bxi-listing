@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Pencil, Trash2, RotateCcw, Package, Archive } from 'lucide-react';
+import { Eye, Pencil, Trash2, RotateCcw, Archive } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
@@ -31,7 +31,7 @@ const statusConfig = {
   'Delist': { label: 'Delisted', className: 'delist', color: 'bg-gray-100 text-gray-600' },
 };
 
-const defaultImage = 'https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/brandWorldLogoWithBG.png' || 'https://images.unsplash.com/photo-1612538498488-226257115cc4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwcHJvZHVjdCUyMHBhY2thZ2luZyUyMHdoaXRlJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzA3OTI2MDh8MA&ixlib=rb-4.1.0&q=85';
+const defaultImage = 'https://bxi-icons.sfo3.cdn.digitaloceanspaces.com/brandWorldLogoWithBG.png';
 
 const isLiveListingStatus = (uploadStatus) => {
   const status = String(uploadStatus || '').trim();
@@ -87,7 +87,7 @@ export const ProductCard = ({
       companyType,
       action: 'view',
     });
-    navigate(path);
+    void navigate(path);
   };
 
   // Handle Edit
@@ -98,7 +98,7 @@ export const ProductCard = ({
       action: 'edit',
       reviewReasonNavigation,
     });
-    navigate(path);
+    void navigate(path);
   };
 
   // Handle Delete

@@ -257,7 +257,7 @@ export default function BulkUploadProcessing() {
       }
     };
 
-    poll();
+    void poll();
     intervalId = setInterval(poll, POLL_MS);
     return () => {
       cancelled = true;
@@ -296,7 +296,7 @@ export default function BulkUploadProcessing() {
         /* ignore */
       }
     };
-    syncLinkAndErrors();
+    void syncLinkAndErrors();
     return () => {
       cancelled = true;
     };

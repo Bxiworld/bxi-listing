@@ -254,11 +254,11 @@ export default function DigitalScreensTechInfo() {
   };
 
   useEffect(() => {
-    fetchMediaOnlineFeatures();
+    void fetchMediaOnlineFeatures();
   }, []);
 
   useEffect(() => {
-    FetchProduct();
+    void FetchProduct();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per product id
   }, [ProductId]);
 
@@ -477,7 +477,7 @@ export default function DigitalScreensTechInfo() {
     try {
       await api.post('/product/product_mutation_digitalads', datatobesent);
       toast.success('Technical information saved!');
-      navigate(`/mediaonline/digitalscreensgolive/${ProductId}`);
+      void navigate(`/mediaonline/digitalscreensgolive/${ProductId}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to save');
     } finally {

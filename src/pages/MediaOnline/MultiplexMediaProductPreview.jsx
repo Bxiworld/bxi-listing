@@ -342,7 +342,7 @@ export default function MultiplexMediaProductPreview() {
   }
 
   useEffect(() => {
-    GetProductByid();
+    void GetProductByid();
   }, [id]);
 
   const uploadProduct = () => {
@@ -365,7 +365,7 @@ export default function MultiplexMediaProductPreview() {
         } else {
           toast.success('Once uploaded, changes are subject to approval.');
         }
-        GetProductByid();
+        void GetProductByid();
         setTimeout(() => navigate('/sellerhub'), 1200);
       })
       .catch((err) => {
@@ -416,16 +416,16 @@ export default function MultiplexMediaProductPreview() {
 
   useEffect(() => {
     if (GetProductByIdData?.MultiplexScreenId || id) {
-      getMutiplexScreensById();
+      void getMutiplexScreensById();
     }
   }, [GetProductByIdData?.MultiplexScreenId, id]);
 
   const handleBack = () => {
     if (bulkuploadnavigate) {
-      navigate('/bulkuploadexcelpreview');
+      void navigate('/bulkuploadexcelpreview');
       localStorage.removeItem('bulkuploadnavigate');
     } else {
-      navigate(-1);
+      void navigate(-1);
     }
   };
 

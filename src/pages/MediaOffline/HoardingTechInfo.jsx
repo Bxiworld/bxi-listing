@@ -228,7 +228,6 @@ export default function HoardingTechInfo() {
                     dimensionSize: data.mediaVariation?.dimensionSize ?? "",
                     minOrderQtyTimeline: data.mediaVariation?.minOrderQtyTimeline ?? "",
                     maxOrderQtyTimeline: data.mediaVariation?.maxOrderQtyTimeline ?? "",
-                    HSN: data.mediaVariation?.hsn ?? "",
                     // For GST, timeline, adType: these are in react-hook-form, so use setValue (below)
                     supportingDocs: supportingDocsToCheckboxState(
                         data.WhatSupportingYouWouldGiveToBuyer,
@@ -266,7 +265,7 @@ export default function HoardingTechInfo() {
 
 
     useEffect(() => {
-        FetchProduct();
+        void FetchProduct();
     }, []);
 
     const handleItemAdd = (e) => {
@@ -466,7 +465,7 @@ export default function HoardingTechInfo() {
                     toast.success('Product updated successfully');
                     const id = ProductId;
                     setTimeout(() => {
-                        navigate(`/mediaonline/go-live/${id}?from=hoarding`);
+                        void navigate(`/mediaonline/go-live/${id}?from=hoarding`);
                     }, 3000);
                 } else {
                     toast.error('Product not updated');
@@ -486,7 +485,7 @@ export default function HoardingTechInfo() {
     }
 
     useEffect(() => {
-        fetchMediaOnlineFeatures();
+        void fetchMediaOnlineFeatures();
     }, []);
 
 

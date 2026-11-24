@@ -507,7 +507,7 @@ const MediaProductInfo = () => {
     }
   };
   useEffect(() => {
-    FetchProduct();
+    void FetchProduct();
   }, []);
   const { mutate: updateProduct } = useUpdateProductQuery();
 
@@ -644,7 +644,7 @@ const MediaProductInfo = () => {
   async function FetchAddedProduct() {
     try {
       const res = await api.get(`/product/get_product_byId/${ProductId}`);
-      fetchHsnCode(res.data?.ProductSubCategory);
+      void fetchHsnCode(res.data?.ProductSubCategory);
       return res.data;
     } catch (err) { }
   }
@@ -665,7 +665,7 @@ const MediaProductInfo = () => {
   ];
 
   useEffect(() => {
-    FetchAddedProduct();
+    void FetchAddedProduct();
   }, []);
   const featureChoices = useMemo(() => {
     if (isNewspaperJourney) {
@@ -836,7 +836,7 @@ const MediaProductInfo = () => {
           if (response.status === 200) {
             toast.success('Product updated successfully');
             setTimeout(() => {
-              navigate(`/mediaoffline/tech-info/${id}`);
+              void navigate(`/mediaoffline/tech-info/${id}`);
             }, 2000);
           }
         },
@@ -873,7 +873,7 @@ const MediaProductInfo = () => {
       'Are you sure you want to cancel the product?',
     );
     if (WindowConfirmation) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
 
@@ -1909,7 +1909,7 @@ const MediaProductInfo = () => {
                               }}
                               {...register('mediaVariation.PricePerUnit', {
                                 onChange: (event) => {
-                                  event.target.value = parseInt(
+                                  event.target.value = Number.parseInt(
                                     event.target.value.replace(
                                       /[^\d]+/gi,
                                       '',
@@ -1998,7 +1998,7 @@ const MediaProductInfo = () => {
                               }}
                               {...register('mediaVariation.DiscountedPrice', {
                                 onChange: (event) => {
-                                  event.target.value = parseInt(
+                                  event.target.value = Number.parseInt(
                                     event.target.value.replace(
                                       /[^\d]+/gi,
                                       '',
@@ -2205,7 +2205,6 @@ const MediaProductInfo = () => {
                               <Box sx={{ display: 'flex', gap: '10px' }}>
                                 <Box
                                   sx={{
-                                    display: 'flex',
                                     gap: '10px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -2234,7 +2233,7 @@ const MediaProductInfo = () => {
                                         'mediaVariation.minOrderQuantityunit',
                                         {
                                           onChange: (event) => {
-                                            event.target.value = parseInt(
+                                            event.target.value = Number.parseInt(
                                               event.target.value.replace(
                                                 /[^\d]+/gi,
                                                 '',
@@ -2291,7 +2290,6 @@ const MediaProductInfo = () => {
                               <Box sx={{ display: 'flex', gap: '10px' }}>
                                 <Box
                                   sx={{
-                                    display: 'flex',
                                     gap: '10px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -2320,7 +2318,7 @@ const MediaProductInfo = () => {
                                         'mediaVariation.maxOrderQuantityunit',
                                         {
                                           onChange: (event) => {
-                                            event.target.value = parseInt(
+                                            event.target.value = Number.parseInt(
                                               event.target.value.replace(
                                                 /[^\d]+/gi,
                                                 '',
@@ -2380,7 +2378,6 @@ const MediaProductInfo = () => {
                           <Box sx={{ display: 'flex', gap: '10px' }}>
                             <Box
                               sx={{
-                                display: 'flex',
                                 gap: '10px',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -2400,7 +2397,7 @@ const MediaProductInfo = () => {
                                     'mediaVariation.minOrderQuantitytimeline',
                                     {
                                       onChange: (event) => {
-                                        event.target.value = parseInt(
+                                        event.target.value = Number.parseInt(
                                           event.target.value.replace(
                                             /[^\d]+/gi,
                                             '',
@@ -2484,7 +2481,7 @@ const MediaProductInfo = () => {
                                     'mediaVariation.maxOrderQuantitytimeline',
                                     {
                                       onChange: (event) => {
-                                        event.target.value = parseInt(
+                                        event.target.value = Number.parseInt(
                                           event.target.value.replace(
                                             /[^\d]+/gi,
                                             '',

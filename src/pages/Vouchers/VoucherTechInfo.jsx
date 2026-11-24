@@ -579,7 +579,7 @@ export default function VoucherTechInfo({ category }) {
     return {
       ...registration,
       onChange: (e) => {
-        registration.onChange(e);
+        void registration.onChange(e);
         setLetterCount(countLetters(e.target.value));
       },
     };
@@ -669,7 +669,7 @@ export default function VoucherTechInfo({ category }) {
         console.error('Error fetching product:', error);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id]);
 
   useEffect(() => {
@@ -1218,7 +1218,7 @@ export default function VoucherTechInfo({ category }) {
       });
 
       toast.success('Voucher technical information saved!');
-      navigate(`/${category}/${nextPath}/${id}`);
+      void navigate(`/${category}/${nextPath}/${id}`);
     } catch (error) {
       const backendMessage =
         error?.response?.data?.message ||

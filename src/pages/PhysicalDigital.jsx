@@ -213,7 +213,7 @@ export default function PhysicalDigital() {
     if (effectiveCompanyType) params.set("companyType", effectiveCompanyType);
     if (source === "admin") params.set("source", "admin");
     const query = params.toString();
-    navigate(query ? `${path}?${query}` : path, state ? { state } : undefined);
+    void navigate(query ? `${path}?${query}` : path, state ? { state } : undefined);
   };
 
   const handleList = () => {
@@ -389,7 +389,7 @@ export default function PhysicalDigital() {
                   type="button"
                   onClick={() => {
                     if (effectiveCompanyType === "Entertainment & Events") {
-                      navigate("/eephysical");
+                      void navigate("/eephysical");
                       return;
                     }
                     setOpenView(1);

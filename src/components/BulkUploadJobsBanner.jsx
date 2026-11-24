@@ -98,7 +98,7 @@ export default function BulkUploadJobsBanner() {
       }
     };
 
-    load();
+    void load();
     return () => {
       cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -112,7 +112,7 @@ export default function BulkUploadJobsBanner() {
   if (!loaded || visible.length === 0) return null;
 
   const resume = (job) => {
-    navigate(`/bulkupload/status/${job.webhook_id}`, {
+    void navigate(`/bulkupload/status/${job.webhook_id}`, {
       state: {
         webhookId: job.webhook_id,
         jobId: job.job_id,

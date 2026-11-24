@@ -146,7 +146,7 @@ export default function AllMediaCategories() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       setFetchState({ loading: true, error: "" });
       try {
         const res = await api.get("/mediasubcategory/for_listing");
@@ -216,7 +216,7 @@ export default function AllMediaCategories() {
     }
 
     const basePath = generalInfoPathForJourney(journey);
-    navigate(`${basePath}?${params.toString()}`);
+    void navigate(`${basePath}?${params.toString()}`);
   };
 
   return (

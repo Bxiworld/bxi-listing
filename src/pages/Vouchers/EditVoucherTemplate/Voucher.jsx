@@ -172,7 +172,7 @@ const VoucherCard = ({ category: flowCategory }) => {
   const clampValidityValue = (raw, unit) => {
     const max = getValidityMax(unit);
     if (raw === '' || raw == null) return '';
-    const p = parseInt(String(raw), 10);
+    const p = Number.parseInt(String(raw), 10);
     if (!Number.isFinite(p)) return String(raw);
     if (p > max) return String(max);
     return String(raw);
@@ -190,14 +190,14 @@ const VoucherCard = ({ category: flowCategory }) => {
   };
 
   const validateInput = (value, unit = ListThisProductForUnitOfTime || 'Days') => {
-    const parsedValue = parseInt(value, 10);
+    const parsedValue = Number.parseInt(value, 10);
     if (!Number.isFinite(parsedValue) || parsedValue <= 0) return false;
     if (unit === 'Months') return parsedValue <= MAX_VALIDITY_MONTHS;
     return parsedValue <= MAX_VALIDITY_DAYS;
   };
 
   useEffect(() => {
-    GetProductByid();
+    void GetProductByid();
   }, []);
 
 
@@ -489,9 +489,9 @@ const VoucherCard = ({ category: flowCategory }) => {
           if (response?.data._id) {
             toast.success('Voucher images uploaded successfully!');
             if (localStorage.getItem('digitalData') === 'Offer Specific') {
-              navigate(`/spacificvoucher/${response?.data._id}`);
+              void navigate(`/spacificvoucher/${response?.data._id}`);
             } else {
-              navigate(`/valueandgiftvoucher/${response?.data._id}`);
+              void navigate(`/valueandgiftvoucher/${response?.data._id}`);
             }
           } else {
             throw new Error('Product mutation failed - no ID returned');
@@ -708,11 +708,15 @@ const VoucherCard = ({ category: flowCategory }) => {
                 </Stack>
                 <Box className={cls.fieldBox} sx={{ width: '550px', ml: '10px' }}>
                   <Box sx={{ display: 'block', marginBottom: 1 }}>
-                    <label className={cls.fieldLabel} style={{ fontSize: '16px', display: 'block' }}>
+                    <label
+                      htmlFor="list-voucher-days"
+                      className={cls.fieldLabel}
+                      style={{ fontSize: '16px', display: 'block' }}
+                    >
                       List voucher for no of days on platform
                       <span style={{ color: 'red' }}> *</span>
                     </label>
-                    <label
+                    <span
                       style={{
                         fontSize: '12px',
                         color: '#6B7A99',
@@ -723,7 +727,7 @@ const VoucherCard = ({ category: flowCategory }) => {
                       }}
                     >
                       Note: Activation of Voucher after you sell is when the expiry should start
-                    </label>
+                    </span>
                   </Box>
                   {productData?.validityOfVoucherValue && (
                     <Typography
@@ -750,6 +754,7 @@ const VoucherCard = ({ category: flowCategory }) => {
                     }}
                   >
                     <TextField
+                      id="list-voucher-days"
                       variant='standard'
                       type='number'
                       name='ListThisProductForAmount'
@@ -943,7 +948,7 @@ const VoucherCard = ({ category: flowCategory }) => {
                             'Are you sure you want to cancel the product?'
                           );
                           if (confirmLeave) {
-                            navigate('/home/sellerhub');
+                            void navigate('/home/sellerhub');
                           }
                         }}
                         sx={{

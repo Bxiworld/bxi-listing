@@ -35,9 +35,9 @@ const schema = z.object({
 /** Min positive MRP and min discounted price across Excel rows (same rule as multiplex / hoarding). */
 function computeMinDigitalScreenListingPrices(rows) {
   const parsePositive = (v) => {
-    if (v === undefined || v === null || v === '') return NaN;
+    if (v === undefined || v === null || v === '') return Number.NaN;
     const n = Number(String(v).replace(/,/g, '').trim());
-    return Number.isFinite(n) && n > 0 ? n : NaN;
+    return Number.isFinite(n) && n > 0 ? n : Number.NaN;
   };
   const mrps = rows.map((r) => parsePositive(r.mrp)).filter(Number.isFinite);
   const discs = rows
@@ -181,7 +181,7 @@ export default function DigitalScreensProductInfo() {
         toast.error('Failed to load product');
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id, setValue]);
 
   const handleAddTag = (e) => {
@@ -334,7 +334,7 @@ export default function DigitalScreensProductInfo() {
 
       await api.post('/product/product_mutation_digitalads', payload);
       toast.success('Product information saved!');
-      navigate(`/mediaonline/mediaonlinedigitalscreenstechinfo/${id}`);
+      void navigate(`/mediaonline/mediaonlinedigitalscreenstechinfo/${id}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to save');
     } finally {

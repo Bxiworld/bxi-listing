@@ -23,7 +23,7 @@ export default function DigitalScreensGoLive() {
       return;
     }
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const res = await productApi.getProductById(id);
         const data = res?.data?.body ?? res?.data ?? res;

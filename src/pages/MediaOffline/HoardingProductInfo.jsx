@@ -25,9 +25,9 @@ const HOARDING_EXCEL_TEMPLATE_URL =
  */
 function computeMinListingPricesFromHoardingRows(rows) {
   const parsePositive = (v) => {
-    if (v === undefined || v === null || v === '') return NaN;
+    if (v === undefined || v === null || v === '') return Number.NaN;
     const n = Number(String(v).replace(/,/g, '').trim());
-    return Number.isFinite(n) && n > 0 ? n : NaN;
+    return Number.isFinite(n) && n > 0 ? n : Number.NaN;
   };
   const mrps = rows.map((r) => parsePositive(r.mrp)).filter(Number.isFinite);
   const discs = rows
@@ -271,13 +271,6 @@ export default function HoardingProductInfo() {
                   'Counted_M',
                   'counted_m',
                 ),
-                row['Discounted MRP*'],
-                row['Discounted MRP'],
-                row['Discounted_MRP'],
-                row['Counted_MRP'],
-                row.counted_mrp,
-                row['Counted_M'],
-                row.counted_m,
               ),
             };
           });
@@ -410,7 +403,7 @@ export default function HoardingProductInfo() {
 
       await api.post('/product/product_mutation_hoardings', payload);
       toast.success('Hoarding product information saved!');
-      navigate(`/mediaoffline/mediaofflinehoardingtechinfo/${id}`);
+      void navigate(`/mediaoffline/mediaofflinehoardingtechinfo/${id}`);
     } catch (error) {
       console.error('Error:', error);
       toast.error(error?.response?.data?.message || 'Failed to save');

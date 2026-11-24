@@ -36,7 +36,7 @@ export default function VoucherForm() {
   const hasVoucherAccess = filteredVoucherTypes.length > 0;
 
   const handleVoucherSelect = (voucherId) => {
-    navigate(`/${voucherId}/generalinformation`);
+    void navigate(`/${voucherId}/generalinformation`);
   };
 
   if (loading) {

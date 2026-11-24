@@ -155,7 +155,7 @@ export default function MediaGeneralInfo() {
         setLoading(false);
       }
     };
-    fetchSubcategories();
+    void fetchSubcategories();
   }, [useStaticSubcategories]);
 
   useEffect(() => {
@@ -202,9 +202,7 @@ export default function MediaGeneralInfo() {
           if (useStaticSubcategories) {
             if (data.ProductSubCategoryName && staticSubcategories.includes(data.ProductSubCategoryName))
               subToSet = data.ProductSubCategoryName;
-            else if (staticSubcategories.includes(subToSet))
-              subToSet = subToSet;
-            else
+            else if (!staticSubcategories.includes(subToSet))
               subToSet = '';
           }
           setValue('subcategory', subToSet);
@@ -216,7 +214,7 @@ export default function MediaGeneralInfo() {
         console.error('Error fetching product:', error);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id, location?.state?.id, setValue, useStaticSubcategories, staticSubcategories]);
 
   const getSubcategoryName = (subcategoryId) => {
@@ -293,17 +291,17 @@ export default function MediaGeneralInfo() {
       // Route based on journey type (priority) or fallback to subcategory
       if (journey) {
         const nextRoute = getJourneyRoute(journey, savedProductId, mediaCategory);
-        navigate(nextRoute);
+        void navigate(nextRoute);
       } else if (responseData?.ProductSubCategoryName === 'Digital ADs') {
         if (mediaCategory === 'television' || journey === 'television-ads') {
-          navigate(`/mediaonline/product-info/${savedProductId}`);
+          void navigate(`/mediaonline/product-info/${savedProductId}`);
         } else {
-          navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${savedProductId}`);
+          void navigate(`/mediaonline/mediaonlinedigitalscreensinfo/${savedProductId}`);
         }
       } else if (responseData?.ProductCategoryName === 'Multiplex ADs') {
-        navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${savedProductId}`);
+        void navigate(`/mediaonline/mediaonlinemultiplexproductinfo/${savedProductId}`);
       } else {
-        navigate(`/mediaonline/product-info/${savedProductId}`);
+        void navigate(`/mediaonline/product-info/${savedProductId}`);
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to save. Please try again.');
@@ -314,7 +312,7 @@ export default function MediaGeneralInfo() {
 
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel?')) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
 

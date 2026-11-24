@@ -217,7 +217,6 @@ const TemplateCustomOptions = ({
           accept=".jpg,.jpeg,.png,image/jpg,image/jpeg,image/png"
           onChange={handleFileChange}
           style={{ display: 'none' }}
-          aria-hidden
         />
         <Typography
           sx={{
@@ -255,8 +254,7 @@ const TemplateCustomOptions = ({
               },
             }}
           >
-            Drag & drop to upload or browse to choose a file
-            <span style={{ color: 'red' }}> *</span>
+            Drag & drop to upload or browse to choose a file<span style={{ color: 'red' }}>&nbsp;*</span>
           </Typography>
           <Typography
             sx={{
