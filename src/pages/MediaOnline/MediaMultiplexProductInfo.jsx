@@ -124,7 +124,7 @@ export default function MediaMultiplexProductInfo() {
         console.error('Error fetching product:', error);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id]);
 
   // Restore product-info fields when resuming a draft (Location lives on product root after save).
@@ -210,7 +210,7 @@ export default function MediaMultiplexProductInfo() {
         console.error('Error fetching screens:', error);
       }
     };
-    fetchScreens();
+    void fetchScreens();
   }, [id]);
 
   // Filter rows by state (Excel `State` column when present; else infer from city list)
@@ -389,7 +389,7 @@ export default function MediaMultiplexProductInfo() {
 
       await api.post('/product/product_mutation', payload);
       toast.success('Multiplex product information saved!');
-      navigate(`/mediaonline/mediamultiplextechinfo/${id}`);
+      void navigate(`/mediaonline/mediamultiplextechinfo/${id}`);
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to save');
     } finally {
@@ -400,7 +400,7 @@ export default function MediaMultiplexProductInfo() {
   // download template funtion with aws url
   const handleDownloadTemplate = () => {
     const fileUrl = 'https://mediajourneyexcel.sfo3.cdn.digitaloceanspaces.com/Cinema_excel_template.xlsx';
-    window.open(fileUrl, '_blank');
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (

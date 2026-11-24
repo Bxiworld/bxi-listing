@@ -143,7 +143,7 @@ export default function MediaOfflineGeneralInfo() {
         setLoading(false);
       }
     };
-    fetchSubcategories();
+    void fetchSubcategories();
   }, [useStaticSubcategories, mediaCategory]);
 
   // Static list: map each label to subcategory _id from /mediasubcategory/for_listing
@@ -153,7 +153,7 @@ export default function MediaOfflineGeneralInfo() {
       return;
     }
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const res = await api.get('/mediasubcategory/for_listing');
         const flat = filterFlatRowsForOfflineMediaCategory(
@@ -211,7 +211,7 @@ export default function MediaOfflineGeneralInfo() {
         console.error('Error fetching product:', error);
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id, location?.state?.id, setValue, useStaticSubcategories]);
 
   // Static path: after options + product load, set subcategory to Mongo id (or legacy name → id)
@@ -325,11 +325,11 @@ export default function MediaOfflineGeneralInfo() {
       // Route based on journey type (priority) or fallback to subcategory
       if (journey) {
         const nextRoute = getJourneyRoute(journey, savedProductId);
-        navigate(nextRoute);
+        void navigate(nextRoute);
       } else if (subcategoryName === 'Hoardings') {
-        navigate(`/mediaoffline/mediaofflinehoardinginfo/${savedProductId}`);
+        void navigate(`/mediaoffline/mediaofflinehoardinginfo/${savedProductId}`);
       } else {
-        navigate(`/mediaoffline/product-info/${savedProductId}`);
+        void navigate(`/mediaoffline/product-info/${savedProductId}`);
       }
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Failed to save. Please try again.');
@@ -340,7 +340,7 @@ export default function MediaOfflineGeneralInfo() {
 
   const handleCancel = () => {
     if (window.confirm('Are you sure you want to cancel?')) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
 

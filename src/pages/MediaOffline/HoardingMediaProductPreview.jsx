@@ -458,7 +458,7 @@ export default function HoardingMediaProductPreview() {
   }
 
   useEffect(() => {
-    GetProductByid();
+    void GetProductByid();
   }, [id]);
 
   const uploadProduct = () => {
@@ -726,7 +726,7 @@ export default function HoardingMediaProductPreview() {
   useEffect(() => {
     if (!GetProductByIdData) return;
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const digitalFirst =
         isDoohListing || Boolean(GetProductByIdData?.DigitalAds_screen_id);
       const primary = digitalFirst ? await fetchDigitalRows() : await fetchHoardingRows();
@@ -762,10 +762,10 @@ export default function HoardingMediaProductPreview() {
 
   const handleBack = () => {
     if (bulkuploadnavigate) {
-      navigate('/bulkuploadexcelpreview');
+      void navigate('/bulkuploadexcelpreview');
       localStorage.removeItem('bulkuploadnavigate');
     } else {
-      navigate(-1);
+      void navigate(-1);
     }
   };
 

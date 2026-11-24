@@ -385,7 +385,7 @@ export default function SellerHub() {
 
     let cancelled = false;
 
-    (async () => {
+    void (async () => {
       setHubCatalogLoading(true);
       try {
         const catalogLimit = Math.min(

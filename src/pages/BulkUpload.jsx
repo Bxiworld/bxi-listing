@@ -98,7 +98,7 @@ export default function BulkUpload({ category = 'textile' }) {
         // Put the webhook id in the URL so a refresh / shared link / "come back later"
         // recovers the job (status page also reads it from useParams). state is kept for
         // the fast path (storeResponse needed to register the company-upload row).
-        navigate(webhookId ? `/bulkupload/status/${webhookId}` : '/bulkupload/status', {
+        void navigate(webhookId ? `/bulkupload/status/${webhookId}` : '/bulkupload/status', {
           replace: true,
           state: {
             jobId: data?.bulkUpload_response?.job_id,
@@ -113,7 +113,7 @@ export default function BulkUpload({ category = 'textile' }) {
       }
 
       toast.success('File uploaded successfully!');
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || 'Upload failed. Please try again.');
     } finally {

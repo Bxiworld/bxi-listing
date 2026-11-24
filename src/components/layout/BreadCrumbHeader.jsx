@@ -176,7 +176,7 @@ const BreadCrumbHeader = React.memo(({ MainText, showbreadcrumb = false, Margin 
   }, [showbreadcrumb, getBreadcrumbStorage]);
 
   const handleHomeClick = useCallback(() => {
-    navigate('/home');
+    void navigate('/home');
     setBreadcrumbStorage([]);
   }, [navigate, setBreadcrumbStorage]);
 
@@ -204,7 +204,7 @@ const BreadCrumbHeader = React.memo(({ MainText, showbreadcrumb = false, Margin 
       navigationPath = category ? `/home/${category}/${targetUrl}` : `/home/${targetUrl}`;
     }
 
-    navigate(navigationPath);
+    void navigate(navigationPath);
     const remainingBreadcrumbs = breadData.slice(0, index + 1);
     setBreadcrumbStorage(remainingBreadcrumbs);
   }, [breadData, navigate, setBreadcrumbStorage, urlSegments]);

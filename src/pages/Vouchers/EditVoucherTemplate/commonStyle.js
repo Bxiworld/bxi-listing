@@ -32,7 +32,6 @@ const styles = styled((theme) => ({
     color: '#6B7A99',
     lineHeight: '1.5',
     letterSpacing: '0.00938em',
-    fontFamily: 'Roboto',
   },
   infoIcon: {
     width: '28px',

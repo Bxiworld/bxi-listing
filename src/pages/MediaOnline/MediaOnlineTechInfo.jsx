@@ -223,7 +223,7 @@ export default function TechInfo() {
   };
 
   useEffect(() => {
-    FetchProduct();
+    void FetchProduct();
   }, []);
 
   useEffect(() => {
@@ -316,7 +316,7 @@ export default function TechInfo() {
         onSuccess: (response) => {
           if (response.status === 200) {
             // Use new dynamic route
-            navigate(`/mediaonline/go-live/${ProductId}`);
+            void navigate(`/mediaonline/go-live/${ProductId}`);
           }
         },
         onError: (error) => { },
@@ -331,7 +331,7 @@ export default function TechInfo() {
       'Are you sure you want to cancel the product?',
     );
     if (WindowConfirmation) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
 

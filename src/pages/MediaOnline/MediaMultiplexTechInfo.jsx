@@ -472,7 +472,7 @@ export default function MediaMultiplexTechInfo() {
   };
 
   useEffect(() => {
-    FetchProduct();
+    void FetchProduct();
   }, []);
 
   const handleItemAdd = e => {
@@ -665,18 +665,6 @@ export default function MediaMultiplexTechInfo() {
     }
 
     if (
-      !data.mediaVariation.repetition &&
-      !FetchedproductData?.ProductSubCategory === '643cda0c53068696706e3951'
-    ) {
-      setError('mediaVariation.repetition', {
-        type: 'custom',
-        message: 'Please select a repetition',
-      });
-      toast.error('Please select a repetition');
-      return;
-    }
-
-    if (
       Number(data?.mediaVariation?.minOrderQuantityunit) >
       Number(data?.mediaVariation?.maxOrderQuantityunit)
     ) {
@@ -720,7 +708,7 @@ export default function MediaMultiplexTechInfo() {
             toast.success('Product updated successfully');
             const id = ProductId;
             setTimeout(() => {
-              navigate(`/mediaonline/multiplexgolive/${id}`);
+              void navigate(`/mediaonline/multiplexgolive/${id}`);
             }, 3000);
           } else {
             toast.error('Product not updated');
@@ -733,7 +721,7 @@ export default function MediaMultiplexTechInfo() {
   });
 
   useEffect(() => {
-    fetchMediaOnlineFeatures();
+    void fetchMediaOnlineFeatures();
   }, []);
 
   const CancelJourney = () => {
@@ -741,7 +729,7 @@ export default function MediaMultiplexTechInfo() {
       'Are you sure you want to cancel the product?'
     );
     if (WindowConfirmation) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
 
@@ -949,7 +937,6 @@ export default function MediaMultiplexTechInfo() {
                               <Box sx={{ display: 'flex', gap: '10px' }}>
                                 <Box
                                   sx={{
-                                    display: 'flex',
                                     gap: '10px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -1175,7 +1162,6 @@ export default function MediaMultiplexTechInfo() {
                               <Box sx={{ display: 'flex', gap: '10px' }}>
                                 <Box
                                   sx={{
-                                    display: 'flex',
                                     gap: '10px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -1955,7 +1941,6 @@ export default function MediaMultiplexTechInfo() {
                           InputProps={{
                             disableUnderline: true,
                             style: {
-                              color: 'rgba(107, 122, 153)',
                               fontSize: '14px',
                               marginTop: '5px',
                               marginLeft: '1%',

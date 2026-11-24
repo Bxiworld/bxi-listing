@@ -39,7 +39,7 @@ export default function TextileProductInform(props) {
       z.object({
         CostPrice: z.string()
         .min(1, { message: 'Cost price is required' })
-        .refine((value) => parseFloat(value.replace(/,/g, '')) > 0, {
+        .refine((value) => Number.parseFloat(value.replace(/,/g, '')) > 0, {
           message: 'Cost price cannot be zero',
         }),
         AdCostGST: listingGstCoerceNumberZodSchema(),

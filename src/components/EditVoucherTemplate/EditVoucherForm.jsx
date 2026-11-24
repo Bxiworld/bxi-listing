@@ -55,8 +55,8 @@ export default function EditVoucherForm({ cardData, closePopup, updateFormData }
     if (!(inclusions || '').trim()) err.inclusions = 'This field is required';
     if (!(exclusions || '').trim()) err.exclusions = 'This field is required';
     if (validityOfVoucherValue !== undefined && validityOfVoucherValue !== null && validityOfVoucherValue !== '') {
-      const n = parseInt(validityOfVoucherValue, 10);
-      if (isNaN(n) || n < 1) err.validityOfVoucherValue = 'Validity must be at least 1';
+      const n = Number.parseInt(validityOfVoucherValue, 10);
+      if (Number.isNaN(Number(n)) || n < 1) err.validityOfVoucherValue = 'Validity must be at least 1';
     }
     setErrors(err);
     return Object.keys(err).length === 0;

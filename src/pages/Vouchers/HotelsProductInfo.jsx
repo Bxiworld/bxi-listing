@@ -66,12 +66,12 @@ const validateVariant = (v, isOffer, hsnValidateOpts, lockedHsn = '') => {
     err.VariantName = `Variant name must be at most ${MAX_VARIANT_NAME_LENGTH} characters`;
   }
 
-  const price = parseFloat(String(v.PricePerUnit || '').replace(/,/g, ''));
-  if (!v.PricePerUnit || isNaN(price) || price <= 0) err.PricePerUnit = 'Price must be greater than 0';
+  const price = Number.parseFloat(String(v.PricePerUnit || '').replace(/,/g, ''));
+  if (!v.PricePerUnit || Number.isNaN(Number(price)) || price <= 0) err.PricePerUnit = 'Price must be greater than 0';
   else if (String(v.PricePerUnit).length > 10) err.PricePerUnit = 'Price must be at most 10 characters';
 
-  const totalQty = parseFloat(String(v.TotalAvailableQty || '').replace(/,/g, ''));
-  if (!v.TotalAvailableQty || isNaN(totalQty) || totalQty <= 0) err.TotalAvailableQty = 'Value must be greater than 0';
+  const totalQty = Number.parseFloat(String(v.TotalAvailableQty || '').replace(/,/g, ''));
+  if (!v.TotalAvailableQty || Number.isNaN(Number(totalQty)) || totalQty <= 0) err.TotalAvailableQty = 'Value must be greater than 0';
   else if (String(v.TotalAvailableQty).length > 10) err.TotalAvailableQty = 'Value must be at most 10 characters';
 
   const hsnCheck = validateListingHsn(v.HSN, hsnValidateOpts);
@@ -86,15 +86,15 @@ const validateVariant = (v, isOffer, hsnValidateOpts, lockedHsn = '') => {
     err.GST = 'GST must be 0%, 0.25%, 3%, 5%, 18%, or 40%';
   }
 
-  const minQty = parseFloat(String(v.MinOrderQuantity || '1').replace(/,/g, ''));
-  if (isNaN(minQty) || minQty <= 0) err.MinOrderQuantity = 'Minimum Quantity must be greater than 0';
+  const minQty = Number.parseFloat(String(v.MinOrderQuantity || '1').replace(/,/g, ''));
+  if (Number.isNaN(Number(minQty)) || minQty <= 0) err.MinOrderQuantity = 'Minimum Quantity must be greater than 0';
   else if (String(v.MinOrderQuantity || '').length > 10) err.MinOrderQuantity = 'Min must be at most 10 characters';
 
   if (v.MaxOrderQuantity) {
-    const maxQty = parseFloat(String(v.MaxOrderQuantity).replace(/,/g, ''));
-    if (isNaN(maxQty) || maxQty <= 0) err.MaxOrderQuantity = 'Maximum Quantity must be greater than 0';
+    const maxQty = Number.parseFloat(String(v.MaxOrderQuantity).replace(/,/g, ''));
+    if (Number.isNaN(Number(maxQty)) || maxQty <= 0) err.MaxOrderQuantity = 'Maximum Quantity must be greater than 0';
     else if (maxQty < minQty) err.MaxOrderQuantity = 'Max Order Quantity cannot be less than Min Order Quantity';
-    else if (!isNaN(totalQty) && maxQty > totalQty) err.MaxOrderQuantity = 'Max Order Quantity cannot be greater than Total Quantity';
+    else if (!Number.isNaN(Number(totalQty)) && maxQty > totalQty) err.MaxOrderQuantity = 'Max Order Quantity cannot be greater than Total Quantity';
   }
 
   if (!v.validityOfVoucherValue) err.validityOfVoucherValue = 'Validity is required';
@@ -109,8 +109,8 @@ const validateVariant = (v, isOffer, hsnValidateOpts, lockedHsn = '') => {
 
 const validateOtherCost = (o, hsnValidateOpts) => {
   const err = {};
-  const cost = parseFloat(String(o.CostPrice || '').replace(/,/g, ''));
-  if (!o.CostPrice || isNaN(cost) || cost <= 0) err.CostPrice = 'Cost price is required and cannot be zero';
+  const cost = Number.parseFloat(String(o.CostPrice || '').replace(/,/g, ''));
+  if (!o.CostPrice || Number.isNaN(Number(cost)) || cost <= 0) err.CostPrice = 'Cost price is required and cannot be zero';
   const hsnCheck = validateListingHsn(o.AdCostHSN, hsnValidateOpts);
   if (!hsnCheck.ok) err.AdCostHSN = hsnCheck.message;
   const gst = Number(o.AdCostGST);
@@ -229,7 +229,7 @@ export default function HotelsProductInfo({ category }) {
         toast.error('Failed to load product');
       }
     };
-    fetchProduct();
+    void fetchProduct();
   }, [id]);
 
   useEffect(() => {
@@ -427,7 +427,7 @@ export default function HotelsProductInfo({ category }) {
 
   const handleAddTag = (e) => {
     if (e.key === 'Enter') e.preventDefault();
-    const val = (e.key === 'Enter' ? currentTag : currentTag).trim().slice(0, 15);
+    const val = currentTag.trim().slice(0, 15);
     if (!val) return;
     if (tags.includes(val)) return;
     setTags((prev) => [...prev, val]);
@@ -510,7 +510,7 @@ export default function HotelsProductInfo({ category }) {
       };
       await productApi.productMutation(payload);
       toast.success('Saved. Proceeding to Technical Information.');
-      navigate(`/${category}/${nextPath}/${id}`);
+      void navigate(`/${category}/${nextPath}/${id}`);
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to save. Please try again.');
     } finally {

@@ -20,7 +20,6 @@ const IMAGE_CONFIG = {
   Textile: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Textile.svg",
   Electronics: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Electronics.svg",
   FMCG: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/FMCG.svg",
-  "Office Supply": "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Office_Supply.svg",
   Lifestyle: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Lifestyle.png",
   Mobility: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Mobility.svg",
   Media: "https://bxidevelopment1.s3.ap-south-1.amazonaws.com/BxiStatic/BXI_ICONS/Media.svg",
@@ -103,7 +102,7 @@ export default function AllCategoriesAdmin() {
 
   const handleCategoryClick = (category) => {
     const target = buildTargetPath(category);
-    navigate(target);
+    void navigate(target);
   };
 
   const handleBackToAdmin = () => {
@@ -114,7 +113,7 @@ export default function AllCategoriesAdmin() {
       }
     } catch {
     }
-    navigate("/sellerhub");
+    void navigate("/sellerhub");
   };
 
   return (

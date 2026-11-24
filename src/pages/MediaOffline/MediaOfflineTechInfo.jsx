@@ -250,7 +250,6 @@ export default function TechInfo() {
           ...(data?.mediaVariation || {}),
           copyType,
         },
-        WhatSupportingYouWouldGiveToBuyer: checkboxStateToSupportingArray(checkBoxes),
         WhatSupportingYouWouldGiveToBuyer: supportingForSubmit,
         calender: dateArr,
         ProductUploadStatus: 'technicalinformation',
@@ -266,7 +265,7 @@ export default function TechInfo() {
       updateProduct(datatobesent, {
         onSuccess: (response) => {
           if (response.status === 200) {
-            navigate(`/mediaoffline/go-live/${ProductId}`);
+            void navigate(`/mediaoffline/go-live/${ProductId}`);
           }
         },
         onError: () => {},
@@ -281,7 +280,7 @@ export default function TechInfo() {
       'Are you sure you want to cancel the product?',
     );
     if (WindowConfirmation) {
-      navigate('/sellerhub');
+      void navigate('/sellerhub');
     }
   };
 

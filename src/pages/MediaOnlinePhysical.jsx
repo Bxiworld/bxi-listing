@@ -24,15 +24,15 @@ export default function MediaOnlinePhysical() {
 
     if (selectedType === 'online') {
       if (selectedAvailability?.name === 'Single Upload') {
-        navigate('/mediaonline/general-info');
+        void navigate('/mediaonline/general-info');
       } else {
-        navigate('/mediaonlinebulkupload');
+        void navigate('/mediaonlinebulkupload');
       }
     } else {
       if (selectedAvailability?.name === 'Single Upload') {
-        navigate('/mediaoffline/general-info');
+        void navigate('/mediaoffline/general-info');
       } else {
-        navigate('/mediaofflinebulkupload');
+        void navigate('/mediaofflinebulkupload');
       }
     }
   };

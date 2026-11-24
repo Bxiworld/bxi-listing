@@ -53,7 +53,7 @@ export default function EePhysical() {
       localStorage.setItem("digitalData", getVoucherJourneyLabel(voucherJourneyType));
       localStorage.setItem("companyType", "Entertainment & Events");
     }
-    navigate("/eeVoucher/generalinformation");
+    void navigate("/eeVoucher/generalinformation");
   };
 
   return (
