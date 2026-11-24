@@ -53,6 +53,7 @@ import {
   inferVoucherLocationModesFromProduct,
   normalizeManualStoreLocations,
 } from "../utils/voucherLocation";
+import { formatHsnForDisplay } from "../utils/hsnValidation";
 
 function shouldHideMinMaxOrderQtyForMediaPreview(product) {
   if (!isMediaListing(product)) return false;
