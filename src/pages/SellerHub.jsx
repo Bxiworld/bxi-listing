@@ -46,7 +46,8 @@ import useListingEntryContext from '../hooks/useListingEntryContext';
 import BulkUploadJobsBanner from '../components/BulkUploadJobsBanner';
 import { getAllowedCategories, getAllowedVouchers } from '../config/categories';
 import { PRODUCT_TYPE_BY_CATEGORY } from '../config/categoryFormConfig';
-import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing, getProductCategoryName, getProductType, getProductSubCategoryName, getVoucherVertical } from '../utils/listingProductFields';
+import { isMediaListing, isVoucherListing, passesSellerHubDraftTabListing, getProductSubCategoryName, getVoucherVertical } from '../utils/listingProductFields';
+import { getSellerHubCategoryFromSubcategory } from '../utils/sellerHubCategory';
 import { productApi } from '../utils/api';
 
 const HUB_PAGE_SIZE = 20;
@@ -66,6 +67,9 @@ const CATEGORY_FILTER_OPTIONS = Array.from(
   new Set(Object.values(PRODUCT_TYPE_BY_CATEGORY))
 ).sort((a, b) => a.localeCompare(b));
 const LISTING_TYPE_FILTER_OPTIONS = ['Product', 'Voucher', 'Media'];
+const normalizeCategory = (value = '') =>
+  String(value).toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
+
 const CATEGORY_FILTER_ALIASES = {
   'QSR': ['qsr', 'restaurant', 'restaurant / qsr'],
   'Office Supply': ['office supply', 'officesupply'],
@@ -73,10 +77,6 @@ const CATEGORY_FILTER_ALIASES = {
   'Airline Tickets': ['airline tickets', 'airlines tickets', 'airline'],
   'Hotel': ['hotel', 'hotels'],
 };
-
-const normalizeCategory = (value = '') =>
-  String(value).toLowerCase().replace(/[^a-z0-9&]+/g, ' ').trim();
-
 const productMatchesHubSearch = (product, rawQuery) => {
   const q = String(rawQuery || '').trim().toLowerCase();
   if (!q) return true;
@@ -107,34 +107,22 @@ const resolveApiListingTypeParam = (selectedListingType) =>
 
 const productMatchesCategoryFilter = (product, selectedType) => {
   if (!selectedType) return true;
-  if (selectedType === 'Media') return isMediaListing(product);
-  if (isMediaListing(product)) return false;
+  const subcategoryCategory = normalizeCategory(
+    getSellerHubCategoryFromSubcategory(getProductSubCategoryName(product))
+  );
+  if (selectedType === 'Media') {
+    return isMediaListing(product) || subcategoryCategory === 'media';
+  }
+  if (isMediaListing(product) || subcategoryCategory === 'media') return false;
 
   const aliasPool = new Set([
     normalizeCategory(selectedType),
     ...(CATEGORY_FILTER_ALIASES[selectedType] || []).map((a) => normalizeCategory(a)),
   ]);
 
-  const categoryCandidates = [
-    getProductCategoryName(product),
-    getProductType(product),
-    getVoucherVertical(product),
-    getProductSubCategoryName(product),
-    product?.Type,
-    product?.ProductName,
-    product?.ProductDescription,
-  ]
-    .map((v) => normalizeCategory(v))
-    .filter(Boolean);
-
-  return categoryCandidates.some((candidate) =>
-    [...aliasPool].some(
-      (alias) =>
-        candidate === alias ||
-        candidate.includes(alias) ||
-        alias.includes(candidate)
-    )
-  );
+  const category =
+    subcategoryCategory || normalizeCategory(getVoucherVertical(product));
+  return Boolean(category) && aliasPool.has(category);
 };
 
 function filterSellerHubProducts(
