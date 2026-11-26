@@ -37,6 +37,7 @@ import TemplateCustomOptions from './TemplateCustomOptions';
 import EditVoucherForm from './EditVoucherForm';
 import EditIcon from '@mui/icons-material/Edit';
 import * as htmlToImage from 'html-to-image';
+import { useAuthUser } from '../../../hooks/useAuthUser';
 
 function dataUrlToBlob(dataUrl) {
   if (!dataUrl || typeof dataUrl !== 'string') return null;
@@ -63,7 +64,38 @@ function asFileFromData(data, fileName) {
   return new File([blob], fileName, { type: blob.type || 'image/png' });
 }
 
-async function uploadVoucherImages(frontData, backData) {
+function getImageExportErrorMessage(error) {
+  if (typeof error === 'string' && error.trim()) return error;
+  if (error?.message) return error.message;
+  if (error?.target?.src || error?.currentTarget?.src) {
+    return `An image could not be embedded in the voucher (${error.target?.src || error.currentTarget?.src}).`;
+  }
+  if (error?.isTrusted) {
+    return 'A voucher image could not be embedded. Check that the uploaded image and company logo have finished loading, then try again.';
+  }
+  if (error != null) {
+    try {
+      const details = JSON.stringify(error);
+      if (details && details !== '{}') return details;
+    } catch {
+      return String(error);
+    }
+  }
+  return 'The voucher preview could not be converted to an image.';
+}
+
+function waitForImages(element) {
+  const images = Array.from(element?.querySelectorAll('img') || []);
+  return Promise.all(images.map(image => {
+    if (image.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      image.addEventListener('load', resolve, { once: true });
+      image.addEventListener('error', resolve, { once: true });
+    });
+  }));
+}
+
+async function uploadVoucherImages(frontData, additionalImages = []) {
   const uploads = [];
   // Front
   const frontFile = asFileFromData(frontData, 'front.png');
@@ -79,25 +111,21 @@ async function uploadVoucherImages(frontData, backData) {
     uploads.push({ id: 'front', url: resFront.data.file, typeOfFile: 'image' });
   }
 
-  // Back
-  const backFile = asFileFromData(backData, 'back.png');
-  if (!backFile) throw new Error('Back image not prepared');
-
-  {
-    const rightForm = new FormData();
-    rightForm.append('file', backFile, 'back.png');
-
-    // Use full URL to bypass proxy issues
-    const resBack = await api.post('file/upload', rightForm);
-
-    if (!resBack?.data?.file) throw new Error('Back upload failed');
-    uploads.push({ id: 'back', url: resBack.data.file, typeOfFile: 'image' });
+  // Extra product images follow the voucher cover in the gallery.
+  for (const image of additionalImages) {
+    const form = new FormData();
+    form.append('file', image.file, image.file.name);
+    const response = await api.post('file/upload', form);
+    if (!response?.data?.file) throw new Error(`Upload failed for ${image.file.name}`);
+    uploads.push({ id: `extra-${image.id}`, url: response.data.file, typeOfFile: 'image' });
   }
+
   return uploads;
 }
 
 const VoucherCard = ({ category: flowCategory }) => {
   useScrollToTopOnPathname();
+  const { company, companyAvatar } = useAuthUser();
   let id;
   id = useParams().id;
   const navigate = useNavigate();
@@ -144,6 +172,9 @@ const VoucherCard = ({ category: flowCategory }) => {
   const [dataUrlFront, setDataUrlFront] = useState('');
   const [dataUrlBack, setDataUrlBack] = useState('');
   const [files, setFiles] = useState([]);
+  const [additionalProductImages, setAdditionalProductImages] = useState([]);
+  const additionalProductImagesRef = useRef([]);
+  const [isReadingAdditionalImages, setIsReadingAdditionalImages] = useState(false);
   const [cardBgColor, setCardBgColor] = useState('');
   const [category, setCategory] = useState('');
   const [value, setValue] = useState('Template1');
@@ -161,6 +192,56 @@ const VoucherCard = ({ category: flowCategory }) => {
   const [ListThisProductForUnitOfTime, setListThisProductForUnitOfTime] =
     useState('Days');
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
+
+  const handleAdditionalImageSelection = fileList => {
+    const selectedFiles = Array.from(fileList || []);
+    const validFiles = selectedFiles.filter(file => {
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        toast.error(`${file.name}: choose a JPEG or PNG image.`);
+        return false;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(`${file.name}: image must be 2 MB or smaller.`);
+        return false;
+      }
+      return true;
+    });
+    if (!validFiles.length) return;
+    setIsReadingAdditionalImages(true);
+    const previews = validFiles.map(file => new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file,
+        preview: reader.result,
+      });
+      reader.onerror = () => {
+        toast.error(`${file.name}: image could not be loaded.`);
+        resolve(null);
+      };
+      reader.readAsDataURL(file);
+    }));
+    Promise.all(previews).then(images => {
+      const acceptedImages = images.filter(Boolean);
+      if (acceptedImages.length) {
+        setAdditionalProductImages(previous => {
+          const next = [...previous, ...acceptedImages];
+          additionalProductImagesRef.current = next;
+          return next;
+        });
+      }
+    }).finally(() => {
+      setIsReadingAdditionalImages(false);
+    });
+  };
+
+  const removeAdditionalImage = imageId => {
+    setAdditionalProductImages(previous => {
+      const next = previous.filter(image => image.id !== imageId);
+      additionalProductImagesRef.current = next;
+      return next;
+    });
+  };
   // Left Card
 
   const MAX_VALIDITY_DAYS = 365;
@@ -243,10 +324,14 @@ const VoucherCard = ({ category: flowCategory }) => {
         useCORS: true,
         allowTaint: false,
         foreignObjectRendering: false,
+        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+        onImageErrorHandler: event => {
+          if (event?.currentTarget) event.currentTarget.style.display = 'none';
+        },
       };
 
-      htmlToImage
-        .toBlob(myRefFront.current, options)
+      waitForImages(myRefFront.current)
+        .then(() => htmlToImage.toBlob(myRefFront.current, options))
         .then(blob => {
           if (!blob || blob.size === 0) {
             toast.error(
@@ -259,7 +344,7 @@ const VoucherCard = ({ category: flowCategory }) => {
         })
         .catch(error => {
           toast.error(
-            'Failed to generate voucher front image: ' + error.message
+            'Failed to generate voucher front image: ' + getImageExportErrorMessage(error)
           );
           setShowSpinner(false);
         });
@@ -299,15 +384,19 @@ const VoucherCard = ({ category: flowCategory }) => {
         useCORS: true,
         allowTaint: false,
         foreignObjectRendering: false,
+        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=',
+        onImageErrorHandler: event => {
+          if (event?.currentTarget) event.currentTarget.style.display = 'none';
+        },
       };
 
-      htmlToImage
-        .toBlob(myRefFront.current, options)
+      waitForImages(myRefFront.current)
+        .then(() => htmlToImage.toBlob(myRefFront.current, options))
         .then(blob => {
           setDataUrlFront(blob);
         })
         .catch(error => {
-          toast.error('Failed to generate voucher front image');
+          toast.error('Failed to generate voucher front image: ' + getImageExportErrorMessage(error));
           setShowSpinner(false);
         });
     }, 500); // 500ms delay to ensure rendering is complete
@@ -355,7 +444,7 @@ const VoucherCard = ({ category: flowCategory }) => {
           setDataUrlBack(blob);
         })
         .catch(error => {
-          toast.error('Failed to generate voucher back image');
+          toast.error('Failed to generate voucher back image: ' + getImageExportErrorMessage(error));
           setShowSpinner(false);
         });
     }, 500); // 500ms delay to ensure rendering is complete
@@ -461,10 +550,9 @@ const VoucherCard = ({ category: flowCategory }) => {
   }
 
   useEffect(() => {
-    if (dataUrlFront && dataUrlBack && isSubmitted) {
+    if (dataUrlFront && isSubmitted) {
       setShowSpinner(true);
-      // Use the single, unified uploader to render and upload images
-      uploadVoucherImages(dataUrlFront, dataUrlBack)
+      uploadVoucherImages(dataUrlFront, additionalProductImagesRef.current)
         .then(uploaded => {
           // Create properly formatted VoucherImages array from uploaded data
           const voucherImages = uploaded.map(u => ({
@@ -505,7 +593,7 @@ const VoucherCard = ({ category: flowCategory }) => {
           setDataUrlBack('');
         });
     }
-  }, [dataUrlFront, dataUrlBack]);
+  }, [dataUrlFront, isSubmitted]);
   const styleTag = document.createElement('style');
   styleTag.innerHTML = styles2;
   document.head.appendChild(styleTag);
@@ -538,16 +626,15 @@ const VoucherCard = ({ category: flowCategory }) => {
       setShowSpinner(true);
       setDataUrlFront('');
       setIsSubmitted(false);
+      additionalProductImagesRef.current = additionalProductImages;
 
       if (value == 'Template1') {
         setIsSubmitted(true);
         downloadCardFront();
-        downloadCardBack();
       }
       if (value == 'Template3') {
         setIsSubmitted(true);
         downloadCardFront2();
-        downloadCardBack2();
       }
     }
   };
@@ -674,11 +761,17 @@ const VoucherCard = ({ category: flowCategory }) => {
                           category={category ? category : 0}
                           templateId='Template1'
                           productData={productData}
+                          companyLogo={companyAvatar}
+                          companyName={company?.CompanyName || company?.companyName}
                           textInverted={checked}
                           iconInverted={invertIconChecked}
                           myRefBack={myRefBack}
                           myRefFront={myRefFront}
                           gradientColors={gradientColors}
+                          showExtraImageUpload
+                          additionalImages={additionalProductImages}
+                          onChooseAdditionalImages={handleAdditionalImageSelection}
+                          onRemoveAdditionalImage={removeAdditionalImage}
                         />
                       </div>
                     </Box>
@@ -968,6 +1061,7 @@ const VoucherCard = ({ category: flowCategory }) => {
                       </Button>
                       <Button
                         disabled={
+                          isReadingAdditionalImages ||
                           !value ||
                           !ListThisProductForAmount ||
                           !validateInput(

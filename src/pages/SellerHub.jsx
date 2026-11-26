@@ -194,6 +194,7 @@ export default function SellerHub() {
   useListingEntryContext();
   const {
     companyType: companyTypeName,
+    companyAvatar,
     isAdmin,
     loading: authLoading,
     isAuthenticated,
@@ -785,6 +786,7 @@ export default function SellerHub() {
               <ProductCard
                 key={product._id}
                 product={product}
+                companyAvatar={companyAvatar}
                 companyType={companyType}
                 tabType={activeTab}
                 pendingAdminChange={pendingAdminChangeByProductId[String(product?._id)]}

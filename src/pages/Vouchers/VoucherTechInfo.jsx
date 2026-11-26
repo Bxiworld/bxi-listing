@@ -61,7 +61,18 @@ const schema = z.object({
   voucherDeliveryType: z.enum([VOUCHER_DELIVERY_TYPE.DIGITAL, VOUCHER_DELIVERY_TYPE.PHYSICAL]),
   // voucherJourneyType: z.enum([VOUCHER_JOURNEY_TYPE.OFFER_SPECIFIC, VOUCHER_JOURNEY_TYPE.VALUE_GIFT]),
   codeGenerationType: z.enum(['bxi', 'self']),
-  onlineRedemptionUrl: z.string().optional().or(z.literal('')),
+  onlineRedemptionUrl: z
+    .string()
+    .trim()
+    .min(1, 'URL is required')
+    .refine((value) => {
+      try {
+        const parsedUrl = new URL(value);
+        return ['http:', 'https:'].includes(parsedUrl.protocol) && Boolean(parsedUrl.hostname);
+      } catch {
+        return false;
+      }
+    }, 'Enter a valid URL starting with http:// or https://'),
 });
 
 function redemptionStepsToString(rs) {
@@ -558,6 +569,7 @@ export default function VoucherTechInfo({ category }) {
     setValue,
     watch,
     getValues,
+    trigger,
     control,
     formState: { errors },
   } = useForm({
@@ -581,6 +593,7 @@ export default function VoucherTechInfo({ category }) {
       onChange: (e) => {
         registration.onChange(e);
         setLetterCount(countLetters(e.target.value));
+        if (name === 'onlineRedemptionUrl') trigger(name);
       },
     };
   };

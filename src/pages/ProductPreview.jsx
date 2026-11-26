@@ -574,7 +574,7 @@ export default function ProductPreview() {
   const sizeChartFullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
   const { id } = useParams();
-  const { isAdmin } = useAuthUser();
+  const { isAdmin, companyAvatar } = useAuthUser();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -961,25 +961,56 @@ export default function ProductPreview() {
                     elevation={0}
                     sx={{ width: "100%", maxWidth: 450, position: "relative" }}
                   >
-                    <Box
-                      sx={{
-                        aspectRatio: "1",
-                        borderRadius: 2,
-                        backgroundSize:
-                          product?.ListingType === "Product"
-                            ? "cover"
-                            : "contain",
-                        backgroundPosition:
-                          product?.ListingType === "Product"
-                            ? "center"
-                            : "center",
-                        backgroundRepeat:
-                          product?.ListingType === "Product"
-                            ? "no-repeat"
-                            : "no-repeat",
-                        backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
-                      }}
-                    />
+                    {isVoucherListing ? (
+                      <Box sx={{ position: "relative", aspectRatio: "1" }}>
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            left: 0,
+                            right: 0,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            aspectRatio: "3 / 2",
+                            overflow: "hidden",
+                            borderRadius: 2,
+                            backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
+                            backgroundSize: "contain",
+                            backgroundPosition: "center",
+                            backgroundRepeat: "no-repeat",
+                          }}
+                        >
+                          {carouselIndex === 0 && companyAvatar && (
+                            <Box
+                              component="img"
+                              src={companyAvatar}
+                              alt="Company logo"
+                              sx={{
+                                position: "absolute",
+                                left: "5%",
+                                top: "6.5%",
+                                width: "8.5%",
+                                aspectRatio: "1",
+                                borderRadius: "50%",
+                                objectFit: "cover",
+                                bgcolor: "#fff",
+                                boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
+                              }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Box
+                        sx={{
+                          aspectRatio: "1",
+                          borderRadius: 2,
+                          backgroundSize: product?.ListingType === "Product" ? "cover" : "contain",
+                          backgroundPosition: "center",
+                          backgroundRepeat: "no-repeat",
+                          backgroundImage: `url(${images?.[carouselIndex]?.url || defaultImage})`,
+                        }}
+                      />
+                    )}
                     {images?.length > 1 && (
                       <>
                         <IconButton

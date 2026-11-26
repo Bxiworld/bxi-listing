@@ -125,11 +125,12 @@ export function useAuthUser() {
     refetch();
   }, [refetch]);
   const isAdmin = !!user?.isAdminContext;
+  const companyAvatar = company?.CompanyAvatar?.url || '';
 
   return {
     user,
     company,
-    companyAvatar: company?.CompanyAvatar?.url,
+    companyAvatar,
     companyType: companyTypeName,
     companyTypeId,
     isAdmin,
