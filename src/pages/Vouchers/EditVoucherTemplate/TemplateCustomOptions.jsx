@@ -40,6 +40,7 @@ const TemplateCustomOptions = ({
   updateGradientColors,
 }) => {
   const [files, setFiles] = useState([]);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [cardBgColor, setCardBgColor] = useState(null);
   const [activeColor, setActiveColor] = useState(null);
   const [activeAction, setActiveAction] = useState('');
@@ -56,14 +57,12 @@ const TemplateCustomOptions = ({
 
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
-    const chosen = e.target.files;
+  const handleImageFiles = (chosen) => {
     if (!chosen?.length) return;
     const file = chosen[0];
     const type = file.type?.toLowerCase() || '';
     if (!type.startsWith('image/') || !['image/jpg', 'image/jpeg', 'image/png'].includes(type)) {
       GlobalToast('Only image files are accepted (jpg, jpeg, png).', 'error');
-      e.target.value = '';
       return;
     }
     const reader = new FileReader();
@@ -74,6 +73,9 @@ const TemplateCustomOptions = ({
       GlobalToast('The selected image could not be loaded. Please choose another image.', 'error');
     };
     reader.readAsDataURL(file);
+  };
+  const handleFileChange = e => {
+    handleImageFiles(e.target.files);
     e.target.value = '';
   };
   const colors = [
@@ -212,6 +214,19 @@ const TemplateCustomOptions = ({
         tabIndex={0}
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
+        onDragOver={e => {
+          e.preventDefault();
+          setIsDraggingImage(true);
+        }}
+        onDragLeave={e => {
+          if (!e.currentTarget.contains(e.relatedTarget)) setIsDraggingImage(false);
+        }}
+        onDrop={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDraggingImage(false);
+          handleImageFiles(e.dataTransfer?.files);
+        }}
         sx={{ marginTop: '10px', cursor: 'pointer' }}
       >
         <input
@@ -241,7 +256,8 @@ const TemplateCustomOptions = ({
             marginTop: '1rem',
             textAlign: 'center',
             '&:hover': { cursor: 'pointer' },
-            borderColor: '#2d8ae0',
+            borderColor: isDraggingImage ? '#315794' : '#2d8ae0',
+            backgroundColor: isDraggingImage ? '#eaf0ff' : 'transparent',
           }}
         >
           <Box component="img" src={UploadtoCloud} sx={{}} />

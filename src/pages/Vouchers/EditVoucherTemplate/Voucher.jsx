@@ -194,6 +194,11 @@ const VoucherCard = ({ category: flowCategory }) => {
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
 
   const handleAdditionalImageSelection = fileList => {
+    const remainingSlots = Math.max(0, 2 - additionalProductImagesRef.current.length);
+    if (!remainingSlots) {
+      toast.error('The voucher gallery is limited to 3 images total, including the voucher cover.');
+      return;
+    }
     const selectedFiles = Array.from(fileList || []);
     const validFiles = selectedFiles.filter(file => {
       if (!['image/jpeg', 'image/png'].includes(file.type)) {
@@ -207,8 +212,12 @@ const VoucherCard = ({ category: flowCategory }) => {
       return true;
     });
     if (!validFiles.length) return;
+    if (validFiles.length > remainingSlots) {
+      toast.error('The gallery allows up to 3 images total, including the voucher cover. Only the remaining product image slot will be added.');
+    }
+    const filesToRead = validFiles.slice(0, remainingSlots);
     setIsReadingAdditionalImages(true);
-    const previews = validFiles.map(file => new Promise(resolve => {
+    const previews = filesToRead.map(file => new Promise(resolve => {
       const reader = new FileReader();
       reader.onload = () => resolve({
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -225,7 +234,7 @@ const VoucherCard = ({ category: flowCategory }) => {
       const acceptedImages = images.filter(Boolean);
       if (acceptedImages.length) {
         setAdditionalProductImages(previous => {
-          const next = [...previous, ...acceptedImages];
+          const next = [...previous, ...acceptedImages].slice(0, 2);
           additionalProductImagesRef.current = next;
           return next;
         });
